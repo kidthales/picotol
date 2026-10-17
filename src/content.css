@@ -27,14 +27,13 @@
     padding-inline-start: 1.5rem;
     & li { margin-bottom: 0.25rem; }
   }
-  ul { list-style: var(--tc-list-style); }
   dl {
     & dt { font-weight: 700; }
     & dd { margin: 0 0 0.5rem 1.5rem; }
   }
 
   small { font-size: 0.875em; }
-  mark { padding: 0.125em 0.25em; border-radius: var(--tc-border-radius); background: var(--tc-mark-bg); }
+  mark { padding: 0.125em 0.25em; border-radius: var(--tc-border-radius); background: var(--tc-mark-bg); color: var(--tc-color); }
   ins { color: var(--tc-valid); text-decoration: none; }
   del { color: var(--tc-invalid); }
   abbr[title] { border-bottom: 1px dotted; text-decoration: none; cursor: help; }

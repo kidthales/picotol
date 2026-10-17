@@ -18,8 +18,6 @@
       display: inline-flex;
       align-items: center;
       padding: 0.25rem 0;
-      &:not(.brand)::before { content: var(--tc-nav-prefix); color: var(--tc-muted-color); }
-      &:not(.brand)::after { content: var(--tc-nav-suffix); color: var(--tc-muted-color); }
     }
     & a {
       padding: 0.25rem 0.125rem;
@@ -32,7 +30,6 @@
     }
     &[aria-label="breadcrumb"] {
       justify-content: flex-start;
-      & li::before { content: none; }
       & li:not(:last-child)::after { content: ">"; margin-inline-start: 0.75rem; color: var(--tc-muted-color); }
     }
   }
