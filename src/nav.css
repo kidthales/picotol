@@ -1,0 +1,32 @@
+@layer nav {
+  :where(nav, nav ul) { display: flex; }
+
+  nav {
+    justify-content: space-between;
+    & :where(ol, ul) {
+      align-items: center;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      gap: 0.75rem;
+    }
+    & li {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0;
+      &:not(.brand)::before { content: var(--tc-nav-prefix); color: var(--tc-muted-color); }
+      &:not(.brand)::after { content: var(--tc-nav-suffix); color: var(--tc-muted-color); }
+    }
+    & a {
+      text-decoration: none;
+      &:is(:hover, :focus, [aria-current]:not([aria-current="false"])) { text-decoration: underline; }
+    }
+    &[aria-label="breadcrumb"] {
+      justify-content: flex-start;
+      & li::before { content: none; }
+      & li:not(:last-child)::after { content: ">"; margin-inline-start: 0.75rem; color: var(--tc-muted-color); }
+    }
+  }
+
+  aside :where(nav, ol, ul, li) { display: block; }
+}

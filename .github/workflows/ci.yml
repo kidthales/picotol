@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Build, Hex Purity & WCAG Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build CSS bundles and demo
+        run: npm run build
+
+      - name: Verify dist/ is clean and up-to-date
+        run: git diff --exit-code dist/
+
+      - name: Run Paul Tol hex-purity, WCAG contrast, and byte-budget test suite
+        run: npm test
+
+  notify:
+    name: Discord CI Notification
+    needs: [verify]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch consolidated status card to #dev-ci-builds
+        if: env.WEBHOOK_URL != ''
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK }}
+          JOB_STATUS: ${{ contains(needs.*.result, 'failure') && 'failure' || contains(needs.*.result, 'cancelled') && 'cancelled' || 'success' }}
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            COLOR=2263091
+            TITLE="✅ CI Passed — tol-css"
+          elif [ "$JOB_STATUS" = "cancelled" ]; then
+            COLOR=11184810
+            TITLE="⚪ CI Cancelled — tol-css"
+          else
+            COLOR=15087942
+            TITLE="❌ CI Failed — tol-css"
+          fi
+
+          jq -n \
+            --arg title "$TITLE" \
+            --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg repo "${{ github.repository }}" \
+            --arg branch "${{ github.ref_name }}" \
+            --arg sha "${{ github.sha }}" \
+            --argjson color "$COLOR" \
+            '{
+              username: "kidthales CI",
+              avatar_url: "https://kidthales.com/favicon-96x96.png",
+              embeds: [{
+                title: $title,
+                url: $url,
+                color: $color,
+                fields: [
+                  { name: "Repository", value: $repo, inline: true },
+                  { name: "Branch", value: $branch, inline: true },
+                  { name: "Commit", value: ($sha | .[0:7]), inline: true }
+                ],
+                footer: {
+                  text: "GitHub Actions • tol-css",
+                  icon_url: "https://kidthales.com/favicon-96x96.png"
+                }
+              }]
+            }' | curl -sS -H "Content-Type: application/json" -d @- "$WEBHOOK_URL"
