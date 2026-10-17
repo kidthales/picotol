@@ -222,26 +222,34 @@
     margin-block: 0 var(--tc-spacing);
   }
 
+  :where(p, dl, blockquote, :not(nav, details) > :is(ul, ol)) {
+    max-width: 75ch;
+  }
+
   :where(h1, h2, h3, h4, h5, h6) {
     text-wrap: balance;
     font-weight: 700;
-    line-height: 1.15;
+    line-height: 1.25;
 
     &:not(:first-child) {
       margin-top: 1.5em;
     }
   }
 
+  :where(h1, h2) {
+    line-height: 1.2;
+  }
+
   h1 {
-    font-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem);
+    font-size: clamp(2rem, 1.6rem + 1.5vw, 2.5rem);
   }
 
   h2 {
-    font-size: clamp(1.45rem, 1.2rem + .9vw, 1.85rem);
+    font-size: clamp(1.6rem, 1.3rem + 1vw, 2rem);
   }
 
   h3 {
-    font-size: clamp(1.25rem, 1.1rem + .5vw, 1.5rem);
+    font-size: clamp(1.3rem, 1.15rem + .5vw, 1.55rem);
   }
 
   :where(h4, h5, h6) {
@@ -253,11 +261,15 @@
   }
 
   h5 {
-    font-size: 1.075rem;
+    font-size: 1.05rem;
+    font-weight: 600;
   }
 
   h6 {
-    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-size: .9rem;
+    font-weight: 600;
   }
 
   hgroup > * {

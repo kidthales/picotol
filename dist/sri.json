@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "files": {
     "dist/tol-css.core.min.css": {
-      "bytes": 9107,
-      "gzipBytes": 2926,
-      "integrity": "sha384-GgOLZCfPga0IWUo726tBXgcQzJBJ5s6qgBI8v59QSA3rcH41l4lsf22kHacoGGrI"
+      "bytes": 9275,
+      "gzipBytes": 2988,
+      "integrity": "sha384-JBFa8hPA96EfoXpFYx+NeX39KtjWqOgNKdh0lbl5IcJdj8onS+rLo7d/LR5iYbUq"
     },
     "dist/tol-css.min.css": {
-      "bytes": 15582,
-      "gzipBytes": 4539,
-      "integrity": "sha384-j6W53kKulv5mEVu6Uly4BiWAQok1rlVxjaXRZDE43bb0ts+aLylylZK+ndZ/ztTM"
+      "bytes": 15750,
+      "gzipBytes": 4598,
+      "integrity": "sha384-Dwk1ckyHuK/Mo5wnwp1PCLUirr0v09Yf/cKW7UluDR3k25+NLdbiPD7DjaHt27ny"
     }
   }
 }
