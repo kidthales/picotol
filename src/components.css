@@ -1,33 +1,33 @@
 @layer components {
   /* 1. Card (<article>) */
   article {
-    margin-bottom: var(--tc-spacing);
-    padding: var(--tc-spacing);
-    border: var(--tc-border);
-    border-radius: var(--tc-border-radius);
-    background-color: var(--tc-bg);
-    box-shadow: var(--tc-box-shadow);
+    margin-bottom: var(--pt-spacing);
+    padding: var(--pt-spacing);
+    border: var(--pt-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-bg);
+    box-shadow: var(--pt-box-shadow);
 
     & > :where(header, footer) {
-      margin-inline: calc(var(--tc-spacing) * -1);
-      padding: 0.66rem var(--tc-spacing);
-      background-color: var(--tc-surface-subtle);
+      margin-inline: calc(var(--pt-spacing) * -1);
+      padding: 0.66rem var(--pt-spacing);
+      background-color: var(--pt-surface-subtle);
     }
     & > header {
-      margin-block: calc(var(--tc-spacing) * -1) var(--tc-spacing);
-      border-bottom: var(--tc-border);
+      margin-block: calc(var(--pt-spacing) * -1) var(--pt-spacing);
+      border-bottom: var(--pt-border);
     }
     & > footer {
-      margin-block: var(--tc-spacing) calc(var(--tc-spacing) * -1);
-      border-top: var(--tc-border);
+      margin-block: var(--pt-spacing) calc(var(--pt-spacing) * -1);
+      border-top: var(--pt-border);
     }
   }
 
   /* 2. Accordion (<details>) & 3. Dropdown (details.dropdown) */
   details {
-    margin-bottom: var(--tc-spacing);
+    margin-bottom: var(--pt-spacing);
     padding-bottom: 0.75rem;
-    border-bottom: var(--tc-border);
+    border-bottom: var(--pt-border);
 
     & summary {
       display: flex;
@@ -42,9 +42,9 @@
         width: 1rem;
         height: 1rem;
         background-color: currentColor;
-        mask: var(--tc-icon-chevron) center / contain no-repeat;
+        mask: var(--pt-icon-chevron) center / contain no-repeat;
         transform: rotate(-90deg);
-        transition: transform var(--tc-transition);
+        transition: transform var(--pt-transition);
       }
     }
 
@@ -59,10 +59,10 @@
       padding: 0;
       & > summary {
         margin: 0;
-        padding: var(--tc-form-y) var(--tc-form-x);
-        border: var(--tc-border);
-        border-radius: var(--tc-border-radius);
-        background-color: var(--tc-bg);
+        padding: var(--pt-form-y) var(--pt-form-x);
+        border: var(--pt-border);
+        border-radius: var(--pt-border-radius);
+        background-color: var(--pt-bg);
         &::after { transform: none; }
       }
       & > summary + ul {
@@ -73,16 +73,16 @@
         min-width: 100%;
         margin: 0;
         padding: 0.25rem 0;
-        border: var(--tc-border);
-        border-radius: var(--tc-border-radius);
-        background-color: var(--tc-bg);
-        box-shadow: var(--tc-box-shadow);
+        border: var(--pt-border);
+        border-radius: var(--pt-border-radius);
+        background-color: var(--pt-bg);
+        box-shadow: var(--pt-box-shadow);
         list-style: none;
         & li {
           margin: 0;
-          padding: 0.375rem var(--tc-form-x);
+          padding: 0.375rem var(--pt-form-x);
           white-space: nowrap;
-          &:hover { background-color: var(--tc-surface-subtle); }
+          &:hover { background-color: var(--pt-surface-subtle); }
         }
       }
     }
@@ -92,7 +92,7 @@
   :where([role="group"], [role="search"]) {
     display: inline-flex;
     width: 100%;
-    margin-bottom: var(--tc-spacing);
+    margin-bottom: var(--pt-spacing);
     & > * {
       width: auto;
       min-width: 0;
@@ -139,10 +139,10 @@
     max-width: none;
     max-height: none;
     margin: 0;
-    padding: var(--tc-spacing);
+    padding: var(--pt-spacing);
     border: 0;
     background-color: color-mix(in srgb, var(--tol-black) 65%, transparent);
-    color: var(--tc-color);
+    color: var(--pt-color);
     &::backdrop { background-color: color-mix(in srgb, var(--tol-black) 65%, transparent); }
     &:not([open]) { display: none; }
     & > article {
@@ -161,23 +161,23 @@
     margin-bottom: 0.5rem;
     overflow: hidden;
     border: 0;
-    border-radius: var(--tc-border-radius);
-    background-color: var(--tc-surface);
-    accent-color: var(--tc-primary);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-surface);
+    accent-color: var(--pt-primary);
     &::-webkit-progress-bar { background: none; }
-    &::-webkit-progress-value { background-color: var(--tc-primary); }
-    &::-moz-progress-bar { background-color: var(--tc-primary); }
+    &::-webkit-progress-value { background-color: var(--pt-primary); }
+    &::-moz-progress-bar { background-color: var(--pt-primary); }
   }
 
   /* 7. Switch ([role="switch"]) & Range ([type="range"]) */
   [type="checkbox"][role="switch"] {
     width: 2.75rem;
     height: 1.5rem;
-    border: var(--tc-border);
+    border: var(--pt-border);
     border-radius: 1.5rem;
-    background-color: var(--tc-surface);
+    background-color: var(--pt-surface);
     appearance: none;
-    transition: background-color var(--tc-transition), border-color var(--tc-transition);
+    transition: background-color var(--pt-transition), border-color var(--pt-transition);
     &::before {
       content: "";
       display: block;
@@ -185,12 +185,12 @@
       height: 1.25rem;
       margin: 0.0625rem;
       border-radius: 50%;
-      background-color: var(--tc-bg);
-      transition: margin var(--tc-transition);
+      background-color: var(--pt-bg);
+      transition: margin var(--pt-transition);
     }
     &:checked {
-      background-color: var(--tc-primary);
-      border-color: var(--tc-primary);
+      background-color: var(--pt-primary);
+      border-color: var(--pt-primary);
       &::before { margin-inline-start: 1.3125rem; }
     }
   }
@@ -211,8 +211,8 @@
   [type="range"] {
     width: 100%;
     min-height: 1.5rem;
-    margin-bottom: var(--tc-spacing);
-    accent-color: var(--tc-primary);
+    margin-bottom: var(--pt-spacing);
+    accent-color: var(--pt-primary);
     cursor: pointer;
   }
 
@@ -249,9 +249,9 @@
       max-width: min(16rem, 80vw);
       padding: 0.25rem 0.5rem;
       transform: translateX(-50%);
-      border-radius: var(--tc-border-radius);
-      background-color: var(--tc-color);
-      color: var(--tc-bg);
+      border-radius: var(--pt-border-radius);
+      background-color: var(--pt-color);
+      color: var(--pt-bg);
       font-size: 0.875rem;
       text-align: center;
       white-space: normal;

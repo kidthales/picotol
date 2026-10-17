@@ -1,5 +1,5 @@
 // Generates a self-contained, offline-capable interactive HTML5 kitchen-sink
-// showcase of tol-css into dist/demo/index.html.
+// showcase of picotol into dist/demo/index.html.
 import { loadSnapshot } from './sync-tokens.mjs';
 
 export function hexToRgb(hex) {
@@ -126,7 +126,7 @@ function badgeHtml(ratioNum) {
 }
 
 function swatchHtml(hex) {
-  return `<span aria-hidden="true" style="display:inline-block;width:0.8em;height:0.8em;margin-inline-end:0.3em;border-radius:2px;background:${hex};border:1px solid var(--tc-muted-border);vertical-align:-0.08em;"></span>`;
+  return `<span aria-hidden="true" style="display:inline-block;width:0.8em;height:0.8em;margin-inline-end:0.3em;border-radius:2px;background:${hex};border:1px solid var(--pt-muted-border);vertical-align:-0.08em;"></span>`;
 }
 
 function formatScoreCell(hex, token, ratioNum, hoverHex, hoverRatioNum) {
@@ -160,7 +160,7 @@ export function generateDemoHtml(fullMinCss, stats) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>tol-css — Pure-CSS Semantic Framework Powered by Paul Tol Colour Schemes</title>
+  <title>picotol — Pure-CSS Semantic Framework Powered by Paul Tol Colour Schemes</title>
   <style>${fullMinCss}</style>
 </head>
 <body>
@@ -168,7 +168,7 @@ export function generateDemoHtml(fullMinCss, stats) {
   <header>
     <nav>
       <ul>
-        <li><strong>tol-css</strong></li>
+        <li><strong>picotol</strong></li>
         <li><a href="#scorecard">Scorecard</a></li>
         <li><a href="#typography">Typography</a></li>
         <li><a href="#buttons">Buttons</a></li>
@@ -198,11 +198,11 @@ export function generateDemoHtml(fullMinCss, stats) {
         <ul>
           <li><a href="#">kidthales</a></li>
           <li><a href="#scorecard">tol-palettes</a></li>
-          <li><a href="#main-content" aria-current="page">tol-css</a></li>
+          <li><a href="#main-content" aria-current="page">picotol</a></li>
         </ul>
       </nav>
       <hgroup>
-        <h1>tol-css Semantic Kitchen Sink</h1>
+        <h1>picotol Semantic Kitchen Sink</h1>
         <p>100% pure modern CSS • Strictly Paul Tol colour sets • Zero Sass • LightningCSS AST-minified</p>
       </hgroup>
     </header>
@@ -211,12 +211,12 @@ export function generateDemoHtml(fullMinCss, stats) {
       <h2>1. Bundle Size &amp; WCAG 2.2 Contrast Scorecard</h2>
       <div class="grid">
         <article>
-          <header><strong>Core Bundle (<code>tol-css.core.min.css</code>)</strong></header>
+          <header><strong>Core Bundle (<code>picotol.core.min.css</code>)</strong></header>
           <p><strong>${stats.coreMinBytes} bytes</strong> (${(stats.coreMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.coreGzipBytes} B</strong> gzip)</p>
           <footer><small>Landmarks, .grid, typography, tables, forms, nav</small></footer>
         </article>
         <article>
-          <header><strong>Full Bundle (<code>tol-css.min.css</code>)</strong></header>
+          <header><strong>Full Bundle (<code>picotol.min.css</code>)</strong></header>
           <p><strong>${stats.fullMinBytes} bytes</strong> (${(stats.fullMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.fullGzipBytes} B</strong> gzip)</p>
           <footer><small>${((1 - stats.fullMinBytes / 83319) * 100).toFixed(1)}% smaller than upstream pico.min.css (83.3 KB)</small></footer>
         </article>
@@ -263,7 +263,7 @@ ${rowsHtml}
           <h3>Preformatted Code</h3>
           <pre><code>:root {
   color-scheme: light dark;
-  --tc-bg: light-dark(var(--tol-white), var(--tol-black));
+  --pt-bg: light-dark(var(--tol-white), var(--tol-black));
 }</code></pre>
         </div>
       </div>
@@ -295,7 +295,7 @@ ${rowsHtml}
         <div class="grid">
           <label>
             Project Name
-            <input type="text" placeholder="tol-css" required>
+            <input type="text" placeholder="picotol" required>
           </label>
           <label>
             Scheme Family
@@ -373,7 +373,7 @@ ${rowsHtml}
           <header>
             <strong id="modal-title">Paul Tol Colour Verification Modal</strong>
           </header>
-          <p>This native HTML5 <code>&lt;dialog&gt;</code> element is styled purely with <code>tol-css.min.css</code>.</p>
+          <p>This native HTML5 <code>&lt;dialog&gt;</code> element is styled purely with <code>picotol.min.css</code>.</p>
           <footer>
             <button type="button" onclick="document.getElementById('demo-modal').close()">Close</button>
           </footer>
@@ -383,7 +383,7 @@ ${rowsHtml}
   </main>
 
   <footer>
-    <small><strong>tol-css</strong> • MIT License • Colour values from Paul Tol (3-clause BSD) via <code>tol-palettes</code>.</small>
+    <small><strong>picotol</strong> • MIT License • Colour values from Paul Tol (3-clause BSD) via <code>tol-palettes</code>.</small>
   </footer>
 
   <script>

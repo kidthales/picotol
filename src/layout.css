@@ -1,19 +1,19 @@
 @layer layout {
   :where(body > header, body > main, body > footer, .container) {
     width: 100%;
-    max-width: var(--tc-container-max);
+    max-width: var(--pt-container-max);
     margin-inline: auto;
-    padding: var(--tc-spacing);
+    padding: var(--pt-spacing);
   }
 
   section { margin-bottom: 1.5rem; }
 
   .grid {
     display: grid;
-    gap: var(--tc-spacing);
+    gap: var(--pt-spacing);
     & > * { min-width: 0; }
     @media (min-width: 48rem) {
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--tc-grid-min)), 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--pt-grid-min)), 1fr));
     }
   }
 
