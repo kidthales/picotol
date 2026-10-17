@@ -21,6 +21,7 @@ const QUALITATIVE_IDS = [
   'pale',
   'prgn',
   'vibrant',
+  'ylorbr',
 ];
 
 const SCHEME_PREFIX = {
@@ -33,6 +34,7 @@ const SCHEME_PREFIX = {
   'pale': 'pale',
   'prgn': 'prgn',
   'vibrant': 'vibrant',
+  'ylorbr': 'ylorbr',
 };
 
 const ACHROMATIC_SOURCES = [
@@ -54,7 +56,12 @@ export function loadSnapshot() {
 
     for (const id of QUALITATIVE_IDS) {
       const raw = JSON.parse(readFileSync(join(upstreamDir, `${id}.json`), 'utf8'));
-      const colors = id === 'prgn' ? raw.colors.slice(0, 4) : raw.colors;
+      const colors =
+        id === 'prgn'
+          ? raw.colors.slice(0, 4)
+          : id === 'ylorbr'
+            ? raw.colors.slice(7, 9)
+            : raw.colors;
       schemes[id] = {
         id: raw.id,
         kind: raw.kind,
@@ -128,7 +135,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     '    --tc-surface-subtle: color-mix(in srgb, var(--tc-surface) 38%, transparent);',
     `    --tc-color: light-dark(${ach['black']}, ${ach['white']});`,
     `    --tc-muted-color: light-dark(${ach['grey-800']}, ${ach['grey-200']});`,
-    `    --tc-muted-border: light-dark(${ach['grey-300']}, ${ach['grey-700']});`,
+    `    --tc-muted-border: light-dark(${ach['grey-500']}, ${ach['grey-700']});`,
     '    --tc-border: 1px solid var(--tc-muted-border);',
     `    --tc-valid: light-dark(${colorByName('dark', 5)}, ${colorByName('light', 'mint')});`,
     `    --tc-invalid: light-dark(${colorByName('vibrant', 'red')}, ${colorByName('bright', 'red')});`,
@@ -145,19 +152,19 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     '  [data-theme="light"] { color-scheme: light; }',
     '  [data-theme="dark"] { color-scheme: dark; }',
     '  [data-accent="cyan"] {',
-    `    --tc-p1: ${colorByName('pale', 1)}; --tc-p2: ${colorByName('light', 'light_cyan')}; --tc-p3: ${colorByName('muted', 'teal')}; --tc-p4: ${colorByName('dark', 6)}; --tc-p5: ${colorByName('dark', 5)};`,
+    `    --tc-p1: ${colorByName('pale', 1)}; --tc-p2: ${colorByName('light', 'light_cyan')}; --tc-p3: ${colorByName('vibrant', 'blue')}; --tc-p4: ${colorByName('dark', 6)}; --tc-p5: ${colorByName('dark', 5)};`,
     '  }',
     '  [data-accent="green"] {',
     `    --tc-p1: ${colorByName('pale', 2)}; --tc-p2: ${colorByName('light', 'mint')}; --tc-p3: ${colorByName('bright', 'green')}; --tc-p4: ${colorByName('dark', 5)}; --tc-p5: ${colorByName('muted', 'green')};`,
     '  }',
     '  [data-accent="yellow"] {',
-    `    --tc-p1: ${colorByName('pale', 3)}; --tc-p2: ${colorByName('high-contrast', 'yellow')}; --tc-p3: ${colorByName('medium-contrast', 'dark_yellow')}; --tc-p4: ${colorByName('dark', 9)}; --tc-p5: ${colorByName('medium-contrast', 'dark_yellow')};`,
+    `    --tc-p1: ${colorByName('pale', 3)}; --tc-p2: ${colorByName('high-contrast', 'yellow')}; --tc-p3: ${colorByName('ylorbr', 0)}; --tc-p4: ${colorByName('dark', 9)}; --tc-p5: ${colorByName('ylorbr', 1)};`,
     '  }',
     '  [data-accent="red"] {',
     `    --tc-p1: ${colorByName('light', 'orange')}; --tc-p2: ${colorByName('bright', 'red')}; --tc-p3: ${colorByName('dark', 1)}; --tc-p4: ${colorByName('vibrant', 'red')}; --tc-p5: ${colorByName('medium-contrast', 'dark_red')};`,
     '  }',
     '  [data-accent="purple"] {',
-    `    --tc-p1: ${colorByName('prgn', 3)}; --tc-p2: ${colorByName('prgn', 2)}; --tc-p3: ${colorByName('prgn', 1)}; --tc-p4: ${colorByName('prgn', 0)}; --tc-p5: ${colorByName('muted', 'indigo')};`,
+    `    --tc-p1: ${colorByName('prgn', 3)}; --tc-p2: ${colorByName('prgn', 2)}; --tc-p3: ${colorByName('muted', 'purple')}; --tc-p4: ${colorByName('prgn', 0)}; --tc-p5: ${colorByName('muted', 'indigo')};`,
     '  }',
     '}',
     '',
