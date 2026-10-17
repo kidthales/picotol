@@ -8,4 +8,4 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in `@kidthales/picotol`, please report it privately via [GitHub Security Advisories](https://github.com/kidthales/tol-css/security/advisories/new) rather than opening a public issue. We will review and respond promptly.
+If you discover a security vulnerability in `@kidthales/picotol`, please report it privately via [GitHub Security Advisories](https://github.com/kidthales/picotol/security/advisories/new) rather than opening a public issue. We will review and respond promptly.

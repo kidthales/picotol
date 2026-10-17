@@ -12,11 +12,11 @@
   "jsdelivr": "./dist/picotol.min.css",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kidthales/tol-css.git"
+    "url": "git+https://github.com/kidthales/picotol.git"
   },
-  "homepage": "https://github.com/kidthales/tol-css#readme",
+  "homepage": "https://github.com/kidthales/picotol#readme",
   "bugs": {
-    "url": "https://github.com/kidthales/tol-css/issues"
+    "url": "https://github.com/kidthales/picotol/issues"
   },
   "keywords": [
     "css",
