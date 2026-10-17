@@ -85,18 +85,6 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 - **`data-theme`**: `"light"` | `"dark"` (omit to follow OS `prefers-color-scheme`)
 - **`data-accent`**: `"blue"` (default) | `"cyan"` | `"green"` | `"yellow"` | `"red"` | `"purple"`
 
-### 4. `kidthales.com` Typographic & Navigation Hooks
-
-Customize navigation link brackets and list markers purely via CSS custom properties:
-
-```css
-:root {
-  --tc-nav-prefix: "[";
-  --tc-nav-suffix: "]";
-  --tc-list-style: square;
-}
-```
-
 ---
 
 ## Architecture & Cascade Layers
@@ -110,9 +98,9 @@ Customize navigation link brackets and list markers purely via CSS custom proper
 | `tokens` | [`src/tokens.css`](src/tokens.css), [`src/palettes.css`](src/palettes.css) | Auto-generated canonical `--tol-*` scheme constants, `--tc-*` semantic tokens, `[data-theme]` & `[data-accent]` ladders |
 | `base` | [`src/base.css`](src/base.css) | Modern box-sizing reset, document defaults, `:focus-visible`, `.skip-to-content`, `.sr-only`, `@media print`, reduced-motion baseline |
 | `layout` | [`src/layout.css`](src/layout.css) | Centered `body > header, main, footer` landmarks, `.container`, `.grid` (`min-width: 0`), `.overflow-auto`, `<hr>` |
-| `content` | [`src/content.css`](src/content.css) | Fluid `clamp()` headings, links, neutral slate `.secondary` button ladder, lists (`--tc-list-style`), blockquotes, code, tables, figures |
+| `content` | [`src/content.css`](src/content.css) | Fluid `clamp()` headings, links, neutral slate `.secondary` button ladder, lists, blockquotes, code, tables, figures |
 | `forms` | [`src/forms.css`](src/forms.css) | Semantic buttons, inputs, selects, textareas, WCAG 2.2 SC 2.5.8 target sizing, `[aria-invalid="true"\|"false"]` validation with `✓`/`✗` cues |
-| `nav` | [`src/nav.css`](src/nav.css) | Responsive wrapping flex `<nav>`, `[role="menubar"]`, `--tc-nav-prefix`/`--tc-nav-suffix` hooks |
+| `nav` | [`src/nav.css`](src/nav.css) | Responsive wrapping flex `<nav>`, `[role="menubar"]`, breadcrumbs |
 | `components` | [`src/components.css`](src/components.css) | `<article>` card, `<details>` accordion/dropdown, `<dialog>` modal (`::backdrop`), `<progress>`, `[role="switch"]`, `[aria-busy]`, `[role="group"]`, `[data-tooltip]`, `@media (forced-colors: active)` |
 
 ---

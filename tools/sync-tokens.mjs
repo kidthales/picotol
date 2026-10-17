@@ -19,6 +19,7 @@ const QUALITATIVE_IDS = [
   'medium-contrast',
   'muted',
   'pale',
+  'prgn',
   'vibrant',
 ];
 
@@ -30,6 +31,7 @@ const SCHEME_PREFIX = {
   'medium-contrast': 'mc',
   'muted': 'muted',
   'pale': 'pale',
+  'prgn': 'prgn',
   'vibrant': 'vibrant',
 };
 
@@ -52,14 +54,15 @@ export function loadSnapshot() {
 
     for (const id of QUALITATIVE_IDS) {
       const raw = JSON.parse(readFileSync(join(upstreamDir, `${id}.json`), 'utf8'));
+      const colors = id === 'prgn' ? raw.colors.slice(0, 4) : raw.colors;
       schemes[id] = {
         id: raw.id,
         kind: raw.kind,
-        colors: raw.colors,
+        colors,
         ...(raw.extras ? { extras: raw.extras } : {}),
         ...(raw.bad ? { bad: raw.bad } : {}),
       };
-      for (const c of raw.colors) allowedHexSet.add(c.hex.toUpperCase());
+      for (const c of colors) allowedHexSet.add(c.hex.toUpperCase());
       for (const c of raw.extras ?? []) allowedHexSet.add(c.hex.toUpperCase());
       if (raw.bad) allowedHexSet.add(raw.bad.toUpperCase());
     }
@@ -120,9 +123,6 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     '    --tc-form-x: 0.75rem;',
     '    --tc-container-max: 70rem;',
     '    --tc-grid-min: 15rem;',
-    '    --tc-nav-prefix: "";',
-    '    --tc-nav-suffix: "";',
-    '    --tc-list-style: disc;',
     `    --tc-bg: light-dark(${ach['white']}, ${ach['black']});`,
     `    --tc-surface: light-dark(${ach['grey-200']}, ${ach['grey-800']});`,
     '    --tc-surface-subtle: color-mix(in srgb, var(--tc-surface) 38%, transparent);',
@@ -131,14 +131,16 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     `    --tc-muted-border: light-dark(${ach['grey-300']}, ${ach['grey-700']});`,
     '    --tc-border: 1px solid var(--tc-muted-border);',
     `    --tc-valid: light-dark(${colorByName('dark', 5)}, ${colorByName('light', 'mint')});`,
-    `    --tc-invalid: light-dark(${colorByName('dark', 4)}, ${colorByName('light', 'pink')});`,
+    `    --tc-invalid: light-dark(${colorByName('vibrant', 'red')}, ${colorByName('bright', 'red')});`,
     `    --tc-mark-bg: light-dark(${colorByName('pale', 3)}, ${colorByName('dark', 9)});`,
     '    --tc-box-shadow: 0 2px 8px color-mix(in srgb, var(--tc-color) 12%, transparent);',
+    `    --tc-p1: ${colorByName('pale', 0)}; --tc-p2: ${colorByName('light', 'light_blue')}; --tc-p3: ${colorByName('bright', 'blue')}; --tc-p4: ${colorByName('dark', 3)}; --tc-p5: ${colorByName('high-contrast', 'blue')};`,
+    '  }',
+    '  :root, :host, :where([data-accent], [data-theme]) {',
     '    --tc-primary: light-dark(var(--tc-p4), var(--tc-p2));',
     '    --tc-primary-hover: light-dark(var(--tc-p5), var(--tc-p1));',
     '    --tc-primary-bg: light-dark(var(--tc-p1), var(--tc-p4));',
     '    --tc-primary-hover-bg: light-dark(var(--tc-p2), var(--tc-p3));',
-    `    --tc-p1: ${colorByName('pale', 0)}; --tc-p2: ${colorByName('light', 'light_blue')}; --tc-p3: ${colorByName('bright', 'blue')}; --tc-p4: ${colorByName('dark', 3)}; --tc-p5: ${colorByName('high-contrast', 'blue')};`,
     '  }',
     '  [data-theme="light"] { color-scheme: light; }',
     '  [data-theme="dark"] { color-scheme: dark; }',
@@ -152,14 +154,13 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     `    --tc-p1: ${colorByName('pale', 3)}; --tc-p2: ${colorByName('high-contrast', 'yellow')}; --tc-p3: ${colorByName('medium-contrast', 'dark_yellow')}; --tc-p4: ${colorByName('dark', 9)}; --tc-p5: ${colorByName('medium-contrast', 'dark_yellow')};`,
     '  }',
     '  [data-accent="red"] {',
-    `    --tc-p1: ${colorByName('pale', 4)}; --tc-p2: ${colorByName('light', 'pink')}; --tc-p3: ${colorByName('high-contrast', 'red')}; --tc-p4: ${colorByName('dark', 4)}; --tc-p5: ${colorByName('medium-contrast', 'dark_red')};`,
+    `    --tc-p1: ${colorByName('light', 'orange')}; --tc-p2: ${colorByName('bright', 'red')}; --tc-p3: ${colorByName('dark', 1)}; --tc-p4: ${colorByName('vibrant', 'red')}; --tc-p5: ${colorByName('medium-contrast', 'dark_red')};`,
     '  }',
     '  [data-accent="purple"] {',
-    `    --tc-p1: ${colorByName('pale', 5)}; --tc-p2: ${colorByName('medium-contrast', 'light_red')}; --tc-p3: ${colorByName('bright', 'purple')}; --tc-p4: ${colorByName('dark', 7)}; --tc-p5: ${colorByName('muted', 'indigo')};`,
+    `    --tc-p1: ${colorByName('prgn', 3)}; --tc-p2: ${colorByName('prgn', 2)}; --tc-p3: ${colorByName('prgn', 1)}; --tc-p4: ${colorByName('prgn', 0)}; --tc-p5: ${colorByName('muted', 'indigo')};`,
     '  }',
     '}',
     '',
-
   ];
 
   return lines.join('\n');

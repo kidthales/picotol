@@ -71,41 +71,53 @@ export const ACCENT_TABLE = [
   },
   {
     accent: 'red',
-    lightFg: '#993366',
-    lightFgToken: '--tol-dark-4',
-    lightBg: '#FFBBCC',
-    lightBgToken: '--tol-pale-4',
-    darkFg: '#FFAABB',
-    darkFgToken: '--tol-light-pink',
-    darkBg: '#993366',
-    darkBgToken: '--tol-dark-4',
+    lightFg: '#CC3311',
+    lightFgToken: '--tol-vibrant-red',
+    lightBg: '#EE8866',
+    lightBgToken: '--tol-light-orange',
+    darkFg: '#EE6677',
+    darkFgToken: '--tol-bright-red',
+    darkBg: '#CC3311',
+    darkBgToken: '--tol-vibrant-red',
   },
   {
     accent: 'purple',
-    lightFg: '#882288',
-    lightFgToken: '--tol-dark-7',
-    lightBg: '#EEBBDD',
-    lightBgToken: '--tol-pale-5',
-    darkFg: '#EE99AA',
-    darkFgToken: '--tol-medium-contrast-light_red',
-    darkBg: '#882288',
-    darkBgToken: '--tol-dark-7',
+    lightFg: '#762A83',
+    lightFgToken: '--tol-prgn-0',
+    lightBg: '#E7D4E8',
+    lightBgToken: '--tol-prgn-3',
+    darkFg: '#C2A5CF',
+    darkFgToken: '--tol-prgn-2',
+    darkBg: '#762A83',
+    darkBgToken: '--tol-prgn-0',
   },
 ];
+
+function formatScoreCell(hex, token, ratioNum) {
+  const ratio = ratioNum.toFixed(2);
+  const tier =
+    ratioNum >= 7.0
+      ? '<ins title="Exceeds WCAG 2.2 AAA enhanced contrast (>= 7.0:1)"><strong>✓ AAA</strong></ins>'
+      : ratioNum >= 4.5
+        ? '<mark title="Meets WCAG 2.2 AA standard contrast (>= 4.5:1)"><strong>✓ AA</strong></mark>'
+        : '<del title="Below WCAG 2.2 AA 4.5:1 minimum"><strong>✗ Fail</strong></del>';
+  const swatch = `<span aria-hidden="true" style="display:inline-block;width:0.85em;height:0.85em;margin-inline-end:0.35em;border-radius:2px;background:${hex};border:1px solid var(--tc-muted-border);vertical-align:-0.1em;"></span>`;
+  return `<div style="white-space:nowrap">${swatch}<code>${hex}</code> · <strong>${ratio}:1</strong> ${tier}</div><small>${token}</small>`;
+}
 
 export function generateDemoHtml(fullMinCss, stats) {
   loadSnapshot();
   const rowsHtml = ACCENT_TABLE.map((row) => {
-    const crLight = contrastRatio(row.lightFg, '#FFFFFF').toFixed(2);
-    const crDark = contrastRatio(row.darkFg, '#000000').toFixed(2);
-    const crLightBtn = contrastRatio('#000000', row.lightBg).toFixed(2);
-    const crDarkBtn = contrastRatio('#FFFFFF', row.darkBg).toFixed(2);
+    const crLight = contrastRatio(row.lightFg, '#FFFFFF');
+    const crLightBtn = contrastRatio('#000000', row.lightBg);
+    const crDark = contrastRatio(row.darkFg, '#000000');
+    const crDarkBtn = contrastRatio('#FFFFFF', row.darkBg);
     return `            <tr>
               <td><strong><code>${row.accent}</code></strong></td>
-              <td><code>${row.lightFg}</code> <small>(${row.lightFgToken})</small> — <strong>${crLight}:1</strong></td>
-              <td><code>${row.lightBg}</code> <small>(${row.lightBgToken})</small> — <strong>${crLightBtn}:1</strong></td>
-              <td><code>${row.darkFg}</code> <small>(${row.darkFgToken})</small> — <strong>${crDark}:1</strong></td>
-              <td><code>${row.darkBg}</code> <small>(${row.darkBgToken})</small> — <strong>${crDarkBtn}:1</strong></td>
+              <td>${formatScoreCell(row.lightFg, row.lightFgToken, crLight)}</td>
+              <td>${formatScoreCell(row.lightBg, row.lightBgToken, crLightBtn)}</td>
+              <td>${formatScoreCell(row.darkFg, row.darkFgToken, crDark)}</td>
+              <td>${formatScoreCell(row.darkBg, row.darkBgToken, crDarkBtn)}</td>
             </tr>`;
   }).join('\n');
 
@@ -122,7 +134,7 @@ export function generateDemoHtml(fullMinCss, stats) {
   <header>
     <nav>
       <ul>
-        <li class="brand"><strong>tol-css</strong></li>
+        <li><strong>tol-css</strong></li>
         <li><a href="#scorecard">Scorecard</a></li>
         <li><a href="#typography">Typography</a></li>
         <li><a href="#buttons">Buttons</a></li>
@@ -141,7 +153,6 @@ export function generateDemoHtml(fullMinCss, stats) {
             <option value="purple">Accent: Purple</option>
           </select>
         </li>
-        <li><button type="button" id="kt-toggle" class="outline secondary" style="padding-block:0.25rem;">[kidthales] mode</button></li>
         <li><button type="button" id="theme-toggle" class="outline" style="padding-block:0.25rem;">Toggle theme</button></li>
       </ul>
     </nav>
@@ -163,7 +174,7 @@ export function generateDemoHtml(fullMinCss, stats) {
     </header>
 
     <section id="scorecard">
-      <h2>1. Bundle Size &amp; WCAG 2.x Contrast Scorecard</h2>
+      <h2>1. Bundle Size &amp; WCAG 2.2 Contrast Scorecard</h2>
       <div class="grid">
         <article>
           <header><strong>Core Bundle (<code>tol-css.core.min.css</code>)</strong></header>
@@ -176,6 +187,7 @@ export function generateDemoHtml(fullMinCss, stats) {
           <footer><small>${((1 - stats.fullMinBytes / 83319) * 100).toFixed(1)}% smaller than upstream pico.min.css (83.3 KB)</small></footer>
         </article>
       </div>
+      <p><small><strong>How to read contrast ratios:</strong> Luminance contrast ranges from <code>1:1</code> (invisible) to <code>21:1</code> (pure black on white). <ins><strong>✓ AAA</strong></ins> (<code>&ge; 7.0:1</code>) is the highest W3C tier (enhanced low-vision legibility); <mark><strong>✓ AA</strong></mark> (<code>&ge; 4.5:1</code>) is the standard pass threshold for normal body text and UI controls.</small></p>
       <div id="tables" class="overflow-auto">
         <table class="striped">
           <thead>
@@ -349,13 +361,6 @@ ${rowsHtml}
     });
     document.getElementById('accent-select').addEventListener('change', (e) => {
       root.setAttribute('data-accent', e.target.value);
-    });
-    let ktMode = false;
-    document.getElementById('kt-toggle').addEventListener('click', () => {
-      ktMode = !ktMode;
-      root.style.setProperty('--tc-nav-prefix', ktMode ? '"["' : '""');
-      root.style.setProperty('--tc-nav-suffix', ktMode ? '"]"' : '""');
-      root.style.setProperty('--tc-list-style', ktMode ? 'square' : 'disc');
     });
   </script>
 </body>

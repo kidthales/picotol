@@ -143,15 +143,15 @@ test("WCAG 2.1 Contrast Verification across Light and Dark surfaces and all 6 Pa
     },
     {
       name: "red",
-      p1: schemeColor("pale", 4), // #FFBBCC
-      p2: schemeColor("light", "pink"), // #FFAABB
-      p4: schemeColor("dark", 4), // #993366
+      p1: schemeColor("light", "orange"), // #EE8866
+      p2: schemeColor("bright", "red"), // #EE6677
+      p4: schemeColor("vibrant", "red"), // #CC3311
     },
     {
       name: "purple",
-      p1: schemeColor("pale", 5), // #EEBBDD
-      p2: schemeColor("medium-contrast", "light_red"), // #EE99AA
-      p4: schemeColor("dark", 7), // #882288
+      p1: schemeColor("prgn", 3), // #E7D4E8
+      p2: schemeColor("prgn", 2), // #C2A5CF
+      p4: schemeColor("prgn", 0), // #762A83
     },
   ];
 
@@ -186,9 +186,16 @@ test("WCAG 2.1 Contrast Verification across Light and Dark surfaces and all 6 Pa
       `[${acc.name}] Dark mode button (${acc.p4}) vs white text (${darkText}) CR=${darkBtnCR.toFixed(2)} must be >= 4.5`
     );
   }
+
+  // Ensure red and purple are unmistakably distinct across p1, p2, and p4
+  const redAcc = accents.find((a) => a.name === "red");
+  const purpleAcc = accents.find((a) => a.name === "purple");
+  assert.notEqual(expandHex(redAcc.p1), expandHex(purpleAcc.p1));
+  assert.notEqual(expandHex(redAcc.p2), expandHex(purpleAcc.p2));
+  assert.notEqual(expandHex(redAcc.p4), expandHex(purpleAcc.p4));
 });
 
-test("Architecture & Selector Invariants: @layer cascade, [data-theme], [data-accent], and kidthales.com hooks", () => {
+test("Architecture & Selector Invariants: @layer cascade, [data-theme], and [data-accent]", () => {
   const fullCss = fs.readFileSync(path.join(ROOT, "dist/tol-css.css"), "utf8");
   const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
 
@@ -206,9 +213,10 @@ test("Architecture & Selector Invariants: @layer cascade, [data-theme], [data-ac
   for (const accent of ["blue", "cyan", "green", "yellow", "red", "purple"]) {
     assert.ok(fullCss.includes(`[data-accent="${accent}"]`) || fullCss.includes(`[data-accent=${accent}]`));
   }
-  for (const hook of ["--tc-nav-prefix", "--tc-nav-suffix", "--tc-list-style"]) {
-    assert.ok(fullCss.includes(hook), `Missing kidthales.com hook ${hook}`);
+  for (const removedHook of ["--tc-nav-prefix", "--tc-nav-suffix", "--tc-list-style"]) {
+    assert.ok(!fullCss.includes(removedHook), `Deprecated hook ${removedHook} must be removed`);
   }
+  assert.ok(!demoHtml.includes("kt-toggle"), "Demo HTML must not include [kidthales] mode toggle");
   assert.ok(demoHtml.includes("tol-css"), "Interactive demo HTML generated");
 });
 
@@ -252,8 +260,8 @@ test("Secondary Button Decoupling: neutral slate ladder prevents collision with 
     { name: "blue", p1: schemeColor("pale", 0), p4: schemeColor("dark", 3) },
     { name: "green", p1: schemeColor("pale", 2), p4: schemeColor("dark", 5) },
     { name: "yellow", p1: schemeColor("pale", 3), p4: schemeColor("dark", 9) },
-    { name: "red", p1: schemeColor("pale", 4), p4: schemeColor("dark", 4) },
-    { name: "purple", p1: schemeColor("pale", 5), p4: schemeColor("dark", 7) },
+    { name: "red", p1: schemeColor("light", "orange"), p4: schemeColor("vibrant", "red") },
+    { name: "purple", p1: schemeColor("prgn", 3), p4: schemeColor("prgn", 0) },
   ];
 
   for (const acc of accents) {

@@ -12,9 +12,6 @@
     --tc-form-x: .75rem;
     --tc-container-max: 70rem;
     --tc-grid-min: 15rem;
-    --tc-nav-prefix: "";
-    --tc-nav-suffix: "";
-    --tc-list-style: disc;
     --tc-bg: light-dark(#fff, #000);
     --tc-surface: light-dark(#ddd, #444);
     --tc-surface-subtle: color-mix(in srgb, var(--tc-surface) 38%, transparent);
@@ -23,18 +20,21 @@
     --tc-muted-border: light-dark(#bbb, #666);
     --tc-border: 1px solid var(--tc-muted-border);
     --tc-valid: light-dark(#064, #4b9);
-    --tc-invalid: light-dark(#936, #fab);
+    --tc-invalid: light-dark(#c31, #e67);
     --tc-mark-bg: light-dark(#eeb, #750);
     --tc-box-shadow: 0 2px 8px color-mix(in srgb, var(--tc-color) 12%, transparent);
-    --tc-primary: light-dark(var(--tc-p4), var(--tc-p2));
-    --tc-primary-hover: light-dark(var(--tc-p5), var(--tc-p1));
-    --tc-primary-bg: light-dark(var(--tc-p1), var(--tc-p4));
-    --tc-primary-hover-bg: light-dark(var(--tc-p2), var(--tc-p3));
     --tc-p1: #ace;
     --tc-p2: #7ad;
     --tc-p3: #47a;
     --tc-p4: #25a;
     --tc-p5: #048;
+  }
+
+  :root, :host, :where([data-accent], [data-theme]) {
+    --tc-primary: light-dark(var(--tc-p4), var(--tc-p2));
+    --tc-primary-hover: light-dark(var(--tc-p5), var(--tc-p1));
+    --tc-primary-bg: light-dark(var(--tc-p1), var(--tc-p4));
+    --tc-primary-hover-bg: light-dark(var(--tc-p2), var(--tc-p3));
   }
 
   [data-theme="light"] {
@@ -70,18 +70,18 @@
   }
 
   [data-accent="red"] {
-    --tc-p1: #fbc;
-    --tc-p2: #fab;
-    --tc-p3: #b56;
-    --tc-p4: #936;
+    --tc-p1: #e86;
+    --tc-p2: #e67;
+    --tc-p3: #c46;
+    --tc-p4: #c31;
     --tc-p5: #945;
   }
 
   [data-accent="purple"] {
-    --tc-p1: #ebd;
-    --tc-p2: #e9a;
-    --tc-p3: #a37;
-    --tc-p4: #828;
+    --tc-p1: #e7d4e8;
+    --tc-p2: #c2a5cf;
+    --tc-p3: #9970ab;
+    --tc-p4: #762a83;
     --tc-p5: #328;
   }
 }
@@ -278,10 +278,6 @@
     }
   }
 
-  ul {
-    list-style: var(--tc-list-style);
-  }
-
   dl {
     & dt {
       font-weight: 700;
@@ -299,6 +295,7 @@
   mark {
     border-radius: var(--tc-border-radius);
     background: var(--tc-mark-bg);
+    color: var(--tc-color);
     padding: .125em .25em;
   }
 
@@ -579,16 +576,6 @@
       align-items: center;
       padding: .25rem 0;
       display: inline-flex;
-
-      &:not(.brand):before {
-        content: var(--tc-nav-prefix);
-        color: var(--tc-muted-color);
-      }
-
-      &:not(.brand):after {
-        content: var(--tc-nav-suffix);
-        color: var(--tc-muted-color);
-      }
     }
 
     & a {
@@ -607,10 +594,6 @@
 
     &[aria-label="breadcrumb"] {
       justify-content: flex-start;
-
-      & li:before {
-        content: none;
-      }
 
       & li:not(:last-child):after {
         content: ">";
