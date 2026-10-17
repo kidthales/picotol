@@ -101,19 +101,31 @@ test("Two-Tier Bundle Byte Budgets: core.min.css <= 9.5 KB and tol-css.min.css <
   );
 });
 
-test("WCAG 2.1 Contrast Verification across Light and Dark surfaces and all 6 Paul Tol Accent Ladders", () => {
+test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 6 Paul Tol Accent Ladders (Normal + Hover), and SC 1.4.11 Borders", () => {
   const lightBg = achromaticColor("white"); // #FFFFFF
   const lightText = achromaticColor("black"); // #000000
   const lightMuted = achromaticColor("grey-800"); // #444444
+  const lightBorder = achromaticColor("grey-500"); // #888888
 
   const darkBg = achromaticColor("black"); // #000000
   const darkText = achromaticColor("white"); // #FFFFFF
   const darkMuted = achromaticColor("grey-200"); // #DDDDDD
+  const darkBorder = achromaticColor("grey-700"); // #666666
 
   assert.ok(contrastRatio(lightText, lightBg) >= 7.0, "Light mode primary text AAA contrast");
   assert.ok(contrastRatio(lightMuted, lightBg) >= 7.0, "Light mode muted text AAA contrast");
   assert.ok(contrastRatio(darkText, darkBg) >= 7.0, "Dark mode primary text AAA contrast");
   assert.ok(contrastRatio(darkMuted, darkBg) >= 7.0, "Dark mode muted text AAA contrast");
+
+  // WCAG 2.2 SC 1.4.11 Non-text Contrast (>= 3.0:1) for form input borders
+  assert.ok(
+    contrastRatio(lightBorder, lightBg) >= 3.0,
+    `Light mode border (${lightBorder}) vs white bg must be >= 3.0:1 (SC 1.4.11)`
+  );
+  assert.ok(
+    contrastRatio(darkBorder, darkBg) >= 3.0,
+    `Dark mode border (${darkBorder}) vs black bg must be >= 3.0:1 (SC 1.4.11)`
+  );
 
   // 6 Accent Ladders matching tools/sync-tokens.mjs (--tc-p1..--tc-p5)
   const accents = [
@@ -121,37 +133,49 @@ test("WCAG 2.1 Contrast Verification across Light and Dark surfaces and all 6 Pa
       name: "blue",
       p1: schemeColor("pale", 0), // #AACCEE
       p2: schemeColor("light", "light_blue"), // #77AADD
+      p3: schemeColor("bright", "blue"), // #4477AA
       p4: schemeColor("dark", 3), // #2255AA
+      p5: schemeColor("high-contrast", "blue"), // #004488
     },
     {
       name: "cyan",
       p1: schemeColor("pale", 1), // #CCEEFF
       p2: schemeColor("light", "light_cyan"), // #99DDFF
+      p3: schemeColor("vibrant", "blue"), // #0077BB
       p4: schemeColor("dark", 6), // #117788
+      p5: schemeColor("dark", 5), // #006644
     },
     {
       name: "green",
       p1: schemeColor("pale", 2), // #BBDDBB
       p2: schemeColor("light", "mint"), // #44BB99
+      p3: schemeColor("bright", "green"), // #228833
       p4: schemeColor("dark", 5), // #006644
+      p5: schemeColor("muted", "green"), // #117733
     },
     {
       name: "yellow",
       p1: schemeColor("pale", 3), // #EEEEBB
       p2: schemeColor("high-contrast", "yellow"), // #DDAA33
+      p3: schemeColor("ylorbr", 0), // #993404
       p4: schemeColor("dark", 9), // #775500
+      p5: schemeColor("ylorbr", 1), // #662506
     },
     {
       name: "red",
       p1: schemeColor("light", "orange"), // #EE8866
       p2: schemeColor("bright", "red"), // #EE6677
+      p3: schemeColor("dark", 1), // #CC4466
       p4: schemeColor("vibrant", "red"), // #CC3311
+      p5: schemeColor("medium-contrast", "dark_red"), // #994455
     },
     {
       name: "purple",
       p1: schemeColor("prgn", 3), // #E7D4E8
       p2: schemeColor("prgn", 2), // #C2A5CF
+      p3: schemeColor("muted", "purple"), // #AA4499
       p4: schemeColor("prgn", 0), // #762A83
+      p5: schemeColor("muted", "indigo"), // #332288
     },
   ];
 
@@ -161,29 +185,60 @@ test("WCAG 2.1 Contrast Verification across Light and Dark surfaces and all 6 Pa
       expandHex(acc.p2),
       `[${acc.name}] p1 (${acc.p1}) and p2 (${acc.p2}) must be distinct for visible hover state`
     );
+    assert.notEqual(
+      expandHex(acc.p4),
+      expandHex(acc.p3),
+      `[${acc.name}] p4 (${acc.p4}) and p3 (${acc.p3}) must be distinct for dark button hover state`
+    );
+    assert.notEqual(
+      expandHex(acc.p4),
+      expandHex(acc.p5),
+      `[${acc.name}] p4 (${acc.p4}) and p5 (${acc.p5}) must be distinct for light link hover state`
+    );
 
-    // Light mode: --tc-primary is p4 on white bg; --tc-primary-bg is p1 with black text
+    // Light mode: --tc-primary is p4, hover is p5 on white bg; --tc-primary-bg is p1, hover is p2 with black text
     const lightTextCR = contrastRatio(acc.p4, lightBg);
+    const lightTextHoverCR = contrastRatio(acc.p5, lightBg);
     const lightBtnCR = contrastRatio(acc.p1, lightText);
-    // Dark mode: --tc-primary is p2 on black bg; --tc-primary-bg is p4 with white text
+    const lightBtnHoverCR = contrastRatio(acc.p2, lightText);
+
+    // Dark mode: --tc-primary is p2, hover is p1 on black bg; --tc-primary-bg is p4, hover is p3 with white text
     const darkTextCR = contrastRatio(acc.p2, darkBg);
+    const darkTextHoverCR = contrastRatio(acc.p1, darkBg);
     const darkBtnCR = contrastRatio(acc.p4, darkText);
+    const darkBtnHoverCR = contrastRatio(acc.p3, darkText);
 
     assert.ok(
       lightTextCR >= 4.5,
-      `[${acc.name}] Light mode primary (${acc.p4}) vs white bg (${lightBg}) CR=${lightTextCR.toFixed(2)} must be >= 4.5`
+      `[${acc.name}] Light mode primary (${acc.p4}) vs white bg CR=${lightTextCR.toFixed(2)} must be >= 4.5`
+    );
+    assert.ok(
+      lightTextHoverCR >= 4.5,
+      `[${acc.name}] Light mode primary hover (${acc.p5}) vs white bg CR=${lightTextHoverCR.toFixed(2)} must be >= 4.5`
     );
     assert.ok(
       lightBtnCR >= 4.5,
-      `[${acc.name}] Light mode button (${acc.p1}) vs black text (${lightText}) CR=${lightBtnCR.toFixed(2)} must be >= 4.5`
+      `[${acc.name}] Light mode button (${acc.p1}) vs black text CR=${lightBtnCR.toFixed(2)} must be >= 4.5`
+    );
+    assert.ok(
+      lightBtnHoverCR >= 4.5,
+      `[${acc.name}] Light mode button hover (${acc.p2}) vs black text CR=${lightBtnHoverCR.toFixed(2)} must be >= 4.5`
     );
     assert.ok(
       darkTextCR >= 4.5,
-      `[${acc.name}] Dark mode primary (${acc.p2}) vs black bg (${darkBg}) CR=${darkTextCR.toFixed(2)} must be >= 4.5`
+      `[${acc.name}] Dark mode primary (${acc.p2}) vs black bg CR=${darkTextCR.toFixed(2)} must be >= 4.5`
+    );
+    assert.ok(
+      darkTextHoverCR >= 4.5,
+      `[${acc.name}] Dark mode primary hover (${acc.p1}) vs black bg CR=${darkTextHoverCR.toFixed(2)} must be >= 4.5`
     );
     assert.ok(
       darkBtnCR >= 4.5,
-      `[${acc.name}] Dark mode button (${acc.p4}) vs white text (${darkText}) CR=${darkBtnCR.toFixed(2)} must be >= 4.5`
+      `[${acc.name}] Dark mode button (${acc.p4}) vs white text CR=${darkBtnCR.toFixed(2)} must be >= 4.5`
+    );
+    assert.ok(
+      darkBtnHoverCR >= 4.5,
+      `[${acc.name}] Dark mode button hover (${acc.p3}) vs white text CR=${darkBtnHoverCR.toFixed(2)} must be >= 4.5`
     );
   }
 
@@ -232,26 +287,35 @@ test("Secondary Button Decoupling: neutral slate ladder prevents collision with 
   // Canonical Paul Tol achromatic slate stops used for secondary ladder
   const secondaryLadder = {
     p1: achromaticColor("grey-200"), // #DDDDDD (surface in light mode)
-    p2: achromaticColor("grey-300"), // #BBBBBB (hover in light mode)
+    p2: achromaticColor("grey-500"), // #888888 (hover in light mode)
     p3: achromaticColor("grey-700"), // #666666 (hover in dark mode)
     p4: achromaticColor("grey-800"), // #444444 (surface in dark mode)
-    p5: achromaticColor("grey-700"), // #666666
   };
 
   const lightText = achromaticColor("black"); // #000000
   const darkText = achromaticColor("white");  // #FFFFFF
 
-  // WCAG AAA contrast verification
+  // WCAG AAA/AA contrast verification
   const lightCR = contrastRatio(secondaryLadder.p1, lightText);
+  const lightHoverCR = contrastRatio(secondaryLadder.p2, lightText);
   const darkCR = contrastRatio(secondaryLadder.p4, darkText);
+  const darkHoverCR = contrastRatio(secondaryLadder.p3, darkText);
 
   assert.ok(
     lightCR >= 7.0,
     `Secondary light mode surface (${secondaryLadder.p1}) vs black text CR=${lightCR.toFixed(2)} must be >= 7.0 (AAA)`
   );
   assert.ok(
+    lightHoverCR >= 4.5,
+    `Secondary light mode hover (${secondaryLadder.p2}) vs black text CR=${lightHoverCR.toFixed(2)} must be >= 4.5 (AA)`
+  );
+  assert.ok(
     darkCR >= 7.0,
     `Secondary dark mode surface (${secondaryLadder.p4}) vs white text CR=${darkCR.toFixed(2)} must be >= 7.0 (AAA)`
+  );
+  assert.ok(
+    darkHoverCR >= 4.5,
+    `Secondary dark mode hover (${secondaryLadder.p3}) vs white text CR=${darkHoverCR.toFixed(2)} must be >= 4.5 (AA)`
   );
 
   // Assert secondary surfaces do NOT collide with any of the 6 chromatic accents (especially cyan)

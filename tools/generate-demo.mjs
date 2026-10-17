@@ -12,7 +12,7 @@ export function hexToRgb(hex) {
 export function relativeLuminance(hex) {
   const [r, g, b] = hexToRgb(hex).map((v) => {
     const c = v / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   });
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
@@ -29,95 +29,129 @@ export const ACCENT_TABLE = [
     accent: 'blue',
     lightFg: '#2255AA',
     lightFgToken: '--tol-dark-3',
+    lightFgHover: '#004488',
     lightBg: '#AACCEE',
     lightBgToken: '--tol-pale-0',
+    lightBgHover: '#77AADD',
     darkFg: '#77AADD',
-    darkFgToken: '--tol-light-light_blue',
+    darkFgToken: '--tol-light-blue',
+    darkFgHover: '#AACCEE',
     darkBg: '#2255AA',
     darkBgToken: '--tol-dark-3',
+    darkBgHover: '#4477AA',
   },
   {
     accent: 'cyan',
     lightFg: '#117788',
     lightFgToken: '--tol-dark-6',
+    lightFgHover: '#006644',
     lightBg: '#CCEEFF',
     lightBgToken: '--tol-pale-1',
+    lightBgHover: '#99DDFF',
     darkFg: '#99DDFF',
-    darkFgToken: '--tol-light-light_cyan',
+    darkFgToken: '--tol-light-cyan',
+    darkFgHover: '#CCEEFF',
     darkBg: '#117788',
     darkBgToken: '--tol-dark-6',
+    darkBgHover: '#0077BB',
   },
   {
     accent: 'green',
     lightFg: '#006644',
     lightFgToken: '--tol-dark-5',
+    lightFgHover: '#117733',
     lightBg: '#BBDDBB',
     lightBgToken: '--tol-pale-2',
+    lightBgHover: '#44BB99',
     darkFg: '#44BB99',
     darkFgToken: '--tol-light-mint',
+    darkFgHover: '#BBDDBB',
     darkBg: '#006644',
     darkBgToken: '--tol-dark-5',
+    darkBgHover: '#228833',
   },
   {
     accent: 'yellow',
     lightFg: '#775500',
     lightFgToken: '--tol-dark-9',
+    lightFgHover: '#662506',
     lightBg: '#EEEEBB',
     lightBgToken: '--tol-pale-3',
+    lightBgHover: '#DDAA33',
     darkFg: '#DDAA33',
-    darkFgToken: '--tol-high-contrast-yellow',
+    darkFgToken: '--tol-hc-yellow',
+    darkFgHover: '#EEEEBB',
     darkBg: '#775500',
     darkBgToken: '--tol-dark-9',
+    darkBgHover: '#993404',
   },
   {
     accent: 'red',
     lightFg: '#CC3311',
     lightFgToken: '--tol-vibrant-red',
+    lightFgHover: '#994455',
     lightBg: '#EE8866',
     lightBgToken: '--tol-light-orange',
+    lightBgHover: '#EE6677',
     darkFg: '#EE6677',
     darkFgToken: '--tol-bright-red',
+    darkFgHover: '#EE8866',
     darkBg: '#CC3311',
     darkBgToken: '--tol-vibrant-red',
+    darkBgHover: '#CC4466',
   },
   {
     accent: 'purple',
     lightFg: '#762A83',
     lightFgToken: '--tol-prgn-0',
+    lightFgHover: '#332288',
     lightBg: '#E7D4E8',
     lightBgToken: '--tol-prgn-3',
+    lightBgHover: '#C2A5CF',
     darkFg: '#C2A5CF',
     darkFgToken: '--tol-prgn-2',
+    darkFgHover: '#E7D4E8',
     darkBg: '#762A83',
     darkBgToken: '--tol-prgn-0',
+    darkBgHover: '#AA4499',
   },
 ];
 
-function formatScoreCell(hex, token, ratioNum) {
+function badgeHtml(ratioNum) {
+  return ratioNum >= 7.0
+    ? '<ins title="Exceeds WCAG 2.2 AAA enhanced contrast (>= 7.0:1)"><strong>✓ AAA</strong></ins>'
+    : ratioNum >= 4.5
+      ? '<mark title="Meets WCAG 2.2 AA standard contrast (>= 4.5:1)"><strong>✓ AA</strong></mark>'
+      : '<del title="Below WCAG 2.2 AA 4.5:1 minimum"><strong>✗ Fail</strong></del>';
+}
+
+function swatchHtml(hex) {
+  return `<span aria-hidden="true" style="display:inline-block;width:0.8em;height:0.8em;margin-inline-end:0.3em;border-radius:2px;background:${hex};border:1px solid var(--tc-muted-border);vertical-align:-0.08em;"></span>`;
+}
+
+function formatScoreCell(hex, token, ratioNum, hoverHex, hoverRatioNum) {
   const ratio = ratioNum.toFixed(2);
-  const tier =
-    ratioNum >= 7.0
-      ? '<ins title="Exceeds WCAG 2.2 AAA enhanced contrast (>= 7.0:1)"><strong>✓ AAA</strong></ins>'
-      : ratioNum >= 4.5
-        ? '<mark title="Meets WCAG 2.2 AA standard contrast (>= 4.5:1)"><strong>✓ AA</strong></mark>'
-        : '<del title="Below WCAG 2.2 AA 4.5:1 minimum"><strong>✗ Fail</strong></del>';
-  const swatch = `<span aria-hidden="true" style="display:inline-block;width:0.85em;height:0.85em;margin-inline-end:0.35em;border-radius:2px;background:${hex};border:1px solid var(--tc-muted-border);vertical-align:-0.1em;"></span>`;
-  return `<div style="white-space:nowrap">${swatch}<code>${hex}</code> · <strong>${ratio}:1</strong> ${tier}</div><small>${token}</small>`;
+  const hoverRatio = hoverRatioNum.toFixed(2);
+  return `<div style="white-space:nowrap">${swatchHtml(hex)}<code>${hex}</code> · <strong>${ratio}:1</strong> ${badgeHtml(ratioNum)} <small>(${token})</small></div><small style="white-space:nowrap">Hover: ${swatchHtml(hoverHex)}<code>${hoverHex}</code> · <strong>${hoverRatio}:1</strong> ${badgeHtml(hoverRatioNum)}</small>`;
 }
 
 export function generateDemoHtml(fullMinCss, stats) {
   loadSnapshot();
   const rowsHtml = ACCENT_TABLE.map((row) => {
     const crLight = contrastRatio(row.lightFg, '#FFFFFF');
+    const crLightHover = contrastRatio(row.lightFgHover, '#FFFFFF');
     const crLightBtn = contrastRatio('#000000', row.lightBg);
+    const crLightBtnHover = contrastRatio('#000000', row.lightBgHover);
     const crDark = contrastRatio(row.darkFg, '#000000');
+    const crDarkHover = contrastRatio(row.darkFgHover, '#000000');
     const crDarkBtn = contrastRatio('#FFFFFF', row.darkBg);
+    const crDarkBtnHover = contrastRatio('#FFFFFF', row.darkBgHover);
     return `            <tr>
               <td><strong><code>${row.accent}</code></strong></td>
-              <td>${formatScoreCell(row.lightFg, row.lightFgToken, crLight)}</td>
-              <td>${formatScoreCell(row.lightBg, row.lightBgToken, crLightBtn)}</td>
-              <td>${formatScoreCell(row.darkFg, row.darkFgToken, crDark)}</td>
-              <td>${formatScoreCell(row.darkBg, row.darkBgToken, crDarkBtn)}</td>
+              <td>${formatScoreCell(row.lightFg, row.lightFgToken, crLight, row.lightFgHover, crLightHover)}</td>
+              <td>${formatScoreCell(row.lightBg, row.lightBgToken, crLightBtn, row.lightBgHover, crLightBtnHover)}</td>
+              <td>${formatScoreCell(row.darkFg, row.darkFgToken, crDark, row.darkFgHover, crDarkHover)}</td>
+              <td>${formatScoreCell(row.darkBg, row.darkBgToken, crDarkBtn, row.darkBgHover, crDarkBtnHover)}</td>
             </tr>`;
   }).join('\n');
 
