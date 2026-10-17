@@ -342,7 +342,7 @@ test("Secondary Button Decoupling: neutral slate ladder prevents collision with 
   }
 });
 
-test("WCAG 2.2 Accessibility, Reflow, Print, Forced-Colors, and SRI Manifest Invariants", () => {
+test("WCAG 2.2 Accessibility, Reflow, Typography Measure, Screen Reader UX, and SRI Manifest Invariants", () => {
   const fullCss = fs.readFileSync(path.join(ROOT, "dist/tol-css.css"), "utf8");
   const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
   const sriPath = path.join(ROOT, "dist/sri.json");
@@ -351,6 +351,10 @@ test("WCAG 2.2 Accessibility, Reflow, Print, Forced-Colors, and SRI Manifest Inv
     ".skip-to-content",
     ".sr-only",
     ".visually-hidden",
+    ".sr-only-focusable",
+    ".visually-hidden-focusable",
+    '[tabindex="-1"]:focus:not(:focus-visible)',
+    "75ch",
     ".overflow-auto",
     ":focus-visible",
     "forced-colors: active",
@@ -367,6 +371,7 @@ test("WCAG 2.2 Accessibility, Reflow, Print, Forced-Colors, and SRI Manifest Inv
     "dist/tol-css.css must not suppress focus outlines with outline: none/0"
   );
 
+  assert.ok(demoHtml.includes('id="main-content" tabindex="-1"'), "Demo main landmark must include tabindex=-1 for skip link target");
   assert.ok(demoHtml.includes('id="tables"'), "Demo HTML must include #tables landmark for nav anchor");
   assert.ok(demoHtml.includes('aria-labelledby="modal-title"'), "Demo dialog must include aria-labelledby");
   assert.ok(demoHtml.includes('tabindex="0"'), "Demo tooltip span must be keyboard focusable via tabindex=0");

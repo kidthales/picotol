@@ -123,7 +123,11 @@
     outline-offset: 2px;
   }
 
-  .skip-to-content {
+  [tabindex="-1"]:focus:not(:focus-visible) {
+    outline-width: 0;
+  }
+
+  .skip-to-content:is(:focus, :focus-visible) {
     top: .5rem;
     z-index: 9999;
     border: 2px solid var(--tc-primary);
@@ -136,21 +140,9 @@
     text-decoration: none;
     position: fixed;
     inset-inline-start: .5rem;
-
-    &:not(:focus, :focus-visible) {
-      clip-path: inset(50%);
-      white-space: nowrap;
-      border: 0;
-      width: 1px;
-      height: 1px;
-      margin: -1px;
-      padding: 0;
-      position: absolute;
-      overflow: hidden;
-    }
   }
 
-  :where(.sr-only, .visually-hidden) {
+  :where(.sr-only, .visually-hidden, :is(.skip-to-content, .sr-only-focusable, .visually-hidden-focusable):not(:focus, :focus-visible)) {
     clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
