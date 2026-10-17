@@ -3,20 +3,25 @@
     margin-block: 0 var(--tc-spacing);
   }
 
+  :where(p, dl, blockquote, :not(nav, details) > :is(ul, ol)) {
+    max-width: 75ch;
+  }
+
   :where(h1, h2, h3, h4, h5, h6) {
     font-weight: 700;
-    line-height: 1.15;
+    line-height: 1.25;
     text-wrap: balance;
     &:not(:first-child) { margin-top: 1.5em; }
   }
 
-  h1 { font-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem); }
-  h2 { font-size: clamp(1.45rem, 1.2rem + 0.9vw, 1.85rem); }
-  h3 { font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem); }
+  :where(h1, h2) { line-height: 1.2; }
+  h1 { font-size: clamp(2rem, 1.6rem + 1.5vw, 2.5rem); }
+  h2 { font-size: clamp(1.6rem, 1.3rem + 1vw, 2rem); }
+  h3 { font-size: clamp(1.3rem, 1.15rem + 0.5vw, 1.55rem); }
   :where(h4, h5, h6) { color: var(--tc-muted-color); }
   h4 { font-size: 1.2rem; }
-  h5 { font-size: 1.075rem; }
-  h6 { font-size: 1rem; }
+  h5 { font-size: 1.05rem; font-weight: 600; }
+  h6 { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
   hgroup > * {
     margin: 0;
