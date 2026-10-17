@@ -5,7 +5,7 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem var(--tc-spacing);
+    gap: 0.5rem var(--pt-spacing);
     & :where(ol, ul) {
       flex-wrap: wrap;
       align-items: center;
@@ -30,7 +30,7 @@
     }
     &[aria-label="breadcrumb"] {
       justify-content: flex-start;
-      & li:not(:last-child)::after { content: ">"; margin-inline-start: 0.75rem; color: var(--tc-muted-color); }
+      & li:not(:last-child)::after { content: ">"; margin-inline-start: 0.75rem; color: var(--pt-muted-color); }
     }
   }
 
