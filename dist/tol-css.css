@@ -17,7 +17,7 @@
     --tc-surface-subtle: color-mix(in srgb, var(--tc-surface) 38%, transparent);
     --tc-color: light-dark(#000, #fff);
     --tc-muted-color: light-dark(#444, #ddd);
-    --tc-muted-border: light-dark(#bbb, #666);
+    --tc-muted-border: light-dark(#888, #666);
     --tc-border: 1px solid var(--tc-muted-border);
     --tc-valid: light-dark(#064, #4b9);
     --tc-invalid: light-dark(#c31, #e67);
@@ -48,7 +48,7 @@
   [data-accent="cyan"] {
     --tc-p1: #cef;
     --tc-p2: #9df;
-    --tc-p3: #4a9;
+    --tc-p3: #07b;
     --tc-p4: #178;
     --tc-p5: #064;
   }
@@ -64,9 +64,9 @@
   [data-accent="yellow"] {
     --tc-p1: #eeb;
     --tc-p2: #da3;
-    --tc-p3: #970;
+    --tc-p3: #993404;
     --tc-p4: #750;
-    --tc-p5: #970;
+    --tc-p5: #662506;
   }
 
   [data-accent="red"] {
@@ -80,7 +80,7 @@
   [data-accent="purple"] {
     --tc-p1: #e7d4e8;
     --tc-p2: #c2a5cf;
-    --tc-p3: #9970ab;
+    --tc-p3: #a49;
     --tc-p4: #762a83;
     --tc-p5: #328;
   }
@@ -144,6 +144,8 @@
     --tol-vibrant-magenta: #e37;
     --tol-vibrant-red: #c31;
     --tol-vibrant-teal: #098;
+    --tol-ylorbr-0: #993404;
+    --tol-ylorbr-1: #662506;
     --tol-white: #fff;
     --tol-grey-200: #ddd;
     --tol-grey-300: #bbb;
