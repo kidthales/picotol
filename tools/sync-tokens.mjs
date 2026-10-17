@@ -155,7 +155,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     `    --tc-p1: ${colorByName('pale', 4)}; --tc-p2: ${colorByName('light', 'pink')}; --tc-p3: ${colorByName('high-contrast', 'red')}; --tc-p4: ${colorByName('dark', 4)}; --tc-p5: ${colorByName('medium-contrast', 'dark_red')};`,
     '  }',
     '  [data-accent="purple"] {',
-    `    --tc-p1: ${colorByName('pale', 5)}; --tc-p2: ${colorByName('pale', 5)}; --tc-p3: ${colorByName('bright', 'purple')}; --tc-p4: ${colorByName('dark', 7)}; --tc-p5: ${colorByName('muted', 'indigo')};`,
+    `    --tc-p1: ${colorByName('pale', 5)}; --tc-p2: ${colorByName('medium-contrast', 'light_red')}; --tc-p3: ${colorByName('bright', 'purple')}; --tc-p4: ${colorByName('dark', 7)}; --tc-p5: ${colorByName('muted', 'indigo')};`,
     '  }',
     '}',
     '',

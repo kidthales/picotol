@@ -1,4 +1,4 @@
-/*! tol-css v0.1.0 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
+/*! @kidthales/tol-css v0.1.0 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
 @layer tokens {
   :root, :host, [data-accent="blue"] {
     color-scheme: light dark;
@@ -79,7 +79,7 @@
 
   [data-accent="purple"] {
     --tc-p1: #ebd;
-    --tc-p2: #ebd;
+    --tc-p2: #e9a;
     --tc-p3: #a37;
     --tc-p4: #828;
     --tc-p5: #328;
@@ -185,11 +185,71 @@
     display: none !important;
   }
 
+  :focus-visible {
+    outline: 2px solid var(--tc-primary);
+    outline-offset: 2px;
+  }
+
+  .skip-to-content {
+    top: .5rem;
+    z-index: 9999;
+    border: 2px solid var(--tc-primary);
+    border-radius: var(--tc-border-radius);
+    background-color: var(--tc-bg);
+    color: var(--tc-color);
+    box-shadow: var(--tc-box-shadow);
+    padding: .5rem 1rem;
+    font-weight: 700;
+    text-decoration: none;
+    position: fixed;
+    inset-inline-start: .5rem;
+
+    &:not(:focus, :focus-visible) {
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      position: absolute;
+      overflow: hidden;
+    }
+  }
+
+  :where(.sr-only, .visually-hidden) {
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    position: absolute;
+    overflow: hidden;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *, :before, :after {
       scroll-behavior: auto !important;
       transition: none !important;
       animation: none !important;
+    }
+  }
+
+  @media print {
+    :root {
+      color-scheme: light;
+      --tc-bg: #fff;
+      --tc-color: #000;
+    }
+
+    :where(nav, dialog, .skip-to-content) {
+      display: none !important;
+    }
+
+    :where(pre, blockquote, table, article, figure) {
+      break-inside: avoid;
     }
   }
 }
@@ -210,9 +270,17 @@
     gap: var(--tc-spacing);
     display: grid;
 
+    & > * {
+      min-width: 0;
+    }
+
     @media (width >= 48rem) {
       grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--tc-grid-min)), 1fr));
     }
+  }
+
+  .overflow-auto {
+    overflow-x: auto;
   }
 }
 
@@ -298,7 +366,7 @@
   mark {
     border-radius: var(--tc-border-radius);
     background: var(--tc-mark-bg);
-    padding: 2px 4px;
+    padding: .125em .25em;
   }
 
   ins {
@@ -342,10 +410,10 @@
   }
 
   :where(.secondary, [type="reset"]) {
-    --tc-primary: light-dark(#666, #bbb);
-    --tc-primary-hover: var(--tc-muted-color);
+    --tc-primary: var(--tc-muted-color);
+    --tc-primary-hover: var(--tc-color);
     --tc-primary-bg: var(--tc-surface);
-    --tc-primary-hover-bg: light-dark(#bbb, #666);
+    --tc-primary-hover-bg: var(--tc-muted-border);
   }
 
   :where(a:not([role="button"])) {
@@ -353,7 +421,7 @@
     text-decoration: underline color-mix(in srgb, var(--tc-primary) 50%, transparent);
     text-underline-offset: 2px;
 
-    &:is(:hover, :focus) {
+    &:is(:hover, :active, :focus-visible) {
       color: var(--tc-primary-hover);
       text-decoration-color: var(--tc-primary-hover);
     }
@@ -368,23 +436,18 @@
     text-align: center;
     cursor: pointer;
     transition: var(--tc-transition);
-    outline: none;
     text-decoration: none;
     display: inline-block;
 
-    &:is(:hover, :focus) {
+    &:is(:hover, :active) {
       background: var(--tc-primary-hover-bg);
-    }
-
-    &:focus-visible {
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--tc-primary) 35%, transparent);
     }
 
     &.outline {
       color: var(--tc-primary);
       background: none;
 
-      &:is(:hover, :focus) {
+      &:is(:hover, :active) {
         background: var(--tc-surface-subtle);
       }
     }
@@ -399,7 +462,7 @@
     border-radius: var(--tc-border-radius);
     background: var(--tc-surface-subtle);
     font-family: var(--tc-font-mono);
-    padding: 2px 6px;
+    padding: .125em .375em;
     font-size: .875em;
   }
 
@@ -475,11 +538,11 @@
     color: var(--tc-color);
     appearance: none;
     transition: var(--tc-transition);
-    outline: none;
 
-    &:focus {
+    &:focus-visible {
       border-color: var(--tc-primary);
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--tc-primary) 35%, transparent);
+      outline: 2px solid var(--tc-primary);
+      outline-offset: 1px;
     }
 
     &::placeholder {
@@ -489,13 +552,24 @@
 
     &[aria-invalid="false"] {
       --tc-primary: var(--tc-valid);
+
+      & + small:before {
+        content: "✓ ";
+        font-weight: 700;
+      }
     }
 
     &[aria-invalid="true"] {
       --tc-primary: var(--tc-invalid);
+
+      & + small:before {
+        content: "✗ ";
+        font-weight: 700;
+      }
     }
 
     &[aria-invalid] {
+      border-width: 2px;
       border-color: var(--tc-primary);
 
       & + small {
@@ -532,14 +606,15 @@
 
   :where([type="checkbox"], [type="radio"]) {
     vertical-align: middle;
-    width: 1.125rem;
-    height: 1.125rem;
+    width: 1.5rem;
+    height: 1.5rem;
     accent-color: var(--tc-primary);
     cursor: pointer;
     margin: -2px .5rem 0 0;
   }
 
   label:has( > [type="checkbox"],  > [type="radio"]) {
+    min-height: 1.75rem;
     cursor: pointer;
     align-items: center;
     margin-inline-end: var(--tc-spacing);
@@ -554,10 +629,14 @@
 
   nav {
     justify-content: space-between;
+    align-items: center;
+    gap: .5rem var(--tc-spacing);
+    flex-wrap: wrap;
 
     & :where(ol, ul) {
+      flex-wrap: wrap;
       align-items: center;
-      gap: .75rem;
+      gap: .5rem .75rem;
       margin: 0;
       padding: 0;
       list-style: none;
@@ -580,11 +659,17 @@
     }
 
     & a {
+      padding: .25rem .125rem;
       text-decoration: none;
 
       &:is(:hover, :focus, [aria-current]:not([aria-current="false"])) {
         text-decoration: underline;
       }
+    }
+
+    & :where(select, input, button) {
+      width: auto;
+      margin-bottom: 0;
     }
 
     &[aria-label="breadcrumb"] {
@@ -724,6 +809,7 @@
 
     & > * {
       flex: auto;
+      min-width: 0;
       margin-bottom: 0;
 
       &:not(:first-child) {
@@ -755,6 +841,10 @@
     display: flex;
     position: fixed;
     inset: 0;
+
+    &::backdrop {
+      background-color: color-mix(in srgb, var(--tol-black) 65%, transparent);
+    }
 
     &:not([open]) {
       display: none;
@@ -796,16 +886,16 @@
     border: var(--tc-border);
     background-color: var(--tc-surface);
     appearance: none;
-    width: 2.25rem;
-    height: 1.25rem;
+    width: 2.75rem;
+    height: 1.5rem;
     transition: background-color var(--tc-transition), border-color var(--tc-transition);
-    border-radius: 1.25rem;
+    border-radius: 1.5rem;
 
     &:before {
       content: "";
       background-color: var(--tc-bg);
-      width: 1rem;
-      height: 1rem;
+      width: 1.25rem;
+      height: 1.25rem;
       transition: margin var(--tc-transition);
       border-radius: 50%;
       margin: .0625rem;
@@ -817,13 +907,37 @@
       border-color: var(--tc-primary);
 
       &:before {
-        margin-inline-start: 1.0625rem;
+        margin-inline-start: 1.3125rem;
       }
+    }
+  }
+
+  @media (forced-colors: active) {
+    [type="checkbox"][role="switch"] {
+      border-color: buttontext;
+
+      &:before {
+        background-color: buttontext;
+      }
+
+      &:checked {
+        background-color: highlight;
+        border-color: highlight;
+
+        &:before {
+          background-color: highlighttext;
+        }
+      }
+    }
+
+    progress {
+      border: 1px solid buttontext;
     }
   }
 
   [type="range"] {
     width: 100%;
+    min-height: 1.5rem;
     margin-bottom: var(--tc-spacing);
     accent-color: var(--tc-primary);
     cursor: pointer;
@@ -857,26 +971,23 @@
       text-decoration: none;
     }
 
-    &:before {
+    &:is(:hover, :focus-visible):before {
       content: attr(data-tooltip);
       z-index: 99;
       border-radius: var(--tc-border-radius);
       background-color: var(--tc-color);
+      width: max-content;
+      max-width: min(16rem, 80vw);
       color: var(--tc-bg);
-      white-space: nowrap;
-      opacity: 0;
+      text-align: center;
+      white-space: normal;
       pointer-events: none;
-      transition: opacity var(--tc-transition);
       padding: .25rem .5rem;
       font-size: .875rem;
       position: absolute;
       bottom: calc(100% + .375rem);
       left: 50%;
       transform: translateX(-50%);
-    }
-
-    &:is(:hover, :focus-visible):before {
-      opacity: 1;
     }
   }
 }

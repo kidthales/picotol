@@ -11,8 +11,13 @@
   .grid {
     display: grid;
     gap: var(--tc-spacing);
+    & > * { min-width: 0; }
     @media (min-width: 48rem) {
       grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--tc-grid-min)), 1fr));
     }
+  }
+
+  .overflow-auto {
+    overflow-x: auto;
   }
 }

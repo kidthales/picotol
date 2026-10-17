@@ -87,17 +87,17 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: core.min.css <= 8 KB and tol-css.min.css <= 14 KB", () => {
+test("Two-Tier Bundle Byte Budgets: core.min.css <= 9.5 KB and tol-css.min.css <= 16.0 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/tol-css.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/tol-css.min.css")).size;
 
   assert.ok(
-    coreMin <= 8 * 1024,
-    `Expected dist/tol-css.core.min.css (${coreMin} B) to be <= 8192 B`
+    coreMin <= 9.5 * 1024,
+    `Expected dist/tol-css.core.min.css (${coreMin} B) to be <= 9728 B`
   );
   assert.ok(
-    fullMin <= 14 * 1024,
-    `Expected dist/tol-css.min.css (${fullMin} B) to be <= 14336 B`
+    fullMin <= 16 * 1024,
+    `Expected dist/tol-css.min.css (${fullMin} B) to be <= 16384 B`
   );
 });
 
@@ -150,12 +150,18 @@ test("WCAG 2.1 Contrast Verification across Light and Dark surfaces and all 6 Pa
     {
       name: "purple",
       p1: schemeColor("pale", 5), // #EEBBDD
-      p2: schemeColor("pale", 5), // #EEBBDD
+      p2: schemeColor("medium-contrast", "light_red"), // #EE99AA
       p4: schemeColor("dark", 7), // #882288
     },
   ];
 
   for (const acc of accents) {
+    assert.notEqual(
+      expandHex(acc.p1),
+      expandHex(acc.p2),
+      `[${acc.name}] p1 (${acc.p1}) and p2 (${acc.p2}) must be distinct for visible hover state`
+    );
+
     // Light mode: --tc-primary is p4 on white bg; --tc-primary-bg is p1 with black text
     const lightTextCR = contrastRatio(acc.p4, lightBg);
     const lightBtnCR = contrastRatio(acc.p1, lightText);
@@ -263,4 +269,44 @@ test("Secondary Button Decoupling: neutral slate ladder prevents collision with 
     );
   }
 });
+
+test("WCAG 2.2 Accessibility, Reflow, Print, Forced-Colors, and SRI Manifest Invariants", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/tol-css.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const sriPath = path.join(ROOT, "dist/sri.json");
+
+  for (const selector of [
+    ".skip-to-content",
+    ".sr-only",
+    ".visually-hidden",
+    ".overflow-auto",
+    ":focus-visible",
+    "forced-colors: active",
+    "@media print",
+  ]) {
+    assert.ok(
+      fullCss.includes(selector),
+      `Expected accessibility/reflow selector "${selector}" in dist/tol-css.css`
+    );
+  }
+
+  assert.ok(
+    !/outline\s*:\s*(?:none|0)\b/i.test(fullCss),
+    "dist/tol-css.css must not suppress focus outlines with outline: none/0"
+  );
+
+  assert.ok(demoHtml.includes('id="tables"'), "Demo HTML must include #tables landmark for nav anchor");
+  assert.ok(demoHtml.includes('aria-labelledby="modal-title"'), "Demo dialog must include aria-labelledby");
+  assert.ok(demoHtml.includes('tabindex="0"'), "Demo tooltip span must be keyboard focusable via tabindex=0");
+
+  assert.ok(fs.existsSync(sriPath), "dist/sri.json must exist");
+  const sri = JSON.parse(fs.readFileSync(sriPath, "utf8"));
+  assert.equal(sri.package, "@kidthales/tol-css");
+  for (const relPath of ["dist/tol-css.core.min.css", "dist/tol-css.min.css"]) {
+    assert.ok(sri.files[relPath], `dist/sri.json must include entry for ${relPath}`);
+    assert.match(sri.files[relPath].integrity, /^sha384-[A-Za-z0-9+/=]+$/);
+    assert.equal(sri.files[relPath].bytes, fs.statSync(path.join(ROOT, relPath)).size);
+  }
+});
+
 

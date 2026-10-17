@@ -34,7 +34,7 @@
   }
 
   small { font-size: 0.875em; }
-  mark { padding: 2px 4px; border-radius: var(--tc-border-radius); background: var(--tc-mark-bg); }
+  mark { padding: 0.125em 0.25em; border-radius: var(--tc-border-radius); background: var(--tc-mark-bg); }
   ins { color: var(--tc-valid); text-decoration: none; }
   del { color: var(--tc-invalid); }
   abbr[title] { border-bottom: 1px dotted; text-decoration: none; cursor: help; }
@@ -57,19 +57,17 @@
   }
 
   :where(.secondary, [type="reset"]) {
-    --tc-primary: light-dark(#666, #bbb);
-    --tc-primary-hover: var(--tc-muted-color);
+    --tc-primary: var(--tc-muted-color);
+    --tc-primary-hover: var(--tc-color);
     --tc-primary-bg: var(--tc-surface);
-    --tc-primary-hover-bg: light-dark(#bbb, #666);
+    --tc-primary-hover-bg: var(--tc-muted-border);
   }
-
-
 
   :where(a:not([role="button"])) {
     color: var(--tc-primary);
     text-decoration: underline color-mix(in srgb, var(--tc-primary) 50%, transparent);
     text-underline-offset: 2px;
-    &:is(:hover, :focus) { color: var(--tc-primary-hover); text-decoration-color: var(--tc-primary-hover); }
+    &:is(:hover, :active, :focus-visible) { color: var(--tc-primary-hover); text-decoration-color: var(--tc-primary-hover); }
   }
 
   :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"]) {
@@ -77,7 +75,6 @@
     padding: var(--tc-form-y) var(--tc-form-x);
     border: 1px solid var(--tc-primary);
     border-radius: var(--tc-border-radius);
-    outline: none;
     background: var(--tc-primary-bg);
     color: var(--tc-btn-color, var(--tc-color));
     text-align: center;
@@ -85,19 +82,18 @@
     cursor: pointer;
     transition: var(--tc-transition);
 
-    &:is(:hover, :focus) { background: var(--tc-primary-hover-bg); }
-    &:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--tc-primary) 35%, transparent); }
+    &:is(:hover, :active) { background: var(--tc-primary-hover-bg); }
     &.outline {
       background: none;
       color: var(--tc-primary);
-      &:is(:hover, :focus) { background: var(--tc-surface-subtle); }
+      &:is(:hover, :active) { background: var(--tc-surface-subtle); }
     }
   }
 
   :where([disabled], fieldset[disabled] *) { opacity: 0.5; pointer-events: none; }
 
   :where(pre, code, kbd, samp) {
-    padding: 2px 6px;
+    padding: 0.125em 0.375em;
     border-radius: var(--tc-border-radius);
     background: var(--tc-surface-subtle);
     font-family: var(--tc-font-mono);

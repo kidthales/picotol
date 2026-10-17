@@ -27,13 +27,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build CSS bundles and demo
+      - name: Build CSS bundles, SRI manifest, and demo
         run: npm run build
 
       - name: Verify dist/ is clean and up-to-date
         run: git diff --exit-code dist/
 
-      - name: Run Paul Tol hex-purity, WCAG contrast, and byte-budget test suite
+      - name: Run CSS AST & Accessibility HTML Linter
+        run: npm run lint
+
+      - name: Run Paul Tol hex-purity, WCAG contrast, and reflow test suite
         run: npm test
 
   notify:

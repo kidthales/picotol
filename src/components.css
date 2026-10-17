@@ -94,6 +94,7 @@
     width: 100%;
     margin-bottom: var(--tc-spacing);
     & > * {
+      min-width: 0;
       margin-bottom: 0;
       flex: 1 1 auto;
       &:not(:first-child) {
@@ -125,6 +126,7 @@
     border: 0;
     background-color: color-mix(in srgb, var(--tol-black) 65%, transparent);
     color: var(--tc-color);
+    &::backdrop { background-color: color-mix(in srgb, var(--tol-black) 65%, transparent); }
     &:not([open]) { display: none; }
     & > article {
       width: 100%;
@@ -152,18 +154,18 @@
 
   /* 7. Switch ([role="switch"]) & Range ([type="range"]) */
   [type="checkbox"][role="switch"] {
-    width: 2.25rem;
-    height: 1.25rem;
+    width: 2.75rem;
+    height: 1.5rem;
     border: var(--tc-border);
-    border-radius: 1.25rem;
+    border-radius: 1.5rem;
     background-color: var(--tc-surface);
     appearance: none;
     transition: background-color var(--tc-transition), border-color var(--tc-transition);
     &::before {
       content: "";
       display: block;
-      width: 1rem;
-      height: 1rem;
+      width: 1.25rem;
+      height: 1.25rem;
       margin: 0.0625rem;
       border-radius: 50%;
       background-color: var(--tc-bg);
@@ -172,12 +174,26 @@
     &:checked {
       background-color: var(--tc-primary);
       border-color: var(--tc-primary);
-      &::before { margin-inline-start: 1.0625rem; }
+      &::before { margin-inline-start: 1.3125rem; }
     }
+  }
+
+  @media (forced-colors: active) {
+    [type="checkbox"][role="switch"] {
+      border-color: ButtonText;
+      &::before { background-color: ButtonText; }
+      &:checked {
+        background-color: Highlight;
+        border-color: Highlight;
+        &::before { background-color: HighlightText; }
+      }
+    }
+    progress { border: 1px solid ButtonText; }
   }
 
   [type="range"] {
     width: 100%;
+    min-height: 1.5rem;
     margin-bottom: var(--tc-spacing);
     accent-color: var(--tc-primary);
     cursor: pointer;
@@ -206,23 +222,23 @@
       text-decoration: none;
       cursor: help;
     }
-    &::before {
+    &:is(:hover, :focus-visible)::before {
       content: attr(data-tooltip);
       position: absolute;
       bottom: calc(100% + 0.375rem);
       left: 50%;
       z-index: 99;
+      width: max-content;
+      max-width: min(16rem, 80vw);
       padding: 0.25rem 0.5rem;
       transform: translateX(-50%);
       border-radius: var(--tc-border-radius);
       background-color: var(--tc-color);
       color: var(--tc-bg);
       font-size: 0.875rem;
-      white-space: nowrap;
-      opacity: 0;
+      text-align: center;
+      white-space: normal;
       pointer-events: none;
-      transition: opacity var(--tc-transition);
     }
-    &:is(:hover, :focus-visible)::before { opacity: 1; }
   }
 }

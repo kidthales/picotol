@@ -8,20 +8,27 @@
     padding: var(--tc-form-y) var(--tc-form-x);
     border: var(--tc-border);
     border-radius: var(--tc-border-radius);
-    outline: none;
     background: var(--tc-bg);
     color: var(--tc-color);
     appearance: none;
     transition: var(--tc-transition);
 
-    &:focus {
+    &:focus-visible {
       border-color: var(--tc-primary);
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--tc-primary) 35%, transparent);
+      outline: 2px solid var(--tc-primary);
+      outline-offset: 1px;
     }
     &::placeholder { color: var(--tc-muted-color); opacity: 0.75; }
-    &[aria-invalid="false"] { --tc-primary: var(--tc-valid); }
-    &[aria-invalid="true"] { --tc-primary: var(--tc-invalid); }
+    &[aria-invalid="false"] {
+      --tc-primary: var(--tc-valid);
+      & + small::before { content: "✓ "; font-weight: 700; }
+    }
+    &[aria-invalid="true"] {
+      --tc-primary: var(--tc-invalid);
+      & + small::before { content: "✗ "; font-weight: 700; }
+    }
     &[aria-invalid] {
+      border-width: 2px;
       border-color: var(--tc-primary);
       & + small { color: var(--tc-primary); }
     }
@@ -42,8 +49,8 @@
   }
 
   :where([type="checkbox"], [type="radio"]) {
-    width: 1.125rem;
-    height: 1.125rem;
+    width: 1.5rem;
+    height: 1.5rem;
     margin: -2px 0.5rem 0 0;
     vertical-align: middle;
     accent-color: var(--tc-primary);
@@ -53,6 +60,7 @@
   label:has(> [type="checkbox"], > [type="radio"]) {
     display: inline-flex;
     align-items: center;
+    min-height: 1.75rem;
     margin-inline-end: var(--tc-spacing);
     cursor: pointer;
   }

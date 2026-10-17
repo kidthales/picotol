@@ -1,16 +1,52 @@
 {
-  "name": "tol-css",
+  "name": "@kidthales/tol-css",
   "version": "0.1.0",
   "private": true,
   "description": "Pure-CSS, ultra-minified semantic HTML framework powered strictly by Paul Tol colour schemes.",
+  "license": "MIT",
+  "author": "kidthales",
   "type": "module",
   "main": "./dist/tol-css.min.css",
   "style": "./dist/tol-css.min.css",
+  "unpkg": "./dist/tol-css.min.css",
+  "jsdelivr": "./dist/tol-css.min.css",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kidthales/tol-css.git"
+  },
+  "homepage": "https://github.com/kidthales/tol-css#readme",
+  "bugs": {
+    "url": "https://github.com/kidthales/tol-css/issues"
+  },
+  "keywords": [
+    "css",
+    "semantic-css",
+    "classless-css",
+    "picocss",
+    "paul-tol",
+    "colorblind-safe",
+    "wcag",
+    "accessibility",
+    "design-tokens"
+  ],
+  "files": [
+    "dist/",
+    "src/",
+    "data/tol-qualitative.json",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
   "exports": {
     ".": "./dist/tol-css.min.css",
+    "./css": "./dist/tol-css.css",
     "./core": "./dist/tol-css.core.min.css",
-    "./dist/*": "./dist/*",
-    "./src/*": "./src/*"
+    "./core/css": "./dist/tol-css.core.css",
+    "./tokens": "./src/tokens.css",
+    "./palettes": "./src/palettes.css",
+    "./palette-data": "./data/tol-qualitative.json",
+    "./sri": "./dist/sri.json",
+    "./package.json": "./package.json"
   },
   "sideEffects": [
     "**/*.css"
@@ -21,8 +57,9 @@
   "scripts": {
     "sync:tokens": "node tools/sync-tokens.mjs",
     "build": "node tools/build.mjs",
+    "lint": "node tools/lint.mjs",
     "generate": "npm run sync:tokens && npm run build",
-    "test": "node --test"
+    "test": "npm run lint && node --test"
   },
   "devDependencies": {
     "lightningcss": "^1.30.1"

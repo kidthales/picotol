@@ -47,6 +47,6 @@
     --tc-p1: #FFBBCC; --tc-p2: #FFAABB; --tc-p3: #BB5566; --tc-p4: #993366; --tc-p5: #994455;
   }
   [data-accent="purple"] {
-    --tc-p1: #EEBBDD; --tc-p2: #EEBBDD; --tc-p3: #AA3377; --tc-p4: #882288; --tc-p5: #332288;
+    --tc-p1: #EEBBDD; --tc-p2: #EE99AA; --tc-p3: #AA3377; --tc-p4: #882288; --tc-p5: #332288;
   }
 }
