@@ -42,8 +42,8 @@ export const ACCENT_TABLE = [
     lightFgToken: '--tol-dark-6',
     lightBg: '#CCEEFF',
     lightBgToken: '--tol-pale-1',
-    darkFg: '#66CCEE',
-    darkFgToken: '--tol-bright-cyan',
+    darkFg: '#99DDFF',
+    darkFgToken: '--tol-light-light_cyan',
     darkBg: '#117788',
     darkBgToken: '--tol-dark-6',
   },
@@ -86,8 +86,8 @@ export const ACCENT_TABLE = [
     lightFgToken: '--tol-dark-7',
     lightBg: '#EEBBDD',
     lightBgToken: '--tol-pale-5',
-    darkFg: '#EEBBDD',
-    darkFgToken: '--tol-pale-5',
+    darkFg: '#EE99AA',
+    darkFgToken: '--tol-medium-contrast-light_red',
     darkBg: '#882288',
     darkBgToken: '--tol-dark-7',
   },
@@ -176,7 +176,7 @@ export function generateDemoHtml(fullMinCss, stats) {
           <footer><small>${((1 - stats.fullMinBytes / 83319) * 100).toFixed(1)}% smaller than upstream pico.min.css (83.3 KB)</small></footer>
         </article>
       </div>
-      <div class="overflow-auto">
+      <div id="tables" class="overflow-auto">
         <table class="striped">
           <thead>
             <tr>
@@ -198,8 +198,8 @@ ${rowsHtml}
 
     <section id="typography">
       <h2>2. Typography &amp; Inline Semantics</h2>
-      <p>Body copy uses the system font stack with fluid root sizing via <code>clamp(100%, 95% + 0.4vw, 131.25%)</code>. Links like <a href="#typography">primary link</a>, <a href="#typography" class="secondary">secondary link</a>, and <a href="#typography" class="contrast">contrast link</a> step along Paul Tol's qualitative lightness ladder on hover.</p>
-      <p>Inline elements include <strong>strong</strong>, <em>emphasis</em>, <mark>highlighted mark</mark>, <ins>inserted text</ins>, <del>deleted text</del>, <code>inline code</code>, <kbd>Ctrl + K</kbd>, and <abbr title="Paul Tol Colour Schemes">PTCS</abbr> (<span data-tooltip="Pure CSS tooltip via [data-tooltip]">hover for tooltip</span>).</p>
+      <p>Body copy uses the system font stack with fluid root sizing via <code>clamp(100%, 95% + 0.4vw, 125%)</code>. Links like <a href="#typography">primary link</a>, <a href="#typography" class="secondary">secondary link</a>, and <a href="#typography" class="contrast">contrast link</a> step along Paul Tol's qualitative lightness ladder on hover.</p>
+      <p>Inline elements include <strong>strong</strong>, <em>emphasis</em>, <mark>highlighted mark</mark>, <ins>inserted text</ins>, <del>deleted text</del>, <code>inline code</code>, <kbd>Ctrl + K</kbd>, and <abbr title="Paul Tol Colour Schemes">PTCS</abbr> (<span data-tooltip="Pure CSS tooltip via [data-tooltip]" tabindex="0">hover or focus for tooltip</span>).</p>
       <blockquote>
         "The contrast ratio between each colour in the dark scheme and white is at least 4.5 for people with moderately low vision."
         <footer>— <cite>Paul Tol, SRON Notes on Colour Schemes</cite></footer>
@@ -263,13 +263,13 @@ ${rowsHtml}
         <div class="grid">
           <div>
             <label for="valid-input">Verified Input (<code>aria-invalid="false"</code>)</label>
-            <input id="valid-input" type="text" value="#4477AA" aria-invalid="false">
-            <small>Matches Paul Tol Bright Blue.</small>
+            <input id="valid-input" type="text" value="#4477AA" aria-invalid="false" aria-describedby="valid-help">
+            <small id="valid-help">Matches Paul Tol Bright Blue.</small>
           </div>
           <div>
             <label for="invalid-input">Invalid Input (<code>aria-invalid="true"</code>)</label>
-            <input id="invalid-input" type="text" value="#123456" aria-invalid="true">
-            <small>Hex literal is not in tol-palettes.</small>
+            <input id="invalid-input" type="text" value="#123456" aria-invalid="true" aria-describedby="invalid-help">
+            <small id="invalid-help">Hex literal is not in tol-palettes.</small>
           </div>
         </div>
         <fieldset>
@@ -322,10 +322,10 @@ ${rowsHtml}
           </div>
         </div>
       </div>
-      <dialog id="demo-modal">
+      <dialog id="demo-modal" aria-labelledby="modal-title">
         <article>
           <header>
-            <strong>Paul Tol Colour Verification Modal</strong>
+            <strong id="modal-title">Paul Tol Colour Verification Modal</strong>
           </header>
           <p>This native HTML5 <code>&lt;dialog&gt;</code> element is styled purely with <code>tol-css.min.css</code>.</p>
           <footer>

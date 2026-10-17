@@ -5,7 +5,7 @@
     background-color: var(--tc-bg);
     color: var(--tc-color);
     font-family: var(--tc-font-sans);
-    font-size: clamp(100%, 95% + .4vw, 125%);
+    font-size: clamp(100%, 95% + 0.4vw, 125%);
     line-height: var(--tc-line-height);
     overflow-wrap: break-word;
     tab-size: 4;
@@ -16,12 +16,65 @@
   ::selection { background-color: color-mix(in srgb, var(--tc-primary) 25%, transparent); }
   :where([hidden]) { display: none !important; }
 
+  :focus-visible {
+    outline: 2px solid var(--tc-primary);
+    outline-offset: 2px;
+  }
+
+  .skip-to-content {
+    position: fixed;
+    top: 0.5rem;
+    inset-inline-start: 0.5rem;
+    z-index: 9999;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--tc-primary);
+    border-radius: var(--tc-border-radius);
+    background-color: var(--tc-bg);
+    color: var(--tc-color);
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: var(--tc-box-shadow);
+    &:not(:focus, :focus-visible) {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+  }
+
+  :where(.sr-only, .visually-hidden) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *, ::before, ::after {
       animation: none !important;
       transition: none !important;
       scroll-behavior: auto !important;
     }
+  }
+
+  @media print {
+    :root {
+      color-scheme: light;
+      --tc-bg: #fff;
+      --tc-color: #000;
+    }
+    :where(nav, dialog, .skip-to-content) { display: none !important; }
+    :where(pre, blockquote, table, article, figure) { break-inside: avoid; }
   }
 }
 

@@ -1,0 +1,16 @@
+{
+  "package": "@kidthales/tol-css",
+  "version": "0.1.0",
+  "files": {
+    "dist/tol-css.core.min.css": {
+      "bytes": 9298,
+      "gzipBytes": 2965,
+      "integrity": "sha384-JZOitsyLawNLmLX5TzsQUEZAynkpAknrFCnjoH/flWbNf7mj3ELtko5VysQRQnQE"
+    },
+    "dist/tol-css.min.css": {
+      "bytes": 15351,
+      "gzipBytes": 4478,
+      "integrity": "sha384-BVpX6BnTGk/AZl5bK5FAjslmlmxjkEHcFHbFMf86We5izxLrE4l9Ql9Aql+i8b4Q"
+    }
+  }
+}
