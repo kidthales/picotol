@@ -1,0 +1,30 @@
+{
+  "name": "tol-css",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure-CSS, ultra-minified semantic HTML framework powered strictly by Paul Tol colour schemes.",
+  "type": "module",
+  "main": "./dist/tol-css.min.css",
+  "style": "./dist/tol-css.min.css",
+  "exports": {
+    ".": "./dist/tol-css.min.css",
+    "./core": "./dist/tol-css.core.min.css",
+    "./dist/*": "./dist/*",
+    "./src/*": "./src/*"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "sync:tokens": "node tools/sync-tokens.mjs",
+    "build": "node tools/build.mjs",
+    "generate": "npm run sync:tokens && npm run build",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "lightningcss": "^1.30.1"
+  }
+}

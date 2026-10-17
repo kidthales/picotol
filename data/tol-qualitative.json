@@ -1,0 +1,421 @@
+{
+  "schemes": {
+    "bright": {
+      "id": "bright",
+      "kind": "qualitative",
+      "colors": [
+        {
+          "hex": "#4477AA",
+          "name": "blue"
+        },
+        {
+          "hex": "#EE6677",
+          "name": "red"
+        },
+        {
+          "hex": "#228833",
+          "name": "green"
+        },
+        {
+          "hex": "#CCBB44",
+          "name": "yellow"
+        },
+        {
+          "hex": "#66CCEE",
+          "name": "cyan"
+        },
+        {
+          "hex": "#AA3377",
+          "name": "purple"
+        },
+        {
+          "hex": "#BBBBBB",
+          "name": "grey"
+        }
+      ],
+      "extras": [
+        {
+          "hex": "#000000",
+          "name": "black"
+        }
+      ]
+    },
+    "dark": {
+      "id": "dark",
+      "kind": "qualitative",
+      "colors": [
+        {
+          "hex": "#4477BB"
+        },
+        {
+          "hex": "#CC4466"
+        },
+        {
+          "hex": "#228833"
+        },
+        {
+          "hex": "#2255AA"
+        },
+        {
+          "hex": "#993366"
+        },
+        {
+          "hex": "#006644"
+        },
+        {
+          "hex": "#117788"
+        },
+        {
+          "hex": "#882288"
+        },
+        {
+          "hex": "#BB4488"
+        },
+        {
+          "hex": "#775500"
+        },
+        {
+          "hex": "#444444"
+        }
+      ]
+    },
+    "high-contrast": {
+      "id": "high-contrast",
+      "kind": "qualitative",
+      "colors": [
+        {
+          "hex": "#004488",
+          "name": "blue"
+        },
+        {
+          "hex": "#DDAA33",
+          "name": "yellow"
+        },
+        {
+          "hex": "#BB5566",
+          "name": "red"
+        }
+      ],
+      "extras": [
+        {
+          "hex": "#000000",
+          "name": "black"
+        }
+      ]
+    },
+    "light": {
+      "id": "light",
+      "kind": "qualitative",
+      "colors": [
+        {
+          "hex": "#77AADD",
+          "name": "light_blue"
+        },
+        {
+          "hex": "#EE8866",
+          "name": "orange"
+        },
+        {
+          "hex": "#EEDD88",
+          "name": "light_yellow"
+        },
+        {
+          "hex": "#FFAABB",
+          "name": "pink"
+        },
+        {
+          "hex": "#99DDFF",
+          "name": "light_cyan"
+        },
+        {
+          "hex": "#44BB99",
+          "name": "mint"
+        },
+        {
+          "hex": "#BBCC33",
+          "name": "pear"
+        },
+        {
+          "hex": "#AAAA00",
+          "name": "olive"
+        },
+        {
+          "hex": "#DDDDDD",
+          "name": "pale_grey"
+        }
+      ],
+      "extras": [
+        {
+          "hex": "#000000",
+          "name": "black"
+        }
+      ]
+    },
+    "medium-contrast": {
+      "id": "medium-contrast",
+      "kind": "qualitative",
+      "colors": [
+        {
+          "hex": "#6699CC",
+          "name": "light_blue"
+        },
+        {
+          "hex": "#004488",
+          "name": "dark_blue"
+        },
+        {
+          "hex": "#EECC66",
+          "name": "light_yellow"
+        },
+        {
+          "hex": "#994455",
+          "name": "dark_red"
+        },
+        {
+          "hex": "#997700",
+          "name": "dark_yellow"
+        },
+        {
+          "hex": "#EE99AA",
+          "name": "light_red"
+        }
+      ],
+      "extras": [
+        {
+          "hex": "#000000",
+          "name": "black"
+        }
+      ]
+    },
+    "muted": {
+      "id": "muted",
+      "kind": "qualitative",
+      "colors": [
+        {
+          "hex": "#CC6677",
+          "name": "rose"
+        },
+        {
+          "hex": "#332288",
+          "name": "indigo"
+        },
+        {
+          "hex": "#DDCC77",
+          "name": "sand"
+        },
+        {
+          "hex": "#117733",
+          "name": "green"
+        },
+        {
+          "hex": "#88CCEE",
+          "name": "cyan"
+        },
+        {
+          "hex": "#882255",
+          "name": "wine"
+        },
+        {
+          "hex": "#44AA99",
+          "name": "teal"
+        },
+        {
+          "hex": "#999933",
+          "name": "olive"
+        },
+        {
+          "hex": "#AA4499",
+          "name": "purple"
+        }
+      ],
+      "extras": [
+        {
+          "hex": "#DDDDDD",
+          "name": "pale_grey"
+        },
+        {
+          "hex": "#000000",
+          "name": "black"
+        }
+      ],
+      "bad": "#DDDDDD"
+    },
+    "pale": {
+      "id": "pale",
+      "kind": "qualitative",
+      "colors": [
+        {
+          "hex": "#AACCEE"
+        },
+        {
+          "hex": "#CCEEFF"
+        },
+        {
+          "hex": "#BBDDBB"
+        },
+        {
+          "hex": "#EEEEBB"
+        },
+        {
+          "hex": "#FFBBCC"
+        },
+        {
+          "hex": "#EEBBDD"
+        },
+        {
+          "hex": "#DDDDDD"
+        }
+      ]
+    },
+    "vibrant": {
+      "id": "vibrant",
+      "kind": "qualitative",
+      "colors": [
+        {
+          "hex": "#EE7733",
+          "name": "orange"
+        },
+        {
+          "hex": "#0077BB",
+          "name": "blue"
+        },
+        {
+          "hex": "#33BBEE",
+          "name": "cyan"
+        },
+        {
+          "hex": "#EE3377",
+          "name": "magenta"
+        },
+        {
+          "hex": "#CC3311",
+          "name": "red"
+        },
+        {
+          "hex": "#009988",
+          "name": "teal"
+        },
+        {
+          "hex": "#BBBBBB",
+          "name": "grey"
+        }
+      ],
+      "extras": [
+        {
+          "hex": "#000000",
+          "name": "black"
+        }
+      ]
+    }
+  },
+  "achromatic": [
+    {
+      "name": "white",
+      "hex": "#FFFFFF",
+      "sourceScheme": "sunset"
+    },
+    {
+      "name": "grey-200",
+      "hex": "#DDDDDD",
+      "sourceScheme": "pale"
+    },
+    {
+      "name": "grey-300",
+      "hex": "#BBBBBB",
+      "sourceScheme": "bright"
+    },
+    {
+      "name": "grey-400",
+      "hex": "#999999",
+      "sourceScheme": "iridescent"
+    },
+    {
+      "name": "grey-500",
+      "hex": "#888888",
+      "sourceScheme": "ylorbr"
+    },
+    {
+      "name": "grey-600",
+      "hex": "#777777",
+      "sourceScheme": "rainbow-discrete"
+    },
+    {
+      "name": "grey-700",
+      "hex": "#666666",
+      "sourceScheme": "rainbow-smooth"
+    },
+    {
+      "name": "grey-800",
+      "hex": "#444444",
+      "sourceScheme": "dark"
+    },
+    {
+      "name": "black",
+      "hex": "#000000",
+      "sourceScheme": "bright"
+    }
+  ],
+  "allowedHexes": [
+    "#000000",
+    "#004488",
+    "#006644",
+    "#0077BB",
+    "#009988",
+    "#117733",
+    "#117788",
+    "#2255AA",
+    "#228833",
+    "#332288",
+    "#33BBEE",
+    "#444444",
+    "#4477AA",
+    "#4477BB",
+    "#44AA99",
+    "#44BB99",
+    "#666666",
+    "#6699CC",
+    "#66CCEE",
+    "#775500",
+    "#777777",
+    "#77AADD",
+    "#882255",
+    "#882288",
+    "#888888",
+    "#88CCEE",
+    "#993366",
+    "#994455",
+    "#997700",
+    "#999933",
+    "#999999",
+    "#99DDFF",
+    "#AA3377",
+    "#AA4499",
+    "#AAAA00",
+    "#AACCEE",
+    "#BB4488",
+    "#BB5566",
+    "#BBBBBB",
+    "#BBCC33",
+    "#BBDDBB",
+    "#CC3311",
+    "#CC4466",
+    "#CC6677",
+    "#CCBB44",
+    "#CCEEFF",
+    "#DDAA33",
+    "#DDCC77",
+    "#DDDDDD",
+    "#EE3377",
+    "#EE6677",
+    "#EE7733",
+    "#EE8866",
+    "#EE99AA",
+    "#EEBBDD",
+    "#EECC66",
+    "#EEDD88",
+    "#EEEEBB",
+    "#FFAABB",
+    "#FFBBCC",
+    "#FFFFFF"
+  ]
+}

@@ -1,0 +1,10 @@
+node_modules/
+.agents/
+.gemini/
+.ai/
+.cursor/
+.claude/
+docs/learnings/
+AGENTS.md
+GEMINI.md
+CLAUDE.md

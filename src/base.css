@@ -1,0 +1,26 @@
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :where(:root, :host) {
+    background-color: var(--tc-bg);
+    color: var(--tc-color);
+    font-family: var(--tc-font-sans);
+    font-size: clamp(100%, 95% + 0.4vw, 125%);
+    line-height: var(--tc-line-height);
+    overflow-wrap: break-word;
+    tab-size: 4;
+  }
+
+  body { margin: 0; }
+  :where(button, input, optgroup, select, textarea) { margin: 0; font: inherit; }
+  ::selection { background-color: color-mix(in srgb, var(--tc-primary) 25%, transparent); }
+  :where([hidden]) { display: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
