@@ -32,7 +32,7 @@
     }
   }
 
-  [type="search"] { border-radius: 5rem; }
+  [type="search"] { border-radius: 99px; }
   [type="color"] { height: 2.5rem; padding: 0.25rem; cursor: pointer; }
   [type="file"] {
     width: 100%;
@@ -50,7 +50,7 @@
     cursor: pointer;
   }
 
-  label:has(> :is([type="checkbox"], [type="radio"])) {
+  label:has(> [type="checkbox"], > [type="radio"]) {
     display: inline-flex;
     align-items: center;
     margin-inline-end: var(--tc-spacing);

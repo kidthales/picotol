@@ -1,11 +1,11 @@
 @layer base {
-  *, *::before, *::after { box-sizing: border-box; }
+  *, ::before, ::after { box-sizing: border-box; }
 
-  :where(:root, :host) {
+  :root, :host {
     background-color: var(--tc-bg);
     color: var(--tc-color);
     font-family: var(--tc-font-sans);
-    font-size: clamp(100%, 95% + 0.4vw, 125%);
+    font-size: clamp(100%, 95% + .4vw, 125%);
     line-height: var(--tc-line-height);
     overflow-wrap: break-word;
     tab-size: 4;
@@ -17,10 +17,11 @@
   :where([hidden]) { display: none !important; }
 
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    *, ::before, ::after {
       animation: none !important;
       transition: none !important;
       scroll-behavior: auto !important;
     }
   }
 }
+
