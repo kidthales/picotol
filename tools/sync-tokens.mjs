@@ -108,7 +108,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
   const lines = [
     '@layer tokens, base, layout, content, forms, nav, components;',
     '@layer tokens {',
-    '  :root, :host {',
+    '  :root, :host, [data-accent="blue"] {',
     '    color-scheme: light dark;',
     '    --tc-font-sans: system-ui, sans-serif;',
     '    --tc-font-mono: ui-monospace, monospace;',
@@ -138,12 +138,10 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     '    --tc-primary-hover: light-dark(var(--tc-p5), var(--tc-p1));',
     '    --tc-primary-bg: light-dark(var(--tc-p1), var(--tc-p4));',
     '    --tc-primary-hover-bg: light-dark(var(--tc-p2), var(--tc-p3));',
+    `    --tc-p1: ${colorByName('pale', 0)}; --tc-p2: ${colorByName('light', 'light_blue')}; --tc-p3: ${colorByName('bright', 'blue')}; --tc-p4: ${colorByName('dark', 3)}; --tc-p5: ${colorByName('high-contrast', 'blue')};`,
     '  }',
     '  [data-theme="light"] { color-scheme: light; }',
     '  [data-theme="dark"] { color-scheme: dark; }',
-    '  :root, :host, [data-accent="blue"] {',
-    `    --tc-p1: ${colorByName('pale', 0)}; --tc-p2: ${colorByName('light', 'light_blue')}; --tc-p3: ${colorByName('bright', 'blue')}; --tc-p4: ${colorByName('dark', 3)}; --tc-p5: ${colorByName('high-contrast', 'blue')};`,
-    '  }',
     '  [data-accent="cyan"] {',
     `    --tc-p1: ${colorByName('pale', 1)}; --tc-p2: ${colorByName('light', 'light_cyan')}; --tc-p3: ${colorByName('muted', 'teal')}; --tc-p4: ${colorByName('dark', 6)}; --tc-p5: ${colorByName('dark', 5)};`,
     '  }',
@@ -159,11 +157,9 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     '  [data-accent="purple"] {',
     `    --tc-p1: ${colorByName('pale', 5)}; --tc-p2: ${colorByName('pale', 5)}; --tc-p3: ${colorByName('bright', 'purple')}; --tc-p4: ${colorByName('dark', 7)}; --tc-p5: ${colorByName('muted', 'indigo')};`,
     '  }',
-    '  :where(.secondary, [type="reset"]) {',
-    `    --tc-p1: ${ach['grey-200']}; --tc-p2: ${ach['grey-300']}; --tc-p3: ${ach['grey-700']}; --tc-p4: ${ach['grey-800']}; --tc-p5: ${ach['grey-700']};`,
-    '  }',
     '}',
     '',
+
   ];
 
   return lines.join('\n');

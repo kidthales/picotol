@@ -1,10 +1,9 @@
 @layer content {
-  :where(p, ul, ol, dl, blockquote, pre, figure, table, address, hr, hgroup) {
+  :where(p, ul, ol, dl, blockquote, pre, figure, table, address, hr, hgroup, h1, h2, h3, h4, h5, h6) {
     margin-block: 0 var(--tc-spacing);
   }
 
   :where(h1, h2, h3, h4, h5, h6) {
-    margin-block: 0 var(--tc-spacing);
     font-weight: 700;
     line-height: 1.15;
     text-wrap: balance;
@@ -57,11 +56,20 @@
     --tc-btn-color: var(--tc-bg);
   }
 
+  :where(.secondary, [type="reset"]) {
+    --tc-primary: light-dark(#666, #bbb);
+    --tc-primary-hover: var(--tc-muted-color);
+    --tc-primary-bg: var(--tc-surface);
+    --tc-primary-hover-bg: light-dark(#bbb, #666);
+  }
+
+
+
   :where(a:not([role="button"])) {
     color: var(--tc-primary);
     text-decoration: underline color-mix(in srgb, var(--tc-primary) 50%, transparent);
     text-underline-offset: 2px;
-    &:is(:hover, :active, :focus) { color: var(--tc-primary-hover); text-decoration-color: var(--tc-primary-hover); }
+    &:is(:hover, :focus) { color: var(--tc-primary-hover); text-decoration-color: var(--tc-primary-hover); }
   }
 
   :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"]) {
@@ -77,12 +85,12 @@
     cursor: pointer;
     transition: var(--tc-transition);
 
-    &:is(:hover, :active, :focus) { background: var(--tc-primary-hover-bg); }
+    &:is(:hover, :focus) { background: var(--tc-primary-hover-bg); }
     &:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--tc-primary) 35%, transparent); }
     &.outline {
       background: none;
       color: var(--tc-primary);
-      &:is(:hover, :active, :focus) { background: var(--tc-surface-subtle); }
+      &:is(:hover, :focus) { background: var(--tc-surface-subtle); }
     }
   }
 

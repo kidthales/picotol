@@ -1,6 +1,6 @@
 @layer tokens, base, layout, content, forms, nav, components;
 @layer tokens {
-  :root, :host {
+  :root, :host, [data-accent="blue"] {
     color-scheme: light dark;
     --tc-font-sans: system-ui, sans-serif;
     --tc-font-mono: ui-monospace, monospace;
@@ -30,12 +30,10 @@
     --tc-primary-hover: light-dark(var(--tc-p5), var(--tc-p1));
     --tc-primary-bg: light-dark(var(--tc-p1), var(--tc-p4));
     --tc-primary-hover-bg: light-dark(var(--tc-p2), var(--tc-p3));
+    --tc-p1: #AACCEE; --tc-p2: #77AADD; --tc-p3: #4477AA; --tc-p4: #2255AA; --tc-p5: #004488;
   }
   [data-theme="light"] { color-scheme: light; }
   [data-theme="dark"] { color-scheme: dark; }
-  :root, :host, [data-accent="blue"] {
-    --tc-p1: #AACCEE; --tc-p2: #77AADD; --tc-p3: #4477AA; --tc-p4: #2255AA; --tc-p5: #004488;
-  }
   [data-accent="cyan"] {
     --tc-p1: #CCEEFF; --tc-p2: #99DDFF; --tc-p3: #44AA99; --tc-p4: #117788; --tc-p5: #006644;
   }
@@ -50,8 +48,5 @@
   }
   [data-accent="purple"] {
     --tc-p1: #EEBBDD; --tc-p2: #EEBBDD; --tc-p3: #AA3377; --tc-p4: #882288; --tc-p5: #332288;
-  }
-  :where(.secondary, [type="reset"]) {
-    --tc-p1: #DDDDDD; --tc-p2: #BBBBBB; --tc-p3: #666666; --tc-p4: #444444; --tc-p5: #666666;
   }
 }
