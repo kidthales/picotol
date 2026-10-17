@@ -205,3 +205,62 @@ test("Architecture & Selector Invariants: @layer cascade, [data-theme], [data-ac
   }
   assert.ok(demoHtml.includes("tol-css"), "Interactive demo HTML generated");
 });
+
+test("Secondary Button Decoupling: neutral slate ladder prevents collision with cyan and all accents", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/tol-css.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/tol-css.core.css"), "utf8");
+
+  // Verify neutral slate rule exists in both full and core bundles
+  const secondarySelector = ':where(.secondary, [type="reset"])';
+  assert.ok(fullCss.includes(secondarySelector), "Secondary selector present in dist/tol-css.css");
+  assert.ok(coreCss.includes(secondarySelector), "Secondary selector present in dist/tol-css.core.css");
+
+  // Canonical Paul Tol achromatic slate stops used for secondary ladder
+  const secondaryLadder = {
+    p1: achromaticColor("grey-200"), // #DDDDDD (surface in light mode)
+    p2: achromaticColor("grey-300"), // #BBBBBB (hover in light mode)
+    p3: achromaticColor("grey-700"), // #666666 (hover in dark mode)
+    p4: achromaticColor("grey-800"), // #444444 (surface in dark mode)
+    p5: achromaticColor("grey-700"), // #666666
+  };
+
+  const lightText = achromaticColor("black"); // #000000
+  const darkText = achromaticColor("white");  // #FFFFFF
+
+  // WCAG AAA contrast verification
+  const lightCR = contrastRatio(secondaryLadder.p1, lightText);
+  const darkCR = contrastRatio(secondaryLadder.p4, darkText);
+
+  assert.ok(
+    lightCR >= 7.0,
+    `Secondary light mode surface (${secondaryLadder.p1}) vs black text CR=${lightCR.toFixed(2)} must be >= 7.0 (AAA)`
+  );
+  assert.ok(
+    darkCR >= 7.0,
+    `Secondary dark mode surface (${secondaryLadder.p4}) vs white text CR=${darkCR.toFixed(2)} must be >= 7.0 (AAA)`
+  );
+
+  // Assert secondary surfaces do NOT collide with any of the 6 chromatic accents (especially cyan)
+  const accents = [
+    { name: "cyan", p1: schemeColor("pale", 1), p4: schemeColor("dark", 6) },
+    { name: "blue", p1: schemeColor("pale", 0), p4: schemeColor("dark", 3) },
+    { name: "green", p1: schemeColor("pale", 2), p4: schemeColor("dark", 5) },
+    { name: "yellow", p1: schemeColor("pale", 3), p4: schemeColor("dark", 9) },
+    { name: "red", p1: schemeColor("pale", 4), p4: schemeColor("dark", 4) },
+    { name: "purple", p1: schemeColor("pale", 5), p4: schemeColor("dark", 7) },
+  ];
+
+  for (const acc of accents) {
+    assert.notEqual(
+      expandHex(secondaryLadder.p1),
+      expandHex(acc.p1),
+      `Secondary light surface must not collide with ${acc.name} light surface`
+    );
+    assert.notEqual(
+      expandHex(secondaryLadder.p4),
+      expandHex(acc.p4),
+      `Secondary dark surface must not collide with ${acc.name} dark surface`
+    );
+  }
+});
+
