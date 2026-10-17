@@ -1,11 +1,13 @@
-// Zero-dependency CSS, Accessibility & HTML Linter powered by LightningCSS AST:
+// Zero-dependency CSS, Accessibility, HTML & Hygiene Linter powered by LightningCSS AST:
 //   1. Strict CSS syntax & nesting validation (errorRecovery: false, 0 warnings)
 //   2. Paul Tol hex purity & forbidden color function gate (rgb/hsl/oklch/lab/lch)
-//   3. Custom property naming (--tc-* / --tol-*) & undefined var(--*) detection
+//   3. Custom property naming (--pt-* / --tol-*) & undefined var(--*) detection
 //   4. Accessibility CSS rules: prohibits outline:none/0 and px font-size; requires
 //      :focus-visible, .skip-to-content, .sr-only, forced-colors, reduced-motion, print
 //   5. Demo HTML linter: verifies all classes, #hash anchors, aria-describedby,
 //      aria-labelledby, and keyboard tabindex on non-interactive [data-tooltip] nodes.
+//   6. Node.js syntax check (`node --check`), git agent-file guard, and export resolution.
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,6 +40,46 @@ export function runLint() {
   const tolData = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/tol-qualitative.json'), 'utf8'));
   const allowedHexSet = new Set(tolData.allowedHexes.map((h) => h.toUpperCase()));
 
+  // 0. Node.js syntax check on tools/*.mjs and tests/*.mjs
+  for (const dirName of ['tools', 'tests']) {
+    const dirPath = path.join(ROOT, dirName);
+    if (!fs.existsSync(dirPath)) continue;
+    for (const file of fs.readdirSync(dirPath).filter((f) => f.endsWith('.mjs'))) {
+      const fullPath = path.join(dirPath, file);
+      try {
+        execFileSync(process.execPath, ['--check', fullPath], { stdio: 'pipe' });
+      } catch (err) {
+        errors.push(`[syntax] ${dirName}/${file}: ${err.stderr?.toString() || err.message}`);
+      }
+    }
+  }
+
+  // Agent / scratch file leak guard
+  try {
+    const tracked = execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' })
+      .split(/\r?\n/)
+      .filter(Boolean);
+    const badPattern = /^(\.agents?\/|\.gemini\/|\.ai\/|\.cursor\/|\.claude\/|scratch\/|docs\/learnings\/|AGENTS\.md$|GEMINI\.md$|CLAUDE\.md$)/;
+    for (const file of tracked) {
+      if (badPattern.test(file)) {
+        errors.push(`[hygiene] Agent or scratch file tracked in git: ${file}`);
+      }
+    }
+  } catch {
+    // Ignore if git is unavailable
+  }
+
+  // Package exports resolution check
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  for (const [subpath, target] of Object.entries(pkg.exports ?? {})) {
+    const targets = typeof target === 'string' ? [target] : Object.values(target);
+    for (const t of targets) {
+      if (!fs.existsSync(path.join(ROOT, t))) {
+        errors.push(`[exports] Export "${subpath}" target "${t}" does not exist on disk.`);
+      }
+    }
+  }
+
   const srcDir = path.join(ROOT, 'src');
   const srcFiles = fs.readdirSync(srcDir).filter((f) => f.endsWith('.css'));
 
@@ -63,11 +105,11 @@ export function runLint() {
       errors.push(`[${relPath}] CSS syntax error: ${err.message}`);
     }
 
-    // 2. Custom property naming convention (--tc-* or --tol-*)
+    // 2. Custom property naming convention (--pt-* or --tol-*)
     for (const match of content.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)) {
       const propName = match[1];
-      if (!/^--(tc|tol)-[a-z0-9_-]+$/.test(propName)) {
-        errors.push(`[${relPath}] Invalid custom property name "${propName}" (must match --tc-* or --tol-*)`);
+      if (!/^--(pt|tol)-[a-z0-9_-]+$/.test(propName)) {
+        errors.push(`[${relPath}] Invalid custom property name "${propName}" (must match --pt-* or --tol-*)`);
       }
     }
 
@@ -93,7 +135,7 @@ export function runLint() {
   }
 
   // 5. Bundle-level undefined custom property & accessibility feature verification
-  for (const entry of ['src/tol-css.core.css', 'src/tol-css.css']) {
+  for (const entry of ['src/picotol.core.css', 'src/picotol.css']) {
     const entryPath = path.join(ROOT, entry);
     const res = bundle({ filename: entryPath, minify: false, ...OPTS });
     if (res.warnings && res.warnings.length > 0) {
@@ -105,8 +147,8 @@ export function runLint() {
     const definedVars = new Set([...bundledCss.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]));
     const usedVars = new Set([...bundledCss.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map((m) => m[1]));
 
-    // Allow --tc-btn-color as optional override hook with fallback var(--tc-btn-color, var(--tc-color))
-    definedVars.add('--tc-btn-color');
+    // Allow --pt-btn-color as optional override hook with fallback var(--pt-btn-color, var(--pt-color))
+    definedVars.add('--pt-btn-color');
 
     for (const used of usedVars) {
       if (!definedVars.has(used)) {
@@ -115,7 +157,7 @@ export function runLint() {
     }
   }
 
-  const fullDistCss = fs.readFileSync(path.join(ROOT, 'dist/tol-css.css'), 'utf8');
+  const fullDistCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
   for (const requiredRule of [
     ':focus-visible',
     '.skip-to-content',
@@ -126,7 +168,7 @@ export function runLint() {
     '@media print',
   ]) {
     if (!fullDistCss.includes(requiredRule)) {
-      errors.push(`[dist/tol-css.css] Missing required accessibility/responsive rule: "${requiredRule}"`);
+      errors.push(`[dist/picotol.css] Missing required accessibility/responsive rule: "${requiredRule}"`);
     }
   }
 
@@ -141,7 +183,7 @@ export function runLint() {
 
   for (const cls of demoClasses) {
     if (!fullDistCss.includes(`.${cls}`)) {
-      errors.push(`[dist/demo/index.html] Unstyled class ".${cls}" used in demo HTML but missing from dist/tol-css.css`);
+      errors.push(`[dist/demo/index.html] Unstyled class ".${cls}" used in demo HTML but missing from dist/picotol.css`);
     }
   }
 
@@ -179,5 +221,5 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.error(`Lint failed with ${errors.length} error(s):\n  • ` + errors.join('\n  • '));
     process.exit(1);
   }
-  console.log('✔ Lint passed: 0 CSS AST errors, 100% Paul Tol token purity, all WCAG/ARIA & demo links valid.');
+  console.log('✔ Lint passed: 0 CSS AST errors, 0 JS syntax errors, 100% Paul Tol token purity (--pt-* / --tol-*), all WCAG/ARIA & exports valid.');
 }

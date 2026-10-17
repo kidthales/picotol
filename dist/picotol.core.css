@@ -1,40 +1,40 @@
-/*! @kidthales/tol-css v0.1.0 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
+/*! @kidthales/picotol v0.1.0 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
 @layer tokens {
   :root, :host, [data-accent="blue"] {
     color-scheme: light dark;
-    --tc-font-sans: system-ui, sans-serif;
-    --tc-font-mono: ui-monospace, monospace;
-    --tc-line-height: 1.5;
-    --tc-border-radius: .25rem;
-    --tc-transition: .15s ease-in-out;
-    --tc-spacing: 1rem;
-    --tc-form-y: .5rem;
-    --tc-form-x: .75rem;
-    --tc-container-max: 70rem;
-    --tc-grid-min: 15rem;
-    --tc-bg: light-dark(#fff, #000);
-    --tc-surface: light-dark(#ddd, #444);
-    --tc-surface-subtle: color-mix(in srgb, var(--tc-surface) 38%, transparent);
-    --tc-color: light-dark(#000, #fff);
-    --tc-muted-color: light-dark(#444, #ddd);
-    --tc-muted-border: light-dark(#888, #666);
-    --tc-border: 1px solid var(--tc-muted-border);
-    --tc-valid: light-dark(#064, #4b9);
-    --tc-invalid: light-dark(#c31, #e67);
-    --tc-mark-bg: light-dark(#eeb, #750);
-    --tc-box-shadow: 0 2px 8px color-mix(in srgb, var(--tc-color) 12%, transparent);
-    --tc-p1: #ace;
-    --tc-p2: #7ad;
-    --tc-p3: #47a;
-    --tc-p4: #25a;
-    --tc-p5: #048;
+    --pt-font-sans: system-ui, sans-serif;
+    --pt-font-mono: ui-monospace, monospace;
+    --pt-line-height: 1.5;
+    --pt-border-radius: .25rem;
+    --pt-transition: .15s ease-in-out;
+    --pt-spacing: 1rem;
+    --pt-form-y: .5rem;
+    --pt-form-x: .75rem;
+    --pt-container-max: 70rem;
+    --pt-grid-min: 15rem;
+    --pt-bg: light-dark(#fff, #000);
+    --pt-surface: light-dark(#ddd, #444);
+    --pt-surface-subtle: color-mix(in srgb, var(--pt-surface) 38%, transparent);
+    --pt-color: light-dark(#000, #fff);
+    --pt-muted-color: light-dark(#444, #ddd);
+    --pt-muted-border: light-dark(#888, #666);
+    --pt-border: 1px solid var(--pt-muted-border);
+    --pt-valid: light-dark(#064, #4b9);
+    --pt-invalid: light-dark(#c31, #e67);
+    --pt-mark-bg: light-dark(#eeb, #750);
+    --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
+    --pt-p1: #ace;
+    --pt-p2: #7ad;
+    --pt-p3: #47a;
+    --pt-p4: #25a;
+    --pt-p5: #048;
   }
 
   :root, :host, :where([data-accent], [data-theme]) {
-    --tc-primary: light-dark(var(--tc-p4), var(--tc-p2));
-    --tc-primary-hover: light-dark(var(--tc-p5), var(--tc-p1));
-    --tc-primary-bg: light-dark(var(--tc-p1), var(--tc-p4));
-    --tc-primary-hover-bg: light-dark(var(--tc-p2), var(--tc-p3));
+    --pt-primary: light-dark(var(--pt-p4), var(--pt-p2));
+    --pt-primary-hover: light-dark(var(--pt-p5), var(--pt-p1));
+    --pt-primary-bg: light-dark(var(--pt-p1), var(--pt-p4));
+    --pt-primary-hover-bg: light-dark(var(--pt-p2), var(--pt-p3));
   }
 
   [data-theme="light"] {
@@ -46,43 +46,43 @@
   }
 
   [data-accent="cyan"] {
-    --tc-p1: #cef;
-    --tc-p2: #9df;
-    --tc-p3: #07b;
-    --tc-p4: #178;
-    --tc-p5: #064;
+    --pt-p1: #cef;
+    --pt-p2: #9df;
+    --pt-p3: #07b;
+    --pt-p4: #178;
+    --pt-p5: #064;
   }
 
   [data-accent="green"] {
-    --tc-p1: #bdb;
-    --tc-p2: #4b9;
-    --tc-p3: #283;
-    --tc-p4: #064;
-    --tc-p5: #173;
+    --pt-p1: #bdb;
+    --pt-p2: #4b9;
+    --pt-p3: #283;
+    --pt-p4: #064;
+    --pt-p5: #173;
   }
 
   [data-accent="yellow"] {
-    --tc-p1: #eeb;
-    --tc-p2: #da3;
-    --tc-p3: #993404;
-    --tc-p4: #750;
-    --tc-p5: #662506;
+    --pt-p1: #eeb;
+    --pt-p2: #da3;
+    --pt-p3: #993404;
+    --pt-p4: #750;
+    --pt-p5: #662506;
   }
 
   [data-accent="red"] {
-    --tc-p1: #e86;
-    --tc-p2: #e67;
-    --tc-p3: #c46;
-    --tc-p4: #c31;
-    --tc-p5: #945;
+    --pt-p1: #e86;
+    --pt-p2: #e67;
+    --pt-p3: #c46;
+    --pt-p4: #c31;
+    --pt-p5: #945;
   }
 
   [data-accent="purple"] {
-    --tc-p1: #e7d4e8;
-    --tc-p2: #c2a5cf;
-    --tc-p3: #a49;
-    --tc-p4: #762a83;
-    --tc-p5: #328;
+    --pt-p1: #e7d4e8;
+    --pt-p2: #c2a5cf;
+    --pt-p3: #a49;
+    --pt-p4: #762a83;
+    --pt-p5: #328;
   }
 }
 
@@ -92,11 +92,11 @@
   }
 
   :root, :host {
-    background-color: var(--tc-bg);
-    color: var(--tc-color);
-    font-family: var(--tc-font-sans);
+    background-color: var(--pt-bg);
+    color: var(--pt-color);
+    font-family: var(--pt-font-sans);
     font-size: clamp(100%, 95% + .4vw, 125%);
-    line-height: var(--tc-line-height);
+    line-height: var(--pt-line-height);
     overflow-wrap: break-word;
     tab-size: 4;
   }
@@ -111,7 +111,7 @@
   }
 
   ::selection {
-    background-color: color-mix(in srgb, var(--tc-primary) 25%, transparent);
+    background-color: color-mix(in srgb, var(--pt-primary) 25%, transparent);
   }
 
   :where([hidden]) {
@@ -119,7 +119,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--tc-primary);
+    outline: 2px solid var(--pt-primary);
     outline-offset: 2px;
   }
 
@@ -130,11 +130,11 @@
   .skip-to-content:is(:focus, :focus-visible) {
     top: .5rem;
     z-index: 9999;
-    border: 2px solid var(--tc-primary);
-    border-radius: var(--tc-border-radius);
-    background-color: var(--tc-bg);
-    color: var(--tc-color);
-    box-shadow: var(--tc-box-shadow);
+    border: 2px solid var(--pt-primary);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-bg);
+    color: var(--pt-color);
+    box-shadow: var(--pt-box-shadow);
     padding: .5rem 1rem;
     font-weight: 700;
     text-decoration: none;
@@ -165,8 +165,8 @@
   @media print {
     :root {
       color-scheme: light;
-      --tc-bg: #fff;
-      --tc-color: #000;
+      --pt-bg: #fff;
+      --pt-color: #000;
     }
 
     :where(nav, dialog, .skip-to-content) {
@@ -182,8 +182,8 @@
 @layer layout {
   :where(body > header, body > main, body > footer, .container) {
     width: 100%;
-    max-width: var(--tc-container-max);
-    padding: var(--tc-spacing);
+    max-width: var(--pt-container-max);
+    padding: var(--pt-spacing);
     margin-inline: auto;
   }
 
@@ -192,7 +192,7 @@
   }
 
   .grid {
-    gap: var(--tc-spacing);
+    gap: var(--pt-spacing);
     display: grid;
 
     & > * {
@@ -200,7 +200,7 @@
     }
 
     @media (width >= 48rem) {
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--tc-grid-min)), 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--pt-grid-min)), 1fr));
     }
   }
 
@@ -211,7 +211,7 @@
 
 @layer content {
   :where(p, ul, ol, dl, blockquote, pre, figure, table, address, hr, hgroup, h1, h2, h3, h4, h5, h6) {
-    margin-block: 0 var(--tc-spacing);
+    margin-block: 0 var(--pt-spacing);
   }
 
   :where(p, dl, blockquote, :not(nav, details) > :is(ul, ol)) {
@@ -245,7 +245,7 @@
   }
 
   :where(h4, h5, h6) {
-    color: var(--tc-muted-color);
+    color: var(--pt-muted-color);
   }
 
   h4 {
@@ -268,7 +268,7 @@
     margin: 0;
 
     &:nth-child(2) {
-      color: var(--tc-muted-color);
+      color: var(--pt-muted-color);
       font-size: 1rem;
       font-weight: 400;
     }
@@ -297,19 +297,19 @@
   }
 
   mark {
-    border-radius: var(--tc-border-radius);
-    background: var(--tc-mark-bg);
-    color: var(--tc-color);
+    border-radius: var(--pt-border-radius);
+    background: var(--pt-mark-bg);
+    color: var(--pt-color);
     padding: .125em .25em;
   }
 
   ins {
-    color: var(--tc-valid);
+    color: var(--pt-valid);
     text-decoration: none;
   }
 
   del {
-    color: var(--tc-invalid);
+    color: var(--pt-invalid);
   }
 
   abbr[title] {
@@ -319,70 +319,70 @@
   }
 
   blockquote {
-    padding: .5rem var(--tc-spacing);
-    border-inline-start: 4px solid var(--tc-muted-border);
+    padding: .5rem var(--pt-spacing);
+    border-inline-start: 4px solid var(--pt-muted-border);
     margin-inline: 0;
   }
 
   :where(figcaption, blockquote footer) {
-    color: var(--tc-muted-color);
+    color: var(--pt-muted-color);
     margin-top: .5rem;
     font-size: .875em;
   }
 
   hr {
     border: 0;
-    border-top: var(--tc-border);
+    border-top: var(--pt-border);
   }
 
   :where(.contrast) {
-    --tc-primary: var(--tc-color);
-    --tc-primary-hover: var(--tc-muted-color);
-    --tc-primary-bg: var(--tc-color);
-    --tc-primary-hover-bg: var(--tc-muted-color);
-    --tc-btn-color: var(--tc-bg);
+    --pt-primary: var(--pt-color);
+    --pt-primary-hover: var(--pt-muted-color);
+    --pt-primary-bg: var(--pt-color);
+    --pt-primary-hover-bg: var(--pt-muted-color);
+    --pt-btn-color: var(--pt-bg);
   }
 
   :where(.secondary, [type="reset"]) {
-    --tc-primary: var(--tc-muted-color);
-    --tc-primary-hover: var(--tc-color);
-    --tc-primary-bg: var(--tc-surface);
-    --tc-primary-hover-bg: var(--tc-muted-border);
+    --pt-primary: var(--pt-muted-color);
+    --pt-primary-hover: var(--pt-color);
+    --pt-primary-bg: var(--pt-surface);
+    --pt-primary-hover-bg: var(--pt-muted-border);
   }
 
   :where(a:not([role="button"])) {
-    color: var(--tc-primary);
-    text-decoration: underline color-mix(in srgb, var(--tc-primary) 50%, transparent);
+    color: var(--pt-primary);
+    text-decoration: underline color-mix(in srgb, var(--pt-primary) 50%, transparent);
     text-underline-offset: 2px;
 
     &:is(:hover, :active, :focus-visible) {
-      color: var(--tc-primary-hover);
-      text-decoration-color: var(--tc-primary-hover);
+      color: var(--pt-primary-hover);
+      text-decoration-color: var(--pt-primary-hover);
     }
   }
 
   :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"]) {
-    padding: var(--tc-form-y) var(--tc-form-x);
-    border: 1px solid var(--tc-primary);
-    border-radius: var(--tc-border-radius);
-    background: var(--tc-primary-bg);
-    color: var(--tc-btn-color, var(--tc-color));
+    padding: var(--pt-form-y) var(--pt-form-x);
+    border: 1px solid var(--pt-primary);
+    border-radius: var(--pt-border-radius);
+    background: var(--pt-primary-bg);
+    color: var(--pt-btn-color, var(--pt-color));
     text-align: center;
     cursor: pointer;
-    transition: var(--tc-transition);
+    transition: var(--pt-transition);
     text-decoration: none;
     display: inline-block;
 
     &:is(:hover, :active) {
-      background: var(--tc-primary-hover-bg);
+      background: var(--pt-primary-hover-bg);
     }
 
     &.outline {
-      color: var(--tc-primary);
+      color: var(--pt-primary);
       background: none;
 
       &:is(:hover, :active) {
-        background: var(--tc-surface-subtle);
+        background: var(--pt-surface-subtle);
       }
     }
   }
@@ -393,23 +393,23 @@
   }
 
   :where(pre, code, kbd, samp) {
-    border-radius: var(--tc-border-radius);
-    background: var(--tc-surface-subtle);
-    font-family: var(--tc-font-mono);
+    border-radius: var(--pt-border-radius);
+    background: var(--pt-surface-subtle);
+    font-family: var(--pt-font-mono);
     padding: .125em .375em;
     font-size: .875em;
   }
 
   kbd {
-    border: var(--tc-border);
-    background: var(--tc-color);
-    color: var(--tc-bg);
+    border: var(--pt-border);
+    background: var(--pt-color);
+    color: var(--pt-bg);
     font-weight: 700;
   }
 
   pre {
-    padding: var(--tc-spacing);
-    border: var(--tc-border);
+    padding: var(--pt-spacing);
+    border: var(--pt-border);
     overflow-x: auto;
 
     & > code {
@@ -425,7 +425,7 @@
   }
 
   :where(th, td) {
-    border-bottom: var(--tc-border);
+    border-bottom: var(--pt-border);
     text-align: start;
     padding: .5rem .75rem;
   }
@@ -436,7 +436,7 @@
   }
 
   table.striped tbody tr:nth-child(odd) {
-    background: var(--tc-surface-subtle);
+    background: var(--pt-surface-subtle);
   }
 
   :where(img, video) {
@@ -457,35 +457,35 @@
   }
 
   fieldset {
-    margin: 0 0 var(--tc-spacing);
+    margin: 0 0 var(--pt-spacing);
     border: 0;
     padding: 0;
   }
 
   :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"], [type="reset"]), select, textarea) {
     width: 100%;
-    margin-bottom: var(--tc-spacing);
-    padding: var(--tc-form-y) var(--tc-form-x);
-    border: var(--tc-border);
-    border-radius: var(--tc-border-radius);
-    background: var(--tc-bg);
-    color: var(--tc-color);
+    margin-bottom: var(--pt-spacing);
+    padding: var(--pt-form-y) var(--pt-form-x);
+    border: var(--pt-border);
+    border-radius: var(--pt-border-radius);
+    background: var(--pt-bg);
+    color: var(--pt-color);
     appearance: none;
-    transition: var(--tc-transition);
+    transition: var(--pt-transition);
 
     &:focus-visible {
-      border-color: var(--tc-primary);
-      outline: 2px solid var(--tc-primary);
+      border-color: var(--pt-primary);
+      outline: 2px solid var(--pt-primary);
       outline-offset: 1px;
     }
 
     &::placeholder {
-      color: var(--tc-muted-color);
+      color: var(--pt-muted-color);
       opacity: .75;
     }
 
     &[aria-invalid="false"] {
-      --tc-primary: var(--tc-valid);
+      --pt-primary: var(--pt-valid);
 
       & + small:before {
         content: "✓ ";
@@ -494,7 +494,7 @@
     }
 
     &[aria-invalid="true"] {
-      --tc-primary: var(--tc-invalid);
+      --pt-primary: var(--pt-invalid);
 
       & + small:before {
         content: "✗ ";
@@ -504,16 +504,16 @@
 
     &[aria-invalid] {
       border-width: 2px;
-      border-color: var(--tc-primary);
+      border-color: var(--pt-primary);
 
       & + small {
-        color: var(--tc-primary);
+        color: var(--pt-primary);
       }
     }
 
     & + small {
-      margin: -.75rem 0 var(--tc-spacing);
-      color: var(--tc-muted-color);
+      margin: -.75rem 0 var(--pt-spacing);
+      color: var(--pt-muted-color);
       display: block;
     }
   }
@@ -530,8 +530,8 @@
 
   [type="file"] {
     width: 100%;
-    margin-bottom: var(--tc-spacing);
-    color: var(--tc-muted-color);
+    margin-bottom: var(--pt-spacing);
+    color: var(--pt-muted-color);
 
     &::file-selector-button {
       margin-inline-end: .75rem;
@@ -542,7 +542,7 @@
     vertical-align: middle;
     width: 1.5rem;
     height: 1.5rem;
-    accent-color: var(--tc-primary);
+    accent-color: var(--pt-primary);
     cursor: pointer;
     margin: -2px .5rem 0 0;
   }
@@ -551,7 +551,7 @@
     min-height: 1.75rem;
     cursor: pointer;
     align-items: center;
-    margin-inline-end: var(--tc-spacing);
+    margin-inline-end: var(--pt-spacing);
     display: inline-flex;
   }
 }
@@ -564,7 +564,7 @@
   nav {
     justify-content: space-between;
     align-items: center;
-    gap: .5rem var(--tc-spacing);
+    gap: .5rem var(--pt-spacing);
     flex-wrap: wrap;
 
     & :where(ol, ul) {
@@ -601,7 +601,7 @@
 
       & li:not(:last-child):after {
         content: ">";
-        color: var(--tc-muted-color);
+        color: var(--pt-muted-color);
         margin-inline-start: .75rem;
       }
     }

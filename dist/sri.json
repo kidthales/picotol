@@ -1,16 +1,16 @@
 {
-  "package": "@kidthales/tol-css",
+  "package": "@kidthales/picotol",
   "version": "0.1.0",
   "files": {
-    "dist/tol-css.core.min.css": {
+    "dist/picotol.core.min.css": {
       "bytes": 9298,
       "gzipBytes": 3026,
-      "integrity": "sha384-8Sy/hnQzpYw7dU2G6sZk/3zicflxNUpr9+GxCmfiktSY8bUxOL+oyHFBHY52XbJg"
+      "integrity": "sha384-D1ju6v4sHwrXYc0Pkq+UdMQ+QLz9vKgTXpjqSHf4w0dBhiAZOQzrDElTYYV/Rrk6"
     },
-    "dist/tol-css.min.css": {
+    "dist/picotol.min.css": {
       "bytes": 15773,
-      "gzipBytes": 4637,
-      "integrity": "sha384-1I7ZPD11Nl3Aq8nNnaqo8mNrt9uHGpm05BJ42YDKFH3p7mnEtv+hw8ybdKy0B3XT"
+      "gzipBytes": 4638,
+      "integrity": "sha384-BO+ILp3y+gv0O7bVBdyo9PIlYEeJWu1UI/0kqXvZEjoooKFWNFGIsrFr6XYcjU1s"
     }
   }
 }
