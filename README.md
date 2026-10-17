@@ -96,12 +96,26 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 | Layer | Source File | Responsibility |
 | :--- | :--- | :--- |
 | `tokens` | [`src/tokens.css`](src/tokens.css), [`src/palettes.css`](src/palettes.css) | Auto-generated canonical `--tol-*` scheme constants, `--tc-*` semantic tokens, `[data-theme]` & `[data-accent]` ladders |
-| `base` | [`src/base.css`](src/base.css) | Modern box-sizing reset, document defaults, `:focus-visible`, `.skip-to-content`, `.sr-only`, `@media print`, reduced-motion baseline |
+| `base` | [`src/base.css`](src/base.css) | Modern box-sizing reset, document defaults, `:focus-visible`, `[tabindex="-1"]` focus guard, `.skip-to-content`, `.sr-only` / `.sr-only-focusable`, `@media print`, reduced-motion baseline |
 | `layout` | [`src/layout.css`](src/layout.css) | Centered `body > header, main, footer` landmarks, `.container`, `.grid` (`min-width: 0`), `.overflow-auto`, `<hr>` |
-| `content` | [`src/content.css`](src/content.css) | Fluid `clamp()` headings, links, neutral slate `.secondary` button ladder, lists, blockquotes, code, tables, figures |
-| `forms` | [`src/forms.css`](src/forms.css) | Semantic buttons, inputs, selects, textareas, WCAG 2.2 SC 2.5.8 target sizing, `[aria-invalid="true"\|"false"]` validation with `✓`/`✗` cues |
+| `content` | [`src/content.css`](src/content.css) | Modular `clamp()` headings, `75ch` reading measure, links, neutral slate `.secondary` button ladder, lists, blockquotes, code, tables, figures |
+| `forms` | [`src/forms.css`](src/forms.css) | Semantic buttons, inputs, selects, textareas, WCAG 2.2 SC 2.5.8 target sizing, SC 1.4.11 borders ($\ge 3:1$), `[aria-invalid="true"\|"false"]` validation with `✓`/`✗` cues |
 | `nav` | [`src/nav.css`](src/nav.css) | Responsive wrapping flex `<nav>`, `[role="menubar"]`, breadcrumbs |
 | `components` | [`src/components.css`](src/components.css) | `<article>` card, `<details>` accordion/dropdown, `<dialog>` modal (`::backdrop`), `<progress>`, `[role="switch"]`, `[aria-busy]`, `[role="group"]`, `[data-tooltip]`, `@media (forced-colors: active)` |
+
+---
+
+## Screen Reader & Non-Visual UX Patterns
+
+1. **Skip Links & Programmatic Landmark Focus**:
+   Place `.skip-to-content` as the first focusable child of `<body>` and set `tabindex="-1"` on `<main id="main-content">`. `@kidthales/tol-css` suppresses unwanted mouse-click outlines on `[tabindex="-1"]:focus:not(:focus-visible)` while preserving keyboard `:focus-visible` rings.
+2. **Screen-Reader-Only & Focusable Utilities**:
+   - `.sr-only` / `.visually-hidden`: Visually hides text via `clip-path: inset(50%)` while keeping it in the accessibility tree (e.g. `<a href="..." target="_blank">Docs<span class="sr-only"> (opens in a new tab)</span></a>`).
+   - `.sr-only-focusable` / `.visually-hidden-focusable`: Remains visually clipped until focused via keyboard (`:focus` / `:focus-visible`).
+3. **Accessible Tooltips (`[data-tooltip]`)**:
+   Because CSS `::before { content: attr(data-tooltip) }` is not announced consistently across all screen readers and Braille displays, pair non-decorative tooltips with `aria-label` or `aria-describedby` and add `tabindex="0"` when attached to non-interactive inline elements.
+4. **Native Table Semantics Preservation**:
+   Wrap wide tables in `<div class="overflow-auto"><table>...</table></div>`. Unlike frameworks that apply `display: block` to `<table>` (which strips table coordinate semantics in WebKit/VoiceOver and Chromium), `@kidthales/tol-css` preserves native `display: table`.
 
 ---
 
