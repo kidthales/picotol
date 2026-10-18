@@ -21,8 +21,8 @@
   - Non-color validation cues (`2px` border + `✓` / `✗` prefix icons on `[aria-invalid] + small`) and $\ge 24\times24\text{px}$ target sizes (WCAG 2.2 SC 2.5.8).
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Two-Tier Ultra-Minified Distribution** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
-  - **`dist/picotol.core.min.css`** ($\sim 9.1\text{ KB}$ minified, $\sim 2.5\text{ KB}$ gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid`, fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** ($\sim 15.0\text{ KB}$ minified, $\sim 3.6\text{ KB}$ gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `<progress>`, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.core.min.css`** (~9.5 KB minified, ~3.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid`, fluid typography, tables, code blocks, native forms, and configurable `nav`.
+  - **`dist/picotol.min.css`** (~16.0 KB minified, ~4.5 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `<progress>`, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
 
 ---
 
@@ -37,8 +37,11 @@ import "@kidthales/picotol";
 // Core-only bundle (Landmarks, Typography, Forms, Nav)
 import "@kidthales/picotol/core";
 
-// Raw Paul Tol CSS Custom Properties only (--tol-* & --pt-*)
+// Semantic design tokens (--pt-*)
 import "@kidthales/picotol/tokens";
+
+// Raw Paul Tol qualitative palette constants (--tol-*)
+import "@kidthales/picotol/palettes";
 ```
 
 ### 2. Drop-In HTML Stylesheet
