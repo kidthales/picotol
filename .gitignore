@@ -9,4 +9,9 @@ AGENTS.md
 GEMINI.md
 CLAUDE.md
 .idea/
+.vscode/
+.DS_Store
+*.log
+.env
+.env.*
 

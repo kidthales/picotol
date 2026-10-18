@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   no-agent-files:
     name: No tracked agent files
@@ -66,12 +70,17 @@ jobs:
     needs: [no-agent-files, verify]
     if: always()
     runs-on: ubuntu-latest
+    env:
+      WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK }}
     steps:
       - name: Dispatch consolidated status card to #dev-ci-builds
         if: env.WEBHOOK_URL != ''
         env:
-          WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK }}
           JOB_STATUS: ${{ contains(needs.*.result, 'failure') && 'failure' || contains(needs.*.result, 'cancelled') && 'cancelled' || 'success' }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           if [ "$JOB_STATUS" = "success" ]; then
             COLOR=2263091
@@ -86,10 +95,10 @@ jobs:
 
           jq -n \
             --arg title "$TITLE" \
-            --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            --arg repo "${{ github.repository }}" \
-            --arg branch "${{ github.ref_name }}" \
-            --arg sha "${{ github.sha }}" \
+            --arg url "$RUN_URL" \
+            --arg repo "$REPO" \
+            --arg branch "$BRANCH" \
+            --arg sha "$SHA" \
             --argjson color "$COLOR" \
             '{
               username: "kidthales CI",
@@ -108,4 +117,4 @@ jobs:
                   icon_url: "https://kidthales.com/favicon-96x96.png"
                 }
               }]
-            }' | curl -sS -H "Content-Type: application/json" -d @- "$WEBHOOK_URL"
+            }' | curl -fsSL -H "Content-Type: application/json" -d @- "$WEBHOOK_URL"
