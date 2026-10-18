@@ -372,6 +372,7 @@ ${rowsHtml}
         <article>
           <header>
             <strong id="modal-title">Paul Tol Colour Verification Modal</strong>
+            <button type="button" aria-label="Close" class="close" onclick="document.getElementById('demo-modal').close()"></button>
           </header>
           <p>This native HTML5 <code>&lt;dialog&gt;</code> element is styled purely with <code>picotol.min.css</code>.</p>
           <footer>
@@ -379,6 +380,103 @@ ${rowsHtml}
           </footer>
         </article>
       </dialog>
+    </section>
+
+    <hr>
+
+    <section id="dashboard">
+      <h2>6. Dashboard Fixtures, Tabs, Badges &amp; Universal Icons</h2>
+
+      <!-- Accessible Tabs -->
+      <nav role="tablist">
+        <button type="button" role="tab" aria-selected="true">Overview</button>
+        <button type="button" role="tab" aria-selected="false">Analytics</button>
+        <button type="button" role="tab" aria-selected="false">Reports</button>
+      </nav>
+
+      <!-- Segmented Pill Tabs -->
+      <div role="tablist" class="segmented">
+        <button type="button" role="tab" aria-selected="true">Daily</button>
+        <button type="button" role="tab" aria-selected="false">Weekly</button>
+        <button type="button" role="tab" aria-selected="false">Monthly</button>
+      </div>
+
+      <!-- KPI Stat Cards -->
+      <div class="grid" style="margin-top: 1rem;">
+        <article class="stat">
+          <small>Total Revenue</small>
+          <strong>$128,430</strong>
+          <footer>
+            <span class="badge valid">
+              <svg class="icon" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
+              +14.2%
+            </span>
+            vs last month
+          </footer>
+        </article>
+        <article class="stat">
+          <small>Active Users</small>
+          <strong>24,512</strong>
+          <footer>
+            <span class="badge valid">
+              <svg class="icon" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
+              +3.8%
+            </span>
+            vs last month
+          </footer>
+        </article>
+        <article class="stat">
+          <small>Conversion Rate</small>
+          <strong>3.64%</strong>
+          <footer>
+            <span class="badge invalid">
+              <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              -0.42%
+            </span>
+            vs last month
+          </footer>
+        </article>
+        <article class="stat">
+          <small>Avg Session Duration</small>
+          <div class="skeleton" style="height: 2.2rem; margin-block: 0.25rem;"></div>
+          <footer>
+            <span class="skeleton" style="width: 60%; height: 1rem;"></span>
+          </footer>
+        </article>
+      </div>
+
+      <!-- Semantic Callouts -->
+      <aside>
+        <p><strong>System Note:</strong> Database indexes optimized. Zero-CLS skeleton loaders and universal SVG icon ergonomics active.</p>
+      </aside>
+      <aside class="success">
+        <p><strong>Audit Passed:</strong> 100% Paul Tol color-blind accessible hex purity across all components.</p>
+      </aside>
+      <aside role="alert">
+        <p><strong>High Severity Alert:</strong> 3 login attempts throttled from unverified subnet.</p>
+      </aside>
+
+      <!-- Status Badges & Universal Icons in Action -->
+      <p>
+        <span class="badge">Default Badge</span>
+        <span class="badge valid">Active</span>
+        <span class="badge invalid">Failed</span>
+        <span class="badge" data-accent="purple">Purple Accent</span>
+      </p>
+
+      <p>
+        <button type="button">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          Info Action
+        </button>
+        <button type="button" class="outline">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+        <button type="button" aria-label="Settings">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </p>
     </section>
   </main>
 
