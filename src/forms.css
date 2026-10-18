@@ -23,7 +23,7 @@
       --pt-primary: var(--pt-valid);
       & + small::before { content: "✓ "; font-weight: 700; }
     }
-    &[aria-invalid="true"] {
+    &[aria-invalid]:not([aria-invalid="false"]) {
       --pt-primary: var(--pt-invalid);
       & + small::before { content: "✗ "; font-weight: 700; }
     }
@@ -37,6 +37,11 @@
       margin: -0.75rem 0 var(--pt-spacing);
       color: var(--pt-muted-color);
     }
+  }
+
+  :where(select) {
+    background: var(--pt-bg) var(--pt-icon-chevron) no-repeat right 0.75rem center / 0.75rem;
+    padding-inline-end: 2.25rem;
   }
 
   [type="search"] { border-radius: 99px; }

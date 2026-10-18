@@ -130,6 +130,10 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     '    --pt-form-x: 0.75rem;',
     '    --pt-container-max: 70rem;',
     '    --pt-grid-min: 15rem;',
+    "    --pt-icon-chevron: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\");",
+    `    --pt-p1: ${colorByName('pale', 0)}; --pt-p2: ${colorByName('light', 'light_blue')}; --pt-p3: ${colorByName('bright', 'blue')}; --pt-p4: ${colorByName('dark', 3)}; --pt-p5: ${colorByName('high-contrast', 'blue')};`,
+    '  }',
+    '  :root, :host, :where([data-theme]) {',
     `    --pt-bg: light-dark(${ach['white']}, ${ach['black']});`,
     `    --pt-surface: light-dark(${ach['grey-200']}, ${ach['grey-800']});`,
     '    --pt-surface-subtle: color-mix(in srgb, var(--pt-surface) 38%, transparent);',
@@ -141,7 +145,6 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     `    --pt-invalid: light-dark(${colorByName('vibrant', 'red')}, ${colorByName('bright', 'red')});`,
     `    --pt-mark-bg: light-dark(${colorByName('pale', 3)}, ${colorByName('dark', 9)});`,
     '    --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);',
-    `    --pt-p1: ${colorByName('pale', 0)}; --pt-p2: ${colorByName('light', 'light_blue')}; --pt-p3: ${colorByName('bright', 'blue')}; --pt-p4: ${colorByName('dark', 3)}; --pt-p5: ${colorByName('high-contrast', 'blue')};`,
     '  }',
     '  :root, :host, :where([data-accent], [data-theme]) {',
     '    --pt-primary: light-dark(var(--pt-p4), var(--pt-p2));',
@@ -196,7 +199,6 @@ export function buildPalettesCss(snapshot = loadSnapshot()) {
   }
 
   lines.push(
-    '    --pt-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'black\' stroke-width=\'2\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E");',
     '  }',
     '}',
     '',

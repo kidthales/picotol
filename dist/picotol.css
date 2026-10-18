@@ -12,6 +12,15 @@
     --pt-form-x: .75rem;
     --pt-container-max: 70rem;
     --pt-grid-min: 15rem;
+    --pt-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    --pt-p1: #ace;
+    --pt-p2: #7ad;
+    --pt-p3: #47a;
+    --pt-p4: #25a;
+    --pt-p5: #048;
+  }
+
+  :root, :host, :where([data-theme]) {
     --pt-bg: light-dark(#fff, #000);
     --pt-surface: light-dark(#ddd, #444);
     --pt-surface-subtle: color-mix(in srgb, var(--pt-surface) 38%, transparent);
@@ -23,11 +32,6 @@
     --pt-invalid: light-dark(#c31, #e67);
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
-    --pt-p1: #ace;
-    --pt-p2: #7ad;
-    --pt-p3: #47a;
-    --pt-p4: #25a;
-    --pt-p5: #048;
   }
 
   :root, :host, :where([data-accent], [data-theme]) {
@@ -155,7 +159,6 @@
     --tol-grey-700: #666;
     --tol-grey-800: #444;
     --tol-black: #000;
-    --pt-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 }
 
@@ -164,9 +167,12 @@
     box-sizing: border-box;
   }
 
-  :root, :host {
+  :root, :host, :where([data-theme]) {
     background-color: var(--pt-bg);
     color: var(--pt-color);
+  }
+
+  :root, :host {
     font-family: var(--pt-font-sans);
     font-size: clamp(100%, 95% + .4vw, 125%);
     line-height: var(--pt-line-height);
@@ -566,7 +572,7 @@
       }
     }
 
-    &[aria-invalid="true"] {
+    &[aria-invalid]:not([aria-invalid="false"]) {
       --pt-primary: var(--pt-invalid);
 
       & + small:before {
@@ -589,6 +595,11 @@
       color: var(--pt-muted-color);
       display: block;
     }
+  }
+
+  :where(select) {
+    background: var(--pt-bg) var(--pt-icon-chevron) no-repeat right .75rem center / .75rem;
+    padding-inline-end: 2.25rem;
   }
 
   [type="search"] {
