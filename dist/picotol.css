@@ -707,18 +707,18 @@
     box-shadow: var(--pt-box-shadow);
 
     & > :where(header, footer) {
-      margin-inline: calc(var(--pt-spacing) * -1);
+      margin-inline: calc(-1 * var(--pt-spacing));
       padding: .66rem var(--pt-spacing);
       background-color: var(--pt-surface-subtle);
     }
 
     & > header {
-      margin-block: calc(var(--pt-spacing) * -1) var(--pt-spacing);
+      margin-block: calc(-1 * var(--pt-spacing)) var(--pt-spacing);
       border-bottom: var(--pt-border);
     }
 
     & > footer {
-      margin-block: var(--pt-spacing) calc(var(--pt-spacing) * -1);
+      margin-block: var(--pt-spacing) calc(-1 * var(--pt-spacing));
       border-top: var(--pt-border);
     }
   }
@@ -735,10 +735,6 @@
       font-weight: 600;
       list-style: none;
       display: flex;
-
-      &::-webkit-details-marker {
-        display: none;
-      }
 
       &::marker {
         display: none;
@@ -878,33 +874,35 @@
 
     & > article {
       width: 100%;
+      max-width: min(100vw - 2rem, 40rem);
       max-height: 90vh;
       margin: 0;
       overflow: auto;
-    }
-  }
-
-  :where(dialog:modal) {
-    z-index: 999;
-    width: 100%;
-    max-width: none;
-    height: 100%;
-    padding: var(--pt-spacing);
-    justify-content: center;
-    align-items: center;
-    margin: 0;
-    display: flex;
-    position: fixed;
-    inset: 0;
-
-    &::backdrop {
-      background-color: color-mix(in srgb, var(--tol-black, #000) 65%, transparent);
     }
 
     &:has( > article) {
       box-shadow: none;
       background-color: #0000;
       border: 0;
+      padding: 0;
+    }
+  }
+
+  :where(dialog:modal) {
+    &::backdrop {
+      background-color: color-mix(in srgb, var(--tol-black, #000) 65%, transparent);
+    }
+
+    &:has( > article) {
+      z-index: 999;
+      max-width: none;
+      padding: var(--pt-spacing);
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      display: flex;
+      position: fixed;
+      inset: 0;
     }
   }
 

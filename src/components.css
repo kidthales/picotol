@@ -9,16 +9,16 @@
     box-shadow: var(--pt-box-shadow);
 
     & > :where(header, footer) {
-      margin-inline: calc(var(--pt-spacing) * -1);
+      margin-inline: calc(-1 * var(--pt-spacing));
       padding: 0.66rem var(--pt-spacing);
       background-color: var(--pt-surface-subtle);
     }
     & > header {
-      margin-block: calc(var(--pt-spacing) * -1) var(--pt-spacing);
+      margin-block: calc(-1 * var(--pt-spacing)) var(--pt-spacing);
       border-bottom: var(--pt-border);
     }
     & > footer {
-      margin-block: var(--pt-spacing) calc(var(--pt-spacing) * -1);
+      margin-block: var(--pt-spacing) calc(-1 * var(--pt-spacing));
       border-top: var(--pt-border);
     }
   }
@@ -36,7 +36,7 @@
       list-style: none;
       cursor: pointer;
       font-weight: 600;
-      &::-webkit-details-marker, &::marker { display: none; }
+      &::marker { display: none; }
       &::after {
         content: "";
         width: 1rem;
@@ -149,31 +149,33 @@
     &:not([open]) { display: none; }
     & > article {
       width: 100%;
+      max-width: min(100vw - 2rem, 40rem);
       max-height: 90vh;
       margin: 0;
       overflow: auto;
-    }
-  }
-
-  :where(dialog:modal) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: fixed;
-    inset: 0;
-    z-index: 999;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    margin: 0;
-    padding: var(--pt-spacing);
-    &::backdrop {
-      background-color: color-mix(in srgb, var(--tol-black, #000000) 65%, transparent);
     }
     &:has(> article) {
       border: 0;
       background-color: transparent;
       box-shadow: none;
+      padding: 0;
+    }
+  }
+
+  :where(dialog:modal) {
+    &::backdrop {
+      background-color: color-mix(in srgb, var(--tol-black, #000000) 65%, transparent);
+    }
+    &:has(> article) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      max-width: none;
+      margin: 0;
+      padding: var(--pt-spacing);
     }
   }
 
