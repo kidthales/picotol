@@ -118,4 +118,36 @@
   :where(img, video) { max-width: 100%; height: auto; }
   figure { margin-inline: 0; }
   :where(figure:has(> table)) { overflow-x: auto; }
+
+  /* SVG Icon Ergonomics */
+  :where(svg.icon, [data-icon]) {
+    display: inline-block;
+    width: 1.15em;
+    height: 1.15em;
+    vertical-align: -0.2em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+
+    &:is([fill]:not([fill="none"]), [data-filled], .solid) {
+      fill: currentColor;
+      stroke: none;
+    }
+  }
+
+  :where(button, [role="button"], a) > :where(svg.icon, [data-icon]) {
+    &:first-child:not(:only-child) { margin-inline-end: 0.5em; }
+    &:last-child:not(:only-child) { margin-inline-start: 0.5em; }
+  }
+
+  :where(button, [role="button"]):has(> :where(svg.icon, [data-icon]):only-child) {
+    padding: var(--pt-form-y);
+    aspect-ratio: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
+

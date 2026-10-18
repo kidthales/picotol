@@ -366,6 +366,11 @@
 
     &:is(.invalid, .danger) { --pt-primary: var(--pt-invalid); }
     &:is(.valid, .success) { --pt-primary: var(--pt-valid); }
+
+    & > :where(svg.icon, [data-icon]) {
+      &:first-child:not(:only-child) { margin-inline-end: 0.35em; }
+      &:last-child:not(:only-child) { margin-inline-start: 0.35em; }
+    }
   }
 
   /* 12. Accessible Tabs */
@@ -421,4 +426,86 @@
       }
     }
   }
+
+  /* 13. KPI Stat Cards */
+  :where(article.stat, dl.stats > :is(div, article)) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  :where(dl.stats) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: var(--pt-spacing);
+    margin-bottom: var(--pt-spacing);
+
+    & > :is(div, article) {
+      margin-bottom: 0;
+      padding: var(--pt-spacing);
+      border: var(--pt-border);
+      border-radius: var(--pt-border-radius);
+      background-color: var(--pt-bg);
+      box-shadow: var(--pt-box-shadow);
+      overflow: hidden;
+    }
+  }
+
+  :where(article.stat, dl.stats) {
+    & :where(dt, small, .label) {
+      color: var(--pt-muted-color);
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin: 0;
+    }
+
+    & :where(dd, strong, .value) {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 700;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums lining-nums;
+      color: var(--pt-color);
+      margin: 0;
+    }
+
+    & :where(footer, .description, .trend) {
+      font-size: 0.875rem;
+      color: var(--pt-muted-color);
+      margin-top: 0.25rem;
+    }
+  }
+
+  /* 14. Skeleton Loaders */
+  :where(.skeleton, [aria-busy="true"].skeleton) {
+    display: inline-block;
+    width: 100%;
+    min-height: 1.2em;
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-surface-subtle);
+    color: transparent !important;
+    user-select: none;
+    pointer-events: none;
+    animation: pt-pulse 1.5s ease-in-out infinite;
+
+    & > * {
+      visibility: hidden !important;
+    }
+  }
+
+  @keyframes pt-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :where(.skeleton, [aria-busy="true"].skeleton) {
+      animation: none !important;
+      opacity: 0.6;
+    }
+  }
 }
+

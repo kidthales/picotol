@@ -402,6 +402,17 @@ test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, sele
 
   // Table horizontal overflow containment
   assert.ok(/figure:has\(\s*>\s*table\)/.test(coreCss), "Core CSS must include figure:has(> table) containment");
+
+  // SVG Icon ergonomics
+  assert.ok(coreCss.includes("svg.icon") || coreCss.includes("[data-icon]"), "Core CSS includes icon ergonomics");
+
+  // KPI Stat cards & Skeletons
+  assert.ok(fullCss.includes("article.stat") || fullCss.includes("dl.stats"), "Full CSS includes KPI stat card selectors");
+  assert.ok(fullCss.includes("pt-pulse"), "Full CSS includes pt-pulse animation");
+  assert.ok(fullCss.includes(".skeleton"), "Full CSS includes skeleton loader class");
+
+  // Pure-CSS modal close button
+  assert.ok(fullCss.includes("aria-label=\"Close\"") || fullCss.includes("aria-label=Close"), "Full CSS includes dialog close cross button");
 });
 
 test("Semantic State Token Contrast: --pt-valid, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA", () => {

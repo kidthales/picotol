@@ -462,6 +462,41 @@
   :where(figure:has( > table)) {
     overflow-x: auto;
   }
+
+  :where(svg.icon, [data-icon]) {
+    vertical-align: -.2em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    width: 1.15em;
+    height: 1.15em;
+    display: inline-block;
+
+    &:is([fill]:not([fill="none"]), [data-filled], .solid) {
+      fill: currentColor;
+      stroke: none;
+    }
+  }
+
+  :where(button, [role="button"], a) > :where(svg.icon, [data-icon]) {
+    &:first-child:not(:only-child) {
+      margin-inline-end: .5em;
+    }
+
+    &:last-child:not(:only-child) {
+      margin-inline-start: .5em;
+    }
+  }
+
+  :where(button, [role="button"]):has( > :where(svg.icon, [data-icon]):only-child) {
+    padding: var(--pt-form-y);
+    aspect-ratio: 1;
+    justify-content: center;
+    align-items: center;
+    display: inline-flex;
+  }
 }
 
 @layer forms {
