@@ -52,13 +52,6 @@
 
   hr { border: 0; border-top: var(--pt-border); }
 
-  :where(.contrast) {
-    --pt-primary: var(--pt-color);
-    --pt-primary-hover: var(--pt-muted-color);
-    --pt-primary-bg: var(--pt-color);
-    --pt-primary-hover-bg: var(--pt-muted-color);
-    --pt-btn-color: var(--pt-bg);
-  }
 
   :where(.secondary, [type="reset"]) {
     --pt-primary: var(--pt-muted-color);
