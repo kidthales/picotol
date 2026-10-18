@@ -22,6 +22,7 @@
     --pt-grid-min: 15rem;
     --pt-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     --pt-bg: light-dark(#fff, #000);
+    --pt-black: #000;
     --pt-surface: light-dark(#ddd, #444);
     --pt-surface-subtle: color-mix(in srgb, var(--pt-surface) 38%, transparent);
     --pt-color: light-dark(#000, #fff);
@@ -85,78 +86,6 @@
     --pt-p4: #762a83;
     --pt-p5: #328;
   }
-
-  :root, :host {
-    --tol-bright-blue: #47a;
-    --tol-bright-red: #e67;
-    --tol-bright-green: #283;
-    --tol-bright-yellow: #cb4;
-    --tol-bright-cyan: #6ce;
-    --tol-bright-purple: #a37;
-    --tol-dark-0: #47b;
-    --tol-dark-1: #c46;
-    --tol-dark-2: #283;
-    --tol-dark-3: #25a;
-    --tol-dark-4: #936;
-    --tol-dark-5: #064;
-    --tol-dark-6: #178;
-    --tol-dark-7: #828;
-    --tol-dark-8: #b48;
-    --tol-dark-9: #750;
-    --tol-hc-blue: #048;
-    --tol-hc-yellow: #da3;
-    --tol-hc-red: #b56;
-    --tol-light-blue: #7ad;
-    --tol-light-orange: #e86;
-    --tol-light-yellow: #ed8;
-    --tol-light-pink: #fab;
-    --tol-light-cyan: #9df;
-    --tol-light-mint: #4b9;
-    --tol-light-pear: #bc3;
-    --tol-light-olive: #aa0;
-    --tol-mc-blue: #69c;
-    --tol-mc-dark-blue: #048;
-    --tol-mc-yellow: #ec6;
-    --tol-mc-dark-red: #945;
-    --tol-mc-dark-yellow: #970;
-    --tol-mc-red: #e9a;
-    --tol-muted-rose: #c67;
-    --tol-muted-indigo: #328;
-    --tol-muted-sand: #dc7;
-    --tol-muted-green: #173;
-    --tol-muted-cyan: #8ce;
-    --tol-muted-wine: #825;
-    --tol-muted-teal: #4a9;
-    --tol-muted-olive: #993;
-    --tol-muted-purple: #a49;
-    --tol-pale-0: #ace;
-    --tol-pale-1: #cef;
-    --tol-pale-2: #bdb;
-    --tol-pale-3: #eeb;
-    --tol-pale-4: #fbc;
-    --tol-pale-5: #ebd;
-    --tol-prgn-0: #762a83;
-    --tol-prgn-1: #9970ab;
-    --tol-prgn-2: #c2a5cf;
-    --tol-prgn-3: #e7d4e8;
-    --tol-vibrant-orange: #e73;
-    --tol-vibrant-blue: #07b;
-    --tol-vibrant-cyan: #3be;
-    --tol-vibrant-magenta: #e37;
-    --tol-vibrant-red: #c31;
-    --tol-vibrant-teal: #098;
-    --tol-ylorbr-0: #993404;
-    --tol-ylorbr-1: #662506;
-    --tol-white: #fff;
-    --tol-grey-200: #ddd;
-    --tol-grey-300: #bbb;
-    --tol-grey-400: #999;
-    --tol-grey-500: #888;
-    --tol-grey-600: #777;
-    --tol-grey-700: #666;
-    --tol-grey-800: #444;
-    --tol-black: #000;
-  }
 }
 
 @layer base {
@@ -164,17 +93,19 @@
     box-sizing: border-box;
   }
 
-  :root, :host, :where([data-theme]) {
-    background-color: var(--pt-bg);
-    color: var(--pt-color);
-  }
-
   :root, :host {
+    background: var(--pt-bg);
+    color: var(--pt-color);
     font-family: var(--pt-font-sans);
     font-size: clamp(100%, 95% + .4vw, 125%);
     line-height: var(--pt-line-height);
     overflow-wrap: break-word;
     tab-size: 4;
+  }
+
+  :where([data-theme]) {
+    background: var(--pt-bg);
+    color: var(--pt-color);
   }
 
   body {
@@ -208,7 +139,7 @@
     z-index: 9999;
     border: 2px solid var(--pt-primary);
     border-radius: var(--pt-border-radius);
-    background-color: var(--pt-bg);
+    background: var(--pt-bg);
     color: var(--pt-color);
     box-shadow: var(--pt-box-shadow);
     padding: .5rem 1rem;
@@ -231,10 +162,15 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    :not([aria-busy="true"]) {
+      &, &:before, &:after {
+        animation: none !important;
+      }
+    }
+
     *, :before, :after {
       scroll-behavior: auto !important;
       transition: none !important;
-      animation: none !important;
     }
   }
 
@@ -264,7 +200,7 @@
   }
 
   section {
-    margin-bottom: 1.5rem;
+    margin-bottom: calc(var(--pt-spacing) * 1.5);
   }
 
   .grid {
@@ -409,14 +345,6 @@
   hr {
     border: 0;
     border-top: var(--pt-border);
-  }
-
-  :where(.contrast) {
-    --pt-primary: var(--pt-color);
-    --pt-primary-hover: var(--pt-muted-color);
-    --pt-primary-bg: var(--pt-color);
-    --pt-primary-hover-bg: var(--pt-muted-color);
-    --pt-btn-color: var(--pt-bg);
   }
 
   :where(.secondary, [type="reset"]) {
@@ -642,15 +570,12 @@
 }
 
 @layer nav {
-  :where(nav, nav ul) {
-    display: flex;
-  }
-
   nav {
     justify-content: space-between;
     align-items: center;
     gap: .5rem var(--pt-spacing);
     flex-wrap: wrap;
+    display: flex;
 
     & :where(ol, ul) {
       flex-wrap: wrap;
@@ -659,6 +584,7 @@
       margin: 0;
       padding: 0;
       list-style: none;
+      display: flex;
     }
 
     & li {
@@ -692,6 +618,11 @@
     }
   }
 
+  :where(nav li):before {
+    float: left;
+    content: "​";
+  }
+
   aside :where(nav, ol, ul, li) {
     display: block;
   }
@@ -705,10 +636,11 @@
     border-radius: var(--pt-border-radius);
     background-color: var(--pt-bg);
     box-shadow: var(--pt-box-shadow);
+    overflow: hidden;
 
     & > :where(header, footer) {
       margin-inline: calc(-1 * var(--pt-spacing));
-      padding: .66rem var(--pt-spacing);
+      padding: calc(var(--pt-spacing) * .66) var(--pt-spacing);
       background-color: var(--pt-surface-subtle);
     }
 
@@ -721,6 +653,14 @@
       margin-block: var(--pt-spacing) calc(-1 * var(--pt-spacing));
       border-top: var(--pt-border);
     }
+  }
+
+  :where(.contrast) {
+    --pt-primary: var(--pt-color);
+    --pt-primary-hover: var(--pt-muted-color);
+    --pt-primary-bg: var(--pt-color);
+    --pt-primary-hover-bg: var(--pt-muted-color);
+    --pt-btn-color: var(--pt-bg);
   }
 
   details {
@@ -890,7 +830,7 @@
 
   :where(dialog:modal) {
     &::backdrop {
-      background-color: color-mix(in srgb, var(--tol-black, #000) 65%, transparent);
+      background-color: color-mix(in srgb, var(--pt-black) 65%, transparent);
     }
 
     &:has( > article) {
@@ -990,6 +930,10 @@
     cursor: pointer;
   }
 
+  :where(button, [type="submit"], [role="button"], a)[aria-busy="true"] {
+    pointer-events: none;
+  }
+
   [aria-busy="true"]:not(input, select, textarea, html, form):before {
     content: "";
     border: .15em solid;
@@ -1001,6 +945,15 @@
     margin-inline-end: .5em;
     animation: .75s linear infinite pt-spin;
     display: inline-block;
+  }
+
+  :where(button, [type="submit"], [role="button"])[aria-busy="true"]:empty {
+    text-align: center;
+    white-space: nowrap;
+
+    &:before {
+      margin-inline-end: 0;
+    }
   }
 
   @keyframes pt-spin {

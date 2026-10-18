@@ -7,10 +7,11 @@
     border-radius: var(--pt-border-radius);
     background-color: var(--pt-bg);
     box-shadow: var(--pt-box-shadow);
+    overflow: hidden;
 
     & > :where(header, footer) {
       margin-inline: calc(-1 * var(--pt-spacing));
-      padding: 0.66rem var(--pt-spacing);
+      padding: calc(var(--pt-spacing) * 0.66) var(--pt-spacing);
       background-color: var(--pt-surface-subtle);
     }
     & > header {
@@ -21,6 +22,14 @@
       margin-block: var(--pt-spacing) calc(-1 * var(--pt-spacing));
       border-top: var(--pt-border);
     }
+  }
+
+  :where(.contrast) {
+    --pt-primary: var(--pt-color);
+    --pt-primary-hover: var(--pt-muted-color);
+    --pt-primary-bg: var(--pt-color);
+    --pt-primary-hover-bg: var(--pt-muted-color);
+    --pt-btn-color: var(--pt-bg);
   }
 
   /* 2. Accordion (<details>) & 3. Dropdown (details.dropdown) */
@@ -164,7 +173,7 @@
 
   :where(dialog:modal) {
     &::backdrop {
-      background-color: color-mix(in srgb, var(--tol-black, #000000) 65%, transparent);
+      background-color: color-mix(in srgb, var(--pt-black) 65%, transparent);
     }
     &:has(> article) {
       display: flex;
@@ -242,6 +251,10 @@
   }
 
   /* 8. Loading Spinner ([aria-busy="true"]) */
+  :where(button, [type="submit"], [role="button"], a)[aria-busy="true"] {
+    pointer-events: none;
+  }
+
   [aria-busy="true"]:not(input, select, textarea, html, form)::before {
     content: "";
     display: inline-block;
@@ -254,6 +267,13 @@
     vertical-align: -0.125em;
     animation: pt-spin 0.75s linear infinite;
   }
+
+  :where(button, [type="submit"], [role="button"])[aria-busy="true"]:empty {
+    text-align: center;
+    white-space: nowrap;
+    &::before { margin-inline-end: 0; }
+  }
+
   @keyframes pt-spin { to { transform: rotate(360deg); } }
 
   /* 9. Tooltip ([data-tooltip]) */
