@@ -74,6 +74,14 @@
         background-color: var(--pt-bg);
         &::after { transform: none; }
       }
+      &[open] > summary::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 98;
+        background: transparent;
+        cursor: default;
+      }
       &[open] > summary::after {
         transform: rotate(180deg);
       }
@@ -186,6 +194,31 @@
       margin: 0;
       padding: var(--pt-spacing);
     }
+  }
+
+  dialog :where(header, form) button:is([aria-label="Close" i], [rel="prev"], .close) {
+    position: relative;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--pt-muted-color);
+    cursor: pointer;
+    font-size: 0;
+
+    &:is(:hover, :focus-visible) { color: var(--pt-color); }
+    &::before, &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 1rem;
+      height: 2px;
+      background: currentColor;
+    }
+    &::before { transform: translate(-50%, -50%) rotate(45deg); }
+    &::after { transform: translate(-50%, -50%) rotate(-45deg); }
   }
 
   /* 6. Progress (<progress>) */
@@ -301,6 +334,91 @@
       text-align: center;
       white-space: normal;
       pointer-events: none;
+    }
+  }
+
+  /* 10. Semantic Callout */
+  :where(aside:not(nav *), [role="alert"]) {
+    margin-bottom: var(--pt-spacing);
+    padding: var(--pt-spacing);
+    border-radius: var(--pt-border-radius);
+    border-inline-start: 0.25rem solid var(--pt-primary);
+    background: var(--pt-surface-subtle);
+
+    &:is([role="alert"], .danger, .invalid) { --pt-primary: var(--pt-invalid); }
+    &:is(.success, .valid) { --pt-primary: var(--pt-valid); }
+  }
+
+  /* 11. Status Badges */
+  :where(.badge, [role="status"]) {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125em 0.5em;
+    border-radius: 99px;
+    border: 1px solid var(--pt-primary);
+    background: var(--pt-surface-subtle);
+    color: var(--pt-primary);
+    font-size: 0.75em;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
+
+    &:is(.invalid, .danger) { --pt-primary: var(--pt-invalid); }
+    &:is(.valid, .success) { --pt-primary: var(--pt-valid); }
+  }
+
+  /* 12. Accessible Tabs */
+  :where([role="tablist"]) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: var(--pt-spacing);
+    border-bottom: 2px solid var(--pt-muted-border);
+
+    & > * {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      background: none;
+      color: var(--pt-muted-color);
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+
+      &:is(:hover, :focus-visible) {
+        color: var(--pt-color);
+        border-bottom-color: var(--pt-muted-border);
+      }
+      &:is([aria-selected="true"], [aria-current="page"], .active) {
+        color: var(--pt-primary);
+        border-bottom-color: var(--pt-primary);
+        font-weight: 600;
+      }
+    }
+
+    &.segmented {
+      display: inline-flex;
+      padding: 0.25rem;
+      border: var(--pt-border);
+      border-radius: var(--pt-border-radius);
+      background: var(--pt-surface-subtle);
+
+      & > * {
+        margin: 0;
+        border: 0;
+        border-radius: calc(var(--pt-border-radius) * 0.75);
+        padding: 0.25rem 0.75rem;
+
+        &:is([aria-selected="true"], [aria-current="page"], .active) {
+          background: var(--pt-bg);
+          color: var(--pt-color);
+          box-shadow: var(--pt-box-shadow);
+        }
+      }
     }
   }
 }
