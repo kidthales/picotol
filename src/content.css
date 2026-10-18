@@ -106,6 +106,10 @@
     & > code { padding: 0; background: none; font-size: inherit; }
   }
 
+  :where(table, [role="table"], code, kbd, samp, time, .tabular-nums) {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
   table { width: 100%; border-collapse: collapse; }
   :where(th, td) { padding: 0.5rem 0.75rem; border-bottom: var(--pt-border); text-align: start; }
   :where(thead, tfoot) :is(th, td) { border-bottom-width: 2px; font-weight: 600; }

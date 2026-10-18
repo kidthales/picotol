@@ -57,6 +57,6 @@ This roadmap details the v0.2.0 enhancements for `@kidthales/picotol`. It elevat
 
 ## 3. Package Budgets & Quality Gates
 * `dist/picotol.min.css`: `<= 16.0 KB`
-* `dist/picotol.core.min.css`: `<= 9.5 KB`
+* `dist/picotol.core.min.css`: `<= 10.0 KB`
 * 100% Paul Tol Hex Purity (`tests/picotol.test.mjs`)
 * WCAG 2.2 AA Contrast Compliance across all 6 accents

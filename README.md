@@ -122,6 +122,40 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 
 ---
 
+## Accessible Typography & Font Integration
+
+`@kidthales/picotol` ships with bulletproof system font stacks (`--pt-font-sans`, `--pt-font-mono`, `--pt-font-emoji`), native OpenType optical sizing (`font-optical-sizing: auto; font-kerning: normal;`), and fixed-width tabular figures (`.tabular-nums`, `table`, `[role="table"]`, `code`, `kbd`, `samp`, `time`).
+
+### Zero-Network Accessible Font Recipes
+
+To preserve privacy, zero runtime network requests, and GDPR compliance, pair `@kidthales/picotol` with locally hosted accessible web fonts:
+
+#### 1. Atkinson Hyperlegible (Low Vision Distinction)
+
+```css
+:root, :host {
+  --pt-font-sans: "Atkinson Hyperlegible", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, var(--pt-font-emoji);
+}
+```
+
+#### 2. Inter (High-Density UI & Tabular Numbers)
+
+```css
+:root, :host {
+  --pt-font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, var(--pt-font-emoji);
+}
+```
+
+#### 3. Lexend (Reading Proficiency & Dyslexia Support)
+
+```css
+:root, :host {
+  --pt-font-sans: "Lexend", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, var(--pt-font-emoji);
+}
+```
+
+---
+
 ## Development & Verification
 
 ```bash
