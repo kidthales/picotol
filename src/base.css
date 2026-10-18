@@ -9,6 +9,8 @@
     line-height: var(--pt-line-height);
     overflow-wrap: break-word;
     tab-size: 4;
+    font-optical-sizing: auto;
+    font-kerning: normal;
   }
   :where([data-theme]) {
     background: var(--pt-bg);

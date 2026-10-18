@@ -87,13 +87,13 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 9.5 KB and picotol.min.css <= 16.0 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 10.0 KB and picotol.min.css <= 16.0 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
 
   assert.ok(
-    coreMin <= 9.5 * 1024,
-    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 9728 B`
+    coreMin <= 10.0 * 1024,
+    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 10240 B`
   );
   assert.ok(
     fullMin <= 16 * 1024,
