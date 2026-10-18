@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify & Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build CSS bundles, SRI manifest, and demo
+        run: npm run build
+
+      - name: Verify dist/ is clean and up-to-date
+        run: git diff --exit-code dist/
+
+      - name: Run CSS AST & Accessibility HTML Linter
+        run: npm run lint
+
+      - name: Run Paul Tol test suite
+        run: npm test
+
+      - name: Preflight registry check & publish with provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Target release version: $VERSION"
+
+          if npm view "@kidthales/picotol@$VERSION" version > /dev/null 2>&1; then
+            echo "Version $VERSION is already published to npm registry. Skipping publish for idempotency."
+            exit 0
+          fi
+
+          echo "Publishing @kidthales/picotol@$VERSION with provenance..."
+          npm publish --provenance --access public
+
+  notify:
+    name: Discord Release Notification
+    needs: [publish]
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK }}
+    steps:
+      - name: Dispatch release status card to #dev-ci-builds
+        if: env.WEBHOOK_URL != ''
+        env:
+          JOB_STATUS: ${{ needs.publish.result }}
+          REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            COLOR=2263091
+            TITLE="🚀 Release Published — picotol"
+          elif [ "$JOB_STATUS" = "cancelled" ]; then
+            COLOR=11184810
+            TITLE="⚪ Release Cancelled — picotol"
+          else
+            COLOR=15087942
+            TITLE="❌ Release Failed — picotol"
+          fi
+
+          jq -n \
+            --arg title "$TITLE" \
+            --arg url "$RUN_URL" \
+            --arg repo "$REPO" \
+            --arg tag "$REF_NAME" \
+            --arg sha "$SHA" \
+            --argjson color "$COLOR" \
+            '{
+              username: "kidthales CI",
+              avatar_url: "https://kidthales.com/favicon-96x96.png",
+              embeds: [{
+                title: $title,
+                url: $url,
+                color: $color,
+                fields: [
+                  { name: "Repository", value: $repo, inline: true },
+                  { name: "Tag / Ref", value: $tag, inline: true },
+                  { name: "Commit", value: ($sha | .[0:7]), inline: true }
+                ],
+                footer: {
+                  text: "GitHub Actions • picotol",
+                  icon_url: "https://kidthales.com/favicon-96x96.png"
+                }
+              }]
+            }' | curl -fsSL -H "Content-Type: application/json" -d @- "$WEBHOOK_URL"

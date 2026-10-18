@@ -1,9 +1,12 @@
 @layer base {
   *, ::before, ::after { box-sizing: border-box; }
 
-  :root, :host {
+  :root, :host, :where([data-theme]) {
     background-color: var(--pt-bg);
     color: var(--pt-color);
+  }
+
+  :root, :host {
     font-family: var(--pt-font-sans);
     font-size: clamp(100%, 95% + 0.4vw, 125%);
     line-height: var(--pt-line-height);

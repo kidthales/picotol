@@ -1,6 +1,14 @@
 /*! @kidthales/picotol v0.1.0 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
 @layer tokens {
   :root, :host, [data-accent="blue"] {
+    --pt-p1: #ace;
+    --pt-p2: #7ad;
+    --pt-p3: #47a;
+    --pt-p4: #25a;
+    --pt-p5: #048;
+  }
+
+  :root, :host, :where([data-accent], [data-theme]) {
     color-scheme: light dark;
     --pt-font-sans: system-ui, sans-serif;
     --pt-font-mono: ui-monospace, monospace;
@@ -12,6 +20,7 @@
     --pt-form-x: .75rem;
     --pt-container-max: 70rem;
     --pt-grid-min: 15rem;
+    --pt-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     --pt-bg: light-dark(#fff, #000);
     --pt-surface: light-dark(#ddd, #444);
     --pt-surface-subtle: color-mix(in srgb, var(--pt-surface) 38%, transparent);
@@ -23,14 +32,6 @@
     --pt-invalid: light-dark(#c31, #e67);
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
-    --pt-p1: #ace;
-    --pt-p2: #7ad;
-    --pt-p3: #47a;
-    --pt-p4: #25a;
-    --pt-p5: #048;
-  }
-
-  :root, :host, :where([data-accent], [data-theme]) {
     --pt-primary: light-dark(var(--pt-p4), var(--pt-p2));
     --pt-primary-hover: light-dark(var(--pt-p5), var(--pt-p1));
     --pt-primary-bg: light-dark(var(--pt-p1), var(--pt-p4));
@@ -155,7 +156,6 @@
     --tol-grey-700: #666;
     --tol-grey-800: #444;
     --tol-black: #000;
-    --pt-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 }
 
@@ -164,9 +164,12 @@
     box-sizing: border-box;
   }
 
-  :root, :host {
+  :root, :host, :where([data-theme]) {
     background-color: var(--pt-bg);
     color: var(--pt-color);
+  }
+
+  :root, :host {
     font-family: var(--pt-font-sans);
     font-size: clamp(100%, 95% + .4vw, 125%);
     line-height: var(--pt-line-height);
@@ -520,6 +523,10 @@
   figure {
     margin-inline: 0;
   }
+
+  :where(figure:has( > table)) {
+    overflow-x: auto;
+  }
 }
 
 @layer forms {
@@ -566,7 +573,7 @@
       }
     }
 
-    &[aria-invalid="true"] {
+    &[aria-invalid]:not([aria-invalid="false"]) {
       --pt-primary: var(--pt-invalid);
 
       & + small:before {
@@ -589,6 +596,11 @@
       color: var(--pt-muted-color);
       display: block;
     }
+  }
+
+  :where(select) {
+    background: var(--pt-bg) var(--pt-icon-chevron) no-repeat right .75rem center / .75rem;
+    padding-inline-end: 2.25rem;
   }
 
   [type="search"] {
@@ -695,18 +707,18 @@
     box-shadow: var(--pt-box-shadow);
 
     & > :where(header, footer) {
-      margin-inline: calc(var(--pt-spacing) * -1);
+      margin-inline: calc(-1 * var(--pt-spacing));
       padding: .66rem var(--pt-spacing);
       background-color: var(--pt-surface-subtle);
     }
 
     & > header {
-      margin-block: calc(var(--pt-spacing) * -1) var(--pt-spacing);
+      margin-block: calc(-1 * var(--pt-spacing)) var(--pt-spacing);
       border-bottom: var(--pt-border);
     }
 
     & > footer {
-      margin-block: var(--pt-spacing) calc(var(--pt-spacing) * -1);
+      margin-block: var(--pt-spacing) calc(-1 * var(--pt-spacing));
       border-top: var(--pt-border);
     }
   }
@@ -723,10 +735,6 @@
       font-weight: 600;
       list-style: none;
       display: flex;
-
-      &::-webkit-details-marker {
-        display: none;
-      }
 
       &::marker {
         display: none;
@@ -768,7 +776,11 @@
         }
       }
 
-      & > summary + ul {
+      &[open] > summary:after {
+        transform: rotate(180deg);
+      }
+
+      & > ul {
         top: calc(100% + .25rem);
         z-index: 99;
         border: var(--pt-border);
@@ -823,10 +835,20 @@
       flex: none;
       padding-inline: 1rem;
     }
+
+    @media (width <= 25rem) {
+      flex-wrap: wrap;
+
+      & > * {
+        border-radius: var(--pt-border-radius) !important;
+        flex: 100% !important;
+        margin: 0 0 .5rem !important;
+      }
+    }
   }
 
   [role="search"] {
-    & > :first-child {
+    & > :not(.sr-only, .visually-hidden):first-of-type {
       border-start-start-radius: 99px;
       border-end-start-radius: 99px;
     }
@@ -837,26 +859,14 @@
     }
   }
 
-  dialog {
-    z-index: 999;
-    width: 100%;
-    max-width: none;
-    height: 100%;
-    max-height: none;
-    padding: var(--pt-spacing);
-    background-color: color-mix(in srgb, var(--tol-black) 65%, transparent);
+  :where(dialog) {
+    border: var(--pt-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-bg);
     color: var(--pt-color);
-    border: 0;
-    justify-content: center;
-    align-items: center;
-    margin: 0;
-    display: flex;
-    position: fixed;
-    inset: 0;
-
-    &::backdrop {
-      background-color: color-mix(in srgb, var(--tol-black) 65%, transparent);
-    }
+    padding: var(--pt-spacing);
+    box-shadow: var(--pt-box-shadow);
+    max-width: min(100vw - 2rem, 40rem);
 
     &:not([open]) {
       display: none;
@@ -864,10 +874,35 @@
 
     & > article {
       width: 100%;
-      max-width: 38rem;
+      max-width: min(100vw - 2rem, 40rem);
       max-height: 90vh;
       margin: 0;
       overflow: auto;
+    }
+
+    &:has( > article) {
+      box-shadow: none;
+      background-color: #0000;
+      border: 0;
+      padding: 0;
+    }
+  }
+
+  :where(dialog:modal) {
+    &::backdrop {
+      background-color: color-mix(in srgb, var(--tol-black, #000) 65%, transparent);
+    }
+
+    &:has( > article) {
+      z-index: 999;
+      max-width: none;
+      padding: var(--pt-spacing);
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      display: flex;
+      position: fixed;
+      inset: 0;
     }
   }
 
@@ -894,7 +929,7 @@
     }
   }
 
-  [type="checkbox"][role="switch"] {
+  [role="switch"] {
     border: var(--pt-border);
     background-color: var(--pt-surface);
     appearance: none;
@@ -925,7 +960,7 @@
   }
 
   @media (forced-colors: active) {
-    [type="checkbox"][role="switch"] {
+    [role="switch"] {
       border-color: buttontext;
 
       &:before {
@@ -964,11 +999,11 @@
     width: 1em;
     height: 1em;
     margin-inline-end: .5em;
-    animation: .75s linear infinite tc-spin;
+    animation: .75s linear infinite pt-spin;
     display: inline-block;
   }
 
-  @keyframes tc-spin {
+  @keyframes pt-spin {
     to {
       transform: rotate(360deg);
     }

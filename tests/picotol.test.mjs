@@ -348,3 +348,83 @@ test("WCAG 2.2 Accessibility, Reflow, Typography Measure, Screen Reader UX, and 
     assert.equal(sri.files[relPath].bytes, fs.statSync(path.join(ROOT, relPath)).size);
   }
 });
+
+test("Two-Tier Isolation: Core bundle strictly excludes extended components", () => {
+  const coreFiles = [
+    path.join(ROOT, "dist/picotol.core.css"),
+    path.join(ROOT, "dist/picotol.core.min.css"),
+  ];
+
+  const excludedComponentSelectors = [
+    "dialog:modal",
+    '[role="switch"]',
+    "[role=switch]",
+    "[data-tooltip]",
+    "progress",
+    "details.dropdown",
+  ];
+
+  for (const file of coreFiles) {
+    const content = fs.readFileSync(file, "utf8");
+    for (const sel of excludedComponentSelectors) {
+      assert.ok(
+        !content.includes(sel),
+        `Core bundle ${path.relative(ROOT, file)} must not contain component selector "${sel}"`
+      );
+    }
+  }
+});
+
+test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, select chevron, pt-spin, and ARIA 1.2 validation", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+
+  // :modal decoupling
+  assert.ok(fullCss.includes(":modal"), "Full CSS must compile :modal selector");
+
+  // select chevron affordance present in both core and full
+  assert.ok(coreCss.includes(":where(select)") && coreCss.includes("var(--pt-icon-chevron)"), "Core CSS includes select chevron");
+  assert.ok(fullCss.includes(":where(select)") && fullCss.includes("var(--pt-icon-chevron)"), "Full CSS includes select chevron");
+
+  // pt-spin animation
+  assert.ok(fullCss.includes("pt-spin"), "Animation must be pt-spin");
+  assert.ok(!fullCss.includes("tc-spin"), "Legacy tc-spin must be removed");
+
+  // ARIA 1.2 validation selector: &[aria-invalid]:not([aria-invalid="false"])
+  assert.ok(
+    coreCss.includes('[aria-invalid]:not([aria-invalid="false"])') ||
+    coreCss.includes('[aria-invalid]:not([aria-invalid=false])'),
+    "Core CSS must support ARIA 1.2 spelling/grammar validation"
+  );
+
+  // Narrow viewport reflow (SC 1.4.10)
+  assert.ok(fullCss.includes("25rem"), "Components CSS must include 25rem media query reflow");
+
+  // Table horizontal overflow containment
+  assert.ok(/figure:has\(\s*>\s*table\)/.test(coreCss), "Core CSS must include figure:has(> table) containment");
+});
+
+test("Semantic State Token Contrast: --pt-valid, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA", () => {
+  const lightBg = achromaticColor("white"); // #FFFFFF
+  const darkBg = achromaticColor("black");  // #000000
+
+  // Light Mode States
+  const lightValid = schemeColor("dark", 5);          // #006644
+  const lightInvalid = schemeColor("vibrant", "red"); // #CC3311
+  const lightMarkBg = schemeColor("pale", 3);         // #EEEEBB
+  const lightMarkText = achromaticColor("black");     // #000000
+
+  assert.ok(contrastRatio(lightValid, lightBg) >= 4.5, "Light valid >= 4.5:1 AA");
+  assert.ok(contrastRatio(lightInvalid, lightBg) >= 4.5, "Light invalid >= 4.5:1 AA");
+  assert.ok(contrastRatio(lightMarkText, lightMarkBg) >= 4.5, "Light mark text >= 4.5:1 AA");
+
+  // Dark Mode States
+  const darkValid = schemeColor("light", "mint");      // #44BB99
+  const darkInvalid = schemeColor("bright", "red");    // #EE6677
+  const darkMarkBg = schemeColor("dark", 9);           // #775500
+  const darkMarkText = achromaticColor("white");       // #FFFFFF
+
+  assert.ok(contrastRatio(darkValid, darkBg) >= 4.5, "Dark valid >= 4.5:1 AA");
+  assert.ok(contrastRatio(darkInvalid, darkBg) >= 4.5, "Dark invalid >= 4.5:1 AA");
+  assert.ok(contrastRatio(darkMarkText, darkMarkBg) >= 4.5, "Dark mark text >= 4.5:1 AA");
+});

@@ -120,4 +120,5 @@
 
   :where(img, video) { max-width: 100%; height: auto; }
   figure { margin-inline: 0; }
+  :where(figure:has(> table)) { overflow-x: auto; }
 }
