@@ -52,3 +52,8 @@ test("all 9 package.json subpath exports resolve to valid files", () => {
     assert.ok(fs.existsSync(targetPath), `Export "${exp}" target "${pkg.exports[exp]}" does not exist`);
   }
 });
+
+test("package.json is configured for public npm release", () => {
+  assert.equal(pkg.private, undefined, "package.json must not have 'private: true'");
+  assert.equal(pkg.publishConfig?.access, "public", "package.json must specify publishConfig.access: 'public'");
+});

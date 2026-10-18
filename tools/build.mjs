@@ -4,7 +4,7 @@
 //   - dist/sri.json
 //   - dist/demo/index.html
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -14,8 +14,9 @@ import { generateDemoHtml } from './generate-demo.mjs';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = join(root, 'dist');
 const demoDir = join(distDir, 'demo');
+const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
-const HEADER = `/*! @kidthales/picotol v0.1.0 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */\n`;
+const HEADER = `/*! ${pkg.name} v${pkg.version} | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */\n`;
 
 // Modern baseline matching CSS light-dark(), color-mix(), @layer, and native CSS Nesting
 const OPTS = {
@@ -69,8 +70,8 @@ export function buildAll() {
   };
 
   const sriManifest = {
-    package: '@kidthales/picotol',
-    version: '0.1.0',
+    package: pkg.name,
+    version: pkg.version,
     files: {
       'dist/picotol.core.min.css': {
         bytes: stats.coreMinBytes,

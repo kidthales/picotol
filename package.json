@@ -1,11 +1,13 @@
 {
   "name": "@kidthales/picotol",
   "version": "0.1.0",
-  "private": true,
   "description": "Pure-CSS, ultra-minified semantic HTML framework inspired by Pico CSS and powered strictly by Paul Tol colour schemes.",
   "license": "MIT",
   "author": "kidthales",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/picotol.min.css",
   "style": "./dist/picotol.min.css",
   "unpkg": "./dist/picotol.min.css",
