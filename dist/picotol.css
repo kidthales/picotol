@@ -1,6 +1,14 @@
 /*! @kidthales/picotol v0.1.0 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
 @layer tokens {
   :root, :host, [data-accent="blue"] {
+    --pt-p1: #ace;
+    --pt-p2: #7ad;
+    --pt-p3: #47a;
+    --pt-p4: #25a;
+    --pt-p5: #048;
+  }
+
+  :root, :host, :where([data-accent], [data-theme]) {
     color-scheme: light dark;
     --pt-font-sans: system-ui, sans-serif;
     --pt-font-mono: ui-monospace, monospace;
@@ -13,14 +21,6 @@
     --pt-container-max: 70rem;
     --pt-grid-min: 15rem;
     --pt-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    --pt-p1: #ace;
-    --pt-p2: #7ad;
-    --pt-p3: #47a;
-    --pt-p4: #25a;
-    --pt-p5: #048;
-  }
-
-  :root, :host, :where([data-theme]) {
     --pt-bg: light-dark(#fff, #000);
     --pt-surface: light-dark(#ddd, #444);
     --pt-surface-subtle: color-mix(in srgb, var(--pt-surface) 38%, transparent);
@@ -32,9 +32,6 @@
     --pt-invalid: light-dark(#c31, #e67);
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
-  }
-
-  :root, :host, :where([data-accent], [data-theme]) {
     --pt-primary: light-dark(var(--pt-p4), var(--pt-p2));
     --pt-primary-hover: light-dark(var(--pt-p5), var(--pt-p1));
     --pt-primary-bg: light-dark(var(--pt-p1), var(--pt-p4));
@@ -526,6 +523,10 @@
   figure {
     margin-inline: 0;
   }
+
+  :where(figure:has( > table)) {
+    overflow-x: auto;
+  }
 }
 
 @layer forms {
@@ -779,7 +780,11 @@
         }
       }
 
-      & > summary + ul {
+      &[open] > summary:after {
+        transform: rotate(180deg);
+      }
+
+      & > ul {
         top: calc(100% + .25rem);
         z-index: 99;
         border: var(--pt-border);
@@ -834,10 +839,20 @@
       flex: none;
       padding-inline: 1rem;
     }
+
+    @media (width <= 25rem) {
+      flex-wrap: wrap;
+
+      & > * {
+        border-radius: var(--pt-border-radius) !important;
+        flex: 100% !important;
+        margin: 0 0 .5rem !important;
+      }
+    }
   }
 
   [role="search"] {
-    & > :first-child {
+    & > :not(.sr-only, .visually-hidden):first-of-type {
       border-start-start-radius: 99px;
       border-end-start-radius: 99px;
     }
@@ -848,16 +863,33 @@
     }
   }
 
-  dialog {
+  :where(dialog) {
+    border: var(--pt-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-bg);
+    color: var(--pt-color);
+    padding: var(--pt-spacing);
+    box-shadow: var(--pt-box-shadow);
+    max-width: min(100vw - 2rem, 40rem);
+
+    &:not([open]) {
+      display: none;
+    }
+
+    & > article {
+      width: 100%;
+      max-height: 90vh;
+      margin: 0;
+      overflow: auto;
+    }
+  }
+
+  :where(dialog:modal) {
     z-index: 999;
     width: 100%;
     max-width: none;
     height: 100%;
-    max-height: none;
     padding: var(--pt-spacing);
-    background-color: color-mix(in srgb, var(--tol-black) 65%, transparent);
-    color: var(--pt-color);
-    border: 0;
     justify-content: center;
     align-items: center;
     margin: 0;
@@ -866,19 +898,13 @@
     inset: 0;
 
     &::backdrop {
-      background-color: color-mix(in srgb, var(--tol-black) 65%, transparent);
+      background-color: color-mix(in srgb, var(--tol-black, #000) 65%, transparent);
     }
 
-    &:not([open]) {
-      display: none;
-    }
-
-    & > article {
-      width: 100%;
-      max-width: 38rem;
-      max-height: 90vh;
-      margin: 0;
-      overflow: auto;
+    &:has( > article) {
+      box-shadow: none;
+      background-color: #0000;
+      border: 0;
     }
   }
 
@@ -905,7 +931,7 @@
     }
   }
 
-  [type="checkbox"][role="switch"] {
+  [role="switch"] {
     border: var(--pt-border);
     background-color: var(--pt-surface);
     appearance: none;
@@ -936,7 +962,7 @@
   }
 
   @media (forced-colors: active) {
-    [type="checkbox"][role="switch"] {
+    [role="switch"] {
       border-color: buttontext;
 
       &:before {
@@ -975,11 +1001,11 @@
     width: 1em;
     height: 1em;
     margin-inline-end: .5em;
-    animation: .75s linear infinite tc-spin;
+    animation: .75s linear infinite pt-spin;
     display: inline-block;
   }
 
-  @keyframes tc-spin {
+  @keyframes pt-spin {
     to {
       transform: rotate(360deg);
     }

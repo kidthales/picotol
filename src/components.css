@@ -65,7 +65,10 @@
         background-color: var(--pt-bg);
         &::after { transform: none; }
       }
-      & > summary + ul {
+      &[open] > summary::after {
+        transform: rotate(180deg);
+      }
+      & > ul {
         position: absolute;
         top: calc(100% + 0.25rem);
         inset-inline-start: 0;
@@ -113,10 +116,18 @@
       padding-inline: 1rem;
       white-space: nowrap;
     }
+    @media (max-width: 25rem) {
+      flex-wrap: wrap;
+      & > * {
+        flex: 1 1 100% !important;
+        margin: 0 0 0.5rem 0 !important;
+        border-radius: var(--pt-border-radius) !important;
+      }
+    }
   }
 
   [role="search"] {
-    & > :first-child {
+    & > :not(.sr-only, .visually-hidden):first-of-type {
       border-start-start-radius: 99px;
       border-end-start-radius: 99px;
     }
@@ -127,7 +138,24 @@
   }
 
   /* 5. Modal (<dialog>) */
-  dialog {
+  :where(dialog) {
+    border: var(--pt-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-bg);
+    color: var(--pt-color);
+    padding: var(--pt-spacing);
+    box-shadow: var(--pt-box-shadow);
+    max-width: min(100vw - 2rem, 40rem);
+    &:not([open]) { display: none; }
+    & > article {
+      width: 100%;
+      max-height: 90vh;
+      margin: 0;
+      overflow: auto;
+    }
+  }
+
+  :where(dialog:modal) {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -137,20 +165,15 @@
     width: 100%;
     height: 100%;
     max-width: none;
-    max-height: none;
     margin: 0;
     padding: var(--pt-spacing);
-    border: 0;
-    background-color: color-mix(in srgb, var(--tol-black) 65%, transparent);
-    color: var(--pt-color);
-    &::backdrop { background-color: color-mix(in srgb, var(--tol-black) 65%, transparent); }
-    &:not([open]) { display: none; }
-    & > article {
-      width: 100%;
-      max-width: 38rem;
-      max-height: 90vh;
-      margin: 0;
-      overflow: auto;
+    &::backdrop {
+      background-color: color-mix(in srgb, var(--tol-black, #000000) 65%, transparent);
+    }
+    &:has(> article) {
+      border: 0;
+      background-color: transparent;
+      box-shadow: none;
     }
   }
 
@@ -170,7 +193,7 @@
   }
 
   /* 7. Switch ([role="switch"]) & Range ([type="range"]) */
-  [type="checkbox"][role="switch"] {
+  [role="switch"] {
     width: 2.75rem;
     height: 1.5rem;
     border: var(--pt-border);
@@ -196,7 +219,7 @@
   }
 
   @media (forced-colors: active) {
-    [type="checkbox"][role="switch"] {
+    [role="switch"] {
       border-color: ButtonText;
       &::before { background-color: ButtonText; }
       &:checked {
@@ -227,9 +250,9 @@
     border-inline-end-color: transparent;
     border-radius: 50%;
     vertical-align: -0.125em;
-    animation: tc-spin 0.75s linear infinite;
+    animation: pt-spin 0.75s linear infinite;
   }
-  @keyframes tc-spin { to { transform: rotate(360deg); } }
+  @keyframes pt-spin { to { transform: rotate(360deg); } }
 
   /* 9. Tooltip ([data-tooltip]) */
   [data-tooltip] {

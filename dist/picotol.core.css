@@ -1,6 +1,14 @@
 /*! @kidthales/picotol v0.1.0 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
 @layer tokens {
   :root, :host, [data-accent="blue"] {
+    --pt-p1: #ace;
+    --pt-p2: #7ad;
+    --pt-p3: #47a;
+    --pt-p4: #25a;
+    --pt-p5: #048;
+  }
+
+  :root, :host, :where([data-accent], [data-theme]) {
     color-scheme: light dark;
     --pt-font-sans: system-ui, sans-serif;
     --pt-font-mono: ui-monospace, monospace;
@@ -13,14 +21,6 @@
     --pt-container-max: 70rem;
     --pt-grid-min: 15rem;
     --pt-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    --pt-p1: #ace;
-    --pt-p2: #7ad;
-    --pt-p3: #47a;
-    --pt-p4: #25a;
-    --pt-p5: #048;
-  }
-
-  :root, :host, :where([data-theme]) {
     --pt-bg: light-dark(#fff, #000);
     --pt-surface: light-dark(#ddd, #444);
     --pt-surface-subtle: color-mix(in srgb, var(--pt-surface) 38%, transparent);
@@ -32,9 +32,6 @@
     --pt-invalid: light-dark(#c31, #e67);
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
-  }
-
-  :root, :host, :where([data-accent], [data-theme]) {
     --pt-primary: light-dark(var(--pt-p4), var(--pt-p2));
     --pt-primary-hover: light-dark(var(--pt-p5), var(--pt-p1));
     --pt-primary-bg: light-dark(var(--pt-p1), var(--pt-p4));
@@ -453,6 +450,10 @@
 
   figure {
     margin-inline: 0;
+  }
+
+  :where(figure:has( > table)) {
+    overflow-x: auto;
   }
 }
 
