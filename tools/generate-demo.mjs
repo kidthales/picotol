@@ -56,36 +56,6 @@ export const ACCENT_TABLE = [
     darkBgHover: '#0077BB',
   },
   {
-    accent: 'teal',
-    lightFg: '#117788',
-    lightFgToken: '--tol-dark-6',
-    lightFgHover: '#004488',
-    lightBg: '#CCEEFF',
-    lightBgToken: '--tol-pale-1',
-    lightBgHover: '#44AA99',
-    darkFg: '#44AA99',
-    darkFgToken: '--tol-muted-teal',
-    darkFgHover: '#CCEEFF',
-    darkBg: '#117788',
-    darkBgToken: '--tol-dark-6',
-    darkBgHover: '#0077BB',
-  },
-  {
-    accent: 'indigo',
-    lightFg: '#004488',
-    lightFgToken: '--tol-hc-blue',
-    lightFgHover: '#332288',
-    lightBg: '#AACCEE',
-    lightBgToken: '--tol-pale-0',
-    lightBgHover: '#6699CC',
-    darkFg: '#6699CC',
-    darkFgToken: '--tol-mc-blue',
-    darkFgHover: '#AACCEE',
-    darkBg: '#004488',
-    darkBgToken: '--tol-hc-blue',
-    darkBgHover: '#2255AA',
-  },
-  {
     accent: 'purple',
     lightFg: '#762A83',
     lightFgToken: '--tol-prgn-0',
@@ -181,8 +151,6 @@ export function generateDemoHtml(fullMinCss, stats) {
           <select id="accent-select" aria-label="Select Paul Tol accent hue" style="margin-bottom:0;padding-block:0.25rem;">
             <option value="blue">Accent: Blue</option>
             <option value="cyan">Accent: Cyan</option>
-            <option value="teal">Accent: Teal</option>
-            <option value="indigo">Accent: Indigo</option>
             <option value="purple">Accent: Purple</option>
             <option value="magenta">Accent: Magenta</option>
           </select>

@@ -127,7 +127,7 @@ test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 6 Paul 
     `Dark mode border (${darkBorder}) vs black bg must be >= 3.0:1 (SC 1.4.11)`
   );
 
-  // 6 Accent Ladders matching tools/sync-tokens.mjs (--pt-p1..--pt-p5)
+  // 4 Accent Ladders matching tools/sync-tokens.mjs (--pt-p1..--pt-p5)
   const accents = [
     {
       name: "blue",
@@ -144,22 +144,6 @@ test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 6 Paul 
       p3: schemeColor("vibrant", "blue"), // #0077BB
       p4: schemeColor("dark", 6), // #117788
       p5: schemeColor("high-contrast", "blue"), // #004488
-    },
-    {
-      name: "teal",
-      p1: schemeColor("pale", 1), // #CCEEFF
-      p2: schemeColor("muted", "teal"), // #44AA99
-      p3: schemeColor("vibrant", "blue"), // #0077BB
-      p4: schemeColor("dark", 6), // #117788
-      p5: schemeColor("high-contrast", "blue"), // #004488
-    },
-    {
-      name: "indigo",
-      p1: schemeColor("pale", 0), // #AACCEE
-      p2: schemeColor("medium-contrast", "light_blue"), // #6699CC
-      p3: schemeColor("dark", 3), // #2255AA
-      p4: schemeColor("high-contrast", "blue"), // #004488
-      p5: schemeColor("muted", "indigo"), // #332288
     },
     {
       name: "purple",
@@ -268,10 +252,10 @@ test("Architecture & Selector Invariants: @layer cascade, --pt-* tokens, [data-t
   for (const theme of ["light", "dark"]) {
     assert.ok(fullCss.includes(`[data-theme="${theme}"]`) || fullCss.includes(`[data-theme=${theme}]`));
   }
-  for (const accent of ["blue", "cyan", "teal", "indigo", "purple", "magenta"]) {
+  for (const accent of ["blue", "cyan", "purple", "magenta"]) {
     assert.ok(fullCss.includes(`[data-accent="${accent}"]`) || fullCss.includes(`[data-accent=${accent}]`));
   }
-  for (const retired of ["green", "yellow", "red"]) {
+  for (const retired of ["green", "yellow", "red", "teal", "indigo"]) {
     assert.ok(!fullCss.includes(`[data-accent="${retired}"]`) && !fullCss.includes(`[data-accent=${retired}]`), `Retired accent ${retired} must not be present in [data-accent]`);
   }
   assert.ok(!demoHtml.includes("kt-toggle"), "Demo HTML must not include [kidthales] mode toggle");

@@ -1,4 +1,4 @@
-# Roadmap v0.3.0: Micro-Dashboard Ergonomics, Modal Header Alignment & Non-Semantic 6-Accent Suite
+# Roadmap v0.3.0: Micro-Dashboard Ergonomics, Modal Header Alignment & Non-Semantic 4-Accent Suite
 
 ## 1. Overview
 This roadmap specifies the v0.3.0 enhancements for `@kidthales/picotol`. It optimizes the framework for dense micro-dashboards, developer status consoles, and operational monitors by decoupling primary theme accents from traffic-light status semantics, fixing modal dialog close button alignment, and enabling fluid container paragraph measures while strictly preserving 100% Paul Tol color purity, zero preprocessors, and bundle budgets.
@@ -36,19 +36,17 @@ This roadmap specifies the v0.3.0 enhancements for `@kidthales/picotol`. It opti
 
 ---
 
-### Phase 3: Non-Semantic 6-Accent Suite & Token Cleansing
+### Phase 3: Non-Semantic 4-Accent Suite & Token Cleansing
 * **Target Files**: `tools/sync-tokens.mjs`, `src/tokens.css`, `src/palettes.css`, `tools/generate-demo.mjs`, `tests/picotol.test.mjs`, `README.md`
 * **Canonical spec**: `docs/ROADMAP_V0.3.0.md` §2.3
 * **Deliverables**:
   1. Retire `green`, `yellow`, and `red` from `[data-accent]`, reserving them exclusively for dedicated operational status tokens: `--pt-valid` (green), `--pt-mark-bg` (yellow), and `--pt-invalid` (red).
   2. Exclude `slate` from primary accents to prevent visual collisions with secondary and reset buttons (`:where(.secondary, [type="reset"])`).
-  3. Implement 3 new Paul Tol chromatic accent ladders:
-     - **`teal`**: `p1` `#CCEEFF` (`pale-1`), `p2` `#44AA99` (`muted-teal`), `p3` `#0077BB` (`vibrant-blue`), `p4` `#117788` (`dark-6`), `p5` `#004488` (`hc-blue`).
-     - **`indigo`**: `p1` `#AACCEE` (`pale-0`), `p2` `#6699CC` (`mc-blue`), `p3` `#2255AA` (`dark-3`), `p4` `#004488` (`hc-blue`), `p5` `#332288` (`muted-indigo`).
-     - **`magenta`**: `p1` `#EEBBDD` (`pale-5`), `p2` `#FFAABB` (`light-pink`), `p3` `#BB4488` (`dark-8`), `p4` `#993366` (`dark-4`), `p5` `#882255` (`muted-wine`).
-  4. Cleanse `cyan` ladder `p5` by replacing `#006644` with `#004488` (high-contrast blue) to eliminate green contamination.
-  5. Synchronize token generators (`tools/sync-tokens.mjs`) and recompile tokens.
-  6. Update demo scorecard table, `#accent-select` options, test contrast matrices, and `README.md`.
+  3. Retire `teal` and `indigo` due to perceptual proximity to `green` (operational status) and `blue` (primary theme default), establishing a focused, high-separation 4-accent suite: `blue`, `cyan`, `purple`, and `magenta`.
+  4. Implement chromatic accent ladder for **`magenta`**: `p1` `#EEBBDD` (`pale-5`), `p2` `#FFAABB` (`light-pink`), `p3` `#BB4488` (`dark-8`), `p4` `#993366` (`dark-4`), `p5` `#882255` (`muted-wine`).
+  5. Cleanse `cyan` ladder `p5` by replacing `#006644` with `#004488` (high-contrast blue) to eliminate green contamination.
+  6. Synchronize token generators (`tools/sync-tokens.mjs`) and recompile tokens.
+  7. Update demo scorecard table, `#accent-select` options, test contrast matrices, and `README.md`.
 
 ---
 
@@ -56,5 +54,5 @@ This roadmap specifies the v0.3.0 enhancements for `@kidthales/picotol`. It opti
 * `dist/picotol.min.css`: `<= 20.0 KB`
 * `dist/picotol.core.min.css`: `<= 10.5 KB`
 * 100% Paul Tol Hex Purity (`tests/picotol.test.mjs`)
-* WCAG 2.2 AA Contrast Compliance across all 6 accents in Light and Dark modes
+* WCAG 2.2 AA Contrast Compliance across all 4 accents in Light and Dark modes
 * Zero AI codenames across all files, commits, PRs, and comments (`publicCleanRepos` policy)

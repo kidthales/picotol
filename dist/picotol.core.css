@@ -59,22 +59,6 @@
     --pt-p5: #048;
   }
 
-  [data-accent="teal"] {
-    --pt-p1: #cef;
-    --pt-p2: #4a9;
-    --pt-p3: #07b;
-    --pt-p4: #178;
-    --pt-p5: #048;
-  }
-
-  [data-accent="indigo"] {
-    --pt-p1: #ace;
-    --pt-p2: #69c;
-    --pt-p3: #25a;
-    --pt-p4: #048;
-    --pt-p5: #328;
-  }
-
   [data-accent="purple"] {
     --pt-p1: #e7d4e8;
     --pt-p2: #c2a5cf;

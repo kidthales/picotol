@@ -1,4 +1,4 @@
-# Epic #45 Execution Runbook: Micro-Dashboard Styling & 6-Accent Suite
+# Epic #45 Execution Runbook: Micro-Dashboard Styling & 4-Accent Suite
 
 ## 1. Scope & References
 * **Parent Epic**: https://github.com/kidthales/picotol/issues/45
@@ -17,9 +17,9 @@ Execute sub-issues sequentially to maintain zero-conflict merge linearity:
 2. **#47** (`Low`): `fix(components): align modal dialog close button to RHS with flex header layout`
    - Target files: `src/components.css`, `tests/picotol.test.mjs`
    - Adds flexbox container rules on `dialog article > header` and `margin-inline-start: auto;` on close button
-3. **#48** (`Medium`): `feat(tokens): retire semantic accents and establish non-semantic 6-accent suite`
+3. **#48** (`Medium`): `feat(tokens): retire semantic accents and establish non-semantic 4-accent suite`
    - Target files: `tools/sync-tokens.mjs`, `src/tokens.css`, `src/palettes.css`, `tools/generate-demo.mjs`, `tests/picotol.test.mjs`, `README.md`
-   - Replaces `green`, `yellow`, `red` with `teal`, `indigo`, `magenta`, cleanses `cyan` `p5`, regenerates tokens, updates demo scorecard and tests
+   - Replaces `green`, `yellow`, `red` and retires `teal`, `indigo` (avoiding collisions with `green` status and `blue` default), establishing 4 distinct non-semantic accents (`blue`, `cyan`, `purple`, `magenta`), cleanses `cyan` `p5`, regenerates tokens, updates demo scorecard and tests
 
 ---
 
@@ -48,8 +48,8 @@ When sub-issues #46, #47, and #48 are merged into the Epic branch:
 1. Re-generate and verify full distribution artifacts (`npm run generate && npm test`).
 2. Run `pm review <epic_pr#> --approve` on the Epic PR.
 3. Present the 3-Part Operator QA Hand-Off Brief:
-   - **What Was Done**: Summary of paragraph fluid measure, modal close button RHS flexbox alignment, and non-semantic 6-accent suite.
-   - **Manual Runbook**: Verification steps for inspecting `dist/demo/index.html` across light/dark themes and all 6 accent palettes.
+   - **What Was Done**: Summary of paragraph fluid measure, modal close button RHS flexbox alignment, and non-semantic 4-accent suite (`blue`, `cyan`, `purple`, `magenta`).
+   - **Manual Runbook**: Verification steps for inspecting `dist/demo/index.html` across light/dark themes and all 4 accent palettes.
    - **Ambiguous Checkpoints**: Explicit confirmation of bundle size limits and browser support boundaries.
 4. Halt and await explicit human operator confirmation in chat before running `pm merge <epic_pr#> --operator-approved`.
 

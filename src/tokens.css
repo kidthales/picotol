@@ -41,12 +41,6 @@
   [data-accent="cyan"] {
     --pt-p1: #CCEEFF; --pt-p2: #99DDFF; --pt-p3: #0077BB; --pt-p4: #117788; --pt-p5: #004488;
   }
-  [data-accent="teal"] {
-    --pt-p1: #CCEEFF; --pt-p2: #44AA99; --pt-p3: #0077BB; --pt-p4: #117788; --pt-p5: #004488;
-  }
-  [data-accent="indigo"] {
-    --pt-p1: #AACCEE; --pt-p2: #6699CC; --pt-p3: #2255AA; --pt-p4: #004488; --pt-p5: #332288;
-  }
   [data-accent="purple"] {
     --pt-p1: #E7D4E8; --pt-p2: #C2A5CF; --pt-p3: #AA4499; --pt-p4: #762A83; --pt-p5: #332288;
   }
