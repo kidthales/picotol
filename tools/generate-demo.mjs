@@ -167,12 +167,14 @@ export function generateDemoHtml(fullMinCss, stats) {
     });
   }
 
-  const swatchCardsHtml = swatches.map((sw) => `        <article class="stat" data-swatch="true" data-search="${sw.scheme} ${sw.name} ${sw.token} ${sw.hex.toLowerCase()}" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy ${sw.token} (${sw.hex}) to clipboard">
-          <div style="height:3rem;background:${sw.hex};border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
-          <header><strong><code>${sw.token}</code></strong></header>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
-            <code>${sw.hex}</code>
-            <span class="badge">${sw.scheme}</span>
+  const swatchCardsHtml = swatches.map((sw) => `        <article data-swatch="true" data-search="${sw.scheme} ${sw.name} ${sw.token} ${sw.hex.toLowerCase()}" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy ${sw.token} (${sw.hex}) to clipboard">
+          <div style="height:3.5rem;background:${sw.hex};border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>${sw.token}</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">${sw.hex}</code>
+              <span class="badge" style="font-size:0.75rem;">${sw.scheme}</span>
+            </div>
           </div>
         </article>`).join('\n');
 
@@ -468,7 +470,7 @@ ${rowsHtml}
               <td class="tabular-nums">78.2%</td>
               <td class="tabular-nums">14.1 / 16 GB</td>
               <td class="tabular-nums">28 ms</td>
-              <td><span class="badge" data-accent="purple">Warning</span></td>
+              <td><span class="badge warning">Warning</span></td>
             </tr>
             <tr>
               <td><code>edge-us-east-03</code></td>
@@ -609,7 +611,7 @@ ${rowsHtml}
           </article>
         </div>
 
-        <aside class="success">
+        <aside class="valid">
           <p><strong>System Health Normal:</strong> All cluster telemetry reporting within nominal Paul Tol accessible thresholds.</p>
         </aside>
       </div>
@@ -645,6 +647,7 @@ ${rowsHtml}
         <span class="badge">Neutral Badge</span>
         <span class="badge primary">Primary Accent</span>
         <span class="badge valid">Active</span>
+        <span class="badge warning">Warning</span>
         <span class="badge invalid">Failed</span>
         <span class="badge" data-accent="purple">Purple Accent</span>
       </p>

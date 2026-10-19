@@ -137,6 +137,13 @@
     }
   }
 
+  :where(button, [role="button"], a):has(> :where(svg.icon, [data-icon])) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+  }
+
   :where(button, [role="button"], a) > :where(svg.icon, [data-icon]) {
     &:first-child:not(:only-child) { margin-inline-end: 0.5em; }
     &:last-child:not(:only-child) { margin-inline-start: 0.5em; }
@@ -145,9 +152,6 @@
   :where(button, [role="button"]):has(> :where(svg.icon, [data-icon]):only-child) {
     padding: var(--pt-form-y);
     aspect-ratio: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
 }
 

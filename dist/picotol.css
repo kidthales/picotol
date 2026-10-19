@@ -34,6 +34,7 @@
     --pt-muted-border: light-dark(#888, #666);
     --pt-border: 1px solid var(--pt-muted-border);
     --pt-valid: light-dark(#064, #4b9);
+    --pt-warning: light-dark(#750, #ed8);
     --pt-invalid: light-dark(#c31, #e67);
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
@@ -465,6 +466,13 @@
     }
   }
 
+  :where(button, [role="button"], a):has( > :where(svg.icon, [data-icon])) {
+    vertical-align: middle;
+    justify-content: center;
+    align-items: center;
+    display: inline-flex;
+  }
+
   :where(button, [role="button"], a) > :where(svg.icon, [data-icon]) {
     &:first-child:not(:only-child) {
       margin-inline-end: .5em;
@@ -478,9 +486,6 @@
   :where(button, [role="button"]):has( > :where(svg.icon, [data-icon]):only-child) {
     padding: var(--pt-form-y);
     aspect-ratio: 1;
-    justify-content: center;
-    align-items: center;
-    display: inline-flex;
   }
 }
 
@@ -914,9 +919,6 @@
       position: absolute;
       top: 50%;
       left: 50%;
-    }
-
-    &:before {
       transform: translate(-50%, -50%) rotate(45deg);
     }
 
@@ -997,7 +999,7 @@
     }
 
     progress {
-      border: 1px solid buttontext;
+      border: 1px solid;
     }
   }
 
@@ -1082,11 +1084,15 @@
       border-inline-start-color: var(--pt-primary);
     }
 
-    &:is([role="alert"], .danger, .invalid) {
+    &:is([role="alert"], .invalid) {
       border-inline-start-color: var(--pt-invalid);
     }
 
-    &:is(.success, .valid) {
+    &.warning {
+      border-inline-start-color: var(--pt-warning);
+    }
+
+    &.valid {
       border-inline-start-color: var(--pt-valid);
     }
   }
@@ -1110,12 +1116,17 @@
       color: var(--pt-primary);
     }
 
-    &:is([role="alert"], .invalid, .danger) {
+    &:is([role="alert"], .invalid) {
       border-color: var(--pt-invalid);
       color: var(--pt-invalid);
     }
 
-    &:is(.valid, .success) {
+    &.warning {
+      border-color: var(--pt-warning);
+      color: var(--pt-warning);
+    }
+
+    &.valid {
       border-color: var(--pt-valid);
       color: var(--pt-valid);
     }
@@ -1191,7 +1202,7 @@
     display: flex;
   }
 
-  :where(dl.stats) {
+  dl.stats {
     gap: var(--pt-spacing);
     margin-bottom: var(--pt-spacing);
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));

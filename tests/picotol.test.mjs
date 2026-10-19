@@ -424,27 +424,31 @@ test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, sele
   assert.ok(fullCss.includes("margin-inline-start: auto") || fullCss.includes("margin-inline-start:auto"), "Full CSS includes margin-inline-start: auto on modal close button");
 });
 
-test("Semantic State Token Contrast: --pt-valid, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA", () => {
+test("Semantic State Token Contrast: --pt-valid, --pt-warning, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA", () => {
   const lightBg = achromaticColor("white"); // #FFFFFF
   const darkBg = achromaticColor("black");  // #000000
 
   // Light Mode States
   const lightValid = schemeColor("dark", 5);          // #006644
+  const lightWarning = schemeColor("dark", 9);        // #775500
   const lightInvalid = schemeColor("vibrant", "red"); // #CC3311
   const lightMarkBg = schemeColor("pale", 3);         // #EEEEBB
   const lightMarkText = achromaticColor("black");     // #000000
 
   assert.ok(contrastRatio(lightValid, lightBg) >= 4.5, "Light valid >= 4.5:1 AA");
+  assert.ok(contrastRatio(lightWarning, lightBg) >= 4.5, "Light warning >= 4.5:1 AA");
   assert.ok(contrastRatio(lightInvalid, lightBg) >= 4.5, "Light invalid >= 4.5:1 AA");
   assert.ok(contrastRatio(lightMarkText, lightMarkBg) >= 4.5, "Light mark text >= 4.5:1 AA");
 
   // Dark Mode States
-  const darkValid = schemeColor("light", "mint");      // #44BB99
-  const darkInvalid = schemeColor("bright", "red");    // #EE6677
-  const darkMarkBg = schemeColor("dark", 9);           // #775500
-  const darkMarkText = achromaticColor("white");       // #FFFFFF
+  const darkValid = schemeColor("light", "mint");         // #44BB99
+  const darkWarning = schemeColor("light", "light_yellow"); // #EEDD88
+  const darkInvalid = schemeColor("bright", "red");       // #EE6677
+  const darkMarkBg = schemeColor("dark", 9);              // #775500
+  const darkMarkText = achromaticColor("white");          // #FFFFFF
 
   assert.ok(contrastRatio(darkValid, darkBg) >= 4.5, "Dark valid >= 4.5:1 AA");
+  assert.ok(contrastRatio(darkWarning, darkBg) >= 4.5, "Dark warning >= 4.5:1 AA");
   assert.ok(contrastRatio(darkInvalid, darkBg) >= 4.5, "Dark invalid >= 4.5:1 AA");
   assert.ok(contrastRatio(darkMarkText, darkMarkBg) >= 4.5, "Dark mark text >= 4.5:1 AA");
 });

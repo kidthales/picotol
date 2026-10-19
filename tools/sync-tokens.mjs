@@ -146,6 +146,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     `    --pt-muted-border: light-dark(${ach['grey-500']}, ${ach['grey-700']});`,
     '    --pt-border: 1px solid var(--pt-muted-border);',
     `    --pt-valid: light-dark(${colorByName('dark', 5)}, ${colorByName('light', 'mint')});`,
+    `    --pt-warning: light-dark(${colorByName('dark', 9)}, ${colorByName('light', 'light_yellow')});`,
     `    --pt-invalid: light-dark(${colorByName('vibrant', 'red')}, ${colorByName('bright', 'red')});`,
     `    --pt-mark-bg: light-dark(${colorByName('pale', 3)}, ${colorByName('dark', 9)});`,
     '    --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);',

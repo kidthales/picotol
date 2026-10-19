@@ -28,6 +28,7 @@
     --pt-muted-border: light-dark(#888888, #666666);
     --pt-border: 1px solid var(--pt-muted-border);
     --pt-valid: light-dark(#006644, #44BB99);
+    --pt-warning: light-dark(#775500, #EEDD88);
     --pt-invalid: light-dark(#CC3311, #EE6677);
     --pt-mark-bg: light-dark(#EEEEBB, #775500);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
