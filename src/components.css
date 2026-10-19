@@ -7,10 +7,11 @@
     border-radius: var(--pt-border-radius);
     background-color: var(--pt-bg);
     box-shadow: var(--pt-box-shadow);
+    overflow: hidden;
 
     & > :where(header, footer) {
       margin-inline: calc(-1 * var(--pt-spacing));
-      padding: 0.66rem var(--pt-spacing);
+      padding: calc(var(--pt-spacing) * 0.66) var(--pt-spacing);
       background-color: var(--pt-surface-subtle);
     }
     & > header {
@@ -21,6 +22,14 @@
       margin-block: var(--pt-spacing) calc(-1 * var(--pt-spacing));
       border-top: var(--pt-border);
     }
+  }
+
+  :where(.contrast) {
+    --pt-primary: var(--pt-color);
+    --pt-primary-hover: var(--pt-muted-color);
+    --pt-primary-bg: var(--pt-color);
+    --pt-primary-hover-bg: var(--pt-muted-color);
+    --pt-btn-color: var(--pt-bg);
   }
 
   /* 2. Accordion (<details>) & 3. Dropdown (details.dropdown) */
@@ -64,6 +73,14 @@
         border-radius: var(--pt-border-radius);
         background-color: var(--pt-bg);
         &::after { transform: none; }
+      }
+      &[open] > summary::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 98;
+        background: transparent;
+        cursor: default;
       }
       &[open] > summary::after {
         transform: rotate(180deg);
@@ -127,7 +144,7 @@
   }
 
   [role="search"] {
-    & > :not(.sr-only, .visually-hidden):first-of-type {
+    & > :first-child {
       border-start-start-radius: 99px;
       border-end-start-radius: 99px;
     }
@@ -164,7 +181,7 @@
 
   :where(dialog:modal) {
     &::backdrop {
-      background-color: color-mix(in srgb, var(--tol-black, #000000) 65%, transparent);
+      background-color: color-mix(in srgb, var(--pt-black) 65%, transparent);
     }
     &:has(> article) {
       display: flex;
@@ -177,6 +194,31 @@
       margin: 0;
       padding: var(--pt-spacing);
     }
+  }
+
+  dialog :where(header, form) button:is([aria-label="Close" i], [rel="prev"], .close) {
+    position: relative;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--pt-muted-color);
+    cursor: pointer;
+    font-size: 0;
+
+    &:is(:hover, :focus-visible) { color: var(--pt-color); }
+    &::before, &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 1rem;
+      height: 2px;
+      background: currentColor;
+    }
+    &::before { transform: translate(-50%, -50%) rotate(45deg); }
+    &::after { transform: translate(-50%, -50%) rotate(-45deg); }
   }
 
   /* 6. Progress (<progress>) */
@@ -242,6 +284,10 @@
   }
 
   /* 8. Loading Spinner ([aria-busy="true"]) */
+  :where(button, [type="submit"], [role="button"], a)[aria-busy="true"] {
+    pointer-events: none;
+  }
+
   [aria-busy="true"]:not(input, select, textarea, html, form)::before {
     content: "";
     display: inline-block;
@@ -254,6 +300,13 @@
     vertical-align: -0.125em;
     animation: pt-spin 0.75s linear infinite;
   }
+
+  :where(button, [type="submit"], [role="button"])[aria-busy="true"]:empty {
+    text-align: center;
+    white-space: nowrap;
+    &::before { margin-inline-end: 0; }
+  }
+
   @keyframes pt-spin { to { transform: rotate(360deg); } }
 
   /* 9. Tooltip ([data-tooltip]) */
@@ -283,4 +336,194 @@
       pointer-events: none;
     }
   }
+
+  /* 10. Semantic Callout */
+  :where(aside:not(nav *), [role="alert"]) {
+    margin-bottom: var(--pt-spacing);
+    padding: var(--pt-spacing);
+    border-radius: var(--pt-border-radius);
+    border-inline-start: 0.25rem solid var(--pt-muted-border);
+    background: var(--pt-surface-subtle);
+    color: var(--pt-color);
+
+    &:is(.primary, [data-accent]) {
+      border-inline-start-color: var(--pt-primary);
+    }
+    &:is([role="alert"], .danger, .invalid) {
+      border-inline-start-color: var(--pt-invalid);
+    }
+    &:is(.success, .valid) {
+      border-inline-start-color: var(--pt-valid);
+    }
+  }
+
+  /* 11. Status Badges */
+  :where(.badge, [role="status"]) {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125em 0.5em;
+    border-radius: 99px;
+    border: 1px solid var(--pt-muted-border);
+    background: var(--pt-surface-subtle);
+    color: var(--pt-color);
+    font-size: 0.75em;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
+
+    &:is(.primary, [data-accent]) {
+      border-color: var(--pt-primary);
+      color: var(--pt-primary);
+    }
+    &:is([role="alert"], .invalid, .danger) {
+      border-color: var(--pt-invalid);
+      color: var(--pt-invalid);
+    }
+    &:is(.valid, .success) {
+      border-color: var(--pt-valid);
+      color: var(--pt-valid);
+    }
+
+    & > :where(svg.icon, [data-icon]) {
+      &:first-child:not(:only-child) { margin-inline-end: 0.35em; }
+      &:last-child:not(:only-child) { margin-inline-start: 0.35em; }
+    }
+  }
+
+  /* 12. Accessible Tabs */
+  :where([role="tablist"]) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: var(--pt-spacing);
+    border-bottom: 2px solid var(--pt-muted-border);
+
+    & > * {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      background: none;
+      color: var(--pt-muted-color);
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+
+      &:is(:hover, :focus-visible) {
+        color: var(--pt-color);
+        border-bottom-color: var(--pt-muted-border);
+      }
+      &:is([aria-selected="true"], [aria-current="page"], .active) {
+        color: var(--pt-primary);
+        border-bottom-color: var(--pt-primary);
+        font-weight: 600;
+      }
+    }
+
+    &.segmented {
+      display: inline-flex;
+      padding: 0.25rem;
+      border: var(--pt-border);
+      border-radius: var(--pt-border-radius);
+      background: var(--pt-surface-subtle);
+
+      & > * {
+        margin: 0;
+        border: 0;
+        border-radius: calc(var(--pt-border-radius) * 0.75);
+        padding: 0.25rem 0.75rem;
+
+        &:is([aria-selected="true"], [aria-current="page"], .active) {
+          background: var(--pt-bg);
+          color: var(--pt-color);
+          box-shadow: var(--pt-box-shadow);
+        }
+      }
+    }
+  }
+
+  /* 13. KPI Stat Cards */
+  :where(article.stat, dl.stats > :is(div, article)) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  :where(dl.stats) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: var(--pt-spacing);
+    margin-bottom: var(--pt-spacing);
+
+    & > :is(div, article) {
+      margin-bottom: 0;
+      padding: var(--pt-spacing);
+      border: var(--pt-border);
+      border-radius: var(--pt-border-radius);
+      background-color: var(--pt-bg);
+      box-shadow: var(--pt-box-shadow);
+      overflow: hidden;
+    }
+  }
+
+  :where(article.stat, dl.stats) {
+    & :where(dt, small, .label) {
+      color: var(--pt-muted-color);
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin: 0;
+    }
+
+    & :where(dd, strong, .value) {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 700;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums lining-nums;
+      color: var(--pt-color);
+      margin: 0;
+    }
+
+    & :where(footer, .description, .trend) {
+      font-size: 0.875rem;
+      color: var(--pt-muted-color);
+      margin-top: 0.25rem;
+    }
+  }
+
+  /* 14. Skeleton Loaders */
+  :where(.skeleton, [aria-busy="true"].skeleton) {
+    display: inline-block;
+    width: 100%;
+    min-height: 1.2em;
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-surface-subtle);
+    color: transparent !important;
+    user-select: none;
+    pointer-events: none;
+    animation: pt-pulse 1.5s ease-in-out infinite;
+
+    & > * {
+      visibility: hidden !important;
+    }
+  }
+
+  @keyframes pt-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :where(.skeleton, [aria-busy="true"].skeleton) {
+      animation: none !important;
+      opacity: 0.6;
+    }
+  }
 }
+

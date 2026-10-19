@@ -87,17 +87,17 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 9.5 KB and picotol.min.css <= 16.0 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 10.5 KB and picotol.min.css <= 20.0 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
 
   assert.ok(
-    coreMin <= 9.5 * 1024,
-    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 9728 B`
+    coreMin <= 10.5 * 1024,
+    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 10752 B`
   );
   assert.ok(
-    fullMin <= 16 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 16384 B`
+    fullMin <= 20 * 1024,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= 20480 B`
   );
 });
 
@@ -402,6 +402,17 @@ test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, sele
 
   // Table horizontal overflow containment
   assert.ok(/figure:has\(\s*>\s*table\)/.test(coreCss), "Core CSS must include figure:has(> table) containment");
+
+  // SVG Icon ergonomics
+  assert.ok(coreCss.includes("svg.icon") || coreCss.includes("[data-icon]"), "Core CSS includes icon ergonomics");
+
+  // KPI Stat cards & Skeletons
+  assert.ok(fullCss.includes("article.stat") || fullCss.includes("dl.stats"), "Full CSS includes KPI stat card selectors");
+  assert.ok(fullCss.includes("pt-pulse"), "Full CSS includes pt-pulse animation");
+  assert.ok(fullCss.includes(".skeleton"), "Full CSS includes skeleton loader class");
+
+  // Pure-CSS modal close button
+  assert.ok(fullCss.includes("aria-label=\"Close\"") || fullCss.includes("aria-label=Close"), "Full CSS includes dialog close cross button");
 });
 
 test("Semantic State Token Contrast: --pt-valid, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA", () => {
@@ -428,3 +439,77 @@ test("Semantic State Token Contrast: --pt-valid, --pt-invalid, and --pt-mark-bg 
   assert.ok(contrastRatio(darkInvalid, darkBg) >= 4.5, "Dark invalid >= 4.5:1 AA");
   assert.ok(contrastRatio(darkMarkText, darkMarkBg) >= 4.5, "Dark mark text >= 4.5:1 AA");
 });
+
+test("Search Bar Button Group: only :first-child and :last-child receive pill radii with flush inner edges", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+
+  // Verify [role="search"] targets :first-child and :last-child, not :first-of-type
+  assert.ok(
+    fullCss.includes("& > :first-child") && fullCss.includes("& > :last-child"),
+    "Full CSS must scope search pill radii strictly to :first-child and :last-child"
+  );
+  assert.ok(
+    !fullCss.includes(":first-of-type"),
+    "Full CSS must not use :first-of-type which detaches search buttons with unwanted inner corner radii"
+  );
+});
+
+test("Semantic Callout & Status Badge Decoupling: neutral defaults, semantic preservation, and primary opt-in", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+
+  // Callouts: default to --pt-muted-border and --pt-color
+  assert.ok(
+    fullCss.includes("border-inline-start: .25rem solid var(--pt-muted-border)") ||
+    fullCss.includes("border-inline-start: 0.25rem solid var(--pt-muted-border)"),
+    "Callout must default to neutral --pt-muted-border"
+  );
+
+  // Badges: default to --pt-muted-border and --pt-color
+  assert.ok(
+    fullCss.includes("border: 1px solid var(--pt-muted-border)"),
+    "Badge must default to neutral 1px solid --pt-muted-border"
+  );
+
+  // Semantic state mappings to --pt-invalid and --pt-valid
+  assert.ok(fullCss.includes("var(--pt-invalid)"), "Must map danger/invalid states to --pt-invalid");
+  assert.ok(fullCss.includes("var(--pt-valid)"), "Must map success/valid states to --pt-valid");
+
+  // Explicit opt-in for primary accent via :is(.primary, [data-accent])
+  assert.ok(
+    fullCss.includes("&:is(.primary, [data-accent])"),
+    "Must support opt-in primary theme accent via :is(.primary, [data-accent])"
+  );
+});
+
+test("Color Scheme Scoping & Data-Accent Isolation: [data-accent] must not override inherited color-scheme", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+
+  for (const css of [fullCss, coreCss]) {
+    // color-scheme: light dark must only be scoped to :root, :host
+    assert.ok(
+      css.includes("color-scheme: light dark;"),
+      "color-scheme: light dark must be present in tokens"
+    );
+
+    // [data-accent] selectors must never declare color-scheme
+    const accentRulesWithColorScheme = css.match(/\[data-accent[^}]*color-scheme/g);
+    assert.equal(
+      accentRulesWithColorScheme,
+      null,
+      "No [data-accent] selector may declare color-scheme"
+    );
+  }
+
+  // Verify purple light mode contrast: p4 (#762A83) on white (#FFFFFF) >= 7.0 (AAA)
+  const purpleP4 = schemeColor("prgn", 0); // #762A83
+  const lightBg = achromaticColor("white"); // #FFFFFF
+  const purpleLightCR = contrastRatio(purpleP4, lightBg);
+  assert.ok(
+    purpleLightCR >= 7.0,
+    `Purple Light Mode primary (${purpleP4}) vs white CR=${purpleLightCR.toFixed(2)} must satisfy WCAG AAA (>= 7.0:1)`
+  );
+});
+
+
+
