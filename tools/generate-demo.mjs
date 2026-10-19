@@ -96,13 +96,13 @@ function badgeHtml(ratioNum) {
 }
 
 function swatchHtml(hex) {
-  return `<span aria-hidden="true" style="display:inline-block;width:0.8em;height:0.8em;margin-inline-end:0.3em;border-radius:2px;background:${hex};border:1px solid var(--pt-muted-border);vertical-align:-0.08em;"></span>`;
+  return `<span class="swatch" aria-hidden="true" style="background:${hex};"></span>`;
 }
 
 function formatScoreCell(hex, token, ratioNum, hoverHex, hoverRatioNum) {
   const ratio = ratioNum.toFixed(2);
   const hoverRatio = hoverRatioNum.toFixed(2);
-  return `<div style="white-space:nowrap">${swatchHtml(hex)}<code>${hex}</code> · <strong>${ratio}:1</strong> ${badgeHtml(ratioNum)} <small>(${token})</small></div><small style="white-space:nowrap">Hover: ${swatchHtml(hoverHex)}<code>${hoverHex}</code> · <strong>${hoverRatio}:1</strong> ${badgeHtml(hoverRatioNum)}</small>`;
+  return `<div class="nowrap">${swatchHtml(hex)}<code>${hex}</code> · <strong>${ratio}:1</strong> ${badgeHtml(ratioNum)} <small>(${token})</small></div><small class="nowrap">Hover: ${swatchHtml(hoverHex)}<code>${hoverHex}</code> · <strong>${hoverRatio}:1</strong> ${badgeHtml(hoverRatioNum)}</small>`;
 }
 
 export function generateDemoHtml(fullMinCss, stats) {
@@ -167,7 +167,7 @@ export function generateDemoHtml(fullMinCss, stats) {
     });
   }
 
-  const swatchCardsHtml = swatches.map((sw) => `        <article data-swatch="true" data-search="${sw.scheme} ${sw.name} ${sw.token} ${sw.hex.toLowerCase()}" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy ${sw.token} (${sw.hex}) to clipboard">
+  const swatchCardsHtml = swatches.map((sw) => `        <article data-swatch="true" data-search="${sw.scheme} ${sw.name} ${sw.token} ${sw.hex.toLowerCase()}" class="mb-0" style="cursor:pointer;" tabindex="0" role="button" aria-label="Copy ${sw.token} (${sw.hex}) to clipboard">
           <div style="height:3.5rem;background:${sw.hex};border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
           <div style="display:flex;flex-direction:column;gap:0.35rem;">
             <p style="margin:0;font-size:0.95rem;"><strong><code>${sw.token}</code></strong></p>
@@ -204,22 +204,22 @@ export function generateDemoHtml(fullMinCss, stats) {
       </ul>
       <ul>
         <li>
-          <div role="group" aria-label="Visual Accent Selector" style="margin-bottom:0;">
-            <button type="button" class="outline" data-set-accent="blue" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Blue Accent">Blue</button>
-            <button type="button" class="outline" data-set-accent="cyan" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Cyan Accent">Cyan</button>
-            <button type="button" class="outline" data-set-accent="purple" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Purple Accent">Purple</button>
-            <button type="button" class="outline" data-set-accent="magenta" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Magenta Accent">Magenta</button>
+          <div role="group" aria-label="Visual Accent Selector" class="mb-0">
+            <button type="button" class="outline small" data-set-accent="blue" title="Blue Accent">Blue</button>
+            <button type="button" class="outline small" data-set-accent="cyan" title="Cyan Accent">Cyan</button>
+            <button type="button" class="outline small" data-set-accent="purple" title="Purple Accent">Purple</button>
+            <button type="button" class="outline small" data-set-accent="magenta" title="Magenta Accent">Magenta</button>
           </div>
         </li>
         <li>
-          <select id="accent-select" aria-label="Select Paul Tol accent hue" style="margin-bottom:0;padding-block:0.25rem;">
+          <select id="accent-select" class="small mb-0" aria-label="Select Paul Tol accent hue">
             <option value="blue">Accent: Blue</option>
             <option value="cyan">Accent: Cyan</option>
             <option value="purple">Accent: Purple</option>
             <option value="magenta">Accent: Magenta</option>
           </select>
         </li>
-        <li><button type="button" id="theme-toggle" class="outline" style="padding-block:0.25rem;">☀️ Light</button></li>
+        <li><button type="button" id="theme-toggle" class="outline small">☀️ Light</button></li>
       </ul>
     </nav>
   </header>
@@ -369,6 +369,13 @@ ${rowsHtml}
         <button type="button" class="outline">Paste</button>
         <button type="button" class="secondary">Format</button>
       </div>
+      <h3>Class Parity (.btn, .button) &amp; Compact Sizing (.small, .sm)</h3>
+      <p>
+        <a href="#buttons" class="btn" role="button">Link as .btn</a>
+        <a href="#buttons" class="button secondary" role="button">Link as .button</a>
+        <button type="button" class="btn small">Compact .btn.small</button>
+        <button type="button" class="outline sm">Compact Outline .sm</button>
+      </p>
     </section>
 
     <hr>
@@ -433,6 +440,16 @@ ${rowsHtml}
         <div role="search">
           <input type="search" placeholder="Search Paul Tol tokens...">
           <button type="submit">Search</button>
+        </div>
+        <h3>Horizontal Form Row Alignment (.form-row, .inline-form)</h3>
+        <div class="form-row">
+          <input type="email" placeholder="user@example.com" aria-label="Email address">
+          <select aria-label="Role selection">
+            <option>Editor</option>
+            <option>Admin</option>
+            <option>Viewer</option>
+          </select>
+          <button type="button" class="btn">Invite User</button>
         </div>
       </form>
     </section>
@@ -547,6 +564,19 @@ ${rowsHtml}
           </footer>
         </article>
       </dialog>
+      <h3>Card Component Parity (&lt;article&gt; vs .card)</h3>
+      <div class="grid">
+        <article>
+          <header><strong>Native &lt;article&gt; Card</strong></header>
+          <p>Semantic HTML5 article element styled automatically with zero classes.</p>
+          <footer><small>Footer landmark</small></footer>
+        </article>
+        <div class="card">
+          <header><strong>Class Parity <code>.card</code></strong></header>
+          <p>Generic div or section styled with <code>.card</code> for ergonomic framework interoperability.</p>
+          <footer><small>Footer landmark</small></footer>
+        </div>
+      </div>
     </section>
 
     <hr>
@@ -672,14 +702,14 @@ ${rowsHtml}
     <section id="palettes">
       <h2>9. Paul Tol Canonical Palette Explorer</h2>
       <p>Explore canonical color-blind safe palettes authored by Dr. Paul Tol. Click any swatch or token to copy its CSS custom property to the clipboard.</p>
-      <div role="search" style="margin-bottom:1.5rem;">
+      <div role="search">
         <input type="search" id="palette-search" placeholder="Search by scheme (e.g. vibrant), name (e.g. cyan), token, or hex..." aria-label="Search Paul Tol palettes">
       </div>
       <div id="palette-grid" class="grid" style="grid-template-columns:repeat(auto-fill, minmax(13rem, 1fr));gap:1rem;">
 ${swatchCardsHtml}
       </div>
       <p id="palette-empty" hidden>No matching Paul Tol color tokens found.</p>
-      <div id="toast" role="status" aria-live="polite" style="position:fixed;bottom:1.5rem;right:1.5rem;padding:0.75rem 1.25rem;background:var(--pt-color);color:var(--pt-bg);border-radius:var(--pt-border-radius);box-shadow:var(--pt-box-shadow);z-index:9999;transition:opacity 0.2s,transform 0.2s;opacity:0;pointer-events:none;transform:translateY(1rem);"></div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </section>
   </main>
 
@@ -872,12 +902,10 @@ ${swatchCardsHtml}
     function showToast(msg) {
       if (!toast) return;
       toast.textContent = msg;
-      toast.style.opacity = '1';
-      toast.style.transform = 'translateY(0)';
+      toast.classList.add('show');
       clearTimeout(toastTimeout);
       toastTimeout = setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(1rem)';
+        toast.classList.remove('show');
       }, 2000);
     }
 
