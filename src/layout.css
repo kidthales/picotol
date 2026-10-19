@@ -6,11 +6,18 @@
     padding: var(--pt-spacing);
   }
 
+  .container-fluid {
+    width: 100%;
+    padding: var(--pt-spacing);
+  }
+
   section { margin-bottom: calc(var(--pt-spacing) * 1.5); }
+
+  :where(.mb-0, .no-margin-bottom) { margin-bottom: 0 !important; }
 
   .grid {
     display: grid;
-    gap: var(--pt-spacing);
+    gap: var(--pt-grid-gap, var(--pt-spacing));
     & > * { min-width: 0; }
     @media (min-width: 48rem) {
       grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--pt-grid-min)), 1fr));
