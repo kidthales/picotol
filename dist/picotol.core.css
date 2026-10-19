@@ -230,7 +230,7 @@
     margin-block: 0 var(--pt-spacing);
   }
 
-  :where(p, dl, blockquote, :not(nav, details) > :is(ul, ol)) {
+  :where(.measure, .prose) {
     max-width: 75ch;
   }
 
