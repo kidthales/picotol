@@ -69,4 +69,22 @@
     margin-inline-end: var(--pt-spacing);
     cursor: pointer;
   }
+
+  :where(.form-row, .inline-form) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--pt-spacing);
+    margin-bottom: var(--pt-spacing);
+
+    & > * {
+      margin-bottom: 0;
+    }
+
+    & > :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"], [type="reset"]), select) {
+      width: auto;
+      flex: 1 1 auto;
+    }
+  }
 }
+

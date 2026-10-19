@@ -1,11 +1,11 @@
 @layer components {
-  /* 1. Card (<article>) */
-  article {
+  /* 1. Card (<article>, .card) */
+  :where(article, .card) {
     margin-bottom: var(--pt-spacing);
     padding: var(--pt-spacing);
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
-    background-color: var(--pt-bg);
+    background-color: var(--pt-card-bg, var(--pt-bg));
     box-shadow: var(--pt-box-shadow);
     overflow: hidden;
 
@@ -128,7 +128,7 @@
         border-end-end-radius: 0;
       }
     }
-    & > :where(button, [type="submit"], [type="button"], [type="reset"], [role="button"]) {
+    & > :where(button, [type="submit"], [type="button"], [type="reset"], [role="button"], .button, .btn) {
       flex: 0 0 auto;
       padding-inline: 1rem;
       white-space: nowrap;
@@ -541,5 +541,29 @@
       opacity: 0.6;
     }
   }
+
+  /* 8. Toast Notification */
+  :where(.toast, [role="status"].toast) {
+    position: fixed;
+    bottom: 1.5rem;
+    inset-inline-end: 1.5rem;
+    z-index: 9999;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--pt-border-radius);
+    background: var(--pt-color);
+    color: var(--pt-bg);
+    box-shadow: var(--pt-box-shadow);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(1rem);
+
+    &:is(.show, [aria-hidden="false"]) {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+  }
 }
+
 
