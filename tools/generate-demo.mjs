@@ -447,7 +447,10 @@ ${rowsHtml}
 
       <!-- Semantic Callouts -->
       <aside>
-        <p><strong>System Note:</strong> Database indexes optimized. Zero-CLS skeleton loaders and universal SVG icon ergonomics active.</p>
+        <p><strong>Neutral Callout:</strong> Default informational callouts use neutral borders and text, decoupled from the theme accent.</p>
+      </aside>
+      <aside class="primary">
+        <p><strong>Primary Callout:</strong> Explicit opt-in styling via <code>.primary</code> or <code>[data-accent]</code>.</p>
       </aside>
       <aside class="success">
         <p><strong>Audit Passed:</strong> 100% Paul Tol color-blind accessible hex purity across all components.</p>
@@ -458,7 +461,8 @@ ${rowsHtml}
 
       <!-- Status Badges & Universal Icons in Action -->
       <p>
-        <span class="badge">Default Badge</span>
+        <span class="badge">Neutral Badge</span>
+        <span class="badge primary">Primary Accent</span>
         <span class="badge valid">Active</span>
         <span class="badge invalid">Failed</span>
         <span class="badge" data-accent="purple">Purple Accent</span>
