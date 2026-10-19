@@ -60,14 +60,14 @@
     --pt-primary-hover-bg: var(--pt-muted-border);
   }
 
-  :where(a:not([role="button"])) {
+  :where(a:not([role="button"], .button, .btn)) {
     color: var(--pt-primary);
     text-decoration: underline color-mix(in srgb, var(--pt-primary) 50%, transparent);
     text-underline-offset: 2px;
     &:is(:hover, :active, :focus-visible) { color: var(--pt-primary-hover); text-decoration-color: var(--pt-primary-hover); }
   }
 
-  :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"]) {
+  :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"], .button, .btn) {
     display: inline-block;
     padding: var(--pt-form-y) var(--pt-form-x);
     border: 1px solid var(--pt-primary);
@@ -85,6 +85,26 @@
       color: var(--pt-primary);
       &:is(:hover, :active) { background: var(--pt-surface-subtle); }
     }
+  }
+
+  :where(button, input, select, [role="button"], .button, .btn):is(.small, .sm) {
+    --pt-form-y: 0.25rem;
+    --pt-form-x: 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  :where(.nowrap, .text-nowrap) {
+    white-space: nowrap;
+  }
+
+  :where(.swatch) {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    margin-inline-end: 0.3em;
+    border-radius: 2px;
+    border: 1px solid var(--pt-muted-border);
+    vertical-align: -0.08em;
   }
 
   :where([disabled], fieldset[disabled] *) { opacity: 0.5; pointer-events: none; }
@@ -137,7 +157,7 @@
     }
   }
 
-  :where(button, [role="button"], a):has(> :where(svg.icon, [data-icon])) {
+  :where(button, [role="button"], .button, .btn, a):has(> :where(svg.icon, [data-icon])) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -145,7 +165,7 @@
     gap: 0.5rem;
   }
 
-  :where(button, [role="button"]):is([aria-label], [aria-labelledby], [title]):has(> :where(svg.icon, [data-icon]):only-child) {
+  :where(button, [role="button"], .button, .btn):is([aria-label], [aria-labelledby], [title]):has(> :where(svg.icon, [data-icon]):only-child) {
     padding: var(--pt-form-y);
     height: calc(1lh + 2 * var(--pt-form-y) + 2px);
     aspect-ratio: 1;

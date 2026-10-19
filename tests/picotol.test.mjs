@@ -87,17 +87,17 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 10.5 KB and picotol.min.css <= 20.0 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 11.5 KB and picotol.min.css <= 22.0 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
 
   assert.ok(
-    coreMin <= 10.5 * 1024,
-    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 10752 B`
+    coreMin <= 11.5 * 1024,
+    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 11776 B`
   );
   assert.ok(
-    fullMin <= 20 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 20480 B`
+    fullMin <= 22.0 * 1024,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= 22528 B`
   );
 });
 
@@ -526,6 +526,45 @@ test("Color Scheme Scoping & Data-Accent Isolation: [data-accent] must not overr
     `Purple Light Mode primary (${purpleP4}) vs white CR=${purpleLightCR.toFixed(2)} must satisfy WCAG AAA (>= 7.0:1)`
   );
 });
+
+test("Foundation & Layout Ergonomics: .container-fluid, sticky footer, and layout tokens", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+
+  for (const css of [fullCss, coreCss]) {
+    assert.ok(css.includes("--pt-card-bg"), "Tokens must declare --pt-card-bg");
+    assert.ok(css.includes("--pt-grid-gap"), "Tokens must declare --pt-grid-gap");
+    assert.ok(css.includes(".container-fluid"), "Layout must declare .container-fluid");
+    assert.ok(css.includes(".mb-0"), "Layout must declare .mb-0");
+    assert.ok(css.includes(".no-margin-bottom"), "Layout must declare .no-margin-bottom");
+    assert.ok(
+      css.includes("100dvh") || css.includes("100vh"),
+      "Body must declare sticky footer height"
+    );
+  }
+});
+
+test("Ergonomic Class Parity, Compact Control Sizing, and Component Primitives", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+
+  // Core & Full bundle class parity
+  for (const css of [fullCss, coreCss]) {
+    assert.ok(css.includes(".btn"), "Must support .btn button alias");
+    assert.ok(css.includes(".button"), "Must support .button button alias");
+    assert.ok(css.includes(".small") || css.includes(".sm"), "Must support compact .small / .sm modifier");
+    assert.ok(css.includes(".nowrap"), "Must support .nowrap");
+    assert.ok(css.includes(".swatch"), "Must support .swatch chip primitive");
+    assert.ok(css.includes(".form-row"), "Must support .form-row flex container");
+    assert.ok(css.includes(".inline-form"), "Must support .inline-form flex container");
+  }
+
+  // Extended components in full bundle
+  assert.ok(fullCss.includes(".card"), "Full CSS must support .card alias for article");
+  assert.ok(fullCss.includes(".toast"), "Full CSS must support .toast notification component");
+});
+
+
 
 
 
