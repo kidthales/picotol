@@ -21,8 +21,17 @@
         <li><a href="#tables">Tables</a></li>
         <li><a href="#components">Components</a></li>
         <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#palettes">Palettes</a></li>
       </ul>
       <ul>
+        <li>
+          <div role="group" aria-label="Visual Accent Selector" style="margin-bottom:0;">
+            <button type="button" class="outline" data-set-accent="blue" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Blue Accent">Blue</button>
+            <button type="button" class="outline" data-set-accent="cyan" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Cyan Accent">Cyan</button>
+            <button type="button" class="outline" data-set-accent="purple" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Purple Accent">Purple</button>
+            <button type="button" class="outline" data-set-accent="magenta" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Magenta Accent">Magenta</button>
+          </div>
+        </li>
         <li>
           <select id="accent-select" aria-label="Select Paul Tol accent hue" style="margin-bottom:0;padding-block:0.25rem;">
             <option value="blue">Accent: Blue</option>
@@ -31,7 +40,7 @@
             <option value="magenta">Accent: Magenta</option>
           </select>
         </li>
-        <li><button type="button" id="theme-toggle" class="outline" style="padding-block:0.25rem;">Toggle theme</button></li>
+        <li><button type="button" id="theme-toggle" class="outline" style="padding-block:0.25rem;">☀️ Light</button></li>
       </ul>
     </nav>
   </header>
@@ -391,79 +400,95 @@
     <hr>
 
     <section id="dashboard">
-      <h2>8. Dashboard Fixtures, Tabs, Badges &amp; Universal Icons</h2>
+      <h2>8. Operational Dashboard Console</h2>
+      <p>A simulated real-time operational monitor featuring accessible tabpanel switching, zero-CLS skeleton loading transitions, KPI metric stat cards, and status alerts.</p>
 
-      <!-- Accessible Tabs -->
-      <nav role="tablist">
-        <button type="button" role="tab" aria-selected="true">Overview</button>
-        <button type="button" role="tab" aria-selected="false">Analytics</button>
-        <button type="button" role="tab" aria-selected="false">Reports</button>
-      </nav>
-
-      <!-- Segmented Pill Tabs -->
-      <div role="tablist" class="segmented">
-        <button type="button" role="tab" aria-selected="true">Daily</button>
-        <button type="button" role="tab" aria-selected="false">Weekly</button>
-        <button type="button" role="tab" aria-selected="false">Monthly</button>
+      <!-- View Selector and Time Period Filter -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1rem;">
+        <nav role="tablist" aria-label="Dashboard views" style="margin-bottom:0;border-bottom:0;">
+          <button type="button" role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true">Overview</button>
+          <button type="button" role="tab" id="tab-analytics" aria-controls="panel-analytics" aria-selected="false">Analytics</button>
+          <button type="button" role="tab" id="tab-logs" aria-controls="panel-logs" aria-selected="false">System Logs</button>
+        </nav>
+        <div role="tablist" class="segmented" id="time-filter" aria-label="Time period filter">
+          <button type="button" role="tab" data-period="1H" aria-selected="false">1H</button>
+          <button type="button" role="tab" data-period="24H" aria-selected="true">24H</button>
+          <button type="button" role="tab" data-period="7D" aria-selected="false">7D</button>
+          <button type="button" role="tab" data-period="30D" aria-selected="false">30D</button>
+        </div>
       </div>
 
-      <!-- KPI Stat Cards -->
-      <div class="grid" style="margin-top: 1rem;">
-        <article class="stat">
-          <small>Total Revenue</small>
-          <strong>$128,430</strong>
-          <footer>
-            <span class="badge valid">
-              <svg class="icon" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
-              +14.2%
-            </span>
-            vs last month
-          </footer>
-        </article>
-        <article class="stat">
-          <small>Active Users</small>
-          <strong>24,512</strong>
-          <footer>
-            <span class="badge valid">
-              <svg class="icon" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
-              +3.8%
-            </span>
-            vs last month
-          </footer>
-        </article>
-        <article class="stat">
-          <small>Conversion Rate</small>
-          <strong>3.64%</strong>
-          <footer>
-            <span class="badge invalid">
-              <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-              -0.42%
-            </span>
-            vs last month
-          </footer>
-        </article>
-        <article class="stat">
-          <small>Avg Session Duration</small>
-          <div class="skeleton" style="height: 2.2rem; margin-block: 0.25rem;"></div>
-          <footer>
-            <span class="skeleton" style="width: 60%; height: 1rem;"></span>
-          </footer>
-        </article>
+      <!-- Tabpanel 1: Overview -->
+      <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+        <!-- KPI Stat Cards -->
+        <dl class="stats">
+          <div class="stat">
+            <dt>Total Network Throughput</dt>
+            <dd id="stat-throughput" class="tabular-nums">1.42 TB</dd>
+            <div class="trend"><span class="badge valid">+12.4%</span> vs previous period</div>
+          </div>
+          <div class="stat">
+            <dt>Active Edge Clusters</dt>
+            <dd id="stat-clusters" class="tabular-nums">128 / 130</dd>
+            <div class="trend"><span class="badge primary">98.5%</span> online</div>
+          </div>
+          <div class="stat">
+            <dt>Mean Edge Latency</dt>
+            <dd id="stat-latency" class="tabular-nums">18.4 ms</dd>
+            <div class="trend"><span class="badge valid">-2.1 ms</span> p95 response</div>
+          </div>
+          <div class="stat">
+            <dt>Unresolved Error Rate</dt>
+            <dd id="stat-errors" class="tabular-nums">0.012%</dd>
+            <div class="trend"><span class="badge invalid">+0.003%</span> 3 throttles</div>
+          </div>
+        </dl>
+
+        <div class="grid">
+          <article class="stat">
+            <header><strong>CPU Fleet Utilization</strong></header>
+            <strong id="stat-cpu" class="tabular-nums" style="font-size:2rem;">42.8%</strong>
+            <progress id="stat-cpu-progress" value="43" max="100"></progress>
+            <footer><small>Calculated across 512 virtual cores</small></footer>
+          </article>
+          <article class="stat">
+            <header><strong>Memory Allocation</strong></header>
+            <strong id="stat-mem" class="tabular-nums" style="font-size:2rem;">64.2%</strong>
+            <progress id="stat-mem-progress" value="64" max="100"></progress>
+            <footer><small>263 GB utilized of 410 GB pool</small></footer>
+          </article>
+        </div>
+
+        <aside class="success">
+          <p><strong>System Health Normal:</strong> All cluster telemetry reporting within nominal Paul Tol accessible thresholds.</p>
+        </aside>
       </div>
 
-      <!-- Semantic Callouts -->
-      <aside>
-        <p><strong>Neutral Callout:</strong> Default informational callouts use neutral borders and text, decoupled from the theme accent.</p>
-      </aside>
-      <aside class="primary">
-        <p><strong>Primary Callout:</strong> Explicit opt-in styling via <code>.primary</code> or <code>[data-accent]</code>.</p>
-      </aside>
-      <aside class="success">
-        <p><strong>Audit Passed:</strong> 100% Paul Tol color-blind accessible hex purity across all components.</p>
-      </aside>
-      <aside role="alert">
-        <p><strong>High Severity Alert:</strong> 3 login attempts throttled from unverified subnet.</p>
-      </aside>
+      <!-- Tabpanel 2: Analytics -->
+      <div id="panel-analytics" role="tabpanel" aria-labelledby="tab-analytics" hidden>
+        <div class="grid">
+          <article>
+            <header><strong>Traffic Ingestion Pipeline</strong></header>
+            <p>Ingestion pipeline telemetry streaming at <strong>48.6 MB/s</strong> across 6 regional endpoints.</p>
+            <p><span class="badge valid">Healthy</span> <span class="badge" data-accent="purple">Buffering: 1.2%</span></p>
+          </article>
+          <article>
+            <header><strong>Cache Hit Ratio</strong></header>
+            <p>Edge cache hit efficiency: <strong>94.2%</strong> with zero cold-start evictions.</p>
+            <progress value="94" max="100"></progress>
+          </article>
+        </div>
+      </div>
+
+      <!-- Tabpanel 3: System Logs -->
+      <div id="panel-logs" role="tabpanel" aria-labelledby="tab-logs" hidden>
+        <aside role="alert">
+          <p><strong>System Log Notice:</strong> Automated failover drill completed successfully on <code>edge-us-east-03</code>.</p>
+        </aside>
+        <pre><code>[2026-10-19T18:20:00Z] INFO [telemetry] Heartbeat verified for 128 nodes.
+[2026-10-19T18:22:15Z] WARN [ingress] High burst load detected on us-east-1c (96.8% CPU).
+[2026-10-19T18:24:00Z] INFO [orchestrator] Autoscaled +4 container instances.</code></pre>
+      </div>
 
       <!-- Status Badges & Universal Icons in Action -->
       <p>
@@ -488,6 +513,492 @@
         </button>
       </p>
     </section>
+
+    <hr>
+
+    <section id="palettes">
+      <h2>9. Paul Tol Canonical Palette Explorer</h2>
+      <p>Explore canonical color-blind safe palettes authored by Dr. Paul Tol. Click any swatch or token to copy its CSS custom property to the clipboard.</p>
+      <div role="search" style="margin-bottom:1.5rem;">
+        <input type="search" id="palette-search" placeholder="Search by scheme (e.g. vibrant), name (e.g. cyan), token, or hex..." aria-label="Search Paul Tol palettes">
+      </div>
+      <div id="palette-grid" class="grid" style="grid-template-columns:repeat(auto-fill, minmax(13rem, 1fr));gap:1rem;">
+        <article class="stat" data-swatch="true" data-search="bright blue --tol-bright-blue #4477aa" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-blue (#4477AA) to clipboard">
+          <div style="height:3rem;background:#4477AA;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-bright-blue</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#4477AA</code>
+            <span class="badge">bright</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="bright red --tol-bright-red #ee6677" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-red (#EE6677) to clipboard">
+          <div style="height:3rem;background:#EE6677;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-bright-red</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#EE6677</code>
+            <span class="badge">bright</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="bright green --tol-bright-green #228833" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-green (#228833) to clipboard">
+          <div style="height:3rem;background:#228833;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-bright-green</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#228833</code>
+            <span class="badge">bright</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="bright yellow --tol-bright-yellow #ccbb44" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-yellow (#CCBB44) to clipboard">
+          <div style="height:3rem;background:#CCBB44;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-bright-yellow</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#CCBB44</code>
+            <span class="badge">bright</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="bright cyan --tol-bright-cyan #66ccee" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-cyan (#66CCEE) to clipboard">
+          <div style="height:3rem;background:#66CCEE;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-bright-cyan</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#66CCEE</code>
+            <span class="badge">bright</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="bright purple --tol-bright-purple #aa3377" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-purple (#AA3377) to clipboard">
+          <div style="height:3rem;background:#AA3377;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-bright-purple</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#AA3377</code>
+            <span class="badge">bright</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="bright grey --tol-bright-grey #bbbbbb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-grey (#BBBBBB) to clipboard">
+          <div style="height:3rem;background:#BBBBBB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-bright-grey</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#BBBBBB</code>
+            <span class="badge">bright</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="dark 0 --tol-dark-0 #4477bb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-0 (#4477BB) to clipboard">
+          <div style="height:3rem;background:#4477BB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-dark-0</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#4477BB</code>
+            <span class="badge">dark</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="dark 1 --tol-dark-1 #cc4466" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-1 (#CC4466) to clipboard">
+          <div style="height:3rem;background:#CC4466;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-dark-1</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#CC4466</code>
+            <span class="badge">dark</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="dark 2 --tol-dark-2 #228833" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-2 (#228833) to clipboard">
+          <div style="height:3rem;background:#228833;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-dark-2</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#228833</code>
+            <span class="badge">dark</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="dark 3 --tol-dark-3 #2255aa" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-3 (#2255AA) to clipboard">
+          <div style="height:3rem;background:#2255AA;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-dark-3</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#2255AA</code>
+            <span class="badge">dark</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="dark 4 --tol-dark-4 #993366" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-4 (#993366) to clipboard">
+          <div style="height:3rem;background:#993366;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-dark-4</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#993366</code>
+            <span class="badge">dark</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="dark 5 --tol-dark-5 #006644" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-5 (#006644) to clipboard">
+          <div style="height:3rem;background:#006644;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-dark-5</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#006644</code>
+            <span class="badge">dark</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="dark 6 --tol-dark-6 #117788" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-6 (#117788) to clipboard">
+          <div style="height:3rem;background:#117788;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-dark-6</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#117788</code>
+            <span class="badge">dark</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="dark 7 --tol-dark-7 #882288" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-7 (#882288) to clipboard">
+          <div style="height:3rem;background:#882288;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-dark-7</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#882288</code>
+            <span class="badge">dark</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="dark 8 --tol-dark-8 #bb4488" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-8 (#BB4488) to clipboard">
+          <div style="height:3rem;background:#BB4488;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-dark-8</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#BB4488</code>
+            <span class="badge">dark</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="dark 9 --tol-dark-9 #775500" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-9 (#775500) to clipboard">
+          <div style="height:3rem;background:#775500;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-dark-9</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#775500</code>
+            <span class="badge">dark</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="dark 10 --tol-dark-10 #444444" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-10 (#444444) to clipboard">
+          <div style="height:3rem;background:#444444;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-dark-10</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#444444</code>
+            <span class="badge">dark</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="high-contrast blue --tol-hc-blue #004488" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-hc-blue (#004488) to clipboard">
+          <div style="height:3rem;background:#004488;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-hc-blue</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#004488</code>
+            <span class="badge">high-contrast</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="high-contrast yellow --tol-hc-yellow #ddaa33" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-hc-yellow (#DDAA33) to clipboard">
+          <div style="height:3rem;background:#DDAA33;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-hc-yellow</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#DDAA33</code>
+            <span class="badge">high-contrast</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="high-contrast red --tol-hc-red #bb5566" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-hc-red (#BB5566) to clipboard">
+          <div style="height:3rem;background:#BB5566;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-hc-red</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#BB5566</code>
+            <span class="badge">high-contrast</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="light light_blue --tol-light-blue #77aadd" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-blue (#77AADD) to clipboard">
+          <div style="height:3rem;background:#77AADD;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-light-blue</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#77AADD</code>
+            <span class="badge">light</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="light orange --tol-light-orange #ee8866" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-orange (#EE8866) to clipboard">
+          <div style="height:3rem;background:#EE8866;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-light-orange</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#EE8866</code>
+            <span class="badge">light</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="light light_yellow --tol-light-yellow #eedd88" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-yellow (#EEDD88) to clipboard">
+          <div style="height:3rem;background:#EEDD88;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-light-yellow</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#EEDD88</code>
+            <span class="badge">light</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="light pink --tol-light-pink #ffaabb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-pink (#FFAABB) to clipboard">
+          <div style="height:3rem;background:#FFAABB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-light-pink</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#FFAABB</code>
+            <span class="badge">light</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="light light_cyan --tol-light-cyan #99ddff" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-cyan (#99DDFF) to clipboard">
+          <div style="height:3rem;background:#99DDFF;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-light-cyan</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#99DDFF</code>
+            <span class="badge">light</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="light mint --tol-light-mint #44bb99" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-mint (#44BB99) to clipboard">
+          <div style="height:3rem;background:#44BB99;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-light-mint</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#44BB99</code>
+            <span class="badge">light</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="light pear --tol-light-pear #bbcc33" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-pear (#BBCC33) to clipboard">
+          <div style="height:3rem;background:#BBCC33;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-light-pear</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#BBCC33</code>
+            <span class="badge">light</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="light olive --tol-light-olive #aaaa00" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-olive (#AAAA00) to clipboard">
+          <div style="height:3rem;background:#AAAA00;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-light-olive</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#AAAA00</code>
+            <span class="badge">light</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="light pale_grey --tol-light-pale-grey #dddddd" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-pale-grey (#DDDDDD) to clipboard">
+          <div style="height:3rem;background:#DDDDDD;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-light-pale-grey</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#DDDDDD</code>
+            <span class="badge">light</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="medium-contrast light_blue --tol-mc-blue #6699cc" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-blue (#6699CC) to clipboard">
+          <div style="height:3rem;background:#6699CC;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-mc-blue</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#6699CC</code>
+            <span class="badge">medium-contrast</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="medium-contrast dark_blue --tol-mc-dark-blue #004488" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-dark-blue (#004488) to clipboard">
+          <div style="height:3rem;background:#004488;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-mc-dark-blue</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#004488</code>
+            <span class="badge">medium-contrast</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="medium-contrast light_yellow --tol-mc-yellow #eecc66" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-yellow (#EECC66) to clipboard">
+          <div style="height:3rem;background:#EECC66;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-mc-yellow</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#EECC66</code>
+            <span class="badge">medium-contrast</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="medium-contrast dark_red --tol-mc-dark-red #994455" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-dark-red (#994455) to clipboard">
+          <div style="height:3rem;background:#994455;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-mc-dark-red</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#994455</code>
+            <span class="badge">medium-contrast</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="medium-contrast dark_yellow --tol-mc-dark-yellow #997700" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-dark-yellow (#997700) to clipboard">
+          <div style="height:3rem;background:#997700;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-mc-dark-yellow</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#997700</code>
+            <span class="badge">medium-contrast</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="medium-contrast light_red --tol-mc-red #ee99aa" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-red (#EE99AA) to clipboard">
+          <div style="height:3rem;background:#EE99AA;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-mc-red</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#EE99AA</code>
+            <span class="badge">medium-contrast</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="muted rose --tol-muted-rose #cc6677" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-rose (#CC6677) to clipboard">
+          <div style="height:3rem;background:#CC6677;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-muted-rose</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#CC6677</code>
+            <span class="badge">muted</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="muted indigo --tol-muted-indigo #332288" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-indigo (#332288) to clipboard">
+          <div style="height:3rem;background:#332288;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-muted-indigo</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#332288</code>
+            <span class="badge">muted</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="muted sand --tol-muted-sand #ddcc77" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-sand (#DDCC77) to clipboard">
+          <div style="height:3rem;background:#DDCC77;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-muted-sand</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#DDCC77</code>
+            <span class="badge">muted</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="muted green --tol-muted-green #117733" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-green (#117733) to clipboard">
+          <div style="height:3rem;background:#117733;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-muted-green</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#117733</code>
+            <span class="badge">muted</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="muted cyan --tol-muted-cyan #88ccee" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-cyan (#88CCEE) to clipboard">
+          <div style="height:3rem;background:#88CCEE;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-muted-cyan</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#88CCEE</code>
+            <span class="badge">muted</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="muted wine --tol-muted-wine #882255" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-wine (#882255) to clipboard">
+          <div style="height:3rem;background:#882255;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-muted-wine</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#882255</code>
+            <span class="badge">muted</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="muted teal --tol-muted-teal #44aa99" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-teal (#44AA99) to clipboard">
+          <div style="height:3rem;background:#44AA99;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-muted-teal</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#44AA99</code>
+            <span class="badge">muted</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="muted olive --tol-muted-olive #999933" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-olive (#999933) to clipboard">
+          <div style="height:3rem;background:#999933;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-muted-olive</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#999933</code>
+            <span class="badge">muted</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="muted purple --tol-muted-purple #aa4499" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-purple (#AA4499) to clipboard">
+          <div style="height:3rem;background:#AA4499;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-muted-purple</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#AA4499</code>
+            <span class="badge">muted</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="pale 0 --tol-pale-0 #aaccee" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-0 (#AACCEE) to clipboard">
+          <div style="height:3rem;background:#AACCEE;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-pale-0</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#AACCEE</code>
+            <span class="badge">pale</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="pale 1 --tol-pale-1 #cceeff" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-1 (#CCEEFF) to clipboard">
+          <div style="height:3rem;background:#CCEEFF;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-pale-1</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#CCEEFF</code>
+            <span class="badge">pale</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="pale 2 --tol-pale-2 #bbddbb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-2 (#BBDDBB) to clipboard">
+          <div style="height:3rem;background:#BBDDBB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-pale-2</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#BBDDBB</code>
+            <span class="badge">pale</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="pale 3 --tol-pale-3 #eeeebb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-3 (#EEEEBB) to clipboard">
+          <div style="height:3rem;background:#EEEEBB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-pale-3</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#EEEEBB</code>
+            <span class="badge">pale</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="pale 4 --tol-pale-4 #ffbbcc" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-4 (#FFBBCC) to clipboard">
+          <div style="height:3rem;background:#FFBBCC;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-pale-4</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#FFBBCC</code>
+            <span class="badge">pale</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="pale 5 --tol-pale-5 #eebbdd" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-5 (#EEBBDD) to clipboard">
+          <div style="height:3rem;background:#EEBBDD;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-pale-5</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#EEBBDD</code>
+            <span class="badge">pale</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="pale 6 --tol-pale-6 #dddddd" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-6 (#DDDDDD) to clipboard">
+          <div style="height:3rem;background:#DDDDDD;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-pale-6</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#DDDDDD</code>
+            <span class="badge">pale</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="vibrant orange --tol-vibrant-orange #ee7733" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-orange (#EE7733) to clipboard">
+          <div style="height:3rem;background:#EE7733;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-vibrant-orange</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#EE7733</code>
+            <span class="badge">vibrant</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="vibrant blue --tol-vibrant-blue #0077bb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-blue (#0077BB) to clipboard">
+          <div style="height:3rem;background:#0077BB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-vibrant-blue</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#0077BB</code>
+            <span class="badge">vibrant</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="vibrant cyan --tol-vibrant-cyan #33bbee" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-cyan (#33BBEE) to clipboard">
+          <div style="height:3rem;background:#33BBEE;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-vibrant-cyan</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#33BBEE</code>
+            <span class="badge">vibrant</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="vibrant magenta --tol-vibrant-magenta #ee3377" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-magenta (#EE3377) to clipboard">
+          <div style="height:3rem;background:#EE3377;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-vibrant-magenta</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#EE3377</code>
+            <span class="badge">vibrant</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="vibrant red --tol-vibrant-red #cc3311" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-red (#CC3311) to clipboard">
+          <div style="height:3rem;background:#CC3311;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-vibrant-red</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#CC3311</code>
+            <span class="badge">vibrant</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="vibrant teal --tol-vibrant-teal #009988" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-teal (#009988) to clipboard">
+          <div style="height:3rem;background:#009988;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-vibrant-teal</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#009988</code>
+            <span class="badge">vibrant</span>
+          </div>
+        </article>
+        <article class="stat" data-swatch="true" data-search="vibrant grey --tol-vibrant-grey #bbbbbb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-grey (#BBBBBB) to clipboard">
+          <div style="height:3rem;background:#BBBBBB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>--tol-vibrant-grey</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>#BBBBBB</code>
+            <span class="badge">vibrant</span>
+          </div>
+        </article>
+      </div>
+      <p id="palette-empty" hidden>No matching Paul Tol color tokens found.</p>
+      <div id="toast" role="status" aria-live="polite" style="position:fixed;bottom:1.5rem;right:1.5rem;padding:0.75rem 1.25rem;background:var(--pt-color);color:var(--pt-bg);border-radius:var(--pt-border-radius);box-shadow:var(--pt-box-shadow);z-index:9999;transition:opacity 0.2s,transform 0.2s;opacity:0;pointer-events:none;transform:translateY(1rem);"></div>
+    </section>
   </main>
 
   <footer>
@@ -496,13 +1007,232 @@
 
   <script>
     const root = document.documentElement;
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-      const cur = root.getAttribute('data-theme');
-      const isDark = cur ? cur === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-      root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    const themeBtn = document.getElementById('theme-toggle');
+    const accentSelect = document.getElementById('accent-select');
+
+    function updateThemeButton(theme) {
+      if (themeBtn) {
+        themeBtn.textContent = theme === 'dark' ? '🌙 Dark' : '☀️ Light';
+        themeBtn.setAttribute('aria-label', 'Active theme: ' + theme + '. Click to toggle.');
+      }
+    }
+
+    const savedTheme = localStorage.getItem('picotol-theme');
+    if (savedTheme) {
+      root.setAttribute('data-theme', savedTheme);
+      updateThemeButton(savedTheme);
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      updateThemeButton(prefersDark ? 'dark' : 'light');
+    }
+
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+        const cur = root.getAttribute('data-theme');
+        const isDark = cur ? cur === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const nextTheme = isDark ? 'light' : 'dark';
+        root.setAttribute('data-theme', nextTheme);
+        localStorage.setItem('picotol-theme', nextTheme);
+        updateThemeButton(nextTheme);
+      });
+    }
+
+    function setAccent(accent) {
+      root.setAttribute('data-accent', accent);
+      if (accentSelect) accentSelect.value = accent;
+      localStorage.setItem('picotol-accent', accent);
+    }
+
+    const savedAccent = localStorage.getItem('picotol-accent');
+    if (savedAccent) {
+      setAccent(savedAccent);
+    }
+
+    if (accentSelect) {
+      accentSelect.addEventListener('change', (e) => setAccent(e.target.value));
+    }
+
+    document.querySelectorAll('[data-set-accent]').forEach((btn) => {
+      btn.addEventListener('click', () => setAccent(btn.getAttribute('data-set-accent')));
     });
-    document.getElementById('accent-select').addEventListener('change', (e) => {
-      root.setAttribute('data-accent', e.target.value);
+
+    // Native modal backdrop click-to-close
+    const modal = document.getElementById('demo-modal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.close();
+        }
+      });
+    }
+
+    // Dashboard tab switching
+    const tabs = [
+      { tab: document.getElementById('tab-overview'), panel: document.getElementById('panel-overview') },
+      { tab: document.getElementById('tab-analytics'), panel: document.getElementById('panel-analytics') },
+      { tab: document.getElementById('tab-logs'), panel: document.getElementById('panel-logs') },
+    ];
+
+    tabs.forEach(({ tab, panel }) => {
+      if (!tab || !panel) return;
+      tab.addEventListener('click', () => {
+        tabs.forEach(({ tab: t, panel: p }) => {
+          const isSelected = t === tab;
+          t.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+          if (isSelected) {
+            p.removeAttribute('hidden');
+          } else {
+            p.setAttribute('hidden', '');
+          }
+        });
+      });
+    });
+
+    // Segmented time filter with 300ms zero-CLS skeleton loader pulse
+    const timeFilter = document.getElementById('time-filter');
+    const periodData = {
+      '1H': {
+        throughput: '124 GB',
+        clusters: '128 / 130',
+        latency: '16.2 ms',
+        errors: '0.008%',
+        cpu: '38.4%',
+        cpuVal: 38,
+        mem: '58.1%',
+        memVal: 58,
+      },
+      '24H': {
+        throughput: '1.42 TB',
+        clusters: '128 / 130',
+        latency: '18.4 ms',
+        errors: '0.012%',
+        cpu: '42.8%',
+        cpuVal: 43,
+        mem: '64.2%',
+        memVal: 64,
+      },
+      '7D': {
+        throughput: '8.94 TB',
+        clusters: '129 / 130',
+        latency: '19.1 ms',
+        errors: '0.015%',
+        cpu: '45.2%',
+        cpuVal: 45,
+        mem: '67.5%',
+        memVal: 68,
+      },
+      '30D': {
+        throughput: '38.6 TB',
+        clusters: '130 / 130',
+        latency: '17.8 ms',
+        errors: '0.011%',
+        cpu: '44.0%',
+        cpuVal: 44,
+        mem: '66.0%',
+        memVal: 66,
+      },
+    };
+
+    if (timeFilter) {
+      timeFilter.querySelectorAll('button[data-period]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const period = btn.getAttribute('data-period');
+          const data = periodData[period];
+          if (!data) return;
+
+          timeFilter.querySelectorAll('button[data-period]').forEach((b) => {
+            b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+          });
+
+          const statEls = [
+            document.getElementById('stat-throughput'),
+            document.getElementById('stat-clusters'),
+            document.getElementById('stat-latency'),
+            document.getElementById('stat-errors'),
+            document.getElementById('stat-cpu'),
+            document.getElementById('stat-mem'),
+          ];
+
+          statEls.forEach((el) => { if (el) el.classList.add('skeleton'); });
+
+          setTimeout(() => {
+            const st = document.getElementById('stat-throughput');
+            const sc = document.getElementById('stat-clusters');
+            const sl = document.getElementById('stat-latency');
+            const se = document.getElementById('stat-errors');
+            const scpu = document.getElementById('stat-cpu');
+            const smem = document.getElementById('stat-mem');
+            const pcpu = document.getElementById('stat-cpu-progress');
+            const pmem = document.getElementById('stat-mem-progress');
+
+            if (st) st.textContent = data.throughput;
+            if (sc) sc.textContent = data.clusters;
+            if (sl) sl.textContent = data.latency;
+            if (se) se.textContent = data.errors;
+            if (scpu) scpu.textContent = data.cpu;
+            if (smem) smem.textContent = data.mem;
+            if (pcpu) pcpu.value = data.cpuVal;
+            if (pmem) pmem.value = data.memVal;
+
+            statEls.forEach((el) => { if (el) el.classList.remove('skeleton'); });
+          }, 300);
+        });
+      });
+    }
+
+    // Palette Explorer live search and click-to-copy
+    const paletteSearch = document.getElementById('palette-search');
+    const swatches = document.querySelectorAll('[data-swatch]');
+    const emptyMsg = document.getElementById('palette-empty');
+    const toast = document.getElementById('toast');
+    let toastTimeout;
+
+    function showToast(msg) {
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(1rem)';
+      }, 2000);
+    }
+
+    if (paletteSearch) {
+      paletteSearch.addEventListener('input', (e) => {
+        const query = e.target.value.trim().toLowerCase();
+        let visibleCount = 0;
+        swatches.forEach((sw) => {
+          const haystack = (sw.getAttribute('data-search') || '').toLowerCase();
+          const matches = !query || haystack.includes(query);
+          sw.style.display = matches ? '' : 'none';
+          if (matches) visibleCount++;
+        });
+        if (emptyMsg) {
+          emptyMsg.hidden = visibleCount > 0;
+        }
+      });
+    }
+
+    swatches.forEach((sw) => {
+      const copyVal = sw.querySelector('strong code')?.textContent?.trim() || '';
+      const hexVal = sw.querySelector('div code')?.textContent?.trim() || '';
+      const copy = () => {
+        if (!copyVal) return;
+        navigator.clipboard.writeText(copyVal).then(() => {
+          showToast('Copied ' + copyVal + ' (' + hexVal + ') to clipboard!');
+        }).catch(() => {
+          showToast('Copied ' + copyVal + '!');
+        });
+      };
+      sw.addEventListener('click', copy);
+      sw.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          copy();
+        }
+      });
     });
   </script>
 </body>
