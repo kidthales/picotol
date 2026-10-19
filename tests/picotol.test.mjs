@@ -317,6 +317,8 @@ test("WCAG 2.2 Accessibility, Reflow, Typography Measure, Screen Reader UX, and 
     ".sr-only-focusable",
     ".visually-hidden-focusable",
     '[tabindex="-1"]:focus:not(:focus-visible)',
+    ".measure",
+    ".prose",
     "75ch",
     ".overflow-auto",
     ":focus-visible",
@@ -328,6 +330,11 @@ test("WCAG 2.2 Accessibility, Reflow, Typography Measure, Screen Reader UX, and 
       `Expected accessibility/reflow selector "${selector}" in dist/picotol.css`
     );
   }
+
+  assert.ok(
+    !/:where\(p[,\s][^)]*\)\s*\{[^}]*max-width:\s*75ch/i.test(fullCss),
+    "General :where(p) must not be restricted by max-width: 75ch"
+  );
 
   assert.ok(
     !/outline\s*:\s*(?:none|0)\b/i.test(fullCss),
