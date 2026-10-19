@@ -8,9 +8,9 @@
       "integrity": "sha384-VN2KF+hySuH/Yx8typg58sOcKuIpt8mXZ7Wv8PUlGSTAhoh0UarmU92t8sbjoVje"
     },
     "dist/picotol.min.css": {
-      "bytes": 20282,
-      "gzipBytes": 5487,
-      "integrity": "sha384-E22rSSD2NY9U0bn2hZYCwOSbA2LBPqPAEU3X1gBZFCsETtNreEoQvQNOTiX7KeTx"
+      "bytes": 20415,
+      "gzipBytes": 5516,
+      "integrity": "sha384-/S7+HSJ+D5KoE62zhwg300rQWujqGeOFP5q/0dLm125kjrBUIAxUeZEjfQLFGzQI"
     }
   }
 }
