@@ -8,8 +8,11 @@
     --pt-p5: #048;
   }
 
-  :root, :host, :where([data-accent], [data-theme]) {
+  :root, :host {
     color-scheme: light dark;
+  }
+
+  :root, :host, :where([data-accent], [data-theme]) {
     --pt-font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --pt-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", var(--pt-font-emoji), sans-serif;
     --pt-font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", var(--pt-font-emoji), monospace;
@@ -94,9 +97,12 @@
     box-sizing: border-box;
   }
 
-  :root, :host {
+  :root, :host, :where([data-theme]) {
     background: var(--pt-bg);
     color: var(--pt-color);
+  }
+
+  :root, :host {
     font-family: var(--pt-font-sans);
     font-size: clamp(100%, 95% + .4vw, 125%);
     line-height: var(--pt-line-height);
@@ -104,11 +110,6 @@
     tab-size: 4;
     font-optical-sizing: auto;
     font-kerning: normal;
-  }
-
-  :where([data-theme]) {
-    background: var(--pt-bg);
-    color: var(--pt-color);
   }
 
   body {
