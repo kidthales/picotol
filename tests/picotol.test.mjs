@@ -101,7 +101,7 @@ test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 10.5 KB and picotol.
   );
 });
 
-test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 6 Paul Tol Accent Ladders (Normal + Hover), and SC 1.4.11 Borders", () => {
+test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 4 Paul Tol Accent Ladders (Normal + Hover), and SC 1.4.11 Borders", () => {
   const lightBg = achromaticColor("white"); // #FFFFFF
   const lightText = achromaticColor("black"); // #000000
   const lightMuted = achromaticColor("grey-800"); // #444444
@@ -330,6 +330,16 @@ test("WCAG 2.2 Accessibility, Reflow, Typography Measure, Screen Reader UX, and 
 
   assert.ok(demoHtml.includes('id="main-content" tabindex="-1"'), "Demo main landmark must include tabindex=-1 for skip link target");
   assert.ok(demoHtml.includes('id="tables"'), "Demo HTML must include #tables landmark for nav anchor");
+  assert.ok(
+    /:where\(figure:has\(\s*>\s*table\)\)/.test(fullCss),
+    "Full CSS must include responsive figure table containment (:where(figure:has(> table)))"
+  );
+  if (demoHtml.includes('id="subtrees"')) {
+    assert.ok(demoHtml.includes('id="subtrees"'), "Demo HTML must include #subtrees landmark");
+  }
+  if (demoHtml.includes('id="palettes"')) {
+    assert.ok(demoHtml.includes('id="palettes"'), "Demo HTML must include #palettes landmark");
+  }
   assert.ok(demoHtml.includes('aria-labelledby="modal-title"'), "Demo dialog must include aria-labelledby");
   assert.ok(demoHtml.includes('tabindex="0"'), "Demo tooltip span must be keyboard focusable via tabindex=0");
 
