@@ -418,8 +418,10 @@ test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, sele
   assert.ok(fullCss.includes("pt-pulse"), "Full CSS includes pt-pulse animation");
   assert.ok(fullCss.includes(".skeleton"), "Full CSS includes skeleton loader class");
 
-  // Pure-CSS modal close button
+  // Pure-CSS modal close button & header flex layout
   assert.ok(fullCss.includes("aria-label=\"Close\"") || fullCss.includes("aria-label=Close"), "Full CSS includes dialog close cross button");
+  assert.ok(/dialog\s+article\s*>\s*header\s*\{[^}]*display:\s*flex/i.test(fullCss), "Full CSS includes dialog article > header flex container");
+  assert.ok(fullCss.includes("margin-inline-start: auto") || fullCss.includes("margin-inline-start:auto"), "Full CSS includes margin-inline-start: auto on modal close button");
 });
 
 test("Semantic State Token Contrast: --pt-valid, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA", () => {
