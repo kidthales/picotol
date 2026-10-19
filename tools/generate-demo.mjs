@@ -140,11 +140,13 @@ export function generateDemoHtml(fullMinCss, stats) {
       <ul>
         <li><strong>picotol</strong></li>
         <li><a href="#scorecard">Scorecard</a></li>
+        <li><a href="#subtrees">Subtrees</a></li>
         <li><a href="#typography">Typography</a></li>
         <li><a href="#buttons">Buttons</a></li>
         <li><a href="#forms">Forms</a></li>
         <li><a href="#tables">Tables</a></li>
         <li><a href="#components">Components</a></li>
+        <li><a href="#dashboard">Dashboard</a></li>
       </ul>
       <ul>
         <li>
@@ -190,7 +192,7 @@ export function generateDemoHtml(fullMinCss, stats) {
         </article>
       </div>
       <p><small><strong>How to read contrast ratios:</strong> Luminance contrast ranges from <code>1:1</code> (invisible) to <code>21:1</code> (pure black on white). <ins><strong>✓ AAA</strong></ins> (<code>&ge; 7.0:1</code>) is the highest W3C tier (enhanced low-vision legibility); <mark><strong>✓ AA</strong></mark> (<code>&ge; 4.5:1</code>) is the standard pass threshold for normal body text and UI controls.</small></p>
-      <div id="tables" class="overflow-auto">
+      <div class="overflow-auto">
         <table class="striped">
           <thead>
             <tr>
@@ -210,8 +212,53 @@ ${rowsHtml}
 
     <hr>
 
+    <section id="subtrees">
+      <h2>2. Concurrent Subtree Theming</h2>
+      <p>Picotol provides container-level <code>[data-accent]</code> scoping without color-scheme leakage. Multiple distinct accent trees run concurrently side-by-side in isolated container scopes with distinct buttons, switches, badges, and progress indicators.</p>
+      <div class="grid">
+        <article data-accent="blue">
+          <header><strong>Blue Subtree</strong></header>
+          <p><span class="badge primary">Blue Accent</span> <span class="badge">Neutral</span></p>
+          <p><button type="button">Primary</button></p>
+          <p><button type="button" class="outline">Outline</button></p>
+          <label><input type="checkbox" role="switch" checked> Active Switch</label>
+          <progress value="65" max="100"></progress>
+          <footer><small>Scoped via <code>data-accent="blue"</code></small></footer>
+        </article>
+        <article data-accent="cyan">
+          <header><strong>Cyan Subtree</strong></header>
+          <p><span class="badge primary">Cyan Accent</span> <span class="badge">Neutral</span></p>
+          <p><button type="button">Primary</button></p>
+          <p><button type="button" class="outline">Outline</button></p>
+          <label><input type="checkbox" role="switch" checked> Active Switch</label>
+          <progress value="80" max="100"></progress>
+          <footer><small>Scoped via <code>data-accent="cyan"</code></small></footer>
+        </article>
+        <article data-accent="purple">
+          <header><strong>Purple Subtree</strong></header>
+          <p><span class="badge primary">Purple Accent</span> <span class="badge">Neutral</span></p>
+          <p><button type="button">Primary</button></p>
+          <p><button type="button" class="outline">Outline</button></p>
+          <label><input type="checkbox" role="switch" checked> Active Switch</label>
+          <progress value="45" max="100"></progress>
+          <footer><small>Scoped via <code>data-accent="purple"</code></small></footer>
+        </article>
+        <article data-accent="magenta">
+          <header><strong>Magenta Subtree</strong></header>
+          <p><span class="badge primary">Magenta Accent</span> <span class="badge">Neutral</span></p>
+          <p><button type="button">Primary</button></p>
+          <p><button type="button" class="outline">Outline</button></p>
+          <label><input type="checkbox" role="switch" checked> Active Switch</label>
+          <progress value="90" max="100"></progress>
+          <footer><small>Scoped via <code>data-accent="magenta"</code></small></footer>
+        </article>
+      </div>
+    </section>
+
+    <hr>
+
     <section id="typography">
-      <h2>2. Typography &amp; Inline Semantics</h2>
+      <h2>3. Typography &amp; Inline Semantics</h2>
       <p class="measure">Body copy uses the system font stack with fluid root sizing via <code>clamp(100%, 95% + 0.4vw, 125%)</code> and an opt-in <code>75ch</code> reading measure via <code>:where(.measure, .prose)</code>. Links like <a href="#typography">primary link</a>, <a href="#typography" class="secondary">secondary link</a>, <a href="#typography" class="contrast">contrast link</a>, and <a href="https://github.com/kidthales/tol-palettes" target="_blank" rel="noopener noreferrer">external link<span class="sr-only"> (opens in a new tab)</span></a> step along Paul Tol's qualitative lightness ladder on hover.</p>
       <p>Inline elements include <strong>strong</strong>, <em>emphasis</em>, <mark>highlighted mark</mark>, <ins>inserted text</ins>, <del>deleted text</del>, <code>inline code</code>, <kbd>Ctrl + K</kbd>, and <abbr title="Paul Tol Colour Schemes">PTCS</abbr> (<span data-tooltip="Pure CSS tooltip via [data-tooltip]" aria-label="hover or focus for tooltip: Pure CSS tooltip via [data-tooltip]" tabindex="0">hover or focus for tooltip</span>).</p>
       <blockquote>
@@ -240,7 +287,7 @@ ${rowsHtml}
     <hr>
 
     <section id="buttons">
-      <h2>3. Buttons &amp; Role Variants</h2>
+      <h2>4. Buttons &amp; Role Variants</h2>
       <p>
         <button type="button">Primary</button>
         <button type="button" class="secondary">Secondary</button>
@@ -253,12 +300,19 @@ ${rowsHtml}
         <button type="button" class="outline contrast">Contrast Outline</button>
         <button type="button" aria-busy="true">Loading</button>
       </p>
+      <h3>Connected Button Group Toolbar</h3>
+      <div role="group" aria-label="Document actions">
+        <button type="button">Cut</button>
+        <button type="button" class="outline">Copy</button>
+        <button type="button" class="outline">Paste</button>
+        <button type="button" class="secondary">Format</button>
+      </div>
     </section>
 
     <hr>
 
     <section id="forms">
-      <h2>4. Semantic Forms &amp; Validation States</h2>
+      <h2>5. Native Forms &amp; Extended Controls</h2>
       <form onsubmit="event.preventDefault()">
         <div class="grid">
           <label>
@@ -286,6 +340,18 @@ ${rowsHtml}
             <small id="invalid-help">Hex literal is not in tol-palettes.</small>
           </div>
         </div>
+        <div class="grid">
+          <div>
+            <label for="file-upload">Attachment Upload</label>
+            <input id="file-upload" type="file">
+          </div>
+          <div>
+            <label for="color-picker">Accent Color Sample</label>
+            <input id="color-picker" type="color" value="#4477AA">
+          </div>
+        </div>
+        <label for="notes-textarea">Release Notes &amp; Specification</label>
+        <textarea id="notes-textarea" rows="3" placeholder="Enter changelog or design system notes..."></textarea>
         <fieldset>
           <legend>Preferences &amp; Controls</legend>
           <label><input type="checkbox" checked> Enforce Hex Purity</label>
@@ -297,6 +363,11 @@ ${rowsHtml}
           Contrast Threshold Range
           <input type="range" min="1" max="21" value="7">
         </label>
+        <div role="group" aria-label="Form Submission Controls">
+          <button type="submit">Submit Form</button>
+          <button type="reset" class="secondary">Reset</button>
+          <button type="button" class="outline contrast">Cancel</button>
+        </div>
         <div role="search">
           <input type="search" placeholder="Search Paul Tol tokens...">
           <button type="submit">Search</button>
@@ -306,8 +377,74 @@ ${rowsHtml}
 
     <hr>
 
+    <section id="tables">
+      <h2>6. Semantic Data Tables &amp; Operational Monitor</h2>
+      <p>Data tables feature automatic tabular numeric alignment, alternating zebra stripes via <code>table.striped</code>, and horizontal scrolling via responsive <code>figure:has(&gt; table)</code>.</p>
+      <figure>
+        <figcaption>Cluster Infrastructure Node Fleet Status (Production US-East)</figcaption>
+        <table class="striped">
+          <thead>
+            <tr>
+              <th scope="col">Node ID</th>
+              <th scope="col">Region</th>
+              <th scope="col">CPU %</th>
+              <th scope="col">Memory</th>
+              <th scope="col">Latency</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>edge-us-east-01</code></td>
+              <td>us-east-1a</td>
+              <td class="tabular-nums">24.5%</td>
+              <td class="tabular-nums">3.8 / 16 GB</td>
+              <td class="tabular-nums">12 ms</td>
+              <td><span class="badge valid">Operational</span></td>
+            </tr>
+            <tr>
+              <td><code>edge-us-east-02</code></td>
+              <td>us-east-1b</td>
+              <td class="tabular-nums">78.2%</td>
+              <td class="tabular-nums">14.1 / 16 GB</td>
+              <td class="tabular-nums">28 ms</td>
+              <td><span class="badge" data-accent="purple">Warning</span></td>
+            </tr>
+            <tr>
+              <td><code>edge-us-east-03</code></td>
+              <td>us-east-1c</td>
+              <td class="tabular-nums">96.8%</td>
+              <td class="tabular-nums">15.9 / 16 GB</td>
+              <td class="tabular-nums">145 ms</td>
+              <td><span class="badge invalid">Critical</span></td>
+            </tr>
+            <tr>
+              <td><code>edge-us-east-04</code></td>
+              <td>us-east-1d</td>
+              <td class="tabular-nums">18.0%</td>
+              <td class="tabular-nums">2.4 / 16 GB</td>
+              <td class="tabular-nums">9 ms</td>
+              <td><span class="badge valid">Operational</span></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">Cluster Average / Total</th>
+              <td>4 Active Nodes</td>
+              <td class="tabular-nums">54.4% Avg</td>
+              <td class="tabular-nums">36.2 / 64 GB</td>
+              <td class="tabular-nums">48 ms P95</td>
+              <td><span class="badge primary">4 Monitored</span></td>
+            </tr>
+          </tfoot>
+        </table>
+      </figure>
+    </section>
+
+    <hr>
+
     <section id="components">
-      <h2>5. Extended Components</h2>
+      <h2>7. Extended Components</h2>
       <div class="grid">
         <div>
           <details open>
@@ -353,7 +490,7 @@ ${rowsHtml}
     <hr>
 
     <section id="dashboard">
-      <h2>6. Dashboard Fixtures, Tabs, Badges &amp; Universal Icons</h2>
+      <h2>8. Dashboard Fixtures, Tabs, Badges &amp; Universal Icons</h2>
 
       <!-- Accessible Tabs -->
       <nav role="tablist">

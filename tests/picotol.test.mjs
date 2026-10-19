@@ -329,14 +329,16 @@ test("WCAG 2.2 Accessibility, Reflow, Typography Measure, Screen Reader UX, and 
   );
 
   assert.ok(demoHtml.includes('id="main-content" tabindex="-1"'), "Demo main landmark must include tabindex=-1 for skip link target");
+  assert.ok(demoHtml.includes('id="subtrees"'), "Demo HTML must include #subtrees landmark for subtree theming");
   assert.ok(demoHtml.includes('id="tables"'), "Demo HTML must include #tables landmark for nav anchor");
   assert.ok(
     /:where\(figure:has\(\s*>\s*table\)\)/.test(fullCss),
     "Full CSS must include responsive figure table containment (:where(figure:has(> table)))"
   );
-  if (demoHtml.includes('id="subtrees"')) {
-    assert.ok(demoHtml.includes('id="subtrees"'), "Demo HTML must include #subtrees landmark");
-  }
+  assert.ok(
+    /<figure[^>]*>[\s\S]*?<table[\s\S]*?<\/table>[\s\S]*?<\/figure>/.test(demoHtml),
+    "Demo HTML must contain operational table wrapped in <figure>"
+  );
   if (demoHtml.includes('id="palettes"')) {
     assert.ok(demoHtml.includes('id="palettes"'), "Demo HTML must include #palettes landmark");
   }
