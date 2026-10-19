@@ -56,31 +56,7 @@
     --pt-p2: #9df;
     --pt-p3: #07b;
     --pt-p4: #178;
-    --pt-p5: #064;
-  }
-
-  [data-accent="green"] {
-    --pt-p1: #bdb;
-    --pt-p2: #4b9;
-    --pt-p3: #283;
-    --pt-p4: #064;
-    --pt-p5: #173;
-  }
-
-  [data-accent="yellow"] {
-    --pt-p1: #eeb;
-    --pt-p2: #da3;
-    --pt-p3: #993404;
-    --pt-p4: #750;
-    --pt-p5: #662506;
-  }
-
-  [data-accent="red"] {
-    --pt-p1: #e86;
-    --pt-p2: #e67;
-    --pt-p3: #c46;
-    --pt-p4: #c31;
-    --pt-p5: #945;
+    --pt-p5: #048;
   }
 
   [data-accent="purple"] {
@@ -89,6 +65,14 @@
     --pt-p3: #a49;
     --pt-p4: #762a83;
     --pt-p5: #328;
+  }
+
+  [data-accent="magenta"] {
+    --pt-p1: #ebd;
+    --pt-p2: #fab;
+    --pt-p3: #b48;
+    --pt-p4: #936;
+    --pt-p5: #825;
   }
 }
 
@@ -230,7 +214,7 @@
     margin-block: 0 var(--pt-spacing);
   }
 
-  :where(p, dl, blockquote, :not(nav, details) > :is(ul, ol)) {
+  :where(.measure, .prose) {
     max-width: 75ch;
   }
 
@@ -880,6 +864,13 @@
     }
   }
 
+  dialog article > header {
+    justify-content: space-between;
+    align-items: center;
+    gap: .5rem;
+    display: flex;
+  }
+
   :where(dialog:modal) {
     &::backdrop {
       background-color: color-mix(in srgb, var(--pt-black) 65%, transparent);
@@ -905,6 +896,8 @@
     cursor: pointer;
     background: none;
     border: 0;
+    flex-shrink: 0;
+    margin-inline-start: auto;
     padding: 0;
     font-size: 0;
     position: relative;
