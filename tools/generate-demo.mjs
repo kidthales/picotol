@@ -106,7 +106,7 @@ function formatScoreCell(hex, token, ratioNum, hoverHex, hoverRatioNum) {
 }
 
 export function generateDemoHtml(fullMinCss, stats) {
-  loadSnapshot();
+  const snapshot = loadSnapshot();
   const rowsHtml = ACCENT_TABLE.map((row) => {
     const crLight = contrastRatio(row.lightFg, '#FFFFFF');
     const crLightHover = contrastRatio(row.lightFgHover, '#FFFFFF');
@@ -124,6 +124,57 @@ export function generateDemoHtml(fullMinCss, stats) {
               <td>${formatScoreCell(row.darkBg, row.darkBgToken, crDarkBtn, row.darkBgHover, crDarkBtnHover)}</td>
             </tr>`;
   }).join('\n');
+
+  const QUAL_SCHEMES = [
+    'bright',
+    'dark',
+    'high-contrast',
+    'light',
+    'medium-contrast',
+    'muted',
+    'pale',
+    'vibrant',
+  ];
+  const PFX = {
+    'bright': 'bright',
+    'dark': 'dark',
+    'high-contrast': 'hc',
+    'light': 'light',
+    'medium-contrast': 'mc',
+    'muted': 'muted',
+    'pale': 'pale',
+    'vibrant': 'vibrant',
+  };
+
+  const swatches = [];
+  const seenTokens = new Set();
+
+  for (const sId of QUAL_SCHEMES) {
+    const scheme = snapshot.schemes[sId];
+    if (!scheme) continue;
+    const pfx = PFX[sId];
+    scheme.colors.forEach((c, idx) => {
+      const key = c.name ? c.name.replace(/^light_/, '').replace(/_/g, '-') : String(idx);
+      const token = `--tol-${pfx}-${key}`;
+      if (seenTokens.has(token)) return;
+      seenTokens.add(token);
+      swatches.push({
+        scheme: sId,
+        name: c.name || key,
+        token,
+        hex: c.hex,
+      });
+    });
+  }
+
+  const swatchCardsHtml = swatches.map((sw) => `        <article class="stat" data-swatch="true" data-search="${sw.scheme} ${sw.name} ${sw.token} ${sw.hex.toLowerCase()}" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy ${sw.token} (${sw.hex}) to clipboard">
+          <div style="height:3rem;background:${sw.hex};border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.5rem;" aria-hidden="true"></div>
+          <header><strong><code>${sw.token}</code></strong></header>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">
+            <code>${sw.hex}</code>
+            <span class="badge">${sw.scheme}</span>
+          </div>
+        </article>`).join('\n');
 
   return `<!DOCTYPE html>
 <html lang="en" data-accent="blue">
@@ -147,8 +198,17 @@ export function generateDemoHtml(fullMinCss, stats) {
         <li><a href="#tables">Tables</a></li>
         <li><a href="#components">Components</a></li>
         <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#palettes">Palettes</a></li>
       </ul>
       <ul>
+        <li>
+          <div role="group" aria-label="Visual Accent Selector" style="margin-bottom:0;">
+            <button type="button" class="outline" data-set-accent="blue" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Blue Accent">Blue</button>
+            <button type="button" class="outline" data-set-accent="cyan" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Cyan Accent">Cyan</button>
+            <button type="button" class="outline" data-set-accent="purple" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Purple Accent">Purple</button>
+            <button type="button" class="outline" data-set-accent="magenta" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Magenta Accent">Magenta</button>
+          </div>
+        </li>
         <li>
           <select id="accent-select" aria-label="Select Paul Tol accent hue" style="margin-bottom:0;padding-block:0.25rem;">
             <option value="blue">Accent: Blue</option>
@@ -157,7 +217,7 @@ export function generateDemoHtml(fullMinCss, stats) {
             <option value="magenta">Accent: Magenta</option>
           </select>
         </li>
-        <li><button type="button" id="theme-toggle" class="outline" style="padding-block:0.25rem;">Toggle theme</button></li>
+        <li><button type="button" id="theme-toggle" class="outline" style="padding-block:0.25rem;">☀️ Light</button></li>
       </ul>
     </nav>
   </header>
@@ -490,79 +550,95 @@ ${rowsHtml}
     <hr>
 
     <section id="dashboard">
-      <h2>8. Dashboard Fixtures, Tabs, Badges &amp; Universal Icons</h2>
+      <h2>8. Operational Dashboard Console</h2>
+      <p>A simulated real-time operational monitor featuring accessible tabpanel switching, zero-CLS skeleton loading transitions, KPI metric stat cards, and status alerts.</p>
 
-      <!-- Accessible Tabs -->
-      <nav role="tablist">
-        <button type="button" role="tab" aria-selected="true">Overview</button>
-        <button type="button" role="tab" aria-selected="false">Analytics</button>
-        <button type="button" role="tab" aria-selected="false">Reports</button>
-      </nav>
-
-      <!-- Segmented Pill Tabs -->
-      <div role="tablist" class="segmented">
-        <button type="button" role="tab" aria-selected="true">Daily</button>
-        <button type="button" role="tab" aria-selected="false">Weekly</button>
-        <button type="button" role="tab" aria-selected="false">Monthly</button>
+      <!-- View Selector and Time Period Filter -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1rem;">
+        <nav role="tablist" aria-label="Dashboard views" style="margin-bottom:0;border-bottom:0;">
+          <button type="button" role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true">Overview</button>
+          <button type="button" role="tab" id="tab-analytics" aria-controls="panel-analytics" aria-selected="false">Analytics</button>
+          <button type="button" role="tab" id="tab-logs" aria-controls="panel-logs" aria-selected="false">System Logs</button>
+        </nav>
+        <div role="tablist" class="segmented" id="time-filter" aria-label="Time period filter">
+          <button type="button" role="tab" data-period="1H" aria-selected="false">1H</button>
+          <button type="button" role="tab" data-period="24H" aria-selected="true">24H</button>
+          <button type="button" role="tab" data-period="7D" aria-selected="false">7D</button>
+          <button type="button" role="tab" data-period="30D" aria-selected="false">30D</button>
+        </div>
       </div>
 
-      <!-- KPI Stat Cards -->
-      <div class="grid" style="margin-top: 1rem;">
-        <article class="stat">
-          <small>Total Revenue</small>
-          <strong>$128,430</strong>
-          <footer>
-            <span class="badge valid">
-              <svg class="icon" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
-              +14.2%
-            </span>
-            vs last month
-          </footer>
-        </article>
-        <article class="stat">
-          <small>Active Users</small>
-          <strong>24,512</strong>
-          <footer>
-            <span class="badge valid">
-              <svg class="icon" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
-              +3.8%
-            </span>
-            vs last month
-          </footer>
-        </article>
-        <article class="stat">
-          <small>Conversion Rate</small>
-          <strong>3.64%</strong>
-          <footer>
-            <span class="badge invalid">
-              <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-              -0.42%
-            </span>
-            vs last month
-          </footer>
-        </article>
-        <article class="stat">
-          <small>Avg Session Duration</small>
-          <div class="skeleton" style="height: 2.2rem; margin-block: 0.25rem;"></div>
-          <footer>
-            <span class="skeleton" style="width: 60%; height: 1rem;"></span>
-          </footer>
-        </article>
+      <!-- Tabpanel 1: Overview -->
+      <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+        <!-- KPI Stat Cards -->
+        <dl class="stats">
+          <div class="stat">
+            <dt>Total Network Throughput</dt>
+            <dd id="stat-throughput" class="tabular-nums">1.42 TB</dd>
+            <div class="trend"><span class="badge valid">+12.4%</span> vs previous period</div>
+          </div>
+          <div class="stat">
+            <dt>Active Edge Clusters</dt>
+            <dd id="stat-clusters" class="tabular-nums">128 / 130</dd>
+            <div class="trend"><span class="badge primary">98.5%</span> online</div>
+          </div>
+          <div class="stat">
+            <dt>Mean Edge Latency</dt>
+            <dd id="stat-latency" class="tabular-nums">18.4 ms</dd>
+            <div class="trend"><span class="badge valid">-2.1 ms</span> p95 response</div>
+          </div>
+          <div class="stat">
+            <dt>Unresolved Error Rate</dt>
+            <dd id="stat-errors" class="tabular-nums">0.012%</dd>
+            <div class="trend"><span class="badge invalid">+0.003%</span> 3 throttles</div>
+          </div>
+        </dl>
+
+        <div class="grid">
+          <article class="stat">
+            <header><strong>CPU Fleet Utilization</strong></header>
+            <strong id="stat-cpu" class="tabular-nums" style="font-size:2rem;">42.8%</strong>
+            <progress id="stat-cpu-progress" value="43" max="100"></progress>
+            <footer><small>Calculated across 512 virtual cores</small></footer>
+          </article>
+          <article class="stat">
+            <header><strong>Memory Allocation</strong></header>
+            <strong id="stat-mem" class="tabular-nums" style="font-size:2rem;">64.2%</strong>
+            <progress id="stat-mem-progress" value="64" max="100"></progress>
+            <footer><small>263 GB utilized of 410 GB pool</small></footer>
+          </article>
+        </div>
+
+        <aside class="success">
+          <p><strong>System Health Normal:</strong> All cluster telemetry reporting within nominal Paul Tol accessible thresholds.</p>
+        </aside>
       </div>
 
-      <!-- Semantic Callouts -->
-      <aside>
-        <p><strong>Neutral Callout:</strong> Default informational callouts use neutral borders and text, decoupled from the theme accent.</p>
-      </aside>
-      <aside class="primary">
-        <p><strong>Primary Callout:</strong> Explicit opt-in styling via <code>.primary</code> or <code>[data-accent]</code>.</p>
-      </aside>
-      <aside class="success">
-        <p><strong>Audit Passed:</strong> 100% Paul Tol color-blind accessible hex purity across all components.</p>
-      </aside>
-      <aside role="alert">
-        <p><strong>High Severity Alert:</strong> 3 login attempts throttled from unverified subnet.</p>
-      </aside>
+      <!-- Tabpanel 2: Analytics -->
+      <div id="panel-analytics" role="tabpanel" aria-labelledby="tab-analytics" hidden>
+        <div class="grid">
+          <article>
+            <header><strong>Traffic Ingestion Pipeline</strong></header>
+            <p>Ingestion pipeline telemetry streaming at <strong>48.6 MB/s</strong> across 6 regional endpoints.</p>
+            <p><span class="badge valid">Healthy</span> <span class="badge" data-accent="purple">Buffering: 1.2%</span></p>
+          </article>
+          <article>
+            <header><strong>Cache Hit Ratio</strong></header>
+            <p>Edge cache hit efficiency: <strong>94.2%</strong> with zero cold-start evictions.</p>
+            <progress value="94" max="100"></progress>
+          </article>
+        </div>
+      </div>
+
+      <!-- Tabpanel 3: System Logs -->
+      <div id="panel-logs" role="tabpanel" aria-labelledby="tab-logs" hidden>
+        <aside role="alert">
+          <p><strong>System Log Notice:</strong> Automated failover drill completed successfully on <code>edge-us-east-03</code>.</p>
+        </aside>
+        <pre><code>[2026-10-19T18:20:00Z] INFO [telemetry] Heartbeat verified for 128 nodes.
+[2026-10-19T18:22:15Z] WARN [ingress] High burst load detected on us-east-1c (96.8% CPU).
+[2026-10-19T18:24:00Z] INFO [orchestrator] Autoscaled +4 container instances.</code></pre>
+      </div>
 
       <!-- Status Badges & Universal Icons in Action -->
       <p>
@@ -587,6 +663,21 @@ ${rowsHtml}
         </button>
       </p>
     </section>
+
+    <hr>
+
+    <section id="palettes">
+      <h2>9. Paul Tol Canonical Palette Explorer</h2>
+      <p>Explore canonical color-blind safe palettes authored by Dr. Paul Tol. Click any swatch or token to copy its CSS custom property to the clipboard.</p>
+      <div role="search" style="margin-bottom:1.5rem;">
+        <input type="search" id="palette-search" placeholder="Search by scheme (e.g. vibrant), name (e.g. cyan), token, or hex..." aria-label="Search Paul Tol palettes">
+      </div>
+      <div id="palette-grid" class="grid" style="grid-template-columns:repeat(auto-fill, minmax(13rem, 1fr));gap:1rem;">
+${swatchCardsHtml}
+      </div>
+      <p id="palette-empty" hidden>No matching Paul Tol color tokens found.</p>
+      <div id="toast" role="status" aria-live="polite" style="position:fixed;bottom:1.5rem;right:1.5rem;padding:0.75rem 1.25rem;background:var(--pt-color);color:var(--pt-bg);border-radius:var(--pt-border-radius);box-shadow:var(--pt-box-shadow);z-index:9999;transition:opacity 0.2s,transform 0.2s;opacity:0;pointer-events:none;transform:translateY(1rem);"></div>
+    </section>
   </main>
 
   <footer>
@@ -595,13 +686,232 @@ ${rowsHtml}
 
   <script>
     const root = document.documentElement;
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-      const cur = root.getAttribute('data-theme');
-      const isDark = cur ? cur === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-      root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    const themeBtn = document.getElementById('theme-toggle');
+    const accentSelect = document.getElementById('accent-select');
+
+    function updateThemeButton(theme) {
+      if (themeBtn) {
+        themeBtn.textContent = theme === 'dark' ? '🌙 Dark' : '☀️ Light';
+        themeBtn.setAttribute('aria-label', 'Active theme: ' + theme + '. Click to toggle.');
+      }
+    }
+
+    const savedTheme = localStorage.getItem('picotol-theme');
+    if (savedTheme) {
+      root.setAttribute('data-theme', savedTheme);
+      updateThemeButton(savedTheme);
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      updateThemeButton(prefersDark ? 'dark' : 'light');
+    }
+
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+        const cur = root.getAttribute('data-theme');
+        const isDark = cur ? cur === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const nextTheme = isDark ? 'light' : 'dark';
+        root.setAttribute('data-theme', nextTheme);
+        localStorage.setItem('picotol-theme', nextTheme);
+        updateThemeButton(nextTheme);
+      });
+    }
+
+    function setAccent(accent) {
+      root.setAttribute('data-accent', accent);
+      if (accentSelect) accentSelect.value = accent;
+      localStorage.setItem('picotol-accent', accent);
+    }
+
+    const savedAccent = localStorage.getItem('picotol-accent');
+    if (savedAccent) {
+      setAccent(savedAccent);
+    }
+
+    if (accentSelect) {
+      accentSelect.addEventListener('change', (e) => setAccent(e.target.value));
+    }
+
+    document.querySelectorAll('[data-set-accent]').forEach((btn) => {
+      btn.addEventListener('click', () => setAccent(btn.getAttribute('data-set-accent')));
     });
-    document.getElementById('accent-select').addEventListener('change', (e) => {
-      root.setAttribute('data-accent', e.target.value);
+
+    // Native modal backdrop click-to-close
+    const modal = document.getElementById('demo-modal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.close();
+        }
+      });
+    }
+
+    // Dashboard tab switching
+    const tabs = [
+      { tab: document.getElementById('tab-overview'), panel: document.getElementById('panel-overview') },
+      { tab: document.getElementById('tab-analytics'), panel: document.getElementById('panel-analytics') },
+      { tab: document.getElementById('tab-logs'), panel: document.getElementById('panel-logs') },
+    ];
+
+    tabs.forEach(({ tab, panel }) => {
+      if (!tab || !panel) return;
+      tab.addEventListener('click', () => {
+        tabs.forEach(({ tab: t, panel: p }) => {
+          const isSelected = t === tab;
+          t.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+          if (isSelected) {
+            p.removeAttribute('hidden');
+          } else {
+            p.setAttribute('hidden', '');
+          }
+        });
+      });
+    });
+
+    // Segmented time filter with 300ms zero-CLS skeleton loader pulse
+    const timeFilter = document.getElementById('time-filter');
+    const periodData = {
+      '1H': {
+        throughput: '124 GB',
+        clusters: '128 / 130',
+        latency: '16.2 ms',
+        errors: '0.008%',
+        cpu: '38.4%',
+        cpuVal: 38,
+        mem: '58.1%',
+        memVal: 58,
+      },
+      '24H': {
+        throughput: '1.42 TB',
+        clusters: '128 / 130',
+        latency: '18.4 ms',
+        errors: '0.012%',
+        cpu: '42.8%',
+        cpuVal: 43,
+        mem: '64.2%',
+        memVal: 64,
+      },
+      '7D': {
+        throughput: '8.94 TB',
+        clusters: '129 / 130',
+        latency: '19.1 ms',
+        errors: '0.015%',
+        cpu: '45.2%',
+        cpuVal: 45,
+        mem: '67.5%',
+        memVal: 68,
+      },
+      '30D': {
+        throughput: '38.6 TB',
+        clusters: '130 / 130',
+        latency: '17.8 ms',
+        errors: '0.011%',
+        cpu: '44.0%',
+        cpuVal: 44,
+        mem: '66.0%',
+        memVal: 66,
+      },
+    };
+
+    if (timeFilter) {
+      timeFilter.querySelectorAll('button[data-period]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const period = btn.getAttribute('data-period');
+          const data = periodData[period];
+          if (!data) return;
+
+          timeFilter.querySelectorAll('button[data-period]').forEach((b) => {
+            b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+          });
+
+          const statEls = [
+            document.getElementById('stat-throughput'),
+            document.getElementById('stat-clusters'),
+            document.getElementById('stat-latency'),
+            document.getElementById('stat-errors'),
+            document.getElementById('stat-cpu'),
+            document.getElementById('stat-mem'),
+          ];
+
+          statEls.forEach((el) => { if (el) el.classList.add('skeleton'); });
+
+          setTimeout(() => {
+            const st = document.getElementById('stat-throughput');
+            const sc = document.getElementById('stat-clusters');
+            const sl = document.getElementById('stat-latency');
+            const se = document.getElementById('stat-errors');
+            const scpu = document.getElementById('stat-cpu');
+            const smem = document.getElementById('stat-mem');
+            const pcpu = document.getElementById('stat-cpu-progress');
+            const pmem = document.getElementById('stat-mem-progress');
+
+            if (st) st.textContent = data.throughput;
+            if (sc) sc.textContent = data.clusters;
+            if (sl) sl.textContent = data.latency;
+            if (se) se.textContent = data.errors;
+            if (scpu) scpu.textContent = data.cpu;
+            if (smem) smem.textContent = data.mem;
+            if (pcpu) pcpu.value = data.cpuVal;
+            if (pmem) pmem.value = data.memVal;
+
+            statEls.forEach((el) => { if (el) el.classList.remove('skeleton'); });
+          }, 300);
+        });
+      });
+    }
+
+    // Palette Explorer live search and click-to-copy
+    const paletteSearch = document.getElementById('palette-search');
+    const swatches = document.querySelectorAll('[data-swatch]');
+    const emptyMsg = document.getElementById('palette-empty');
+    const toast = document.getElementById('toast');
+    let toastTimeout;
+
+    function showToast(msg) {
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(1rem)';
+      }, 2000);
+    }
+
+    if (paletteSearch) {
+      paletteSearch.addEventListener('input', (e) => {
+        const query = e.target.value.trim().toLowerCase();
+        let visibleCount = 0;
+        swatches.forEach((sw) => {
+          const haystack = (sw.getAttribute('data-search') || '').toLowerCase();
+          const matches = !query || haystack.includes(query);
+          sw.style.display = matches ? '' : 'none';
+          if (matches) visibleCount++;
+        });
+        if (emptyMsg) {
+          emptyMsg.hidden = visibleCount > 0;
+        }
+      });
+    }
+
+    swatches.forEach((sw) => {
+      const copyVal = sw.querySelector('strong code')?.textContent?.trim() || '';
+      const hexVal = sw.querySelector('div code')?.textContent?.trim() || '';
+      const copy = () => {
+        if (!copyVal) return;
+        navigator.clipboard.writeText(copyVal).then(() => {
+          showToast('Copied ' + copyVal + ' (' + hexVal + ') to clipboard!');
+        }).catch(() => {
+          showToast('Copied ' + copyVal + '!');
+        });
+      };
+      sw.addEventListener('click', copy);
+      sw.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          copy();
+        }
+      });
     });
   </script>
 </body>

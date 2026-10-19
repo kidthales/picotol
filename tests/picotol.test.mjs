@@ -339,9 +339,10 @@ test("WCAG 2.2 Accessibility, Reflow, Typography Measure, Screen Reader UX, and 
     /<figure[^>]*>[\s\S]*?<table[\s\S]*?<\/table>[\s\S]*?<\/figure>/.test(demoHtml),
     "Demo HTML must contain operational table wrapped in <figure>"
   );
-  if (demoHtml.includes('id="palettes"')) {
-    assert.ok(demoHtml.includes('id="palettes"'), "Demo HTML must include #palettes landmark");
-  }
+  assert.ok(demoHtml.includes('id="palettes"'), "Demo HTML must include #palettes landmark for palette explorer");
+  assert.ok(demoHtml.includes('id="palette-search"'), "Demo HTML must include palette search input");
+  assert.ok(demoHtml.includes('aria-controls="panel-overview"'), "Demo dashboard tabs must include aria-controls");
+  assert.ok(demoHtml.includes('id="panel-overview" role="tabpanel"'), "Demo dashboard must include tabpanel landmarks");
   assert.ok(demoHtml.includes('aria-labelledby="modal-title"'), "Demo dialog must include aria-labelledby");
   assert.ok(demoHtml.includes('tabindex="0"'), "Demo tooltip span must be keyboard focusable via tabindex=0");
 
