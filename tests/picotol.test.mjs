@@ -454,3 +454,31 @@ test("Search Bar Button Group: only :first-child and :last-child receive pill ra
   );
 });
 
+test("Semantic Callout & Status Badge Decoupling: neutral defaults, semantic preservation, and primary opt-in", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+
+  // Callouts: default to --pt-muted-border and --pt-color
+  assert.ok(
+    fullCss.includes("border-inline-start: .25rem solid var(--pt-muted-border)") ||
+    fullCss.includes("border-inline-start: 0.25rem solid var(--pt-muted-border)"),
+    "Callout must default to neutral --pt-muted-border"
+  );
+
+  // Badges: default to --pt-muted-border and --pt-color
+  assert.ok(
+    fullCss.includes("border: 1px solid var(--pt-muted-border)"),
+    "Badge must default to neutral 1px solid --pt-muted-border"
+  );
+
+  // Semantic state mappings to --pt-invalid and --pt-valid
+  assert.ok(fullCss.includes("var(--pt-invalid)"), "Must map danger/invalid states to --pt-invalid");
+  assert.ok(fullCss.includes("var(--pt-valid)"), "Must map success/valid states to --pt-valid");
+
+  // Explicit opt-in for primary accent via :is(.primary, [data-accent])
+  assert.ok(
+    fullCss.includes("&:is(.primary, [data-accent])"),
+    "Must support opt-in primary theme accent via :is(.primary, [data-accent])"
+  );
+});
+
+

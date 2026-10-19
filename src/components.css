@@ -342,11 +342,19 @@
     margin-bottom: var(--pt-spacing);
     padding: var(--pt-spacing);
     border-radius: var(--pt-border-radius);
-    border-inline-start: 0.25rem solid var(--pt-primary);
+    border-inline-start: 0.25rem solid var(--pt-muted-border);
     background: var(--pt-surface-subtle);
+    color: var(--pt-color);
 
-    &:is([role="alert"], .danger, .invalid) { --pt-primary: var(--pt-invalid); }
-    &:is(.success, .valid) { --pt-primary: var(--pt-valid); }
+    &:is(.primary, [data-accent]) {
+      border-inline-start-color: var(--pt-primary);
+    }
+    &:is([role="alert"], .danger, .invalid) {
+      border-inline-start-color: var(--pt-invalid);
+    }
+    &:is(.success, .valid) {
+      border-inline-start-color: var(--pt-valid);
+    }
   }
 
   /* 11. Status Badges */
@@ -355,17 +363,27 @@
     align-items: center;
     padding: 0.125em 0.5em;
     border-radius: 99px;
-    border: 1px solid var(--pt-primary);
+    border: 1px solid var(--pt-muted-border);
     background: var(--pt-surface-subtle);
-    color: var(--pt-primary);
+    color: var(--pt-color);
     font-size: 0.75em;
     font-weight: 600;
     line-height: 1;
     white-space: nowrap;
     vertical-align: middle;
 
-    &:is(.invalid, .danger) { --pt-primary: var(--pt-invalid); }
-    &:is(.valid, .success) { --pt-primary: var(--pt-valid); }
+    &:is(.primary, [data-accent]) {
+      border-color: var(--pt-primary);
+      color: var(--pt-primary);
+    }
+    &:is([role="alert"], .invalid, .danger) {
+      border-color: var(--pt-invalid);
+      color: var(--pt-invalid);
+    }
+    &:is(.valid, .success) {
+      border-color: var(--pt-valid);
+      color: var(--pt-valid);
+    }
 
     & > :where(svg.icon, [data-icon]) {
       &:first-child:not(:only-child) { margin-inline-end: 0.35em; }
