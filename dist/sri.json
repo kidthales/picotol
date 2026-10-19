@@ -11,6 +11,11 @@
       "bytes": 21777,
       "gzipBytes": 5813,
       "integrity": "sha384-DbxEAUAROLJbXHW1Vy51o7luiguYQCDub3f9lHLtsvJYy3tg1W4QtI1P9vfaObZU"
+    },
+    "dist/picotol.layer.min.css": {
+      "bytes": 21793,
+      "gzipBytes": 5816,
+      "integrity": "sha384-mCfc2dkxm+ROZ+RaseqJp1YjN+bxeBsD2ODDW3b+ltG5nPjgZrmrs+/CiNGwkdw/"
     }
   }
 }

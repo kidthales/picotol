@@ -64,6 +64,8 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
     path.join(ROOT, "dist/picotol.core.min.css"),
     path.join(ROOT, "dist/picotol.css"),
     path.join(ROOT, "dist/picotol.min.css"),
+    path.join(ROOT, "dist/picotol.layer.css"),
+    path.join(ROOT, "dist/picotol.layer.min.css"),
   ];
 
   const hexRegex = /#[0-9a-fA-F]{3,8}\b/g;
@@ -87,9 +89,10 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 11.5 KB and picotol.min.css <= 22.0 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 11.5 KB, picotol.min.css <= 22.0 KB, and picotol.layer.min.css <= 22.1 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
+  const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
 
   assert.ok(
     coreMin <= 11.5 * 1024,
@@ -98,6 +101,10 @@ test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 11.5 KB and picotol.
   assert.ok(
     fullMin <= 22.0 * 1024,
     `Expected dist/picotol.min.css (${fullMin} B) to be <= 22528 B`
+  );
+  assert.ok(
+    layerMin <= 22.1 * 1024,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 22630 B`
   );
 });
 
@@ -349,10 +356,36 @@ test("WCAG 2.2 Accessibility, Reflow, Typography Measure, Screen Reader UX, and 
   assert.ok(fs.existsSync(sriPath), "dist/sri.json must exist");
   const sri = JSON.parse(fs.readFileSync(sriPath, "utf8"));
   assert.equal(sri.package, "@kidthales/picotol");
-  for (const relPath of ["dist/picotol.core.min.css", "dist/picotol.min.css"]) {
+  for (const relPath of ["dist/picotol.core.min.css", "dist/picotol.min.css", "dist/picotol.layer.min.css"]) {
     assert.ok(sri.files[relPath], `dist/sri.json must include entry for ${relPath}`);
     assert.match(sri.files[relPath].integrity, /^sha384-[A-Za-z0-9+/=]+$/);
     assert.equal(sri.files[relPath].bytes, fs.statSync(path.join(ROOT, relPath)).size);
+  }
+});
+
+test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework bundle in @layer picotol without syntax errors", () => {
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMinCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+
+  assert.ok(layerCss.startsWith("/*!"), "Expanded layered build must retain license header");
+  assert.ok(layerMinCss.startsWith("/*!"), "Minified layered build must retain license header");
+
+  assert.ok(
+    layerCss.includes("@layer picotol {"),
+    "dist/picotol.layer.css must wrap contents in @layer picotol"
+  );
+  assert.ok(
+    layerMinCss.includes("@layer picotol{") || layerMinCss.includes("@layer picotol {"),
+    "dist/picotol.layer.min.css must contain @layer picotol"
+  );
+
+  // Validate that internal cascade layers reside inside @layer picotol
+  const layers = ["tokens", "base", "layout", "content", "forms", "nav", "components"];
+  for (const layer of layers) {
+    assert.ok(
+      layerMinCss.includes(`@layer ${layer}`) || layerMinCss.includes(`@layer ${layer}{`),
+      `Layered minified build must retain inner @layer ${layer}`
+    );
   }
 });
 
