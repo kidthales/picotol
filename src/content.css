@@ -137,17 +137,18 @@
     }
   }
 
-  :where(button, [role="button"], a) > :where(svg.icon, [data-icon]) {
-    &:first-child:not(:only-child) { margin-inline-end: 0.5em; }
-    &:last-child:not(:only-child) { margin-inline-start: 0.5em; }
-  }
-
-  :where(button, [role="button"]):has(> :where(svg.icon, [data-icon]):only-child) {
-    padding: var(--pt-form-y);
-    aspect-ratio: 1;
+  :where(button, [role="button"], a):has(> :where(svg.icon, [data-icon])) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    vertical-align: middle;
+    gap: 0.5rem;
+  }
+
+  :where(button, [role="button"]):is([aria-label], [aria-labelledby], [title]):has(> :where(svg.icon, [data-icon]):only-child) {
+    padding: var(--pt-form-y);
+    height: calc(1lh + 2 * var(--pt-form-y) + 2px);
+    aspect-ratio: 1;
   }
 }
 

@@ -101,7 +101,7 @@ test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 10.5 KB and picotol.
   );
 });
 
-test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 6 Paul Tol Accent Ladders (Normal + Hover), and SC 1.4.11 Borders", () => {
+test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 4 Paul Tol Accent Ladders (Normal + Hover), and SC 1.4.11 Borders", () => {
   const lightBg = achromaticColor("white"); // #FFFFFF
   const lightText = achromaticColor("black"); // #000000
   const lightMuted = achromaticColor("grey-800"); // #444444
@@ -329,7 +329,20 @@ test("WCAG 2.2 Accessibility, Reflow, Typography Measure, Screen Reader UX, and 
   );
 
   assert.ok(demoHtml.includes('id="main-content" tabindex="-1"'), "Demo main landmark must include tabindex=-1 for skip link target");
+  assert.ok(demoHtml.includes('id="subtrees"'), "Demo HTML must include #subtrees landmark for subtree theming");
   assert.ok(demoHtml.includes('id="tables"'), "Demo HTML must include #tables landmark for nav anchor");
+  assert.ok(
+    /:where\(figure:has\(\s*>\s*table\)\)/.test(fullCss),
+    "Full CSS must include responsive figure table containment (:where(figure:has(> table)))"
+  );
+  assert.ok(
+    /<figure[^>]*>[\s\S]*?<table[\s\S]*?<\/table>[\s\S]*?<\/figure>/.test(demoHtml),
+    "Demo HTML must contain operational table wrapped in <figure>"
+  );
+  assert.ok(demoHtml.includes('id="palettes"'), "Demo HTML must include #palettes landmark for palette explorer");
+  assert.ok(demoHtml.includes('id="palette-search"'), "Demo HTML must include palette search input");
+  assert.ok(demoHtml.includes('aria-controls="panel-overview"'), "Demo dashboard tabs must include aria-controls");
+  assert.ok(demoHtml.includes('id="panel-overview" role="tabpanel"'), "Demo dashboard must include tabpanel landmarks");
   assert.ok(demoHtml.includes('aria-labelledby="modal-title"'), "Demo dialog must include aria-labelledby");
   assert.ok(demoHtml.includes('tabindex="0"'), "Demo tooltip span must be keyboard focusable via tabindex=0");
 
@@ -399,6 +412,9 @@ test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, sele
 
   // SVG Icon ergonomics
   assert.ok(coreCss.includes("svg.icon") || coreCss.includes("[data-icon]"), "Core CSS includes icon ergonomics");
+  assert.ok(coreCss.includes("gap: .5rem") || coreCss.includes("gap: 0.5rem"), "Core CSS includes gap for icon buttons");
+  assert.ok(coreCss.includes("aspect-ratio: 1") || coreCss.includes("aspect-ratio:1"), "Core CSS includes square icon-only button rule");
+  assert.ok(coreCss.includes("calc(1lh + 2 * var(--pt-form-y) + 2px)"), "Core CSS includes calculated height matching standard buttons");
 
   // KPI Stat cards & Skeletons
   assert.ok(fullCss.includes("article.stat") || fullCss.includes("dl.stats"), "Full CSS includes KPI stat card selectors");
@@ -411,27 +427,31 @@ test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, sele
   assert.ok(fullCss.includes("margin-inline-start: auto") || fullCss.includes("margin-inline-start:auto"), "Full CSS includes margin-inline-start: auto on modal close button");
 });
 
-test("Semantic State Token Contrast: --pt-valid, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA", () => {
+test("Semantic State Token Contrast: --pt-valid, --pt-warning, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA", () => {
   const lightBg = achromaticColor("white"); // #FFFFFF
   const darkBg = achromaticColor("black");  // #000000
 
   // Light Mode States
   const lightValid = schemeColor("dark", 5);          // #006644
+  const lightWarning = schemeColor("dark", 9);        // #775500
   const lightInvalid = schemeColor("vibrant", "red"); // #CC3311
   const lightMarkBg = schemeColor("pale", 3);         // #EEEEBB
   const lightMarkText = achromaticColor("black");     // #000000
 
   assert.ok(contrastRatio(lightValid, lightBg) >= 4.5, "Light valid >= 4.5:1 AA");
+  assert.ok(contrastRatio(lightWarning, lightBg) >= 4.5, "Light warning >= 4.5:1 AA");
   assert.ok(contrastRatio(lightInvalid, lightBg) >= 4.5, "Light invalid >= 4.5:1 AA");
   assert.ok(contrastRatio(lightMarkText, lightMarkBg) >= 4.5, "Light mark text >= 4.5:1 AA");
 
   // Dark Mode States
-  const darkValid = schemeColor("light", "mint");      // #44BB99
-  const darkInvalid = schemeColor("bright", "red");    // #EE6677
-  const darkMarkBg = schemeColor("dark", 9);           // #775500
-  const darkMarkText = achromaticColor("white");       // #FFFFFF
+  const darkValid = schemeColor("light", "mint");         // #44BB99
+  const darkWarning = schemeColor("light", "light_yellow"); // #EEDD88
+  const darkInvalid = schemeColor("bright", "red");       // #EE6677
+  const darkMarkBg = schemeColor("dark", 9);              // #775500
+  const darkMarkText = achromaticColor("white");          // #FFFFFF
 
   assert.ok(contrastRatio(darkValid, darkBg) >= 4.5, "Dark valid >= 4.5:1 AA");
+  assert.ok(contrastRatio(darkWarning, darkBg) >= 4.5, "Dark warning >= 4.5:1 AA");
   assert.ok(contrastRatio(darkInvalid, darkBg) >= 4.5, "Dark invalid >= 4.5:1 AA");
   assert.ok(contrastRatio(darkMarkText, darkMarkBg) >= 4.5, "Dark mark text >= 4.5:1 AA");
 });
