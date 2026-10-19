@@ -179,6 +179,13 @@
     }
   }
 
+  dialog article > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
   :where(dialog:modal) {
     &::backdrop {
       background-color: color-mix(in srgb, var(--pt-black) 65%, transparent);
@@ -200,6 +207,8 @@
     position: relative;
     width: 1.5rem;
     height: 1.5rem;
+    margin-inline-start: auto;
+    flex-shrink: 0;
     padding: 0;
     border: 0;
     background: none;

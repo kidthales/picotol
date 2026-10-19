@@ -44,7 +44,7 @@ export const ACCENT_TABLE = [
     accent: 'cyan',
     lightFg: '#117788',
     lightFgToken: '--tol-dark-6',
-    lightFgHover: '#006644',
+    lightFgHover: '#004488',
     lightBg: '#CCEEFF',
     lightBgToken: '--tol-pale-1',
     lightBgHover: '#99DDFF',
@@ -54,51 +54,6 @@ export const ACCENT_TABLE = [
     darkBg: '#117788',
     darkBgToken: '--tol-dark-6',
     darkBgHover: '#0077BB',
-  },
-  {
-    accent: 'green',
-    lightFg: '#006644',
-    lightFgToken: '--tol-dark-5',
-    lightFgHover: '#117733',
-    lightBg: '#BBDDBB',
-    lightBgToken: '--tol-pale-2',
-    lightBgHover: '#44BB99',
-    darkFg: '#44BB99',
-    darkFgToken: '--tol-light-mint',
-    darkFgHover: '#BBDDBB',
-    darkBg: '#006644',
-    darkBgToken: '--tol-dark-5',
-    darkBgHover: '#228833',
-  },
-  {
-    accent: 'yellow',
-    lightFg: '#775500',
-    lightFgToken: '--tol-dark-9',
-    lightFgHover: '#662506',
-    lightBg: '#EEEEBB',
-    lightBgToken: '--tol-pale-3',
-    lightBgHover: '#DDAA33',
-    darkFg: '#DDAA33',
-    darkFgToken: '--tol-hc-yellow',
-    darkFgHover: '#EEEEBB',
-    darkBg: '#775500',
-    darkBgToken: '--tol-dark-9',
-    darkBgHover: '#993404',
-  },
-  {
-    accent: 'red',
-    lightFg: '#CC3311',
-    lightFgToken: '--tol-vibrant-red',
-    lightFgHover: '#994455',
-    lightBg: '#EE8866',
-    lightBgToken: '--tol-light-orange',
-    lightBgHover: '#EE6677',
-    darkFg: '#EE6677',
-    darkFgToken: '--tol-bright-red',
-    darkFgHover: '#EE8866',
-    darkBg: '#CC3311',
-    darkBgToken: '--tol-vibrant-red',
-    darkBgHover: '#CC4466',
   },
   {
     accent: 'purple',
@@ -114,6 +69,21 @@ export const ACCENT_TABLE = [
     darkBg: '#762A83',
     darkBgToken: '--tol-prgn-0',
     darkBgHover: '#AA4499',
+  },
+  {
+    accent: 'magenta',
+    lightFg: '#993366',
+    lightFgToken: '--tol-dark-4',
+    lightFgHover: '#882255',
+    lightBg: '#EEBBDD',
+    lightBgToken: '--tol-pale-5',
+    lightBgHover: '#FFAABB',
+    darkFg: '#FFAABB',
+    darkFgToken: '--tol-light-pink',
+    darkFgHover: '#EEBBDD',
+    darkBg: '#993366',
+    darkBgToken: '--tol-dark-4',
+    darkBgHover: '#BB4488',
   },
 ];
 
@@ -181,10 +151,8 @@ export function generateDemoHtml(fullMinCss, stats) {
           <select id="accent-select" aria-label="Select Paul Tol accent hue" style="margin-bottom:0;padding-block:0.25rem;">
             <option value="blue">Accent: Blue</option>
             <option value="cyan">Accent: Cyan</option>
-            <option value="green">Accent: Green</option>
-            <option value="yellow">Accent: Yellow</option>
-            <option value="red">Accent: Red</option>
             <option value="purple">Accent: Purple</option>
+            <option value="magenta">Accent: Magenta</option>
           </select>
         </li>
         <li><button type="button" id="theme-toggle" class="outline" style="padding-block:0.25rem;">Toggle theme</button></li>
@@ -244,7 +212,7 @@ ${rowsHtml}
 
     <section id="typography">
       <h2>2. Typography &amp; Inline Semantics</h2>
-      <p>Body copy uses the system font stack with fluid root sizing via <code>clamp(100%, 95% + 0.4vw, 125%)</code> and a <code>75ch</code> reading measure. Links like <a href="#typography">primary link</a>, <a href="#typography" class="secondary">secondary link</a>, <a href="#typography" class="contrast">contrast link</a>, and <a href="https://github.com/kidthales/tol-palettes" target="_blank" rel="noopener noreferrer">external link<span class="sr-only"> (opens in a new tab)</span></a> step along Paul Tol's qualitative lightness ladder on hover.</p>
+      <p class="measure">Body copy uses the system font stack with fluid root sizing via <code>clamp(100%, 95% + 0.4vw, 125%)</code> and an opt-in <code>75ch</code> reading measure via <code>:where(.measure, .prose)</code>. Links like <a href="#typography">primary link</a>, <a href="#typography" class="secondary">secondary link</a>, <a href="#typography" class="contrast">contrast link</a>, and <a href="https://github.com/kidthales/tol-palettes" target="_blank" rel="noopener noreferrer">external link<span class="sr-only"> (opens in a new tab)</span></a> step along Paul Tol's qualitative lightness ladder on hover.</p>
       <p>Inline elements include <strong>strong</strong>, <em>emphasis</em>, <mark>highlighted mark</mark>, <ins>inserted text</ins>, <del>deleted text</del>, <code>inline code</code>, <kbd>Ctrl + K</kbd>, and <abbr title="Paul Tol Colour Schemes">PTCS</abbr> (<span data-tooltip="Pure CSS tooltip via [data-tooltip]" aria-label="hover or focus for tooltip: Pure CSS tooltip via [data-tooltip]" tabindex="0">hover or focus for tooltip</span>).</p>
       <blockquote>
         "The contrast ratio between each colour in the dark scheme and white is at least 4.5 for people with moderately low vision."
