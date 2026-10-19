@@ -361,7 +361,7 @@
     --pt-primary-hover-bg: var(--pt-muted-border);
   }
 
-  :where(a:not([role="button"])) {
+  :where(a:not([role="button"], .button, .btn)) {
     color: var(--pt-primary);
     text-decoration: underline color-mix(in srgb, var(--pt-primary) 50%, transparent);
     text-underline-offset: 2px;
@@ -372,7 +372,7 @@
     }
   }
 
-  :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"]) {
+  :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"], .button, .btn) {
     padding: var(--pt-form-y) var(--pt-form-x);
     border: 1px solid var(--pt-primary);
     border-radius: var(--pt-border-radius);
@@ -396,6 +396,26 @@
         background: var(--pt-surface-subtle);
       }
     }
+  }
+
+  :where(button, input, select, [role="button"], .button, .btn):is(.small, .sm) {
+    --pt-form-y: .25rem;
+    --pt-form-x: .5rem;
+    font-size: .8125rem;
+  }
+
+  :where(.nowrap, .text-nowrap) {
+    white-space: nowrap;
+  }
+
+  :where(.swatch) {
+    border: 1px solid var(--pt-muted-border);
+    vertical-align: -.08em;
+    border-radius: 2px;
+    width: .8em;
+    height: .8em;
+    margin-inline-end: .3em;
+    display: inline-block;
   }
 
   :where([disabled], fieldset[disabled] *) {
@@ -484,7 +504,7 @@
     }
   }
 
-  :where(button, [role="button"], a):has( > :where(svg.icon, [data-icon])) {
+  :where(button, [role="button"], .button, .btn, a):has( > :where(svg.icon, [data-icon])) {
     vertical-align: middle;
     justify-content: center;
     align-items: center;
@@ -492,7 +512,7 @@
     display: inline-flex;
   }
 
-  :where(button, [role="button"]):is([aria-label], [aria-labelledby], [title]):has( > :where(svg.icon, [data-icon]):only-child) {
+  :where(button, [role="button"], .button, .btn):is([aria-label], [aria-labelledby], [title]):has( > :where(svg.icon, [data-icon]):only-child) {
     padding: var(--pt-form-y);
     height: calc(1lh + 2 * var(--pt-form-y) + 2px);
     aspect-ratio: 1;
@@ -608,6 +628,23 @@
     align-items: center;
     margin-inline-end: var(--pt-spacing);
     display: inline-flex;
+  }
+
+  :where(.form-row, .inline-form) {
+    align-items: center;
+    gap: var(--pt-spacing);
+    margin-bottom: var(--pt-spacing);
+    flex-wrap: wrap;
+    display: flex;
+
+    & > * {
+      margin-bottom: 0;
+    }
+
+    & > :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"], [type="reset"]), select) {
+      flex: auto;
+      width: auto;
+    }
   }
 }
 
