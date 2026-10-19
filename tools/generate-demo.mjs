@@ -44,7 +44,7 @@ export const ACCENT_TABLE = [
     accent: 'cyan',
     lightFg: '#117788',
     lightFgToken: '--tol-dark-6',
-    lightFgHover: '#006644',
+    lightFgHover: '#004488',
     lightBg: '#CCEEFF',
     lightBgToken: '--tol-pale-1',
     lightBgHover: '#99DDFF',
@@ -56,49 +56,34 @@ export const ACCENT_TABLE = [
     darkBgHover: '#0077BB',
   },
   {
-    accent: 'green',
-    lightFg: '#006644',
-    lightFgToken: '--tol-dark-5',
-    lightFgHover: '#117733',
-    lightBg: '#BBDDBB',
-    lightBgToken: '--tol-pale-2',
-    lightBgHover: '#44BB99',
-    darkFg: '#44BB99',
-    darkFgToken: '--tol-light-mint',
-    darkFgHover: '#BBDDBB',
-    darkBg: '#006644',
-    darkBgToken: '--tol-dark-5',
-    darkBgHover: '#228833',
+    accent: 'teal',
+    lightFg: '#117788',
+    lightFgToken: '--tol-dark-6',
+    lightFgHover: '#004488',
+    lightBg: '#CCEEFF',
+    lightBgToken: '--tol-pale-1',
+    lightBgHover: '#44AA99',
+    darkFg: '#44AA99',
+    darkFgToken: '--tol-muted-teal',
+    darkFgHover: '#CCEEFF',
+    darkBg: '#117788',
+    darkBgToken: '--tol-dark-6',
+    darkBgHover: '#0077BB',
   },
   {
-    accent: 'yellow',
-    lightFg: '#775500',
-    lightFgToken: '--tol-dark-9',
-    lightFgHover: '#662506',
-    lightBg: '#EEEEBB',
-    lightBgToken: '--tol-pale-3',
-    lightBgHover: '#DDAA33',
-    darkFg: '#DDAA33',
-    darkFgToken: '--tol-hc-yellow',
-    darkFgHover: '#EEEEBB',
-    darkBg: '#775500',
-    darkBgToken: '--tol-dark-9',
-    darkBgHover: '#993404',
-  },
-  {
-    accent: 'red',
-    lightFg: '#CC3311',
-    lightFgToken: '--tol-vibrant-red',
-    lightFgHover: '#994455',
-    lightBg: '#EE8866',
-    lightBgToken: '--tol-light-orange',
-    lightBgHover: '#EE6677',
-    darkFg: '#EE6677',
-    darkFgToken: '--tol-bright-red',
-    darkFgHover: '#EE8866',
-    darkBg: '#CC3311',
-    darkBgToken: '--tol-vibrant-red',
-    darkBgHover: '#CC4466',
+    accent: 'indigo',
+    lightFg: '#004488',
+    lightFgToken: '--tol-hc-blue',
+    lightFgHover: '#332288',
+    lightBg: '#AACCEE',
+    lightBgToken: '--tol-pale-0',
+    lightBgHover: '#6699CC',
+    darkFg: '#6699CC',
+    darkFgToken: '--tol-mc-blue',
+    darkFgHover: '#AACCEE',
+    darkBg: '#004488',
+    darkBgToken: '--tol-hc-blue',
+    darkBgHover: '#2255AA',
   },
   {
     accent: 'purple',
@@ -114,6 +99,21 @@ export const ACCENT_TABLE = [
     darkBg: '#762A83',
     darkBgToken: '--tol-prgn-0',
     darkBgHover: '#AA4499',
+  },
+  {
+    accent: 'magenta',
+    lightFg: '#993366',
+    lightFgToken: '--tol-dark-4',
+    lightFgHover: '#882255',
+    lightBg: '#EEBBDD',
+    lightBgToken: '--tol-pale-5',
+    lightBgHover: '#FFAABB',
+    darkFg: '#FFAABB',
+    darkFgToken: '--tol-light-pink',
+    darkFgHover: '#EEBBDD',
+    darkBg: '#993366',
+    darkBgToken: '--tol-dark-4',
+    darkBgHover: '#BB4488',
   },
 ];
 
@@ -181,10 +181,10 @@ export function generateDemoHtml(fullMinCss, stats) {
           <select id="accent-select" aria-label="Select Paul Tol accent hue" style="margin-bottom:0;padding-block:0.25rem;">
             <option value="blue">Accent: Blue</option>
             <option value="cyan">Accent: Cyan</option>
-            <option value="green">Accent: Green</option>
-            <option value="yellow">Accent: Yellow</option>
-            <option value="red">Accent: Red</option>
+            <option value="teal">Accent: Teal</option>
+            <option value="indigo">Accent: Indigo</option>
             <option value="purple">Accent: Purple</option>
+            <option value="magenta">Accent: Magenta</option>
           </select>
         </li>
         <li><button type="button" id="theme-toggle" class="outline" style="padding-block:0.25rem;">Toggle theme</button></li>
