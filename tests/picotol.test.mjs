@@ -439,3 +439,18 @@ test("Semantic State Token Contrast: --pt-valid, --pt-invalid, and --pt-mark-bg 
   assert.ok(contrastRatio(darkInvalid, darkBg) >= 4.5, "Dark invalid >= 4.5:1 AA");
   assert.ok(contrastRatio(darkMarkText, darkMarkBg) >= 4.5, "Dark mark text >= 4.5:1 AA");
 });
+
+test("Search Bar Button Group: only :first-child and :last-child receive pill radii with flush inner edges", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+
+  // Verify [role="search"] targets :first-child and :last-child, not :first-of-type
+  assert.ok(
+    fullCss.includes("& > :first-child") && fullCss.includes("& > :last-child"),
+    "Full CSS must scope search pill radii strictly to :first-child and :last-child"
+  );
+  assert.ok(
+    !fullCss.includes(":first-of-type"),
+    "Full CSS must not use :first-of-type which detaches search buttons with unwanted inner corner radii"
+  );
+});
+
