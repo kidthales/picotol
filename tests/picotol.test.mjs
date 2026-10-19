@@ -481,4 +481,35 @@ test("Semantic Callout & Status Badge Decoupling: neutral defaults, semantic pre
   );
 });
 
+test("Color Scheme Scoping & Data-Accent Isolation: [data-accent] must not override inherited color-scheme", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+
+  for (const css of [fullCss, coreCss]) {
+    // color-scheme: light dark must only be scoped to :root, :host
+    assert.ok(
+      css.includes("color-scheme: light dark;"),
+      "color-scheme: light dark must be present in tokens"
+    );
+
+    // [data-accent] selectors must never declare color-scheme
+    const accentRulesWithColorScheme = css.match(/\[data-accent[^}]*color-scheme/g);
+    assert.equal(
+      accentRulesWithColorScheme,
+      null,
+      "No [data-accent] selector may declare color-scheme"
+    );
+  }
+
+  // Verify purple light mode contrast: p4 (#762A83) on white (#FFFFFF) >= 7.0 (AAA)
+  const purpleP4 = schemeColor("prgn", 0); // #762A83
+  const lightBg = achromaticColor("white"); // #FFFFFF
+  const purpleLightCR = contrastRatio(purpleP4, lightBg);
+  assert.ok(
+    purpleLightCR >= 7.0,
+    `Purple Light Mode primary (${purpleP4}) vs white CR=${purpleLightCR.toFixed(2)} must satisfy WCAG AAA (>= 7.0:1)`
+  );
+});
+
+
 
