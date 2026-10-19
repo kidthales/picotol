@@ -144,7 +144,7 @@
   }
 
   [role="search"] {
-    & > :not(.sr-only, .visually-hidden):first-of-type {
+    & > :first-child {
       border-start-start-radius: 99px;
       border-end-start-radius: 99px;
     }
