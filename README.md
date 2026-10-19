@@ -21,8 +21,8 @@
   - Non-color validation cues (`2px` border + `✓` / `✗` prefix icons on `[aria-invalid] + small`) and $\ge 24\times24\text{px}$ target sizes (WCAG 2.2 SC 2.5.8).
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Two-Tier Ultra-Minified Distribution** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
-  - **`dist/picotol.core.min.css`** (~9.5 KB minified, ~3.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid`, fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (~16.0 KB minified, ~4.5 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `<progress>`, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.core.min.css`** (<= 10.5 KB minified, ~3.5 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid`, fluid typography, tables, code blocks, native forms, and configurable `nav`.
+  - **`dist/picotol.min.css`** (<= 20.0 KB minified, ~5.4 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `<progress>`, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
 
 ---
 
@@ -193,8 +193,8 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 
 - **Auto-Inheritance**: Icons inherit active theme/accent colors via `currentColor`.
 - **Baseline Alignment**: Centered at `1.15em` size with `-0.2em` vertical alignment to match adjacent typography.
-- **Contextual Margins**: Automatically adds margins when placed before or after text inside buttons, links, or badges.
-- **Icon-Only Buttons**: `button:has(> svg.icon:only-child)` automatically applies square aspect ratio with centered padding.
+- **Contextual Spacing**: Automatically adds `0.5rem` flex gap between text and icons inside buttons and links.
+- **Icon-Only Buttons**: Automatically applies a square aspect ratio with centered padding and matching computed button height on accessible buttons (`[aria-label]`).
 
 ```html
 <!-- Text + icon button -->
@@ -223,6 +223,13 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 <span class="badge invalid">Error</span>
 ```
 
+### 5. Interactive Operational Showcase & Palette Explorer
+
+The interactive demonstration suite at `dist/demo/index.html` showcases:
+- **Concurrent 4-Accent Subtree Theming**: `blue`, `cyan`, `purple`, and `magenta` run simultaneously in isolated scopes via `[data-accent]`.
+- **Operational Data Tables**: Responsive infrastructure monitor wrapped in `figure:has(> table)` with `.tabular-nums` alignment and `table.striped`.
+- **Interactive Dashboard Console**: Tabpanel switching (`Overview`, `Analytics`, `System Logs`) and segmented time filters (`1H`, `24H`, `7D`, `30D`) with zero-CLS skeleton loading transitions (`.skeleton`).
+- **Paul Tol Canonical Palette Explorer**: Swatch grid of all canonical qualitative colours loaded from `data/tol-qualitative.json` with live search filtering and click-to-copy tokens.
 
 ---
 

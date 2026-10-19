@@ -34,6 +34,7 @@
     --pt-muted-border: light-dark(#888, #666);
     --pt-border: 1px solid var(--pt-muted-border);
     --pt-valid: light-dark(#064, #4b9);
+    --pt-warning: light-dark(#750, #ed8);
     --pt-invalid: light-dark(#c31, #e67);
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
@@ -465,22 +466,18 @@
     }
   }
 
-  :where(button, [role="button"], a) > :where(svg.icon, [data-icon]) {
-    &:first-child:not(:only-child) {
-      margin-inline-end: .5em;
-    }
-
-    &:last-child:not(:only-child) {
-      margin-inline-start: .5em;
-    }
-  }
-
-  :where(button, [role="button"]):has( > :where(svg.icon, [data-icon]):only-child) {
-    padding: var(--pt-form-y);
-    aspect-ratio: 1;
+  :where(button, [role="button"], a):has( > :where(svg.icon, [data-icon])) {
+    vertical-align: middle;
     justify-content: center;
     align-items: center;
+    gap: .5rem;
     display: inline-flex;
+  }
+
+  :where(button, [role="button"]):is([aria-label], [aria-labelledby], [title]):has( > :where(svg.icon, [data-icon]):only-child) {
+    padding: var(--pt-form-y);
+    height: calc(1lh + 2 * var(--pt-form-y) + 2px);
+    aspect-ratio: 1;
   }
 }
 

@@ -225,8 +225,8 @@
       width: 1rem;
       height: 2px;
       background: currentColor;
+      transform: translate(-50%, -50%) rotate(45deg);
     }
-    &::before { transform: translate(-50%, -50%) rotate(45deg); }
     &::after { transform: translate(-50%, -50%) rotate(-45deg); }
   }
 
@@ -281,7 +281,7 @@
         &::before { background-color: HighlightText; }
       }
     }
-    progress { border: 1px solid ButtonText; }
+    progress { border: 1px solid; }
   }
 
   [type="range"] {
@@ -358,10 +358,13 @@
     &:is(.primary, [data-accent]) {
       border-inline-start-color: var(--pt-primary);
     }
-    &:is([role="alert"], .danger, .invalid) {
+    &:is([role="alert"], .invalid) {
       border-inline-start-color: var(--pt-invalid);
     }
-    &:is(.success, .valid) {
+    &.warning {
+      border-inline-start-color: var(--pt-warning);
+    }
+    &.valid {
       border-inline-start-color: var(--pt-valid);
     }
   }
@@ -385,11 +388,15 @@
       border-color: var(--pt-primary);
       color: var(--pt-primary);
     }
-    &:is([role="alert"], .invalid, .danger) {
+    &:is([role="alert"], .invalid) {
       border-color: var(--pt-invalid);
       color: var(--pt-invalid);
     }
-    &:is(.valid, .success) {
+    &.warning {
+      border-color: var(--pt-warning);
+      color: var(--pt-warning);
+    }
+    &.valid {
       border-color: var(--pt-valid);
       color: var(--pt-valid);
     }
@@ -461,7 +468,7 @@
     gap: 0.25rem;
   }
 
-  :where(dl.stats) {
+  dl.stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
     gap: var(--pt-spacing);

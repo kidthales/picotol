@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>picotol — Pure-CSS Semantic Framework Powered by Paul Tol Colour Schemes</title>
   <style>/*! @kidthales/picotol v0.1.0 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
-@layer tokens{:root,:host,[data-accent=blue]{--pt-p1:#ace;--pt-p2:#7ad;--pt-p3:#47a;--pt-p4:#25a;--pt-p5:#048}:root,:host{color-scheme:light dark}:root,:host,:where([data-accent],[data-theme]){--pt-font-emoji:"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";--pt-font-sans:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", var(--pt-font-emoji), sans-serif;--pt-font-mono:ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", var(--pt-font-emoji), monospace;--pt-line-height:1.5;--pt-border-radius:.25rem;--pt-transition:.15s ease-in-out;--pt-spacing:1rem;--pt-form-y:.5rem;--pt-form-x:.75rem;--pt-container-max:70rem;--pt-grid-min:15rem;--pt-icon-chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");--pt-bg:light-dark(#fff,#000);--pt-black:#000;--pt-surface:light-dark(#ddd,#444);--pt-surface-subtle:color-mix(in srgb, var(--pt-surface) 38%, transparent);--pt-color:light-dark(#000,#fff);--pt-muted-color:light-dark(#444,#ddd);--pt-muted-border:light-dark(#888,#666);--pt-border:1px solid var(--pt-muted-border);--pt-valid:light-dark(#064,#4b9);--pt-invalid:light-dark(#c31,#e67);--pt-mark-bg:light-dark(#eeb,#750);--pt-box-shadow:0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);--pt-primary:light-dark(var(--pt-p4),var(--pt-p2));--pt-primary-hover:light-dark(var(--pt-p5),var(--pt-p1));--pt-primary-bg:light-dark(var(--pt-p1),var(--pt-p4));--pt-primary-hover-bg:light-dark(var(--pt-p2),var(--pt-p3))}[data-theme=light]{color-scheme:light}[data-theme=dark]{color-scheme:dark}[data-accent=cyan]{--pt-p1:#cef;--pt-p2:#9df;--pt-p3:#07b;--pt-p4:#178;--pt-p5:#048}[data-accent=purple]{--pt-p1:#e7d4e8;--pt-p2:#c2a5cf;--pt-p3:#a49;--pt-p4:#762a83;--pt-p5:#328}[data-accent=magenta]{--pt-p1:#ebd;--pt-p2:#fab;--pt-p3:#b48;--pt-p4:#936;--pt-p5:#825}}@layer base{*,:before,:after{box-sizing:border-box}:root,:host,:where([data-theme]){background:var(--pt-bg);color:var(--pt-color)}:root,:host{font-family:var(--pt-font-sans);font-size:clamp(100%,95% + .4vw,125%);line-height:var(--pt-line-height);overflow-wrap:break-word;tab-size:4;font-optical-sizing:auto;font-kerning:normal}body{margin:0}:where(button,input,optgroup,select,textarea){font:inherit;margin:0}::selection{background-color:color-mix(in srgb, var(--pt-primary) 25%, transparent)}:where([hidden]){display:none!important}:focus-visible{outline:2px solid var(--pt-primary);outline-offset:2px}[tabindex="-1"]:focus:not(:focus-visible){outline-width:0}.skip-to-content:is(:focus,:focus-visible){top:.5rem;z-index:9999;border:2px solid var(--pt-primary);border-radius:var(--pt-border-radius);background:var(--pt-bg);color:var(--pt-color);box-shadow:var(--pt-box-shadow);padding:.5rem 1rem;font-weight:700;text-decoration:none;position:fixed;inset-inline-start:.5rem}:where(.sr-only,.visually-hidden,:is(.skip-to-content,.sr-only-focusable,.visually-hidden-focusable):not(:focus,:focus-visible)){clip-path:inset(50%);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}@media (prefers-reduced-motion:reduce){:not([aria-busy=true]){&,&:before,&:after{animation:none!important}}*,:before,:after{scroll-behavior:auto!important;transition:none!important}}@media print{:root{color-scheme:light;--pt-bg:#fff;--pt-color:#000}:where(nav,dialog,.skip-to-content){display:none!important}:where(pre,blockquote,table,article,figure){break-inside:avoid}}}@layer layout{:where(body>header,body>main,body>footer,.container){width:100%;max-width:var(--pt-container-max);padding:var(--pt-spacing);margin-inline:auto}section{margin-bottom:calc(var(--pt-spacing) * 1.5)}.grid{gap:var(--pt-spacing);display:grid;&>*{min-width:0}@media (width>=48rem){grid-template-columns:repeat(auto-fit, minmax(min(100%, var(--pt-grid-min)), 1fr))}}.overflow-auto{overflow-x:auto}}@layer content{:where(p,ul,ol,dl,blockquote,pre,figure,table,address,hr,hgroup,h1,h2,h3,h4,h5,h6){margin-block:0 var(--pt-spacing)}:where(.measure,.prose){max-width:75ch}:where(h1,h2,h3,h4,h5,h6){text-wrap:balance;font-weight:700;line-height:1.25;&:not(:first-child){margin-top:1.5em}}:where(h1,h2){line-height:1.2}h1{font-size:clamp(2rem,1.6rem + 1.5vw,2.5rem)}h2{font-size:clamp(1.6rem,1.3rem + 1vw,2rem)}h3{font-size:clamp(1.3rem,1.15rem + .5vw,1.55rem)}:where(h4,h5,h6){color:var(--pt-muted-color)}h4{font-size:1.2rem}h5{font-size:1.05rem;font-weight:600}h6{text-transform:uppercase;letter-spacing:.05em;font-size:.9rem;font-weight:600}hgroup>*{margin:0;&:nth-child(2){color:var(--pt-muted-color);font-size:1rem;font-weight:400}}:where(ul,ol){padding-inline-start:1.5rem;& li{margin-bottom:.25rem}}dl{& dt{font-weight:700}& dd{margin:0 0 .5rem 1.5rem}}small{font-size:.875em}mark{border-radius:var(--pt-border-radius);background:var(--pt-mark-bg);color:var(--pt-color);padding:.125em .25em}ins{color:var(--pt-valid);text-decoration:none}del{color:var(--pt-invalid)}abbr[title]{cursor:help;border-bottom:1px dotted;text-decoration:none}blockquote{padding:.5rem var(--pt-spacing);border-inline-start:4px solid var(--pt-muted-border);margin-inline:0}:where(figcaption,blockquote footer){color:var(--pt-muted-color);margin-top:.5rem;font-size:.875em}hr{border:0;border-top:var(--pt-border)}:where(.secondary,[type=reset]){--pt-primary:var(--pt-muted-color);--pt-primary-hover:var(--pt-color);--pt-primary-bg:var(--pt-surface);--pt-primary-hover-bg:var(--pt-muted-border)}:where(a:not([role=button])){color:var(--pt-primary);text-decoration:underline color-mix(in srgb, var(--pt-primary) 50%, transparent);text-underline-offset:2px;&:is(:hover,:active,:focus-visible){color:var(--pt-primary-hover);text-decoration-color:var(--pt-primary-hover)}}:where(button,[type=submit],[type=reset],[type=button],[role=button]){padding:var(--pt-form-y) var(--pt-form-x);border:1px solid var(--pt-primary);border-radius:var(--pt-border-radius);background:var(--pt-primary-bg);color:var(--pt-btn-color,var(--pt-color));text-align:center;cursor:pointer;transition:var(--pt-transition);text-decoration:none;display:inline-block;&:is(:hover,:active){background:var(--pt-primary-hover-bg)}&.outline{color:var(--pt-primary);background:0 0;&:is(:hover,:active){background:var(--pt-surface-subtle)}}}:where([disabled],fieldset[disabled] *){opacity:.5;pointer-events:none}:where(pre,code,kbd,samp){border-radius:var(--pt-border-radius);background:var(--pt-surface-subtle);font-family:var(--pt-font-mono);padding:.125em .375em;font-size:.875em}kbd{border:var(--pt-border);background:var(--pt-color);color:var(--pt-bg);font-weight:700}pre{padding:var(--pt-spacing);border:var(--pt-border);overflow-x:auto;&>code{font-size:inherit;background:0 0;padding:0}}:where(table,[role=table],code,kbd,samp,time,.tabular-nums){font-variant-numeric:tabular-nums lining-nums}table{border-collapse:collapse;width:100%}:where(th,td){border-bottom:var(--pt-border);text-align:start;padding:.5rem .75rem}:where(thead,tfoot) :is(th,td){border-bottom-width:2px;font-weight:600}table.striped tbody tr:nth-child(odd){background:var(--pt-surface-subtle)}:where(img,video){max-width:100%;height:auto}figure{margin-inline:0}:where(figure:has(>table)){overflow-x:auto}:where(svg.icon,[data-icon]){vertical-align:-.2em;fill:none;stroke:currentColor;stroke-width:2px;stroke-linecap:round;stroke-linejoin:round;width:1.15em;height:1.15em;display:inline-block;&:is([fill]:not([fill=none]),[data-filled],.solid){fill:currentColor;stroke:none}}:where(button,[role=button],a)>:where(svg.icon,[data-icon]){&:first-child:not(:only-child){margin-inline-end:.5em}&:last-child:not(:only-child){margin-inline-start:.5em}}:where(button,[role=button]):has(>:where(svg.icon,[data-icon]):only-child){padding:var(--pt-form-y);aspect-ratio:1;justify-content:center;align-items:center;display:inline-flex}}@layer forms{:where(label,fieldset>legend){margin-bottom:.25rem;font-weight:500;display:block}fieldset{margin:0 0 var(--pt-spacing);border:0;padding:0}:where(input:not([type=checkbox],[type=radio],[type=range],[type=file],[type=submit],[type=button],[type=reset]),select,textarea){width:100%;margin-bottom:var(--pt-spacing);padding:var(--pt-form-y) var(--pt-form-x);border:var(--pt-border);border-radius:var(--pt-border-radius);background:var(--pt-bg);color:var(--pt-color);appearance:none;transition:var(--pt-transition);&:focus-visible{border-color:var(--pt-primary);outline:2px solid var(--pt-primary);outline-offset:1px}&::placeholder{color:var(--pt-muted-color);opacity:.75}&[aria-invalid=false]{--pt-primary:var(--pt-valid);&+small:before{content:"✓ ";font-weight:700}}&[aria-invalid]:not([aria-invalid=false]){--pt-primary:var(--pt-invalid);&+small:before{content:"✗ ";font-weight:700}}&[aria-invalid]{border-width:2px;border-color:var(--pt-primary);&+small{color:var(--pt-primary)}}&+small{margin:-.75rem 0 var(--pt-spacing);color:var(--pt-muted-color);display:block}}:where(select){background:var(--pt-bg) var(--pt-icon-chevron) no-repeat right .75rem center / .75rem;padding-inline-end:2.25rem}[type=search]{border-radius:99px}[type=color]{cursor:pointer;height:2.5rem;padding:.25rem}[type=file]{width:100%;margin-bottom:var(--pt-spacing);color:var(--pt-muted-color);&::file-selector-button{margin-inline-end:.75rem}}:where([type=checkbox],[type=radio]){vertical-align:middle;width:1.5rem;height:1.5rem;accent-color:var(--pt-primary);cursor:pointer;margin:-2px .5rem 0 0}label:has(>[type=checkbox],>[type=radio]){min-height:1.75rem;cursor:pointer;align-items:center;margin-inline-end:var(--pt-spacing);display:inline-flex}}@layer nav{nav{justify-content:space-between;align-items:center;gap:.5rem var(--pt-spacing);flex-wrap:wrap;display:flex;& :where(ol,ul){flex-wrap:wrap;align-items:center;gap:.5rem .75rem;margin:0;padding:0;list-style:none;display:flex}& li{align-items:center;padding:.25rem 0;display:inline-flex}& a{padding:.25rem .125rem;text-decoration:none;&:is(:hover,:focus,[aria-current]:not([aria-current=false])){text-decoration:underline}}& :where(select,input,button){width:auto;margin-bottom:0}&[aria-label=breadcrumb]{justify-content:flex-start;& li:not(:last-child):after{content:">";color:var(--pt-muted-color);margin-inline-start:.75rem}}}:where(nav li):before{float:left;content:"​"}aside :where(nav,ol,ul,li){display:block}}@layer components{article{margin-bottom:var(--pt-spacing);padding:var(--pt-spacing);border:var(--pt-border);border-radius:var(--pt-border-radius);background-color:var(--pt-bg);box-shadow:var(--pt-box-shadow);overflow:hidden;&>:where(header,footer){margin-inline:calc(-1 * var(--pt-spacing));padding:calc(var(--pt-spacing) * .66) var(--pt-spacing);background-color:var(--pt-surface-subtle)}&>header{margin-block:calc(-1 * var(--pt-spacing)) var(--pt-spacing);border-bottom:var(--pt-border)}&>footer{margin-block:var(--pt-spacing) calc(-1 * var(--pt-spacing));border-top:var(--pt-border)}}:where(.contrast){--pt-primary:var(--pt-color);--pt-primary-hover:var(--pt-muted-color);--pt-primary-bg:var(--pt-color);--pt-primary-hover-bg:var(--pt-muted-color);--pt-btn-color:var(--pt-bg)}details{margin-bottom:var(--pt-spacing);border-bottom:var(--pt-border);padding-bottom:.75rem;& summary{cursor:pointer;justify-content:space-between;align-items:center;font-weight:600;list-style:none;display:flex;&::marker{display:none}&:after{content:"";width:1rem;height:1rem;mask:var(--pt-icon-chevron) center / contain no-repeat;transition:transform var(--pt-transition);background-color:currentColor;transform:rotate(-90deg)}}&[open]>summary{margin-bottom:.75rem;&:after{transform:none}}&.dropdown{border:0;padding:0;position:relative;&>summary{padding:var(--pt-form-y) var(--pt-form-x);border:var(--pt-border);border-radius:var(--pt-border-radius);background-color:var(--pt-bg);margin:0;&:after{transform:none}}&[open]>summary:before{content:"";z-index:98;cursor:default;background:0 0;position:fixed;inset:0}&[open]>summary:after{transform:rotate(180deg)}&>ul{top:calc(100% + .25rem);z-index:99;border:var(--pt-border);border-radius:var(--pt-border-radius);background-color:var(--pt-bg);min-width:100%;box-shadow:var(--pt-box-shadow);margin:0;padding:.25rem 0;list-style:none;position:absolute;inset-inline-start:0;& li{padding:.375rem var(--pt-form-x);white-space:nowrap;margin:0;&:hover{background-color:var(--pt-surface-subtle)}}}}}:where([role=group],[role=search]){width:100%;margin-bottom:var(--pt-spacing);display:inline-flex;&>*{flex:auto;width:auto;min-width:0;margin-bottom:0;&:not(:first-child){border-start-start-radius:0;border-end-start-radius:0;margin-inline-start:-1px}&:not(:last-child){border-start-end-radius:0;border-end-end-radius:0}}&>:where(button,[type=submit],[type=button],[type=reset],[role=button]){white-space:nowrap;flex:none;padding-inline:1rem}@media (width<=25rem){flex-wrap:wrap;&>*{border-radius:var(--pt-border-radius)!important;flex:100%!important;margin:0 0 .5rem!important}}}[role=search]{&>:first-child{border-start-start-radius:99px;border-end-start-radius:99px}&>:last-child{border-start-end-radius:99px;border-end-end-radius:99px}}:where(dialog){border:var(--pt-border);border-radius:var(--pt-border-radius);background-color:var(--pt-bg);color:var(--pt-color);padding:var(--pt-spacing);box-shadow:var(--pt-box-shadow);max-width:min(100vw - 2rem,40rem);&:not([open]){display:none}&>article{width:100%;max-width:min(100vw - 2rem,40rem);max-height:90vh;margin:0;overflow:auto}&:has(>article){box-shadow:none;background-color:#0000;border:0;padding:0}}dialog article>header{justify-content:space-between;align-items:center;gap:.5rem;display:flex}:where(dialog:modal){&::backdrop{background-color:color-mix(in srgb, var(--pt-black) 65%, transparent)}&:has(>article){z-index:999;max-width:none;padding:var(--pt-spacing);justify-content:center;align-items:center;margin:0;display:flex;position:fixed;inset:0}}dialog :where(header,form) button:is([aria-label=Close i],[rel=prev],.close){width:1.5rem;height:1.5rem;color:var(--pt-muted-color);cursor:pointer;background:0 0;border:0;flex-shrink:0;margin-inline-start:auto;padding:0;font-size:0;position:relative;&:is(:hover,:focus-visible){color:var(--pt-color)}&:before,&:after{content:"";background:currentColor;width:1rem;height:2px;position:absolute;top:50%;left:50%}&:before{transform:translate(-50%,-50%)rotate(45deg)}&:after{transform:translate(-50%,-50%)rotate(-45deg)}}progress{border-radius:var(--pt-border-radius);background-color:var(--pt-surface);width:100%;height:.5rem;accent-color:var(--pt-primary);border:0;margin-bottom:.5rem;overflow:hidden;&::-webkit-progress-bar{background:0 0}&::-webkit-progress-value{background-color:var(--pt-primary)}&::-moz-progress-bar{background-color:var(--pt-primary)}}[role=switch]{border:var(--pt-border);background-color:var(--pt-surface);appearance:none;width:2.75rem;height:1.5rem;transition:background-color var(--pt-transition), border-color var(--pt-transition);border-radius:1.5rem;&:before{content:"";background-color:var(--pt-bg);width:1.25rem;height:1.25rem;transition:margin var(--pt-transition);border-radius:50%;margin:.0625rem;display:block}&:checked{background-color:var(--pt-primary);border-color:var(--pt-primary);&:before{margin-inline-start:1.3125rem}}}@media (forced-colors:active){[role=switch]{border-color:buttontext;&:before{background-color:buttontext}&:checked{background-color:highlight;border-color:highlight;&:before{background-color:highlighttext}}}progress{border:1px solid buttontext}}[type=range]{width:100%;min-height:1.5rem;margin-bottom:var(--pt-spacing);accent-color:var(--pt-primary);cursor:pointer}:where(button,[type=submit],[role=button],a)[aria-busy=true]{pointer-events:none}[aria-busy=true]:not(input,select,textarea,html,form):before{content:"";border:.15em solid;vertical-align:-.125em;border-inline-end-color:#0000;border-radius:50%;width:1em;height:1em;margin-inline-end:.5em;animation:.75s linear infinite pt-spin;display:inline-block}:where(button,[type=submit],[role=button])[aria-busy=true]:empty{text-align:center;white-space:nowrap;&:before{margin-inline-end:0}}@keyframes pt-spin{to{transform:rotate(360deg)}}[data-tooltip]{position:relative;&:not(a,button,input,[role=button]){cursor:help;border-bottom:1px dotted;text-decoration:none}&:is(:hover,:focus-visible):before{content:attr(data-tooltip);z-index:99;border-radius:var(--pt-border-radius);background-color:var(--pt-color);width:max-content;max-width:min(16rem,80vw);color:var(--pt-bg);text-align:center;white-space:normal;pointer-events:none;padding:.25rem .5rem;font-size:.875rem;position:absolute;bottom:calc(100% + .375rem);left:50%;transform:translate(-50%)}}:where(aside:not(nav *),[role=alert]){margin-bottom:var(--pt-spacing);padding:var(--pt-spacing);border-radius:var(--pt-border-radius);border-inline-start:.25rem solid var(--pt-muted-border);background:var(--pt-surface-subtle);color:var(--pt-color);&:is(.primary,[data-accent]){border-inline-start-color:var(--pt-primary)}&:is([role=alert],.danger,.invalid){border-inline-start-color:var(--pt-invalid)}&:is(.success,.valid){border-inline-start-color:var(--pt-valid)}}:where(.badge,[role=status]){border:1px solid var(--pt-muted-border);background:var(--pt-surface-subtle);color:var(--pt-color);white-space:nowrap;vertical-align:middle;border-radius:99px;align-items:center;padding:.125em .5em;font-size:.75em;font-weight:600;line-height:1;display:inline-flex;&:is(.primary,[data-accent]){border-color:var(--pt-primary);color:var(--pt-primary)}&:is([role=alert],.invalid,.danger){border-color:var(--pt-invalid);color:var(--pt-invalid)}&:is(.valid,.success){border-color:var(--pt-valid);color:var(--pt-valid)}&>:where(svg.icon,[data-icon]){&:first-child:not(:only-child){margin-inline-end:.35em}&:last-child:not(:only-child){margin-inline-start:.35em}}}:where([role=tablist]){margin-bottom:var(--pt-spacing);border-bottom:2px solid var(--pt-muted-border);flex-wrap:wrap;gap:.25rem;display:flex;&>*{color:var(--pt-muted-color);cursor:pointer;background:0 0;border:0;border-bottom:2px solid #0000;align-items:center;margin-bottom:-2px;padding:.5rem 1rem;font-weight:500;text-decoration:none;display:inline-flex;&:is(:hover,:focus-visible){color:var(--pt-color);border-bottom-color:var(--pt-muted-border)}&:is([aria-selected=true],[aria-current=page],.active){color:var(--pt-primary);border-bottom-color:var(--pt-primary);font-weight:600}}&.segmented{border:var(--pt-border);border-radius:var(--pt-border-radius);background:var(--pt-surface-subtle);padding:.25rem;display:inline-flex;&>*{border-radius:calc(var(--pt-border-radius) * .75);border:0;margin:0;padding:.25rem .75rem;&:is([aria-selected=true],[aria-current=page],.active){background:var(--pt-bg);color:var(--pt-color);box-shadow:var(--pt-box-shadow)}}}}:where(article.stat,dl.stats>:is(div,article)){flex-direction:column;gap:.25rem;display:flex}:where(dl.stats){gap:var(--pt-spacing);margin-bottom:var(--pt-spacing);grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));display:grid;&>:is(div,article){padding:var(--pt-spacing);border:var(--pt-border);border-radius:var(--pt-border-radius);background-color:var(--pt-bg);box-shadow:var(--pt-box-shadow);margin-bottom:0;overflow:hidden}}:where(article.stat,dl.stats){& :where(dt,small,.label){color:var(--pt-muted-color);margin:0;font-size:.875rem;font-weight:500}& :where(dd,strong,.value){font-variant-numeric:tabular-nums lining-nums;color:var(--pt-color);margin:0;font-size:clamp(1.75rem,4vw,2.5rem);font-weight:700;line-height:1.1}& :where(footer,.description,.trend){color:var(--pt-muted-color);margin-top:.25rem;font-size:.875rem}}:where(.skeleton,[aria-busy=true].skeleton){border-radius:var(--pt-border-radius);background-color:var(--pt-surface-subtle);user-select:none;pointer-events:none;width:100%;min-height:1.2em;animation:1.5s ease-in-out infinite pt-pulse;display:inline-block;color:#0000!important;&>*{visibility:hidden!important}}@keyframes pt-pulse{0%,to{opacity:1}50%{opacity:.4}}@media (prefers-reduced-motion:reduce){:where(.skeleton,[aria-busy=true].skeleton){opacity:.6;animation:none!important}}}</style>
+@layer tokens{:root,:host,[data-accent=blue]{--pt-p1:#ace;--pt-p2:#7ad;--pt-p3:#47a;--pt-p4:#25a;--pt-p5:#048}:root,:host{color-scheme:light dark}:root,:host,:where([data-accent],[data-theme]){--pt-font-emoji:"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";--pt-font-sans:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", var(--pt-font-emoji), sans-serif;--pt-font-mono:ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", var(--pt-font-emoji), monospace;--pt-line-height:1.5;--pt-border-radius:.25rem;--pt-transition:.15s ease-in-out;--pt-spacing:1rem;--pt-form-y:.5rem;--pt-form-x:.75rem;--pt-container-max:70rem;--pt-grid-min:15rem;--pt-icon-chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");--pt-bg:light-dark(#fff,#000);--pt-black:#000;--pt-surface:light-dark(#ddd,#444);--pt-surface-subtle:color-mix(in srgb, var(--pt-surface) 38%, transparent);--pt-color:light-dark(#000,#fff);--pt-muted-color:light-dark(#444,#ddd);--pt-muted-border:light-dark(#888,#666);--pt-border:1px solid var(--pt-muted-border);--pt-valid:light-dark(#064,#4b9);--pt-warning:light-dark(#750,#ed8);--pt-invalid:light-dark(#c31,#e67);--pt-mark-bg:light-dark(#eeb,#750);--pt-box-shadow:0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);--pt-primary:light-dark(var(--pt-p4),var(--pt-p2));--pt-primary-hover:light-dark(var(--pt-p5),var(--pt-p1));--pt-primary-bg:light-dark(var(--pt-p1),var(--pt-p4));--pt-primary-hover-bg:light-dark(var(--pt-p2),var(--pt-p3))}[data-theme=light]{color-scheme:light}[data-theme=dark]{color-scheme:dark}[data-accent=cyan]{--pt-p1:#cef;--pt-p2:#9df;--pt-p3:#07b;--pt-p4:#178;--pt-p5:#048}[data-accent=purple]{--pt-p1:#e7d4e8;--pt-p2:#c2a5cf;--pt-p3:#a49;--pt-p4:#762a83;--pt-p5:#328}[data-accent=magenta]{--pt-p1:#ebd;--pt-p2:#fab;--pt-p3:#b48;--pt-p4:#936;--pt-p5:#825}}@layer base{*,:before,:after{box-sizing:border-box}:root,:host,:where([data-theme]){background:var(--pt-bg);color:var(--pt-color)}:root,:host{font-family:var(--pt-font-sans);font-size:clamp(100%,95% + .4vw,125%);line-height:var(--pt-line-height);overflow-wrap:break-word;tab-size:4;font-optical-sizing:auto;font-kerning:normal}body{margin:0}:where(button,input,optgroup,select,textarea){font:inherit;margin:0}::selection{background-color:color-mix(in srgb, var(--pt-primary) 25%, transparent)}:where([hidden]){display:none!important}:focus-visible{outline:2px solid var(--pt-primary);outline-offset:2px}[tabindex="-1"]:focus:not(:focus-visible){outline-width:0}.skip-to-content:is(:focus,:focus-visible){top:.5rem;z-index:9999;border:2px solid var(--pt-primary);border-radius:var(--pt-border-radius);background:var(--pt-bg);color:var(--pt-color);box-shadow:var(--pt-box-shadow);padding:.5rem 1rem;font-weight:700;text-decoration:none;position:fixed;inset-inline-start:.5rem}:where(.sr-only,.visually-hidden,:is(.skip-to-content,.sr-only-focusable,.visually-hidden-focusable):not(:focus,:focus-visible)){clip-path:inset(50%);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}@media (prefers-reduced-motion:reduce){:not([aria-busy=true]){&,&:before,&:after{animation:none!important}}*,:before,:after{scroll-behavior:auto!important;transition:none!important}}@media print{:root{color-scheme:light;--pt-bg:#fff;--pt-color:#000}:where(nav,dialog,.skip-to-content){display:none!important}:where(pre,blockquote,table,article,figure){break-inside:avoid}}}@layer layout{:where(body>header,body>main,body>footer,.container){width:100%;max-width:var(--pt-container-max);padding:var(--pt-spacing);margin-inline:auto}section{margin-bottom:calc(var(--pt-spacing) * 1.5)}.grid{gap:var(--pt-spacing);display:grid;&>*{min-width:0}@media (width>=48rem){grid-template-columns:repeat(auto-fit, minmax(min(100%, var(--pt-grid-min)), 1fr))}}.overflow-auto{overflow-x:auto}}@layer content{:where(p,ul,ol,dl,blockquote,pre,figure,table,address,hr,hgroup,h1,h2,h3,h4,h5,h6){margin-block:0 var(--pt-spacing)}:where(.measure,.prose){max-width:75ch}:where(h1,h2,h3,h4,h5,h6){text-wrap:balance;font-weight:700;line-height:1.25;&:not(:first-child){margin-top:1.5em}}:where(h1,h2){line-height:1.2}h1{font-size:clamp(2rem,1.6rem + 1.5vw,2.5rem)}h2{font-size:clamp(1.6rem,1.3rem + 1vw,2rem)}h3{font-size:clamp(1.3rem,1.15rem + .5vw,1.55rem)}:where(h4,h5,h6){color:var(--pt-muted-color)}h4{font-size:1.2rem}h5{font-size:1.05rem;font-weight:600}h6{text-transform:uppercase;letter-spacing:.05em;font-size:.9rem;font-weight:600}hgroup>*{margin:0;&:nth-child(2){color:var(--pt-muted-color);font-size:1rem;font-weight:400}}:where(ul,ol){padding-inline-start:1.5rem;& li{margin-bottom:.25rem}}dl{& dt{font-weight:700}& dd{margin:0 0 .5rem 1.5rem}}small{font-size:.875em}mark{border-radius:var(--pt-border-radius);background:var(--pt-mark-bg);color:var(--pt-color);padding:.125em .25em}ins{color:var(--pt-valid);text-decoration:none}del{color:var(--pt-invalid)}abbr[title]{cursor:help;border-bottom:1px dotted;text-decoration:none}blockquote{padding:.5rem var(--pt-spacing);border-inline-start:4px solid var(--pt-muted-border);margin-inline:0}:where(figcaption,blockquote footer){color:var(--pt-muted-color);margin-top:.5rem;font-size:.875em}hr{border:0;border-top:var(--pt-border)}:where(.secondary,[type=reset]){--pt-primary:var(--pt-muted-color);--pt-primary-hover:var(--pt-color);--pt-primary-bg:var(--pt-surface);--pt-primary-hover-bg:var(--pt-muted-border)}:where(a:not([role=button])){color:var(--pt-primary);text-decoration:underline color-mix(in srgb, var(--pt-primary) 50%, transparent);text-underline-offset:2px;&:is(:hover,:active,:focus-visible){color:var(--pt-primary-hover);text-decoration-color:var(--pt-primary-hover)}}:where(button,[type=submit],[type=reset],[type=button],[role=button]){padding:var(--pt-form-y) var(--pt-form-x);border:1px solid var(--pt-primary);border-radius:var(--pt-border-radius);background:var(--pt-primary-bg);color:var(--pt-btn-color,var(--pt-color));text-align:center;cursor:pointer;transition:var(--pt-transition);text-decoration:none;display:inline-block;&:is(:hover,:active){background:var(--pt-primary-hover-bg)}&.outline{color:var(--pt-primary);background:0 0;&:is(:hover,:active){background:var(--pt-surface-subtle)}}}:where([disabled],fieldset[disabled] *){opacity:.5;pointer-events:none}:where(pre,code,kbd,samp){border-radius:var(--pt-border-radius);background:var(--pt-surface-subtle);font-family:var(--pt-font-mono);padding:.125em .375em;font-size:.875em}kbd{border:var(--pt-border);background:var(--pt-color);color:var(--pt-bg);font-weight:700}pre{padding:var(--pt-spacing);border:var(--pt-border);overflow-x:auto;&>code{font-size:inherit;background:0 0;padding:0}}:where(table,[role=table],code,kbd,samp,time,.tabular-nums){font-variant-numeric:tabular-nums lining-nums}table{border-collapse:collapse;width:100%}:where(th,td){border-bottom:var(--pt-border);text-align:start;padding:.5rem .75rem}:where(thead,tfoot) :is(th,td){border-bottom-width:2px;font-weight:600}table.striped tbody tr:nth-child(odd){background:var(--pt-surface-subtle)}:where(img,video){max-width:100%;height:auto}figure{margin-inline:0}:where(figure:has(>table)){overflow-x:auto}:where(svg.icon,[data-icon]){vertical-align:-.2em;fill:none;stroke:currentColor;stroke-width:2px;stroke-linecap:round;stroke-linejoin:round;width:1.15em;height:1.15em;display:inline-block;&:is([fill]:not([fill=none]),[data-filled],.solid){fill:currentColor;stroke:none}}:where(button,[role=button],a):has(>:where(svg.icon,[data-icon])){vertical-align:middle;justify-content:center;align-items:center;gap:.5rem;display:inline-flex}:where(button,[role=button]):is([aria-label],[aria-labelledby],[title]):has(>:where(svg.icon,[data-icon]):only-child){padding:var(--pt-form-y);height:calc(1lh + 2 * var(--pt-form-y) + 2px);aspect-ratio:1}}@layer forms{:where(label,fieldset>legend){margin-bottom:.25rem;font-weight:500;display:block}fieldset{margin:0 0 var(--pt-spacing);border:0;padding:0}:where(input:not([type=checkbox],[type=radio],[type=range],[type=file],[type=submit],[type=button],[type=reset]),select,textarea){width:100%;margin-bottom:var(--pt-spacing);padding:var(--pt-form-y) var(--pt-form-x);border:var(--pt-border);border-radius:var(--pt-border-radius);background:var(--pt-bg);color:var(--pt-color);appearance:none;transition:var(--pt-transition);&:focus-visible{border-color:var(--pt-primary);outline:2px solid var(--pt-primary);outline-offset:1px}&::placeholder{color:var(--pt-muted-color);opacity:.75}&[aria-invalid=false]{--pt-primary:var(--pt-valid);&+small:before{content:"✓ ";font-weight:700}}&[aria-invalid]:not([aria-invalid=false]){--pt-primary:var(--pt-invalid);&+small:before{content:"✗ ";font-weight:700}}&[aria-invalid]{border-width:2px;border-color:var(--pt-primary);&+small{color:var(--pt-primary)}}&+small{margin:-.75rem 0 var(--pt-spacing);color:var(--pt-muted-color);display:block}}:where(select){background:var(--pt-bg) var(--pt-icon-chevron) no-repeat right .75rem center / .75rem;padding-inline-end:2.25rem}[type=search]{border-radius:99px}[type=color]{cursor:pointer;height:2.5rem;padding:.25rem}[type=file]{width:100%;margin-bottom:var(--pt-spacing);color:var(--pt-muted-color);&::file-selector-button{margin-inline-end:.75rem}}:where([type=checkbox],[type=radio]){vertical-align:middle;width:1.5rem;height:1.5rem;accent-color:var(--pt-primary);cursor:pointer;margin:-2px .5rem 0 0}label:has(>[type=checkbox],>[type=radio]){min-height:1.75rem;cursor:pointer;align-items:center;margin-inline-end:var(--pt-spacing);display:inline-flex}}@layer nav{nav{justify-content:space-between;align-items:center;gap:.5rem var(--pt-spacing);flex-wrap:wrap;display:flex;& :where(ol,ul){flex-wrap:wrap;align-items:center;gap:.5rem .75rem;margin:0;padding:0;list-style:none;display:flex}& li{align-items:center;padding:.25rem 0;display:inline-flex}& a{padding:.25rem .125rem;text-decoration:none;&:is(:hover,:focus,[aria-current]:not([aria-current=false])){text-decoration:underline}}& :where(select,input,button){width:auto;margin-bottom:0}&[aria-label=breadcrumb]{justify-content:flex-start;& li:not(:last-child):after{content:">";color:var(--pt-muted-color);margin-inline-start:.75rem}}}:where(nav li):before{float:left;content:"​"}aside :where(nav,ol,ul,li){display:block}}@layer components{article{margin-bottom:var(--pt-spacing);padding:var(--pt-spacing);border:var(--pt-border);border-radius:var(--pt-border-radius);background-color:var(--pt-bg);box-shadow:var(--pt-box-shadow);overflow:hidden;&>:where(header,footer){margin-inline:calc(-1 * var(--pt-spacing));padding:calc(var(--pt-spacing) * .66) var(--pt-spacing);background-color:var(--pt-surface-subtle)}&>header{margin-block:calc(-1 * var(--pt-spacing)) var(--pt-spacing);border-bottom:var(--pt-border)}&>footer{margin-block:var(--pt-spacing) calc(-1 * var(--pt-spacing));border-top:var(--pt-border)}}:where(.contrast){--pt-primary:var(--pt-color);--pt-primary-hover:var(--pt-muted-color);--pt-primary-bg:var(--pt-color);--pt-primary-hover-bg:var(--pt-muted-color);--pt-btn-color:var(--pt-bg)}details{margin-bottom:var(--pt-spacing);border-bottom:var(--pt-border);padding-bottom:.75rem;& summary{cursor:pointer;justify-content:space-between;align-items:center;font-weight:600;list-style:none;display:flex;&::marker{display:none}&:after{content:"";width:1rem;height:1rem;mask:var(--pt-icon-chevron) center / contain no-repeat;transition:transform var(--pt-transition);background-color:currentColor;transform:rotate(-90deg)}}&[open]>summary{margin-bottom:.75rem;&:after{transform:none}}&.dropdown{border:0;padding:0;position:relative;&>summary{padding:var(--pt-form-y) var(--pt-form-x);border:var(--pt-border);border-radius:var(--pt-border-radius);background-color:var(--pt-bg);margin:0;&:after{transform:none}}&[open]>summary:before{content:"";z-index:98;cursor:default;background:0 0;position:fixed;inset:0}&[open]>summary:after{transform:rotate(180deg)}&>ul{top:calc(100% + .25rem);z-index:99;border:var(--pt-border);border-radius:var(--pt-border-radius);background-color:var(--pt-bg);min-width:100%;box-shadow:var(--pt-box-shadow);margin:0;padding:.25rem 0;list-style:none;position:absolute;inset-inline-start:0;& li{padding:.375rem var(--pt-form-x);white-space:nowrap;margin:0;&:hover{background-color:var(--pt-surface-subtle)}}}}}:where([role=group],[role=search]){width:100%;margin-bottom:var(--pt-spacing);display:inline-flex;&>*{flex:auto;width:auto;min-width:0;margin-bottom:0;&:not(:first-child){border-start-start-radius:0;border-end-start-radius:0;margin-inline-start:-1px}&:not(:last-child){border-start-end-radius:0;border-end-end-radius:0}}&>:where(button,[type=submit],[type=button],[type=reset],[role=button]){white-space:nowrap;flex:none;padding-inline:1rem}@media (width<=25rem){flex-wrap:wrap;&>*{border-radius:var(--pt-border-radius)!important;flex:100%!important;margin:0 0 .5rem!important}}}[role=search]{&>:first-child{border-start-start-radius:99px;border-end-start-radius:99px}&>:last-child{border-start-end-radius:99px;border-end-end-radius:99px}}:where(dialog){border:var(--pt-border);border-radius:var(--pt-border-radius);background-color:var(--pt-bg);color:var(--pt-color);padding:var(--pt-spacing);box-shadow:var(--pt-box-shadow);max-width:min(100vw - 2rem,40rem);&:not([open]){display:none}&>article{width:100%;max-width:min(100vw - 2rem,40rem);max-height:90vh;margin:0;overflow:auto}&:has(>article){box-shadow:none;background-color:#0000;border:0;padding:0}}dialog article>header{justify-content:space-between;align-items:center;gap:.5rem;display:flex}:where(dialog:modal){&::backdrop{background-color:color-mix(in srgb, var(--pt-black) 65%, transparent)}&:has(>article){z-index:999;max-width:none;padding:var(--pt-spacing);justify-content:center;align-items:center;margin:0;display:flex;position:fixed;inset:0}}dialog :where(header,form) button:is([aria-label=Close i],[rel=prev],.close){width:1.5rem;height:1.5rem;color:var(--pt-muted-color);cursor:pointer;background:0 0;border:0;flex-shrink:0;margin-inline-start:auto;padding:0;font-size:0;position:relative;&:is(:hover,:focus-visible){color:var(--pt-color)}&:before,&:after{content:"";background:currentColor;width:1rem;height:2px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)rotate(45deg)}&:after{transform:translate(-50%,-50%)rotate(-45deg)}}progress{border-radius:var(--pt-border-radius);background-color:var(--pt-surface);width:100%;height:.5rem;accent-color:var(--pt-primary);border:0;margin-bottom:.5rem;overflow:hidden;&::-webkit-progress-bar{background:0 0}&::-webkit-progress-value{background-color:var(--pt-primary)}&::-moz-progress-bar{background-color:var(--pt-primary)}}[role=switch]{border:var(--pt-border);background-color:var(--pt-surface);appearance:none;width:2.75rem;height:1.5rem;transition:background-color var(--pt-transition), border-color var(--pt-transition);border-radius:1.5rem;&:before{content:"";background-color:var(--pt-bg);width:1.25rem;height:1.25rem;transition:margin var(--pt-transition);border-radius:50%;margin:.0625rem;display:block}&:checked{background-color:var(--pt-primary);border-color:var(--pt-primary);&:before{margin-inline-start:1.3125rem}}}@media (forced-colors:active){[role=switch]{border-color:buttontext;&:before{background-color:buttontext}&:checked{background-color:highlight;border-color:highlight;&:before{background-color:highlighttext}}}progress{border:1px solid}}[type=range]{width:100%;min-height:1.5rem;margin-bottom:var(--pt-spacing);accent-color:var(--pt-primary);cursor:pointer}:where(button,[type=submit],[role=button],a)[aria-busy=true]{pointer-events:none}[aria-busy=true]:not(input,select,textarea,html,form):before{content:"";border:.15em solid;vertical-align:-.125em;border-inline-end-color:#0000;border-radius:50%;width:1em;height:1em;margin-inline-end:.5em;animation:.75s linear infinite pt-spin;display:inline-block}:where(button,[type=submit],[role=button])[aria-busy=true]:empty{text-align:center;white-space:nowrap;&:before{margin-inline-end:0}}@keyframes pt-spin{to{transform:rotate(360deg)}}[data-tooltip]{position:relative;&:not(a,button,input,[role=button]){cursor:help;border-bottom:1px dotted;text-decoration:none}&:is(:hover,:focus-visible):before{content:attr(data-tooltip);z-index:99;border-radius:var(--pt-border-radius);background-color:var(--pt-color);width:max-content;max-width:min(16rem,80vw);color:var(--pt-bg);text-align:center;white-space:normal;pointer-events:none;padding:.25rem .5rem;font-size:.875rem;position:absolute;bottom:calc(100% + .375rem);left:50%;transform:translate(-50%)}}:where(aside:not(nav *),[role=alert]){margin-bottom:var(--pt-spacing);padding:var(--pt-spacing);border-radius:var(--pt-border-radius);border-inline-start:.25rem solid var(--pt-muted-border);background:var(--pt-surface-subtle);color:var(--pt-color);&:is(.primary,[data-accent]){border-inline-start-color:var(--pt-primary)}&:is([role=alert],.invalid){border-inline-start-color:var(--pt-invalid)}&.warning{border-inline-start-color:var(--pt-warning)}&.valid{border-inline-start-color:var(--pt-valid)}}:where(.badge,[role=status]){border:1px solid var(--pt-muted-border);background:var(--pt-surface-subtle);color:var(--pt-color);white-space:nowrap;vertical-align:middle;border-radius:99px;align-items:center;padding:.125em .5em;font-size:.75em;font-weight:600;line-height:1;display:inline-flex;&:is(.primary,[data-accent]){border-color:var(--pt-primary);color:var(--pt-primary)}&:is([role=alert],.invalid){border-color:var(--pt-invalid);color:var(--pt-invalid)}&.warning{border-color:var(--pt-warning);color:var(--pt-warning)}&.valid{border-color:var(--pt-valid);color:var(--pt-valid)}&>:where(svg.icon,[data-icon]){&:first-child:not(:only-child){margin-inline-end:.35em}&:last-child:not(:only-child){margin-inline-start:.35em}}}:where([role=tablist]){margin-bottom:var(--pt-spacing);border-bottom:2px solid var(--pt-muted-border);flex-wrap:wrap;gap:.25rem;display:flex;&>*{color:var(--pt-muted-color);cursor:pointer;background:0 0;border:0;border-bottom:2px solid #0000;align-items:center;margin-bottom:-2px;padding:.5rem 1rem;font-weight:500;text-decoration:none;display:inline-flex;&:is(:hover,:focus-visible){color:var(--pt-color);border-bottom-color:var(--pt-muted-border)}&:is([aria-selected=true],[aria-current=page],.active){color:var(--pt-primary);border-bottom-color:var(--pt-primary);font-weight:600}}&.segmented{border:var(--pt-border);border-radius:var(--pt-border-radius);background:var(--pt-surface-subtle);padding:.25rem;display:inline-flex;&>*{border-radius:calc(var(--pt-border-radius) * .75);border:0;margin:0;padding:.25rem .75rem;&:is([aria-selected=true],[aria-current=page],.active){background:var(--pt-bg);color:var(--pt-color);box-shadow:var(--pt-box-shadow)}}}}:where(article.stat,dl.stats>:is(div,article)){flex-direction:column;gap:.25rem;display:flex}dl.stats{gap:var(--pt-spacing);margin-bottom:var(--pt-spacing);grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));display:grid;&>:is(div,article){padding:var(--pt-spacing);border:var(--pt-border);border-radius:var(--pt-border-radius);background-color:var(--pt-bg);box-shadow:var(--pt-box-shadow);margin-bottom:0;overflow:hidden}}:where(article.stat,dl.stats){& :where(dt,small,.label){color:var(--pt-muted-color);margin:0;font-size:.875rem;font-weight:500}& :where(dd,strong,.value){font-variant-numeric:tabular-nums lining-nums;color:var(--pt-color);margin:0;font-size:clamp(1.75rem,4vw,2.5rem);font-weight:700;line-height:1.1}& :where(footer,.description,.trend){color:var(--pt-muted-color);margin-top:.25rem;font-size:.875rem}}:where(.skeleton,[aria-busy=true].skeleton){border-radius:var(--pt-border-radius);background-color:var(--pt-surface-subtle);user-select:none;pointer-events:none;width:100%;min-height:1.2em;animation:1.5s ease-in-out infinite pt-pulse;display:inline-block;color:#0000!important;&>*{visibility:hidden!important}}@keyframes pt-pulse{0%,to{opacity:1}50%{opacity:.4}}@media (prefers-reduced-motion:reduce){:where(.skeleton,[aria-busy=true].skeleton){opacity:.6;animation:none!important}}}</style>
 </head>
 <body>
   <a href="#main-content" class="skip-to-content">Skip to main content</a>
@@ -14,13 +14,24 @@
       <ul>
         <li><strong>picotol</strong></li>
         <li><a href="#scorecard">Scorecard</a></li>
+        <li><a href="#subtrees">Subtrees</a></li>
         <li><a href="#typography">Typography</a></li>
         <li><a href="#buttons">Buttons</a></li>
         <li><a href="#forms">Forms</a></li>
         <li><a href="#tables">Tables</a></li>
         <li><a href="#components">Components</a></li>
+        <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#palettes">Palettes</a></li>
       </ul>
       <ul>
+        <li>
+          <div role="group" aria-label="Visual Accent Selector" style="margin-bottom:0;">
+            <button type="button" class="outline" data-set-accent="blue" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Blue Accent">Blue</button>
+            <button type="button" class="outline" data-set-accent="cyan" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Cyan Accent">Cyan</button>
+            <button type="button" class="outline" data-set-accent="purple" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Purple Accent">Purple</button>
+            <button type="button" class="outline" data-set-accent="magenta" style="padding:0.25rem 0.5rem;font-size:0.75rem;" title="Magenta Accent">Magenta</button>
+          </div>
+        </li>
         <li>
           <select id="accent-select" aria-label="Select Paul Tol accent hue" style="margin-bottom:0;padding-block:0.25rem;">
             <option value="blue">Accent: Blue</option>
@@ -29,7 +40,7 @@
             <option value="magenta">Accent: Magenta</option>
           </select>
         </li>
-        <li><button type="button" id="theme-toggle" class="outline" style="padding-block:0.25rem;">Toggle theme</button></li>
+        <li><button type="button" id="theme-toggle" class="outline" style="padding-block:0.25rem;">☀️ Light</button></li>
       </ul>
     </nav>
   </header>
@@ -54,17 +65,17 @@
       <div class="grid">
         <article>
           <header><strong>Core Bundle (<code>picotol.core.min.css</code>)</strong></header>
-          <p><strong>10528 bytes</strong> (10.28 KB minified · <strong>3587 B</strong> gzip)</p>
+          <p><strong>10580 bytes</strong> (10.33 KB minified · <strong>3624 B</strong> gzip)</p>
           <footer><small>Landmarks, .grid, typography, tables, forms, nav</small></footer>
         </article>
         <article>
           <header><strong>Full Bundle (<code>picotol.min.css</code>)</strong></header>
-          <p><strong>20242 bytes</strong> (19.77 KB minified · <strong>5454 B</strong> gzip)</p>
-          <footer><small>75.7% smaller than upstream pico.min.css (83.3 KB)</small></footer>
+          <p><strong>20341 bytes</strong> (19.86 KB minified · <strong>5501 B</strong> gzip)</p>
+          <footer><small>75.6% smaller than upstream pico.min.css (83.3 KB)</small></footer>
         </article>
       </div>
       <p><small><strong>How to read contrast ratios:</strong> Luminance contrast ranges from <code>1:1</code> (invisible) to <code>21:1</code> (pure black on white). <ins><strong>✓ AAA</strong></ins> (<code>&ge; 7.0:1</code>) is the highest W3C tier (enhanced low-vision legibility); <mark><strong>✓ AA</strong></mark> (<code>&ge; 4.5:1</code>) is the standard pass threshold for normal body text and UI controls.</small></p>
-      <div id="tables" class="overflow-auto">
+      <div class="overflow-auto">
         <table class="striped">
           <thead>
             <tr>
@@ -111,8 +122,53 @@
 
     <hr>
 
+    <section id="subtrees">
+      <h2>2. Concurrent Subtree Theming</h2>
+      <p>Picotol provides container-level <code>[data-accent]</code> scoping without color-scheme leakage. Multiple distinct accent trees run concurrently side-by-side in isolated container scopes with distinct buttons, switches, badges, and progress indicators.</p>
+      <div class="grid">
+        <article data-accent="blue">
+          <header><strong>Blue Subtree</strong></header>
+          <p><span class="badge primary">Blue Accent</span> <span class="badge">Neutral</span></p>
+          <p><button type="button">Primary</button></p>
+          <p><button type="button" class="outline">Outline</button></p>
+          <label><input type="checkbox" role="switch" checked> Active Switch</label>
+          <progress value="65" max="100"></progress>
+          <footer><small>Scoped via <code>data-accent="blue"</code></small></footer>
+        </article>
+        <article data-accent="cyan">
+          <header><strong>Cyan Subtree</strong></header>
+          <p><span class="badge primary">Cyan Accent</span> <span class="badge">Neutral</span></p>
+          <p><button type="button">Primary</button></p>
+          <p><button type="button" class="outline">Outline</button></p>
+          <label><input type="checkbox" role="switch" checked> Active Switch</label>
+          <progress value="80" max="100"></progress>
+          <footer><small>Scoped via <code>data-accent="cyan"</code></small></footer>
+        </article>
+        <article data-accent="purple">
+          <header><strong>Purple Subtree</strong></header>
+          <p><span class="badge primary">Purple Accent</span> <span class="badge">Neutral</span></p>
+          <p><button type="button">Primary</button></p>
+          <p><button type="button" class="outline">Outline</button></p>
+          <label><input type="checkbox" role="switch" checked> Active Switch</label>
+          <progress value="45" max="100"></progress>
+          <footer><small>Scoped via <code>data-accent="purple"</code></small></footer>
+        </article>
+        <article data-accent="magenta">
+          <header><strong>Magenta Subtree</strong></header>
+          <p><span class="badge primary">Magenta Accent</span> <span class="badge">Neutral</span></p>
+          <p><button type="button">Primary</button></p>
+          <p><button type="button" class="outline">Outline</button></p>
+          <label><input type="checkbox" role="switch" checked> Active Switch</label>
+          <progress value="90" max="100"></progress>
+          <footer><small>Scoped via <code>data-accent="magenta"</code></small></footer>
+        </article>
+      </div>
+    </section>
+
+    <hr>
+
     <section id="typography">
-      <h2>2. Typography &amp; Inline Semantics</h2>
+      <h2>3. Typography &amp; Inline Semantics</h2>
       <p class="measure">Body copy uses the system font stack with fluid root sizing via <code>clamp(100%, 95% + 0.4vw, 125%)</code> and an opt-in <code>75ch</code> reading measure via <code>:where(.measure, .prose)</code>. Links like <a href="#typography">primary link</a>, <a href="#typography" class="secondary">secondary link</a>, <a href="#typography" class="contrast">contrast link</a>, and <a href="https://github.com/kidthales/tol-palettes" target="_blank" rel="noopener noreferrer">external link<span class="sr-only"> (opens in a new tab)</span></a> step along Paul Tol's qualitative lightness ladder on hover.</p>
       <p>Inline elements include <strong>strong</strong>, <em>emphasis</em>, <mark>highlighted mark</mark>, <ins>inserted text</ins>, <del>deleted text</del>, <code>inline code</code>, <kbd>Ctrl + K</kbd>, and <abbr title="Paul Tol Colour Schemes">PTCS</abbr> (<span data-tooltip="Pure CSS tooltip via [data-tooltip]" aria-label="hover or focus for tooltip: Pure CSS tooltip via [data-tooltip]" tabindex="0">hover or focus for tooltip</span>).</p>
       <blockquote>
@@ -141,7 +197,7 @@
     <hr>
 
     <section id="buttons">
-      <h2>3. Buttons &amp; Role Variants</h2>
+      <h2>4. Buttons &amp; Role Variants</h2>
       <p>
         <button type="button">Primary</button>
         <button type="button" class="secondary">Secondary</button>
@@ -154,12 +210,19 @@
         <button type="button" class="outline contrast">Contrast Outline</button>
         <button type="button" aria-busy="true">Loading</button>
       </p>
+      <h3>Connected Button Group Toolbar</h3>
+      <div role="group" aria-label="Document actions">
+        <button type="button">Cut</button>
+        <button type="button" class="outline">Copy</button>
+        <button type="button" class="outline">Paste</button>
+        <button type="button" class="secondary">Format</button>
+      </div>
     </section>
 
     <hr>
 
     <section id="forms">
-      <h2>4. Semantic Forms &amp; Validation States</h2>
+      <h2>5. Native Forms &amp; Extended Controls</h2>
       <form onsubmit="event.preventDefault()">
         <div class="grid">
           <label>
@@ -187,6 +250,18 @@
             <small id="invalid-help">Hex literal is not in tol-palettes.</small>
           </div>
         </div>
+        <div class="grid">
+          <div>
+            <label for="file-upload">Attachment Upload</label>
+            <input id="file-upload" type="file">
+          </div>
+          <div>
+            <label for="color-picker">Accent Color Sample</label>
+            <input id="color-picker" type="color" value="#4477AA">
+          </div>
+        </div>
+        <label for="notes-textarea">Release Notes &amp; Specification</label>
+        <textarea id="notes-textarea" rows="3" placeholder="Enter changelog or design system notes..."></textarea>
         <fieldset>
           <legend>Preferences &amp; Controls</legend>
           <label><input type="checkbox" checked> Enforce Hex Purity</label>
@@ -198,6 +273,11 @@
           Contrast Threshold Range
           <input type="range" min="1" max="21" value="7">
         </label>
+        <div role="group" aria-label="Form Submission Controls">
+          <button type="submit">Submit Form</button>
+          <button type="reset" class="secondary">Reset</button>
+          <button type="button" class="outline contrast">Cancel</button>
+        </div>
         <div role="search">
           <input type="search" placeholder="Search Paul Tol tokens...">
           <button type="submit">Search</button>
@@ -207,8 +287,74 @@
 
     <hr>
 
+    <section id="tables">
+      <h2>6. Semantic Data Tables &amp; Operational Monitor</h2>
+      <p>Data tables feature automatic tabular numeric alignment, alternating zebra stripes via <code>table.striped</code>, and horizontal scrolling via responsive <code>figure:has(&gt; table)</code>.</p>
+      <figure>
+        <figcaption>Cluster Infrastructure Node Fleet Status (Production US-East)</figcaption>
+        <table class="striped">
+          <thead>
+            <tr>
+              <th scope="col">Node ID</th>
+              <th scope="col">Region</th>
+              <th scope="col">CPU %</th>
+              <th scope="col">Memory</th>
+              <th scope="col">Latency</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>edge-us-east-01</code></td>
+              <td>us-east-1a</td>
+              <td class="tabular-nums">24.5%</td>
+              <td class="tabular-nums">3.8 / 16 GB</td>
+              <td class="tabular-nums">12 ms</td>
+              <td><span class="badge valid">Operational</span></td>
+            </tr>
+            <tr>
+              <td><code>edge-us-east-02</code></td>
+              <td>us-east-1b</td>
+              <td class="tabular-nums">78.2%</td>
+              <td class="tabular-nums">14.1 / 16 GB</td>
+              <td class="tabular-nums">28 ms</td>
+              <td><span class="badge warning">Warning</span></td>
+            </tr>
+            <tr>
+              <td><code>edge-us-east-03</code></td>
+              <td>us-east-1c</td>
+              <td class="tabular-nums">96.8%</td>
+              <td class="tabular-nums">15.9 / 16 GB</td>
+              <td class="tabular-nums">145 ms</td>
+              <td><span class="badge invalid">Critical</span></td>
+            </tr>
+            <tr>
+              <td><code>edge-us-east-04</code></td>
+              <td>us-east-1d</td>
+              <td class="tabular-nums">18.0%</td>
+              <td class="tabular-nums">2.4 / 16 GB</td>
+              <td class="tabular-nums">9 ms</td>
+              <td><span class="badge valid">Operational</span></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">Cluster Average / Total</th>
+              <td>4 Active Nodes</td>
+              <td class="tabular-nums">54.4% Avg</td>
+              <td class="tabular-nums">36.2 / 64 GB</td>
+              <td class="tabular-nums">48 ms P95</td>
+              <td><span class="badge primary">4 Monitored</span></td>
+            </tr>
+          </tfoot>
+        </table>
+      </figure>
+    </section>
+
+    <hr>
+
     <section id="components">
-      <h2>5. Extended Components</h2>
+      <h2>7. Extended Components</h2>
       <div class="grid">
         <div>
           <details open>
@@ -254,85 +400,102 @@
     <hr>
 
     <section id="dashboard">
-      <h2>6. Dashboard Fixtures, Tabs, Badges &amp; Universal Icons</h2>
+      <h2>8. Operational Dashboard Console</h2>
+      <p>A simulated real-time operational monitor featuring accessible tabpanel switching, zero-CLS skeleton loading transitions, KPI metric stat cards, and status alerts.</p>
 
-      <!-- Accessible Tabs -->
-      <nav role="tablist">
-        <button type="button" role="tab" aria-selected="true">Overview</button>
-        <button type="button" role="tab" aria-selected="false">Analytics</button>
-        <button type="button" role="tab" aria-selected="false">Reports</button>
-      </nav>
-
-      <!-- Segmented Pill Tabs -->
-      <div role="tablist" class="segmented">
-        <button type="button" role="tab" aria-selected="true">Daily</button>
-        <button type="button" role="tab" aria-selected="false">Weekly</button>
-        <button type="button" role="tab" aria-selected="false">Monthly</button>
+      <!-- View Selector and Time Period Filter -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1rem;">
+        <nav role="tablist" aria-label="Dashboard views" style="margin-bottom:0;border-bottom:0;">
+          <button type="button" role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true">Overview</button>
+          <button type="button" role="tab" id="tab-analytics" aria-controls="panel-analytics" aria-selected="false">Analytics</button>
+          <button type="button" role="tab" id="tab-logs" aria-controls="panel-logs" aria-selected="false">System Logs</button>
+        </nav>
+        <div role="tablist" class="segmented" id="time-filter" aria-label="Time period filter">
+          <button type="button" role="tab" data-period="1H" aria-selected="false">1H</button>
+          <button type="button" role="tab" data-period="24H" aria-selected="true">24H</button>
+          <button type="button" role="tab" data-period="7D" aria-selected="false">7D</button>
+          <button type="button" role="tab" data-period="30D" aria-selected="false">30D</button>
+        </div>
       </div>
 
-      <!-- KPI Stat Cards -->
-      <div class="grid" style="margin-top: 1rem;">
-        <article class="stat">
-          <small>Total Revenue</small>
-          <strong>$128,430</strong>
-          <footer>
-            <span class="badge valid">
-              <svg class="icon" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
-              +14.2%
-            </span>
-            vs last month
-          </footer>
-        </article>
-        <article class="stat">
-          <small>Active Users</small>
-          <strong>24,512</strong>
-          <footer>
-            <span class="badge valid">
-              <svg class="icon" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
-              +3.8%
-            </span>
-            vs last month
-          </footer>
-        </article>
-        <article class="stat">
-          <small>Conversion Rate</small>
-          <strong>3.64%</strong>
-          <footer>
-            <span class="badge invalid">
-              <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-              -0.42%
-            </span>
-            vs last month
-          </footer>
-        </article>
-        <article class="stat">
-          <small>Avg Session Duration</small>
-          <div class="skeleton" style="height: 2.2rem; margin-block: 0.25rem;"></div>
-          <footer>
-            <span class="skeleton" style="width: 60%; height: 1rem;"></span>
-          </footer>
-        </article>
+      <!-- Tabpanel 1: Overview -->
+      <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+        <!-- KPI Stat Cards -->
+        <dl class="stats">
+          <div class="stat">
+            <dt>Total Network Throughput</dt>
+            <dd id="stat-throughput" class="tabular-nums">1.42 TB</dd>
+            <div class="trend"><span class="badge valid">+12.4%</span> vs previous period</div>
+          </div>
+          <div class="stat">
+            <dt>Active Edge Clusters</dt>
+            <dd id="stat-clusters" class="tabular-nums">128 / 130</dd>
+            <div class="trend"><span class="badge primary">98.5%</span> online</div>
+          </div>
+          <div class="stat">
+            <dt>Mean Edge Latency</dt>
+            <dd id="stat-latency" class="tabular-nums">18.4 ms</dd>
+            <div class="trend"><span class="badge valid">-2.1 ms</span> p95 response</div>
+          </div>
+          <div class="stat">
+            <dt>Unresolved Error Rate</dt>
+            <dd id="stat-errors" class="tabular-nums">0.012%</dd>
+            <div class="trend"><span class="badge invalid">+0.003%</span> 3 throttles</div>
+          </div>
+        </dl>
+
+        <div class="grid">
+          <article class="stat">
+            <header><strong>CPU Fleet Utilization</strong></header>
+            <strong id="stat-cpu" class="tabular-nums" style="font-size:2rem;">42.8%</strong>
+            <progress id="stat-cpu-progress" value="43" max="100"></progress>
+            <footer><small>Calculated across 512 virtual cores</small></footer>
+          </article>
+          <article class="stat">
+            <header><strong>Memory Allocation</strong></header>
+            <strong id="stat-mem" class="tabular-nums" style="font-size:2rem;">64.2%</strong>
+            <progress id="stat-mem-progress" value="64" max="100"></progress>
+            <footer><small>263 GB utilized of 410 GB pool</small></footer>
+          </article>
+        </div>
+
+        <aside class="valid">
+          <p><strong>System Health Normal:</strong> All cluster telemetry reporting within nominal Paul Tol accessible thresholds.</p>
+        </aside>
       </div>
 
-      <!-- Semantic Callouts -->
-      <aside>
-        <p><strong>Neutral Callout:</strong> Default informational callouts use neutral borders and text, decoupled from the theme accent.</p>
-      </aside>
-      <aside class="primary">
-        <p><strong>Primary Callout:</strong> Explicit opt-in styling via <code>.primary</code> or <code>[data-accent]</code>.</p>
-      </aside>
-      <aside class="success">
-        <p><strong>Audit Passed:</strong> 100% Paul Tol color-blind accessible hex purity across all components.</p>
-      </aside>
-      <aside role="alert">
-        <p><strong>High Severity Alert:</strong> 3 login attempts throttled from unverified subnet.</p>
-      </aside>
+      <!-- Tabpanel 2: Analytics -->
+      <div id="panel-analytics" role="tabpanel" aria-labelledby="tab-analytics" hidden>
+        <div class="grid">
+          <article>
+            <header><strong>Traffic Ingestion Pipeline</strong></header>
+            <p>Ingestion pipeline telemetry streaming at <strong>48.6 MB/s</strong> across 6 regional endpoints.</p>
+            <p><span class="badge valid">Healthy</span> <span class="badge" data-accent="purple">Buffering: 1.2%</span></p>
+          </article>
+          <article>
+            <header><strong>Cache Hit Ratio</strong></header>
+            <p>Edge cache hit efficiency: <strong>94.2%</strong> with zero cold-start evictions.</p>
+            <progress value="94" max="100"></progress>
+          </article>
+        </div>
+      </div>
+
+      <!-- Tabpanel 3: System Logs -->
+      <div id="panel-logs" role="tabpanel" aria-labelledby="tab-logs" hidden>
+        <aside role="alert">
+          <p><strong>System Log Notice:</strong> Automated failover drill completed successfully on <code>edge-us-east-03</code>.</p>
+        </aside>
+        <pre><code>[2026-10-19T18:20:00Z] INFO [telemetry] Heartbeat verified for 128 nodes.
+[2026-10-19T18:22:15Z] WARN [ingress] High burst load detected on us-east-1c (96.8% CPU).
+[2026-10-19T18:24:00Z] INFO [orchestrator] Autoscaled +4 container instances.</code></pre>
+      </div>
 
       <!-- Status Badges & Universal Icons in Action -->
       <p>
         <span class="badge">Neutral Badge</span>
         <span class="badge primary">Primary Accent</span>
         <span class="badge valid">Active</span>
+        <span class="badge warning">Warning</span>
         <span class="badge invalid">Failed</span>
         <span class="badge" data-accent="purple">Purple Accent</span>
       </p>
@@ -351,6 +514,610 @@
         </button>
       </p>
     </section>
+
+    <hr>
+
+    <section id="palettes">
+      <h2>9. Paul Tol Canonical Palette Explorer</h2>
+      <p>Explore canonical color-blind safe palettes authored by Dr. Paul Tol. Click any swatch or token to copy its CSS custom property to the clipboard.</p>
+      <div role="search" style="margin-bottom:1.5rem;">
+        <input type="search" id="palette-search" placeholder="Search by scheme (e.g. vibrant), name (e.g. cyan), token, or hex..." aria-label="Search Paul Tol palettes">
+      </div>
+      <div id="palette-grid" class="grid" style="grid-template-columns:repeat(auto-fill, minmax(13rem, 1fr));gap:1rem;">
+        <article data-swatch="true" data-search="bright blue --tol-bright-blue #4477aa" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-blue (#4477AA) to clipboard">
+          <div style="height:3.5rem;background:#4477AA;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-bright-blue</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#4477AA</code>
+              <span class="badge" style="font-size:0.75rem;">bright</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="bright red --tol-bright-red #ee6677" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-red (#EE6677) to clipboard">
+          <div style="height:3.5rem;background:#EE6677;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-bright-red</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#EE6677</code>
+              <span class="badge" style="font-size:0.75rem;">bright</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="bright green --tol-bright-green #228833" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-green (#228833) to clipboard">
+          <div style="height:3.5rem;background:#228833;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-bright-green</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#228833</code>
+              <span class="badge" style="font-size:0.75rem;">bright</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="bright yellow --tol-bright-yellow #ccbb44" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-yellow (#CCBB44) to clipboard">
+          <div style="height:3.5rem;background:#CCBB44;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-bright-yellow</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#CCBB44</code>
+              <span class="badge" style="font-size:0.75rem;">bright</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="bright cyan --tol-bright-cyan #66ccee" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-cyan (#66CCEE) to clipboard">
+          <div style="height:3.5rem;background:#66CCEE;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-bright-cyan</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#66CCEE</code>
+              <span class="badge" style="font-size:0.75rem;">bright</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="bright purple --tol-bright-purple #aa3377" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-purple (#AA3377) to clipboard">
+          <div style="height:3.5rem;background:#AA3377;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-bright-purple</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#AA3377</code>
+              <span class="badge" style="font-size:0.75rem;">bright</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="bright grey --tol-bright-grey #bbbbbb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-bright-grey (#BBBBBB) to clipboard">
+          <div style="height:3.5rem;background:#BBBBBB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-bright-grey</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#BBBBBB</code>
+              <span class="badge" style="font-size:0.75rem;">bright</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="dark 0 --tol-dark-0 #4477bb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-0 (#4477BB) to clipboard">
+          <div style="height:3.5rem;background:#4477BB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-dark-0</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#4477BB</code>
+              <span class="badge" style="font-size:0.75rem;">dark</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="dark 1 --tol-dark-1 #cc4466" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-1 (#CC4466) to clipboard">
+          <div style="height:3.5rem;background:#CC4466;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-dark-1</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#CC4466</code>
+              <span class="badge" style="font-size:0.75rem;">dark</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="dark 2 --tol-dark-2 #228833" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-2 (#228833) to clipboard">
+          <div style="height:3.5rem;background:#228833;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-dark-2</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#228833</code>
+              <span class="badge" style="font-size:0.75rem;">dark</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="dark 3 --tol-dark-3 #2255aa" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-3 (#2255AA) to clipboard">
+          <div style="height:3.5rem;background:#2255AA;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-dark-3</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#2255AA</code>
+              <span class="badge" style="font-size:0.75rem;">dark</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="dark 4 --tol-dark-4 #993366" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-4 (#993366) to clipboard">
+          <div style="height:3.5rem;background:#993366;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-dark-4</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#993366</code>
+              <span class="badge" style="font-size:0.75rem;">dark</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="dark 5 --tol-dark-5 #006644" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-5 (#006644) to clipboard">
+          <div style="height:3.5rem;background:#006644;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-dark-5</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#006644</code>
+              <span class="badge" style="font-size:0.75rem;">dark</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="dark 6 --tol-dark-6 #117788" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-6 (#117788) to clipboard">
+          <div style="height:3.5rem;background:#117788;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-dark-6</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#117788</code>
+              <span class="badge" style="font-size:0.75rem;">dark</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="dark 7 --tol-dark-7 #882288" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-7 (#882288) to clipboard">
+          <div style="height:3.5rem;background:#882288;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-dark-7</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#882288</code>
+              <span class="badge" style="font-size:0.75rem;">dark</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="dark 8 --tol-dark-8 #bb4488" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-8 (#BB4488) to clipboard">
+          <div style="height:3.5rem;background:#BB4488;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-dark-8</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#BB4488</code>
+              <span class="badge" style="font-size:0.75rem;">dark</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="dark 9 --tol-dark-9 #775500" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-9 (#775500) to clipboard">
+          <div style="height:3.5rem;background:#775500;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-dark-9</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#775500</code>
+              <span class="badge" style="font-size:0.75rem;">dark</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="dark 10 --tol-dark-10 #444444" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-dark-10 (#444444) to clipboard">
+          <div style="height:3.5rem;background:#444444;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-dark-10</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#444444</code>
+              <span class="badge" style="font-size:0.75rem;">dark</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="high-contrast blue --tol-hc-blue #004488" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-hc-blue (#004488) to clipboard">
+          <div style="height:3.5rem;background:#004488;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-hc-blue</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#004488</code>
+              <span class="badge" style="font-size:0.75rem;">high-contrast</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="high-contrast yellow --tol-hc-yellow #ddaa33" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-hc-yellow (#DDAA33) to clipboard">
+          <div style="height:3.5rem;background:#DDAA33;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-hc-yellow</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#DDAA33</code>
+              <span class="badge" style="font-size:0.75rem;">high-contrast</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="high-contrast red --tol-hc-red #bb5566" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-hc-red (#BB5566) to clipboard">
+          <div style="height:3.5rem;background:#BB5566;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-hc-red</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#BB5566</code>
+              <span class="badge" style="font-size:0.75rem;">high-contrast</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="light light_blue --tol-light-blue #77aadd" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-blue (#77AADD) to clipboard">
+          <div style="height:3.5rem;background:#77AADD;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-light-blue</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#77AADD</code>
+              <span class="badge" style="font-size:0.75rem;">light</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="light orange --tol-light-orange #ee8866" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-orange (#EE8866) to clipboard">
+          <div style="height:3.5rem;background:#EE8866;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-light-orange</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#EE8866</code>
+              <span class="badge" style="font-size:0.75rem;">light</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="light light_yellow --tol-light-yellow #eedd88" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-yellow (#EEDD88) to clipboard">
+          <div style="height:3.5rem;background:#EEDD88;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-light-yellow</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#EEDD88</code>
+              <span class="badge" style="font-size:0.75rem;">light</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="light pink --tol-light-pink #ffaabb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-pink (#FFAABB) to clipboard">
+          <div style="height:3.5rem;background:#FFAABB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-light-pink</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#FFAABB</code>
+              <span class="badge" style="font-size:0.75rem;">light</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="light light_cyan --tol-light-cyan #99ddff" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-cyan (#99DDFF) to clipboard">
+          <div style="height:3.5rem;background:#99DDFF;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-light-cyan</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#99DDFF</code>
+              <span class="badge" style="font-size:0.75rem;">light</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="light mint --tol-light-mint #44bb99" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-mint (#44BB99) to clipboard">
+          <div style="height:3.5rem;background:#44BB99;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-light-mint</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#44BB99</code>
+              <span class="badge" style="font-size:0.75rem;">light</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="light pear --tol-light-pear #bbcc33" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-pear (#BBCC33) to clipboard">
+          <div style="height:3.5rem;background:#BBCC33;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-light-pear</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#BBCC33</code>
+              <span class="badge" style="font-size:0.75rem;">light</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="light olive --tol-light-olive #aaaa00" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-olive (#AAAA00) to clipboard">
+          <div style="height:3.5rem;background:#AAAA00;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-light-olive</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#AAAA00</code>
+              <span class="badge" style="font-size:0.75rem;">light</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="light pale_grey --tol-light-pale-grey #dddddd" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-light-pale-grey (#DDDDDD) to clipboard">
+          <div style="height:3.5rem;background:#DDDDDD;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-light-pale-grey</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#DDDDDD</code>
+              <span class="badge" style="font-size:0.75rem;">light</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="medium-contrast light_blue --tol-mc-blue #6699cc" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-blue (#6699CC) to clipboard">
+          <div style="height:3.5rem;background:#6699CC;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-mc-blue</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#6699CC</code>
+              <span class="badge" style="font-size:0.75rem;">medium-contrast</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="medium-contrast dark_blue --tol-mc-dark-blue #004488" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-dark-blue (#004488) to clipboard">
+          <div style="height:3.5rem;background:#004488;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-mc-dark-blue</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#004488</code>
+              <span class="badge" style="font-size:0.75rem;">medium-contrast</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="medium-contrast light_yellow --tol-mc-yellow #eecc66" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-yellow (#EECC66) to clipboard">
+          <div style="height:3.5rem;background:#EECC66;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-mc-yellow</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#EECC66</code>
+              <span class="badge" style="font-size:0.75rem;">medium-contrast</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="medium-contrast dark_red --tol-mc-dark-red #994455" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-dark-red (#994455) to clipboard">
+          <div style="height:3.5rem;background:#994455;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-mc-dark-red</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#994455</code>
+              <span class="badge" style="font-size:0.75rem;">medium-contrast</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="medium-contrast dark_yellow --tol-mc-dark-yellow #997700" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-dark-yellow (#997700) to clipboard">
+          <div style="height:3.5rem;background:#997700;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-mc-dark-yellow</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#997700</code>
+              <span class="badge" style="font-size:0.75rem;">medium-contrast</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="medium-contrast light_red --tol-mc-red #ee99aa" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-mc-red (#EE99AA) to clipboard">
+          <div style="height:3.5rem;background:#EE99AA;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-mc-red</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#EE99AA</code>
+              <span class="badge" style="font-size:0.75rem;">medium-contrast</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="muted rose --tol-muted-rose #cc6677" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-rose (#CC6677) to clipboard">
+          <div style="height:3.5rem;background:#CC6677;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-muted-rose</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#CC6677</code>
+              <span class="badge" style="font-size:0.75rem;">muted</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="muted indigo --tol-muted-indigo #332288" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-indigo (#332288) to clipboard">
+          <div style="height:3.5rem;background:#332288;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-muted-indigo</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#332288</code>
+              <span class="badge" style="font-size:0.75rem;">muted</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="muted sand --tol-muted-sand #ddcc77" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-sand (#DDCC77) to clipboard">
+          <div style="height:3.5rem;background:#DDCC77;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-muted-sand</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#DDCC77</code>
+              <span class="badge" style="font-size:0.75rem;">muted</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="muted green --tol-muted-green #117733" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-green (#117733) to clipboard">
+          <div style="height:3.5rem;background:#117733;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-muted-green</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#117733</code>
+              <span class="badge" style="font-size:0.75rem;">muted</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="muted cyan --tol-muted-cyan #88ccee" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-cyan (#88CCEE) to clipboard">
+          <div style="height:3.5rem;background:#88CCEE;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-muted-cyan</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#88CCEE</code>
+              <span class="badge" style="font-size:0.75rem;">muted</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="muted wine --tol-muted-wine #882255" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-wine (#882255) to clipboard">
+          <div style="height:3.5rem;background:#882255;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-muted-wine</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#882255</code>
+              <span class="badge" style="font-size:0.75rem;">muted</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="muted teal --tol-muted-teal #44aa99" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-teal (#44AA99) to clipboard">
+          <div style="height:3.5rem;background:#44AA99;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-muted-teal</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#44AA99</code>
+              <span class="badge" style="font-size:0.75rem;">muted</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="muted olive --tol-muted-olive #999933" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-olive (#999933) to clipboard">
+          <div style="height:3.5rem;background:#999933;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-muted-olive</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#999933</code>
+              <span class="badge" style="font-size:0.75rem;">muted</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="muted purple --tol-muted-purple #aa4499" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-muted-purple (#AA4499) to clipboard">
+          <div style="height:3.5rem;background:#AA4499;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-muted-purple</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#AA4499</code>
+              <span class="badge" style="font-size:0.75rem;">muted</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="pale 0 --tol-pale-0 #aaccee" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-0 (#AACCEE) to clipboard">
+          <div style="height:3.5rem;background:#AACCEE;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-pale-0</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#AACCEE</code>
+              <span class="badge" style="font-size:0.75rem;">pale</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="pale 1 --tol-pale-1 #cceeff" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-1 (#CCEEFF) to clipboard">
+          <div style="height:3.5rem;background:#CCEEFF;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-pale-1</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#CCEEFF</code>
+              <span class="badge" style="font-size:0.75rem;">pale</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="pale 2 --tol-pale-2 #bbddbb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-2 (#BBDDBB) to clipboard">
+          <div style="height:3.5rem;background:#BBDDBB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-pale-2</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#BBDDBB</code>
+              <span class="badge" style="font-size:0.75rem;">pale</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="pale 3 --tol-pale-3 #eeeebb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-3 (#EEEEBB) to clipboard">
+          <div style="height:3.5rem;background:#EEEEBB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-pale-3</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#EEEEBB</code>
+              <span class="badge" style="font-size:0.75rem;">pale</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="pale 4 --tol-pale-4 #ffbbcc" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-4 (#FFBBCC) to clipboard">
+          <div style="height:3.5rem;background:#FFBBCC;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-pale-4</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#FFBBCC</code>
+              <span class="badge" style="font-size:0.75rem;">pale</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="pale 5 --tol-pale-5 #eebbdd" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-5 (#EEBBDD) to clipboard">
+          <div style="height:3.5rem;background:#EEBBDD;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-pale-5</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#EEBBDD</code>
+              <span class="badge" style="font-size:0.75rem;">pale</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="pale 6 --tol-pale-6 #dddddd" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-pale-6 (#DDDDDD) to clipboard">
+          <div style="height:3.5rem;background:#DDDDDD;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-pale-6</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#DDDDDD</code>
+              <span class="badge" style="font-size:0.75rem;">pale</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="vibrant orange --tol-vibrant-orange #ee7733" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-orange (#EE7733) to clipboard">
+          <div style="height:3.5rem;background:#EE7733;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-vibrant-orange</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#EE7733</code>
+              <span class="badge" style="font-size:0.75rem;">vibrant</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="vibrant blue --tol-vibrant-blue #0077bb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-blue (#0077BB) to clipboard">
+          <div style="height:3.5rem;background:#0077BB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-vibrant-blue</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#0077BB</code>
+              <span class="badge" style="font-size:0.75rem;">vibrant</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="vibrant cyan --tol-vibrant-cyan #33bbee" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-cyan (#33BBEE) to clipboard">
+          <div style="height:3.5rem;background:#33BBEE;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-vibrant-cyan</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#33BBEE</code>
+              <span class="badge" style="font-size:0.75rem;">vibrant</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="vibrant magenta --tol-vibrant-magenta #ee3377" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-magenta (#EE3377) to clipboard">
+          <div style="height:3.5rem;background:#EE3377;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-vibrant-magenta</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#EE3377</code>
+              <span class="badge" style="font-size:0.75rem;">vibrant</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="vibrant red --tol-vibrant-red #cc3311" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-red (#CC3311) to clipboard">
+          <div style="height:3.5rem;background:#CC3311;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-vibrant-red</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#CC3311</code>
+              <span class="badge" style="font-size:0.75rem;">vibrant</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="vibrant teal --tol-vibrant-teal #009988" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-teal (#009988) to clipboard">
+          <div style="height:3.5rem;background:#009988;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-vibrant-teal</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#009988</code>
+              <span class="badge" style="font-size:0.75rem;">vibrant</span>
+            </div>
+          </div>
+        </article>
+        <article data-swatch="true" data-search="vibrant grey --tol-vibrant-grey #bbbbbb" style="margin-bottom:0;cursor:pointer;" tabindex="0" role="button" aria-label="Copy --tol-vibrant-grey (#BBBBBB) to clipboard">
+          <div style="height:3.5rem;background:#BBBBBB;border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <p style="margin:0;font-size:0.95rem;"><strong><code>--tol-vibrant-grey</code></strong></p>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <code style="font-size:0.85rem;">#BBBBBB</code>
+              <span class="badge" style="font-size:0.75rem;">vibrant</span>
+            </div>
+          </div>
+        </article>
+      </div>
+      <p id="palette-empty" hidden>No matching Paul Tol color tokens found.</p>
+      <div id="toast" role="status" aria-live="polite" style="position:fixed;bottom:1.5rem;right:1.5rem;padding:0.75rem 1.25rem;background:var(--pt-color);color:var(--pt-bg);border-radius:var(--pt-border-radius);box-shadow:var(--pt-box-shadow);z-index:9999;transition:opacity 0.2s,transform 0.2s;opacity:0;pointer-events:none;transform:translateY(1rem);"></div>
+    </section>
   </main>
 
   <footer>
@@ -359,13 +1126,232 @@
 
   <script>
     const root = document.documentElement;
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-      const cur = root.getAttribute('data-theme');
-      const isDark = cur ? cur === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-      root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    const themeBtn = document.getElementById('theme-toggle');
+    const accentSelect = document.getElementById('accent-select');
+
+    function updateThemeButton(theme) {
+      if (themeBtn) {
+        themeBtn.textContent = theme === 'dark' ? '🌙 Dark' : '☀️ Light';
+        themeBtn.setAttribute('aria-label', 'Active theme: ' + theme + '. Click to toggle.');
+      }
+    }
+
+    const savedTheme = localStorage.getItem('picotol-theme');
+    if (savedTheme) {
+      root.setAttribute('data-theme', savedTheme);
+      updateThemeButton(savedTheme);
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      updateThemeButton(prefersDark ? 'dark' : 'light');
+    }
+
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+        const cur = root.getAttribute('data-theme');
+        const isDark = cur ? cur === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const nextTheme = isDark ? 'light' : 'dark';
+        root.setAttribute('data-theme', nextTheme);
+        localStorage.setItem('picotol-theme', nextTheme);
+        updateThemeButton(nextTheme);
+      });
+    }
+
+    function setAccent(accent) {
+      root.setAttribute('data-accent', accent);
+      if (accentSelect) accentSelect.value = accent;
+      localStorage.setItem('picotol-accent', accent);
+    }
+
+    const savedAccent = localStorage.getItem('picotol-accent');
+    if (savedAccent) {
+      setAccent(savedAccent);
+    }
+
+    if (accentSelect) {
+      accentSelect.addEventListener('change', (e) => setAccent(e.target.value));
+    }
+
+    document.querySelectorAll('[data-set-accent]').forEach((btn) => {
+      btn.addEventListener('click', () => setAccent(btn.getAttribute('data-set-accent')));
     });
-    document.getElementById('accent-select').addEventListener('change', (e) => {
-      root.setAttribute('data-accent', e.target.value);
+
+    // Native modal backdrop click-to-close
+    const modal = document.getElementById('demo-modal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.close();
+        }
+      });
+    }
+
+    // Dashboard tab switching
+    const tabs = [
+      { tab: document.getElementById('tab-overview'), panel: document.getElementById('panel-overview') },
+      { tab: document.getElementById('tab-analytics'), panel: document.getElementById('panel-analytics') },
+      { tab: document.getElementById('tab-logs'), panel: document.getElementById('panel-logs') },
+    ];
+
+    tabs.forEach(({ tab, panel }) => {
+      if (!tab || !panel) return;
+      tab.addEventListener('click', () => {
+        tabs.forEach(({ tab: t, panel: p }) => {
+          const isSelected = t === tab;
+          t.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+          if (isSelected) {
+            p.removeAttribute('hidden');
+          } else {
+            p.setAttribute('hidden', '');
+          }
+        });
+      });
+    });
+
+    // Segmented time filter with 300ms zero-CLS skeleton loader pulse
+    const timeFilter = document.getElementById('time-filter');
+    const periodData = {
+      '1H': {
+        throughput: '124 GB',
+        clusters: '128 / 130',
+        latency: '16.2 ms',
+        errors: '0.008%',
+        cpu: '38.4%',
+        cpuVal: 38,
+        mem: '58.1%',
+        memVal: 58,
+      },
+      '24H': {
+        throughput: '1.42 TB',
+        clusters: '128 / 130',
+        latency: '18.4 ms',
+        errors: '0.012%',
+        cpu: '42.8%',
+        cpuVal: 43,
+        mem: '64.2%',
+        memVal: 64,
+      },
+      '7D': {
+        throughput: '8.94 TB',
+        clusters: '129 / 130',
+        latency: '19.1 ms',
+        errors: '0.015%',
+        cpu: '45.2%',
+        cpuVal: 45,
+        mem: '67.5%',
+        memVal: 68,
+      },
+      '30D': {
+        throughput: '38.6 TB',
+        clusters: '130 / 130',
+        latency: '17.8 ms',
+        errors: '0.011%',
+        cpu: '44.0%',
+        cpuVal: 44,
+        mem: '66.0%',
+        memVal: 66,
+      },
+    };
+
+    if (timeFilter) {
+      timeFilter.querySelectorAll('button[data-period]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const period = btn.getAttribute('data-period');
+          const data = periodData[period];
+          if (!data) return;
+
+          timeFilter.querySelectorAll('button[data-period]').forEach((b) => {
+            b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+          });
+
+          const statEls = [
+            document.getElementById('stat-throughput'),
+            document.getElementById('stat-clusters'),
+            document.getElementById('stat-latency'),
+            document.getElementById('stat-errors'),
+            document.getElementById('stat-cpu'),
+            document.getElementById('stat-mem'),
+          ];
+
+          statEls.forEach((el) => { if (el) el.classList.add('skeleton'); });
+
+          setTimeout(() => {
+            const st = document.getElementById('stat-throughput');
+            const sc = document.getElementById('stat-clusters');
+            const sl = document.getElementById('stat-latency');
+            const se = document.getElementById('stat-errors');
+            const scpu = document.getElementById('stat-cpu');
+            const smem = document.getElementById('stat-mem');
+            const pcpu = document.getElementById('stat-cpu-progress');
+            const pmem = document.getElementById('stat-mem-progress');
+
+            if (st) st.textContent = data.throughput;
+            if (sc) sc.textContent = data.clusters;
+            if (sl) sl.textContent = data.latency;
+            if (se) se.textContent = data.errors;
+            if (scpu) scpu.textContent = data.cpu;
+            if (smem) smem.textContent = data.mem;
+            if (pcpu) pcpu.value = data.cpuVal;
+            if (pmem) pmem.value = data.memVal;
+
+            statEls.forEach((el) => { if (el) el.classList.remove('skeleton'); });
+          }, 300);
+        });
+      });
+    }
+
+    // Palette Explorer live search and click-to-copy
+    const paletteSearch = document.getElementById('palette-search');
+    const swatches = document.querySelectorAll('[data-swatch]');
+    const emptyMsg = document.getElementById('palette-empty');
+    const toast = document.getElementById('toast');
+    let toastTimeout;
+
+    function showToast(msg) {
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(1rem)';
+      }, 2000);
+    }
+
+    if (paletteSearch) {
+      paletteSearch.addEventListener('input', (e) => {
+        const query = e.target.value.trim().toLowerCase();
+        let visibleCount = 0;
+        swatches.forEach((sw) => {
+          const haystack = (sw.getAttribute('data-search') || '').toLowerCase();
+          const matches = !query || haystack.includes(query);
+          sw.style.display = matches ? '' : 'none';
+          if (matches) visibleCount++;
+        });
+        if (emptyMsg) {
+          emptyMsg.hidden = visibleCount > 0;
+        }
+      });
+    }
+
+    swatches.forEach((sw) => {
+      const copyVal = sw.querySelector('strong code')?.textContent?.trim() || '';
+      const hexVal = sw.querySelector('div code')?.textContent?.trim() || '';
+      const copy = () => {
+        if (!copyVal) return;
+        navigator.clipboard.writeText(copyVal).then(() => {
+          showToast('Copied ' + copyVal + ' (' + hexVal + ') to clipboard!');
+        }).catch(() => {
+          showToast('Copied ' + copyVal + '!');
+        });
+      };
+      sw.addEventListener('click', copy);
+      sw.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          copy();
+        }
+      });
     });
   </script>
 </body>
