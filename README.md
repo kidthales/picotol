@@ -122,6 +122,110 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 
 ---
 
+## Accessible Typography & Font Integration
+
+`@kidthales/picotol` ships with bulletproof system font stacks (`--pt-font-sans`, `--pt-font-mono`, `--pt-font-emoji`), native OpenType optical sizing (`font-optical-sizing: auto; font-kerning: normal;`), and fixed-width tabular figures (`.tabular-nums`, `table`, `[role="table"]`, `code`, `kbd`, `samp`, `time`).
+
+### Zero-Network Accessible Font Recipes
+
+To preserve privacy, zero runtime network requests, and GDPR compliance, pair `@kidthales/picotol` with locally hosted accessible web fonts:
+
+#### 1. Atkinson Hyperlegible (Low Vision Distinction)
+
+```css
+:root, :host {
+  --pt-font-sans: "Atkinson Hyperlegible", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, var(--pt-font-emoji);
+}
+```
+
+#### 2. Inter (High-Density UI & Tabular Numbers)
+
+```css
+:root, :host {
+  --pt-font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, var(--pt-font-emoji);
+}
+```
+
+#### 3. Lexend (Reading Proficiency & Dyslexia Support)
+
+```css
+:root, :host {
+  --pt-font-sans: "Lexend", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, var(--pt-font-emoji);
+}
+```
+
+---
+
+## Dashboard Fixtures, Universal Icons & Skeletons
+
+`@kidthales/picotol` standardizes high-impact dashboard data fixtures with zero runtime JavaScript:
+
+### 1. KPI Metric Stat Cards
+
+Use semantic `<article class="stat">` or `<dl class="stats">` to display large fluid tabular figures (`clamp(1.75rem, ...)`):
+
+```html
+<div class="grid">
+  <article class="stat">
+    <small>Total Revenue</small>
+    <strong>$128,430</strong>
+    <footer><span class="badge valid">+14.2%</span> vs last month</footer>
+  </article>
+  <article class="stat">
+    <small>Active Users</small>
+    <strong>24,512</strong>
+    <footer><span class="badge valid">+3.8%</span> vs last month</footer>
+  </article>
+</div>
+```
+
+### 2. Zero-CLS Skeleton Loaders
+
+Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions while content is fetching. Uses a gentle 1.5s opacity pulse (`pt-pulse`) that safely pauses under `prefers-reduced-motion: reduce`:
+
+```html
+<div class="skeleton" style="height: 2.2rem; width: 60%;"></div>
+```
+
+### 3. Universal SVG Icon Ergonomics
+
+`@kidthales/picotol` automatically scales, aligns, and spaces inline SVGs (`svg.icon` or `[data-icon]`). Recommended for use with [Lucide Icons](https://lucide.dev/):
+
+- **Auto-Inheritance**: Icons inherit active theme/accent colors via `currentColor`.
+- **Baseline Alignment**: Centered at `1.15em` size with `-0.2em` vertical alignment to match adjacent typography.
+- **Contextual Margins**: Automatically adds margins when placed before or after text inside buttons, links, or badges.
+- **Icon-Only Buttons**: `button:has(> svg.icon:only-child)` automatically applies square aspect ratio with centered padding.
+
+```html
+<!-- Text + icon button -->
+<button type="button">
+  <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  Export Report
+</button>
+
+<!-- Icon-only square button -->
+<button type="button" aria-label="Settings">
+  <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>
+</button>
+```
+
+### 4. Semantic Callouts & Status Badges
+
+```html
+<!-- Info, Success, Danger Callouts -->
+<aside><p>System update completed.</p></aside>
+<aside class="success"><p>All checks passed.</p></aside>
+<aside role="alert"><p>Authentication timeout.</p></aside>
+
+<!-- Status Badges -->
+<span class="badge">Draft</span>
+<span class="badge valid">Healthy</span>
+<span class="badge invalid">Error</span>
+```
+
+
+---
+
 ## Development & Verification
 
 ```bash

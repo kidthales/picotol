@@ -2,16 +2,17 @@
   *, ::before, ::after { box-sizing: border-box; }
 
   :root, :host, :where([data-theme]) {
-    background-color: var(--pt-bg);
+    background: var(--pt-bg);
     color: var(--pt-color);
   }
-
   :root, :host {
     font-family: var(--pt-font-sans);
     font-size: clamp(100%, 95% + 0.4vw, 125%);
     line-height: var(--pt-line-height);
     overflow-wrap: break-word;
     tab-size: 4;
+    font-optical-sizing: auto;
+    font-kerning: normal;
   }
 
   body { margin: 0; }
@@ -36,7 +37,7 @@
     padding: 0.5rem 1rem;
     border: 2px solid var(--pt-primary);
     border-radius: var(--pt-border-radius);
-    background-color: var(--pt-bg);
+    background: var(--pt-bg);
     color: var(--pt-color);
     font-weight: 700;
     text-decoration: none;
@@ -60,8 +61,12 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    :not([aria-busy="true"]) {
+      &, &::before, &::after {
+        animation: none !important;
+      }
+    }
     *, ::before, ::after {
-      animation: none !important;
       transition: none !important;
       scroll-behavior: auto !important;
     }
