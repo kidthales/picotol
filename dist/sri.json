@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "files": {
     "dist/picotol.core.min.css": {
-      "bytes": 10651,
-      "gzipBytes": 3609,
-      "integrity": "sha384-ODkrAeOJgJOU6RLo6u8F1cMrHgU1UogNtuLgstMpkiZHQjGIycxW4PrPIN6Zs/lB"
+      "bytes": 10580,
+      "gzipBytes": 3624,
+      "integrity": "sha384-3XOKCoCik9Z6kyPDqJEWk0QqW9Dnqo99eKBbZlRY2gQY5lJKMp3XCXHFXfRdGEVL"
     },
     "dist/picotol.min.css": {
-      "bytes": 20412,
-      "gzipBytes": 5466,
-      "integrity": "sha384-2zOKDF5zYfwBflXZP1pgpQzLYYgdwsv+Tz1DcnsKLbLxj58+AmQc3UwUBhyOcVQI"
+      "bytes": 20341,
+      "gzipBytes": 5501,
+      "integrity": "sha384-q2G5bMeMso9G3RPDj0A/0+69phyFVu1VyrLKBK538NBU6yWFsRj3u1K1ln8+9lg4"
     }
   }
 }

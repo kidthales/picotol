@@ -193,8 +193,8 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 
 - **Auto-Inheritance**: Icons inherit active theme/accent colors via `currentColor`.
 - **Baseline Alignment**: Centered at `1.15em` size with `-0.2em` vertical alignment to match adjacent typography.
-- **Contextual Margins**: Automatically adds margins when placed before or after text inside buttons, links, or badges.
-- **Icon-Only Buttons**: `button:has(> svg.icon:only-child)` automatically applies square aspect ratio with centered padding.
+- **Contextual Spacing**: Automatically adds `0.5rem` flex gap between text and icons inside buttons and links.
+- **Icon-Only Buttons**: Automatically applies a square aspect ratio with centered padding and matching computed button height on accessible buttons (`[aria-label]`).
 
 ```html
 <!-- Text + icon button -->
