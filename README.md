@@ -15,7 +15,7 @@
 - **100% Canonical Paul Tol Palette Purity**: Every hex code in `picotol` is drawn directly from [Paul Tol's qualitative colour schemes](https://github.com/kidthales/tol-palettes) (`bright`, `vibrant`, `high-contrast`, `medium-contrast`, `muted`, `light`, `dark`, `pale`). Zero invented hex codes, zero synthetic HSL/RGB ramps.
 - **Cross-Scheme Perceptual Lightness Ladder**: Instead of darkening colors with arbitrary math, interactive states (`hover`, `active`, `surface`, `text`) step across Paul Tol's own scientifically calibrated schemes:
   $$\text{pale} \longrightarrow \text{light} \longrightarrow \text{medium-contrast} \longrightarrow \text{bright} \longrightarrow \text{dark} \longrightarrow \text{high-contrast}$$
-- **100% Pure Modern CSS (`@layer` + `light-dark()` + `color-mix()`)**: Zero Sass/SCSS preprocessors. Native CSS `@layer` cascade, runtime `[data-theme="light|dark"]` and `[data-accent="blue|cyan|green|yellow|red|purple"]` switching in a **single stylesheet**.
+- **100% Pure Modern CSS (`@layer` + `light-dark()` + `color-mix()`)**: Zero Sass/SCSS preprocessors. Native CSS `@layer` cascade, runtime `[data-theme="light|dark"]` and `[data-accent="blue|cyan|teal|indigo|purple|magenta"]` switching in a **single stylesheet**.
 - **WCAG 2.2 AA/AAA & Mobile Reflow Built-In**:
   - Universal `:focus-visible` `2px solid` high-contrast focus outlines (`outline-offset: 2px`) that survive Windows High Contrast (`@media (forced-colors: active)`).
   - Non-color validation cues (`2px` border + `✓` / `✗` prefix icons on `[aria-invalid] + small`) and $\ge 24\times24\text{px}$ target sizes (WCAG 2.2 SC 2.5.8).
@@ -86,7 +86,7 @@ import "@kidthales/picotol/palettes";
 Switch themes or accents dynamically on `<html>` or any subtree container:
 
 - **`data-theme`**: `"light"` | `"dark"` (omit to follow OS `prefers-color-scheme`)
-- **`data-accent`**: `"blue"` (default) | `"cyan"` | `"green"` | `"yellow"` | `"red"` | `"purple"`
+- **`data-accent`**: `"blue"` (default) | `"cyan"` | `"teal"` | `"indigo"` | `"purple"` | `"magenta"` (non-semantic 6-accent suite; `green`, `yellow`, `red` reserved for operational status)
 
 ---
 

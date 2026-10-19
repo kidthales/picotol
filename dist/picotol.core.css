@@ -56,31 +56,23 @@
     --pt-p2: #9df;
     --pt-p3: #07b;
     --pt-p4: #178;
-    --pt-p5: #064;
+    --pt-p5: #048;
   }
 
-  [data-accent="green"] {
-    --pt-p1: #bdb;
-    --pt-p2: #4b9;
-    --pt-p3: #283;
-    --pt-p4: #064;
-    --pt-p5: #173;
+  [data-accent="teal"] {
+    --pt-p1: #cef;
+    --pt-p2: #4a9;
+    --pt-p3: #07b;
+    --pt-p4: #178;
+    --pt-p5: #048;
   }
 
-  [data-accent="yellow"] {
-    --pt-p1: #eeb;
-    --pt-p2: #da3;
-    --pt-p3: #993404;
-    --pt-p4: #750;
-    --pt-p5: #662506;
-  }
-
-  [data-accent="red"] {
-    --pt-p1: #e86;
-    --pt-p2: #e67;
-    --pt-p3: #c46;
-    --pt-p4: #c31;
-    --pt-p5: #945;
+  [data-accent="indigo"] {
+    --pt-p1: #ace;
+    --pt-p2: #69c;
+    --pt-p3: #25a;
+    --pt-p4: #048;
+    --pt-p5: #328;
   }
 
   [data-accent="purple"] {
@@ -89,6 +81,14 @@
     --pt-p3: #a49;
     --pt-p4: #762a83;
     --pt-p5: #328;
+  }
+
+  [data-accent="magenta"] {
+    --pt-p1: #ebd;
+    --pt-p2: #fab;
+    --pt-p3: #b48;
+    --pt-p4: #936;
+    --pt-p5: #825;
   }
 }
 

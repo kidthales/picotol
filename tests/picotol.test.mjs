@@ -143,31 +143,23 @@ test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 6 Paul 
       p2: schemeColor("light", "light_cyan"), // #99DDFF
       p3: schemeColor("vibrant", "blue"), // #0077BB
       p4: schemeColor("dark", 6), // #117788
-      p5: schemeColor("dark", 5), // #006644
+      p5: schemeColor("high-contrast", "blue"), // #004488
     },
     {
-      name: "green",
-      p1: schemeColor("pale", 2), // #BBDDBB
-      p2: schemeColor("light", "mint"), // #44BB99
-      p3: schemeColor("bright", "green"), // #228833
-      p4: schemeColor("dark", 5), // #006644
-      p5: schemeColor("muted", "green"), // #117733
+      name: "teal",
+      p1: schemeColor("pale", 1), // #CCEEFF
+      p2: schemeColor("muted", "teal"), // #44AA99
+      p3: schemeColor("vibrant", "blue"), // #0077BB
+      p4: schemeColor("dark", 6), // #117788
+      p5: schemeColor("high-contrast", "blue"), // #004488
     },
     {
-      name: "yellow",
-      p1: schemeColor("pale", 3), // #EEEEBB
-      p2: schemeColor("high-contrast", "yellow"), // #DDAA33
-      p3: schemeColor("ylorbr", 0), // #993404
-      p4: schemeColor("dark", 9), // #775500
-      p5: schemeColor("ylorbr", 1), // #662506
-    },
-    {
-      name: "red",
-      p1: schemeColor("light", "orange"), // #EE8866
-      p2: schemeColor("bright", "red"), // #EE6677
-      p3: schemeColor("dark", 1), // #CC4466
-      p4: schemeColor("vibrant", "red"), // #CC3311
-      p5: schemeColor("medium-contrast", "dark_red"), // #994455
+      name: "indigo",
+      p1: schemeColor("pale", 0), // #AACCEE
+      p2: schemeColor("medium-contrast", "light_blue"), // #6699CC
+      p3: schemeColor("dark", 3), // #2255AA
+      p4: schemeColor("high-contrast", "blue"), // #004488
+      p5: schemeColor("muted", "indigo"), // #332288
     },
     {
       name: "purple",
@@ -176,6 +168,14 @@ test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 6 Paul 
       p3: schemeColor("muted", "purple"), // #AA4499
       p4: schemeColor("prgn", 0), // #762A83
       p5: schemeColor("muted", "indigo"), // #332288
+    },
+    {
+      name: "magenta",
+      p1: schemeColor("pale", 5), // #EEBBDD
+      p2: schemeColor("light", "pink"), // #FFAABB
+      p3: schemeColor("dark", 8), // #BB4488
+      p4: schemeColor("dark", 4), // #993366
+      p5: schemeColor("muted", "wine"), // #882255
     },
   ];
 
@@ -242,12 +242,12 @@ test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 6 Paul 
     );
   }
 
-  // Ensure red and purple are unmistakably distinct across p1, p2, and p4
-  const redAcc = accents.find((a) => a.name === "red");
+  // Ensure purple and magenta are unmistakably distinct across p1, p2, and p4
   const purpleAcc = accents.find((a) => a.name === "purple");
-  assert.notEqual(expandHex(redAcc.p1), expandHex(purpleAcc.p1));
-  assert.notEqual(expandHex(redAcc.p2), expandHex(purpleAcc.p2));
-  assert.notEqual(expandHex(redAcc.p4), expandHex(purpleAcc.p4));
+  const magentaAcc = accents.find((a) => a.name === "magenta");
+  assert.notEqual(expandHex(purpleAcc.p1), expandHex(magentaAcc.p1));
+  assert.notEqual(expandHex(purpleAcc.p2), expandHex(magentaAcc.p2));
+  assert.notEqual(expandHex(purpleAcc.p4), expandHex(magentaAcc.p4));
 });
 
 test("Architecture & Selector Invariants: @layer cascade, --pt-* tokens, [data-theme], and [data-accent]", () => {
@@ -268,8 +268,11 @@ test("Architecture & Selector Invariants: @layer cascade, --pt-* tokens, [data-t
   for (const theme of ["light", "dark"]) {
     assert.ok(fullCss.includes(`[data-theme="${theme}"]`) || fullCss.includes(`[data-theme=${theme}]`));
   }
-  for (const accent of ["blue", "cyan", "green", "yellow", "red", "purple"]) {
+  for (const accent of ["blue", "cyan", "teal", "indigo", "purple", "magenta"]) {
     assert.ok(fullCss.includes(`[data-accent="${accent}"]`) || fullCss.includes(`[data-accent=${accent}]`));
+  }
+  for (const retired of ["green", "yellow", "red"]) {
+    assert.ok(!fullCss.includes(`[data-accent="${retired}"]`) && !fullCss.includes(`[data-accent=${retired}]`), `Retired accent ${retired} must not be present in [data-accent]`);
   }
   assert.ok(!demoHtml.includes("kt-toggle"), "Demo HTML must not include [kidthales] mode toggle");
   assert.ok(demoHtml.includes("picotol"), "Interactive demo HTML generated with picotol branding");
