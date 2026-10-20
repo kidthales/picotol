@@ -1209,7 +1209,7 @@
       height: .5rem;
       display: inline-block;
 
-      &:not(:only-child, :last-child) {
+      &:where(:not(:only-child, :last-child)) {
         margin-inline-end: .35rem;
       }
 

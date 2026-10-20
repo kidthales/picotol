@@ -676,6 +676,11 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
 
   // Spacing & Margin Compounding Prevention in Flex Gap Containers
   assert.ok(
+    fullCss.includes(":where(:not(:only-child, :last-child))") ||
+    fullCss.includes(":where(:not(:only-child,:last-child))"),
+    "Status dot default margin selector must be wrapped in :where() to maintain (0,0,0) specificity"
+  );
+  assert.ok(
     fullCss.includes("margin-inline-end: 0.35rem") || fullCss.includes("margin-inline-end: .35rem"),
     "Status dot preserves default inline spacing when not only or last child"
   );

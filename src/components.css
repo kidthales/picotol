@@ -424,7 +424,7 @@
     flex-shrink: 0;
     background-color: var(--pt-muted-border);
 
-    &:not(:only-child, :last-child) {
+    &:where(:not(:only-child, :last-child)) {
       margin-inline-end: 0.35rem;
     }
 
