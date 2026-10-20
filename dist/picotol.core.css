@@ -223,7 +223,9 @@
     }
   }
 
-  .overflow-auto {
+  :where(.overflow-auto, .table-container) {
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
     overflow-x: auto;
   }
 }

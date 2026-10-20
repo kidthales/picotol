@@ -223,7 +223,9 @@
     }
   }
 
-  .overflow-auto {
+  :where(.overflow-auto, .table-container) {
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
     overflow-x: auto;
   }
 }
@@ -709,6 +711,7 @@
 
 @layer components {
   :where(article, .card) {
+    min-width: 0;
     margin-bottom: var(--pt-spacing);
     padding: var(--pt-spacing);
     border: var(--pt-border);
@@ -718,17 +721,24 @@
     overflow: hidden;
 
     & > :where(header, footer) {
+      min-width: 0;
       margin-inline: calc(-1 * var(--pt-spacing));
       padding: calc(var(--pt-spacing) * .66) var(--pt-spacing);
       background-color: var(--pt-surface-subtle);
     }
 
     & > header {
+      min-width: 0;
       margin-block: calc(-1 * var(--pt-spacing)) var(--pt-spacing);
       border-bottom: var(--pt-border);
+
+      & > * {
+        min-width: 0;
+      }
     }
 
     & > footer {
+      min-width: 0;
       margin-block: var(--pt-spacing) calc(-1 * var(--pt-spacing));
       border-top: var(--pt-border);
     }
@@ -920,7 +930,12 @@
     justify-content: space-between;
     align-items: center;
     gap: .5rem;
+    min-width: 0;
     display: flex;
+
+    & > * {
+      min-width: 0;
+    }
   }
 
   :where(dialog:modal) {

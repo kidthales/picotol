@@ -597,6 +597,41 @@ test("Ergonomic Class Parity, Compact Control Sizing, and Component Primitives",
   assert.ok(fullCss.includes(".toast"), "Full CSS must support .toast notification component");
 });
 
+test("Narrow-Corridor Reflow & Table Overflow Containment: .overflow-auto, .table-container, and min-width: 0 compile cleanly into core and full bundles", () => {
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+
+  for (const css of [fullMin, coreMin]) {
+    assert.ok(
+      css.includes("overflow-auto") && css.includes("table-container"),
+      "Both full and core minified bundles must include .overflow-auto and .table-container"
+    );
+    assert.ok(
+      css.includes("overflow-x:auto") || css.includes("overflow-x: auto"),
+      "Both bundles must include overflow-x: auto for containment"
+    );
+    assert.ok(
+      css.includes("-webkit-overflow-scrolling:touch") || css.includes("-webkit-overflow-scrolling: touch"),
+      "Both bundles must include touch momentum scrolling"
+    );
+    assert.ok(
+      css.includes("min-width:0") || css.includes("min-width: 0"),
+      "Both bundles must compile min-width: 0 for narrow-corridor flex/grid reflow"
+    );
+  }
+
+  assert.ok(
+    fullCss.includes(":where(article, .card)") && fullCss.includes("min-width: 0;"),
+    "Full CSS includes min-width: 0 on article/.card"
+  );
+  assert.ok(
+    fullCss.includes("& > header") && fullCss.includes("min-width: 0;"),
+    "Full CSS includes min-width: 0 on card headers"
+  );
+});
+
 
 
 
