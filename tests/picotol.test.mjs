@@ -749,3 +749,25 @@ test("SVG Namespace Encoding: data-URIs percent-encode XML namespace and contain
   }
 });
 
+test("Consumer @layer Guide: README documents canonical 4-layer cascade architecture, host encapsulation, and token bridges", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  assert.ok(
+    readme.includes("Using with CSS Cascade Layers"),
+    "README must include 'Using with CSS Cascade Layers' section"
+  );
+  assert.ok(
+    readme.includes("@layer reset, picotol, theme, app;"),
+    "README must document canonical 4-layer cascade declaration (@layer reset, picotol, theme, app;)"
+  );
+  assert.ok(
+    readme.includes("@layer app") && readme.includes("dashboard-card"),
+    "README must include clean code snippet showing host application style encapsulation inside @layer app"
+  );
+  assert.ok(
+    readme.includes("@layer theme") && readme.includes("--pt-primary: var(--host-brand-primary") && readme.includes("color-scheme: dark;"),
+    "README must detail interaction with host CSS custom property bridges and dark/light mode toggles"
+  );
+});
+
+

@@ -52,7 +52,7 @@ import "@kidthales/picotol/palettes";
 
 ```css
 /* Ensure picotol styles yield to host overrides without specificity hacks */
-@layer host, picotol, overrides;
+@layer reset, picotol, theme, app;
 @import "@kidthales/picotol/layer";
 ```
 
@@ -131,6 +131,73 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
    Because CSS `::before { content: attr(data-tooltip) }` is not announced consistently across all screen readers and Braille displays, pair non-decorative tooltips with `aria-label` or `aria-describedby` and add `tabindex="0"` when attached to non-interactive inline elements.
 4. **Native Table Semantics Preservation**:
    Wrap wide tables in `<div class="overflow-auto table-container"><table>...</table></div>` or semantic `<figure><table>...</table></figure>`. Unlike frameworks that apply `display: block` to `<table>` (which strips table coordinate semantics in WebKit/VoiceOver and Chromium), `@kidthales/picotol` preserves native `display: table` while providing touch-momentum horizontal scrolling.
+
+---
+
+## Using with CSS Cascade Layers
+
+When embedding `@kidthales/picotol` into modern host applications (such as dashboards, web portals, or enterprise systems), CSS Cascade Layers cleanly isolate framework rules, host themes, and application overrides without CSS specificity escalation or `!important` workarounds.
+
+### Canonical 4-Layer Cascade Architecture
+
+Declare layer precedence upfront at the top of your master stylesheet:
+
+```css
+/* 1. Define explicit layer ordering (later layers defeat earlier layers) */
+@layer reset, picotol, theme, app;
+
+/* 2. Import layered picotol distribution build into the 'picotol' layer */
+@import "@kidthales/picotol/layer";
+```
+
+The 4 canonical layers serve dedicated architectural responsibilities:
+1. **`reset`**: CSS resets or foundational baseline normalizations.
+2. **`picotol`**: Framework styling (typography, layout, forms, components, Paul Tol tokens).
+3. **`theme`**: Host theme bridges, CSS custom property overrides, and mode toggles.
+4. **`app`**: Application-specific layout rules, page components, and design overrides.
+
+### Host Application Style Encapsulation (`@layer app`)
+
+Because `@layer app` is declared after `@layer picotol`, rules inside `@layer app` automatically win the cascade over framework styles—even when `picotol` selectors have equal or greater specificity:
+
+```css
+@layer app {
+  /* Application styles override framework defaults cleanly */
+  button.action-btn {
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .dashboard-card {
+    border: 1px solid var(--host-card-border);
+    box-shadow: var(--host-elevation-2);
+  }
+}
+```
+
+### Host Token Bridging & Dark/Light Mode Toggles
+
+Host themes can bridge host custom properties to picotol's `--pt-*` tokens or consume `--tol-*` constants directly inside `@layer theme`:
+
+```css
+@layer theme {
+  :root, :host {
+    /* Bridge host brand tokens to picotol semantic tokens */
+    --pt-primary: var(--host-brand-primary, light-dark(#2255AA, #77AADD));
+    --pt-bg: var(--host-surface-bg, light-dark(#FFFFFF, #000000));
+    --pt-border-radius: 0.5rem;
+  }
+
+  /* Host-driven dark/light mode toggles */
+  [data-theme="light"], :root:has(input#dark-toggle:not(:checked)) {
+    color-scheme: light;
+  }
+  [data-theme="dark"], :root:has(input#dark-toggle:checked) {
+    color-scheme: dark;
+  }
+}
+```
 
 ---
 
@@ -245,10 +312,18 @@ High-density status dots (`.status-dot`) map directly to Paul Tol's qualitative 
 <span class="status-dot warning"></span> Degraded
 <span class="status-dot danger"></span> Critical
 <span class="status-dot info"></span> In Flight
-<span class="status-dot"></span> Neutral
+<span class="status-dot neutral"></span> Neutral
+<span class="status-dot idle"></span> Idle
 
-<!-- Combined with Badges -->
+<!-- Combined with Badges (Flex Gap Spacing) -->
 <span class="badge"><span class="status-dot success"></span> Active</span>
+<span class="badge"><span class="status-dot idle"></span> Inactive</span>
+
+<!-- Custom Flex Containers with Gap -->
+<div style="display: flex; gap: 0.5rem; align-items: center;">
+  <span class="status-dot success no-margin"></span>
+  <span>Connected</span>
+</div>
 ```
 
 ### 5. Interactive Operational Showcase & Palette Explorer
