@@ -20,9 +20,10 @@
   - Universal `:focus-visible` `2px solid` high-contrast focus outlines (`outline-offset: 2px`) that survive Windows High Contrast (`@media (forced-colors: active)`).
   - Non-color validation cues (`2px` border + `✓` / `✗` prefix icons on `[aria-invalid] + small`) and $\ge 24\times24\text{px}$ target sizes (WCAG 2.2 SC 2.5.8).
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
-- **Two-Tier Ultra-Minified Distribution** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
-  - **`dist/picotol.core.min.css`** (<= 10.5 KB minified, ~3.5 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid`, fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 20.0 KB minified, ~5.4 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `<progress>`, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+- **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
+  - **`dist/picotol.core.min.css`** (<= 11.8 KB minified, ~3.8 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
+  - **`dist/picotol.min.css`** (<= 22.5 KB minified, ~5.9 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot`, `<progress>`, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.layer.min.css`** (<= 22.6 KB minified, ~5.9 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
 
@@ -34,6 +35,9 @@
 // Full bundle (Core + Components)
 import "@kidthales/picotol";
 
+// Opt-in layered bundle for host @layer integration
+import "@kidthales/picotol/layer";
+
 // Core-only bundle (Landmarks, Typography, Forms, Nav)
 import "@kidthales/picotol/core";
 
@@ -42,6 +46,14 @@ import "@kidthales/picotol/tokens";
 
 // Raw Paul Tol qualitative palette constants (--tol-*)
 import "@kidthales/picotol/palettes";
+```
+
+### 1b. CSS `@layer` Cascade Integration
+
+```css
+/* Ensure picotol styles yield to host overrides without specificity hacks */
+@layer host, picotol, overrides;
+@import "@kidthales/picotol/layer";
 ```
 
 ### 2. Drop-In HTML Stylesheet
@@ -118,7 +130,7 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 3. **Accessible Tooltips (`[data-tooltip]`)**:
    Because CSS `::before { content: attr(data-tooltip) }` is not announced consistently across all screen readers and Braille displays, pair non-decorative tooltips with `aria-label` or `aria-describedby` and add `tabindex="0"` when attached to non-interactive inline elements.
 4. **Native Table Semantics Preservation**:
-   Wrap wide tables in `<div class="overflow-auto"><table>...</table></div>`. Unlike frameworks that apply `display: block` to `<table>` (which strips table coordinate semantics in WebKit/VoiceOver and Chromium), `@kidthales/picotol` preserves native `display: table`.
+   Wrap wide tables in `<div class="overflow-auto table-container"><table>...</table></div>` or semantic `<figure><table>...</table></figure>`. Unlike frameworks that apply `display: block` to `<table>` (which strips table coordinate semantics in WebKit/VoiceOver and Chromium), `@kidthales/picotol` preserves native `display: table` while providing touch-momentum horizontal scrolling.
 
 ---
 
@@ -223,11 +235,28 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 <span class="badge invalid">Error</span>
 ```
 
+### 4b. Status Indicator Dots
+
+High-density status dots (`.status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
+
+```html
+<!-- Standalone Status Dots -->
+<span class="status-dot success"></span> Operational
+<span class="status-dot warning"></span> Degraded
+<span class="status-dot danger"></span> Critical
+<span class="status-dot info"></span> In Flight
+<span class="status-dot"></span> Neutral
+
+<!-- Combined with Badges -->
+<span class="badge"><span class="status-dot success"></span> Active</span>
+```
+
 ### 5. Interactive Operational Showcase & Palette Explorer
 
 The interactive demonstration suite at `dist/demo/index.html` showcases:
+- **Opt-in `@layer picotol` Integration**: Cascade layer containment for modular host application embedding.
 - **Concurrent 4-Accent Subtree Theming**: `blue`, `cyan`, `purple`, and `magenta` run simultaneously in isolated scopes via `[data-accent]`.
-- **Operational Data Tables**: Responsive infrastructure monitor wrapped in `figure:has(> table)` with `.tabular-nums` alignment and `table.striped`.
+- **Operational Data Tables**: Responsive infrastructure monitor wrapped in `figure:has(> table)` and `.table-container` with `.tabular-nums` alignment, `.status-dot` indicators, and `table.striped`.
 - **Interactive Dashboard Console**: Tabpanel switching (`Overview`, `Analytics`, `System Logs`) and segmented time filters (`1H`, `24H`, `7D`, `30D`) with zero-CLS skeleton loading transitions (`.skeleton`).
 - **Paul Tol Canonical Palette Explorer**: Swatch grid of all canonical qualitative colours loaded from `data/tol-qualitative.json` with live search filtering and click-to-copy tokens.
 

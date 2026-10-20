@@ -1,6 +1,7 @@
 @layer components {
   /* 1. Card (<article>, .card) */
   :where(article, .card) {
+    min-width: 0;
     margin-bottom: var(--pt-spacing);
     padding: var(--pt-spacing);
     border: var(--pt-border);
@@ -10,15 +11,19 @@
     overflow: hidden;
 
     & > :where(header, footer) {
+      min-width: 0;
       margin-inline: calc(-1 * var(--pt-spacing));
       padding: calc(var(--pt-spacing) * 0.66) var(--pt-spacing);
       background-color: var(--pt-surface-subtle);
     }
     & > header {
+      min-width: 0;
       margin-block: calc(-1 * var(--pt-spacing)) var(--pt-spacing);
       border-bottom: var(--pt-border);
+      & > * { min-width: 0; }
     }
     & > footer {
+      min-width: 0;
       margin-block: var(--pt-spacing) calc(-1 * var(--pt-spacing));
       border-top: var(--pt-border);
     }
@@ -184,6 +189,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
+    min-width: 0;
+    & > * { min-width: 0; }
   }
 
   :where(dialog:modal) {
@@ -401,9 +408,41 @@
       color: var(--pt-valid);
     }
 
-    & > :where(svg.icon, [data-icon]) {
+    & > :where(svg.icon, [data-icon], .status-dot) {
       &:first-child:not(:only-child) { margin-inline-end: 0.35em; }
       &:last-child:not(:only-child) { margin-inline-start: 0.35em; }
+    }
+  }
+
+  /* 11b. Status Indicator Dots */
+  :where(.status-dot) {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    vertical-align: middle;
+    flex-shrink: 0;
+    background-color: var(--pt-muted-border);
+
+    &:not(:only-child, :last-child) {
+      margin-inline-end: 0.35rem;
+    }
+
+    &:is(.success, .valid, [data-status="success"], [data-status="valid"]) {
+      background-color: var(--pt-valid);
+    }
+    &:is(.warning, [data-status="warning"]) {
+      background-color: var(--pt-warning);
+    }
+    &:is(.danger, .invalid, [data-status="danger"], [data-status="invalid"]) {
+      background-color: var(--pt-invalid);
+    }
+    &:is(.info, .primary, [data-status="info"], [data-status="primary"]) {
+      background-color: var(--pt-primary);
+    }
+
+    @media (forced-colors: active) {
+      outline: 1px solid CanvasText;
     }
   }
 
