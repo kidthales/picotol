@@ -428,6 +428,9 @@
       margin-inline-end: 0.35rem;
     }
 
+    &:is(.neutral, .idle, [data-status="neutral"], [data-status="idle"], [data-status="backlog"], [data-status="no-status"]) {
+      background-color: var(--pt-muted-border);
+    }
     &:is(.success, .valid, [data-status="success"], [data-status="valid"]) {
       background-color: var(--pt-valid);
     }

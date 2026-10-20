@@ -650,6 +650,29 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
   assert.ok(fullCss.includes("var(--pt-warning)"), "Status dot maps warning to --pt-warning");
   assert.ok(fullCss.includes("var(--pt-invalid)"), "Status dot maps danger/invalid to --pt-invalid");
   assert.ok(fullCss.includes("var(--pt-primary)"), "Status dot maps info/primary to --pt-primary");
+  assert.ok(fullCss.includes("var(--pt-muted-border)"), "Status dot maps neutral/idle to --pt-muted-border");
+
+  // Neutral and idle state mappings
+  assert.ok(
+    fullCss.includes(".neutral") && fullCss.includes(".idle"),
+    "Status dot must support .neutral and .idle class modifiers"
+  );
+  assert.ok(
+    fullCss.includes('[data-status="neutral"]') || fullCss.includes("[data-status=neutral]"),
+    "Status dot must support data-status=neutral"
+  );
+  assert.ok(
+    fullCss.includes('[data-status="idle"]') || fullCss.includes("[data-status=idle]"),
+    "Status dot must support data-status=idle"
+  );
+  assert.ok(
+    fullCss.includes('[data-status="backlog"]') || fullCss.includes("[data-status=backlog]"),
+    "Status dot must support data-status=backlog"
+  );
+  assert.ok(
+    fullCss.includes('[data-status="no-status"]') || fullCss.includes("[data-status=no-status]"),
+    "Status dot must support data-status=no-status"
+  );
 
   // Forced colors mode outline
   assert.ok(
