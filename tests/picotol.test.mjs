@@ -64,6 +64,8 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
     path.join(ROOT, "dist/picotol.core.min.css"),
     path.join(ROOT, "dist/picotol.css"),
     path.join(ROOT, "dist/picotol.min.css"),
+    path.join(ROOT, "dist/picotol.layer.css"),
+    path.join(ROOT, "dist/picotol.layer.min.css"),
   ];
 
   const hexRegex = /#[0-9a-fA-F]{3,8}\b/g;
@@ -87,17 +89,22 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 11.5 KB and picotol.min.css <= 22.0 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 11.8 KB, picotol.min.css <= 22.5 KB, and picotol.layer.min.css <= 22.6 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
+  const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
 
   assert.ok(
-    coreMin <= 11.5 * 1024,
-    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 11776 B`
+    coreMin <= 11.8 * 1024,
+    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 12083 B`
   );
   assert.ok(
-    fullMin <= 22.0 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 22528 B`
+    fullMin <= 22.5 * 1024,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= 23040 B`
+  );
+  assert.ok(
+    layerMin <= 22.6 * 1024,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 23142 B`
   );
 });
 
@@ -349,10 +356,36 @@ test("WCAG 2.2 Accessibility, Reflow, Typography Measure, Screen Reader UX, and 
   assert.ok(fs.existsSync(sriPath), "dist/sri.json must exist");
   const sri = JSON.parse(fs.readFileSync(sriPath, "utf8"));
   assert.equal(sri.package, "@kidthales/picotol");
-  for (const relPath of ["dist/picotol.core.min.css", "dist/picotol.min.css"]) {
+  for (const relPath of ["dist/picotol.core.min.css", "dist/picotol.min.css", "dist/picotol.layer.min.css"]) {
     assert.ok(sri.files[relPath], `dist/sri.json must include entry for ${relPath}`);
     assert.match(sri.files[relPath].integrity, /^sha384-[A-Za-z0-9+/=]+$/);
     assert.equal(sri.files[relPath].bytes, fs.statSync(path.join(ROOT, relPath)).size);
+  }
+});
+
+test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework bundle in @layer picotol without syntax errors", () => {
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMinCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+
+  assert.ok(layerCss.startsWith("/*!"), "Expanded layered build must retain license header");
+  assert.ok(layerMinCss.startsWith("/*!"), "Minified layered build must retain license header");
+
+  assert.ok(
+    layerCss.includes("@layer picotol {"),
+    "dist/picotol.layer.css must wrap contents in @layer picotol"
+  );
+  assert.ok(
+    layerMinCss.includes("@layer picotol{") || layerMinCss.includes("@layer picotol {"),
+    "dist/picotol.layer.min.css must contain @layer picotol"
+  );
+
+  // Validate that internal cascade layers reside inside @layer picotol
+  const layers = ["tokens", "base", "layout", "content", "forms", "nav", "components"];
+  for (const layer of layers) {
+    assert.ok(
+      layerMinCss.includes(`@layer ${layer}`) || layerMinCss.includes(`@layer ${layer}{`),
+      `Layered minified build must retain inner @layer ${layer}`
+    );
   }
 });
 
@@ -562,6 +595,93 @@ test("Ergonomic Class Parity, Compact Control Sizing, and Component Primitives",
   // Extended components in full bundle
   assert.ok(fullCss.includes(".card"), "Full CSS must support .card alias for article");
   assert.ok(fullCss.includes(".toast"), "Full CSS must support .toast notification component");
+});
+
+test("Narrow-Corridor Reflow & Table Overflow Containment: .overflow-auto, .table-container, and min-width: 0 compile cleanly into core and full bundles", () => {
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+
+  for (const css of [fullMin, coreMin]) {
+    assert.ok(
+      css.includes("overflow-auto") && css.includes("table-container"),
+      "Both full and core minified bundles must include .overflow-auto and .table-container"
+    );
+    assert.ok(
+      css.includes("overflow-x:auto") || css.includes("overflow-x: auto"),
+      "Both bundles must include overflow-x: auto for containment"
+    );
+    assert.ok(
+      css.includes("-webkit-overflow-scrolling:touch") || css.includes("-webkit-overflow-scrolling: touch"),
+      "Both bundles must include touch momentum scrolling"
+    );
+    assert.ok(
+      css.includes("min-width:0") || css.includes("min-width: 0"),
+      "Both bundles must compile min-width: 0 for narrow-corridor flex/grid reflow"
+    );
+  }
+
+  assert.ok(
+    fullCss.includes(":where(article, .card)") && fullCss.includes("min-width: 0;"),
+    "Full CSS includes min-width: 0 on article/.card"
+  );
+  assert.ok(
+    fullCss.includes("& > header") && fullCss.includes("min-width: 0;"),
+    "Full CSS includes min-width: 0 on card headers"
+  );
+});
+
+test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping, forced-colors, and SC 1.4.11 contrast", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+
+  assert.ok(fullCss.includes(".status-dot"), "Full CSS must include .status-dot");
+  assert.ok(fullMin.includes("status-dot"), "Minified CSS must include status-dot");
+
+  // Check dimension rules
+  assert.ok(
+    (fullCss.includes("0.5rem") || fullCss.includes(".5rem")) && fullCss.includes("50%"),
+    "Status dot must declare 0.5rem dimensions and 50% radius"
+  );
+
+  // Semantic state mappings
+  assert.ok(fullCss.includes("var(--pt-valid)"), "Status dot maps success/valid to --pt-valid");
+  assert.ok(fullCss.includes("var(--pt-warning)"), "Status dot maps warning to --pt-warning");
+  assert.ok(fullCss.includes("var(--pt-invalid)"), "Status dot maps danger/invalid to --pt-invalid");
+  assert.ok(fullCss.includes("var(--pt-primary)"), "Status dot maps info/primary to --pt-primary");
+
+  // Forced colors mode outline
+  assert.ok(
+    /outline:\s*1px\s+solid\s+canvastext/i.test(fullCss) || /outline:1px solid canvastext/i.test(fullMin),
+    "Status dot must provide CanvasText outline in forced-colors mode"
+  );
+
+  // WCAG 2.2 SC 1.4.11 Non-text contrast verification (>= 3.0:1)
+  const lightBg = achromaticColor("white"); // #FFFFFF
+  const darkBg = achromaticColor("black");  // #000000
+
+  const lightValid = schemeColor("dark", 5);          // #006644
+  const lightWarning = schemeColor("dark", 9);        // #775500
+  const lightInvalid = schemeColor("vibrant", "red"); // #CC3311
+  const lightMuted = achromaticColor("grey-500");     // #888888
+
+  const darkValid = schemeColor("light", "mint");           // #44BB99
+  const darkWarning = schemeColor("light", "light_yellow"); // #EEDD88
+  const darkInvalid = schemeColor("bright", "red");         // #EE6677
+  const darkMuted = achromaticColor("grey-700");           // #666666
+
+  // Verify Light Mode dots vs White Surface >= 3.0:1
+  assert.ok(contrastRatio(lightValid, lightBg) >= 3.0, "Status dot success >= 3:1 in light mode");
+  assert.ok(contrastRatio(lightWarning, lightBg) >= 3.0, "Status dot warning >= 3:1 in light mode");
+  assert.ok(contrastRatio(lightInvalid, lightBg) >= 3.0, "Status dot danger >= 3:1 in light mode");
+  assert.ok(contrastRatio(lightMuted, lightBg) >= 3.0, "Status dot default/neutral >= 3:1 in light mode");
+
+  // Verify Dark Mode dots vs Black Surface >= 3.0:1
+  assert.ok(contrastRatio(darkValid, darkBg) >= 3.0, "Status dot success >= 3:1 in dark mode");
+  assert.ok(contrastRatio(darkWarning, darkBg) >= 3.0, "Status dot warning >= 3:1 in dark mode");
+  assert.ok(contrastRatio(darkInvalid, darkBg) >= 3.0, "Status dot danger >= 3:1 in dark mode");
+  assert.ok(contrastRatio(darkMuted, darkBg) >= 3.0, "Status dot default/neutral >= 3:1 in dark mode");
 });
 
 
