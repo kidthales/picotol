@@ -650,6 +650,48 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
   assert.ok(fullCss.includes("var(--pt-warning)"), "Status dot maps warning to --pt-warning");
   assert.ok(fullCss.includes("var(--pt-invalid)"), "Status dot maps danger/invalid to --pt-invalid");
   assert.ok(fullCss.includes("var(--pt-primary)"), "Status dot maps info/primary to --pt-primary");
+  assert.ok(fullCss.includes("var(--pt-muted-border)"), "Status dot maps neutral/idle to --pt-muted-border");
+
+  // Neutral and idle state mappings
+  assert.ok(
+    fullCss.includes(".neutral") && fullCss.includes(".idle"),
+    "Status dot must support .neutral and .idle class modifiers"
+  );
+  assert.ok(
+    fullCss.includes('[data-status="neutral"]') || fullCss.includes("[data-status=neutral]"),
+    "Status dot must support data-status=neutral"
+  );
+  assert.ok(
+    fullCss.includes('[data-status="idle"]') || fullCss.includes("[data-status=idle]"),
+    "Status dot must support data-status=idle"
+  );
+  assert.ok(
+    fullCss.includes('[data-status="backlog"]') || fullCss.includes("[data-status=backlog]"),
+    "Status dot must support data-status=backlog"
+  );
+  assert.ok(
+    fullCss.includes('[data-status="no-status"]') || fullCss.includes("[data-status=no-status]"),
+    "Status dot must support data-status=no-status"
+  );
+
+  // Spacing & Margin Compounding Prevention in Flex Gap Containers
+  assert.ok(
+    fullCss.includes(":where(:not(:only-child, :last-child))") ||
+    fullCss.includes(":where(:not(:only-child,:last-child))"),
+    "Status dot default margin selector must be wrapped in :where() to maintain (0,0,0) specificity"
+  );
+  assert.ok(
+    fullCss.includes("margin-inline-end: 0.35rem") || fullCss.includes("margin-inline-end: .35rem"),
+    "Status dot preserves default inline spacing when not only or last child"
+  );
+  assert.ok(
+    fullCss.includes(".no-margin") && fullCss.includes(".m-0"),
+    "Status dot must support .no-margin and .m-0 modifiers"
+  );
+  assert.ok(
+    fullCss.includes("margin-inline-end: 0"),
+    "Status dot must eliminate margin compounding within flex/gap parent containers"
+  );
 
   // Forced colors mode outline
   assert.ok(
@@ -684,7 +726,48 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
   assert.ok(contrastRatio(darkMuted, darkBg) >= 3.0, "Status dot default/neutral >= 3:1 in dark mode");
 });
 
+test("SVG Namespace Encoding: data-URIs percent-encode XML namespace and contain zero unencoded http:// literals", () => {
+  const cssFiles = [
+    "dist/picotol.core.css",
+    "dist/picotol.core.min.css",
+    "dist/picotol.css",
+    "dist/picotol.min.css",
+    "dist/picotol.layer.css",
+    "dist/picotol.layer.min.css",
+  ];
 
+  for (const relPath of cssFiles) {
+    const content = fs.readFileSync(path.join(ROOT, relPath), "utf8");
+    assert.ok(
+      !content.includes("http://"),
+      `${relPath} must not contain unencoded http:// literals`
+    );
+    assert.ok(
+      content.includes("http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg"),
+      `${relPath} must contain percent-encoded SVG namespace`
+    );
+  }
+});
 
+test("Consumer @layer Guide: README documents canonical 4-layer cascade architecture, host encapsulation, and token bridges", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  assert.ok(
+    readme.includes("Using with CSS Cascade Layers"),
+    "README must include 'Using with CSS Cascade Layers' section"
+  );
+  assert.ok(
+    readme.includes("@layer reset, picotol, theme, app;"),
+    "README must document canonical 4-layer cascade declaration (@layer reset, picotol, theme, app;)"
+  );
+  assert.ok(
+    readme.includes("@layer app") && readme.includes("dashboard-card"),
+    "README must include clean code snippet showing host application style encapsulation inside @layer app"
+  );
+  assert.ok(
+    readme.includes("@layer theme") && readme.includes("--pt-primary: var(--host-brand-primary") && readme.includes("color-scheme: dark;"),
+    "README must detail interaction with host CSS custom property bridges and dark/light mode toggles"
+  );
+});
 
 

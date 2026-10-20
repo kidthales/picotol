@@ -137,7 +137,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     '    --pt-container-max: 70rem;',
     '    --pt-grid-min: 15rem;',
     '    --pt-grid-gap: var(--pt-spacing);',
-    "    --pt-icon-chevron: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\");",
+    "    --pt-icon-chevron: url(\"data:image/svg+xml,%3Csvg xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\");",
     `    --pt-bg: light-dark(${ach['white']}, ${ach['black']});`,
     '    --pt-card-bg: var(--pt-bg);',
     `    --pt-black: ${ach['black']};`,
