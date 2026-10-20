@@ -46,6 +46,8 @@
     "./css": "./dist/picotol.css",
     "./core": "./dist/picotol.core.min.css",
     "./core/css": "./dist/picotol.core.css",
+    "./layer": "./dist/picotol.layer.min.css",
+    "./layer/css": "./dist/picotol.layer.css",
     "./tokens": "./src/tokens.css",
     "./palettes": "./src/palettes.css",
     "./palette-data": "./data/tol-qualitative.json",

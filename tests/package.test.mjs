@@ -14,8 +14,8 @@ test("npm pack --dry-run enforces size budgets and excludes demo/dev/CI files", 
   const [info] = JSON.parse(raw);
 
   assert.equal(info.name, "@kidthales/picotol");
-  assert.ok(info.size <= 28 * 1024, `Tarball size ${info.size} B exceeds 28 KB budget`);
-  assert.ok(info.unpackedSize <= 135 * 1024, `Unpacked size ${info.unpackedSize} B exceeds 135 KB budget`);
+  assert.ok(info.size <= 36 * 1024, `Tarball size ${info.size} B exceeds 36 KB budget`);
+  assert.ok(info.unpackedSize <= 210 * 1024, `Unpacked size ${info.unpackedSize} B exceeds 210 KB budget`);
 
   const paths = info.files.map((f) => f.path);
   assert.ok(paths.includes("LICENSE"), "LICENSE must be included in tarball");
@@ -23,6 +23,7 @@ test("npm pack --dry-run enforces size budgets and excludes demo/dev/CI files", 
   assert.ok(paths.includes("README.md"), "README.md must be included in tarball");
   assert.ok(paths.includes("dist/picotol.min.css"), "dist/picotol.min.css must be included");
   assert.ok(paths.includes("dist/picotol.core.min.css"), "dist/picotol.core.min.css must be included");
+  assert.ok(paths.includes("dist/picotol.layer.min.css"), "dist/picotol.layer.min.css must be included");
   assert.ok(paths.includes("dist/sri.json"), "dist/sri.json must be included");
 
   for (const p of paths) {
@@ -34,12 +35,14 @@ test("npm pack --dry-run enforces size budgets and excludes demo/dev/CI files", 
   }
 });
 
-test("all 9 package.json subpath exports resolve to valid files", () => {
+test("all 11 package.json subpath exports resolve to valid files", () => {
   const expectedExports = [
     ".",
     "./css",
     "./core",
     "./core/css",
+    "./layer",
+    "./layer/css",
     "./tokens",
     "./palettes",
     "./palette-data",
