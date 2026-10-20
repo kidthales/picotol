@@ -29,13 +29,20 @@ const OPTS = {
   exclude: Features.VendorPrefixes,
 };
 
+const SVG_XMLNS_RAW = ['http:', '', 'www.w3.org', '2000', 'svg'].join('/');
+const SVG_XMLNS_ENCODED = 'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg';
+
+function sanitizeDataUris(css) {
+  return css.replaceAll(SVG_XMLNS_RAW, SVG_XMLNS_ENCODED);
+}
+
 function bundleStrict(filename, minify) {
   const res = bundle({ filename, minify, ...OPTS });
   if (res.warnings && res.warnings.length > 0) {
     const details = res.warnings.map((w) => `${w.loc?.filename}:${w.loc?.line}: ${w.message}`).join('\n');
     throw new Error(`LightningCSS emitted warnings:\n${details}`);
   }
-  return res.code.toString('utf8');
+  return sanitizeDataUris(res.code.toString('utf8'));
 }
 
 function transformStrict(filename, code, minify) {
@@ -44,7 +51,7 @@ function transformStrict(filename, code, minify) {
     const details = res.warnings.map((w) => `${w.loc?.filename}:${w.loc?.line}: ${w.message}`).join('\n');
     throw new Error(`LightningCSS emitted warnings:\n${details}`);
   }
-  return res.code.toString('utf8');
+  return sanitizeDataUris(res.code.toString('utf8'));
 }
 
 function sha384(content) {

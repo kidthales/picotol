@@ -684,7 +684,26 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
   assert.ok(contrastRatio(darkMuted, darkBg) >= 3.0, "Status dot default/neutral >= 3:1 in dark mode");
 });
 
+test("SVG Namespace Encoding: data-URIs percent-encode XML namespace and contain zero unencoded http:// literals", () => {
+  const cssFiles = [
+    "dist/picotol.core.css",
+    "dist/picotol.core.min.css",
+    "dist/picotol.css",
+    "dist/picotol.min.css",
+    "dist/picotol.layer.css",
+    "dist/picotol.layer.min.css",
+  ];
 
-
-
+  for (const relPath of cssFiles) {
+    const content = fs.readFileSync(path.join(ROOT, relPath), "utf8");
+    assert.ok(
+      !content.includes("http://"),
+      `${relPath} must not contain unencoded http:// literals`
+    );
+    assert.ok(
+      content.includes("http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg"),
+      `${relPath} must contain percent-encoded SVG namespace`
+    );
+  }
+});
 
