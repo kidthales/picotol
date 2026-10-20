@@ -666,7 +666,8 @@ ${rowsHtml}
           <p><span class="status-dot warning"></span><strong>Warning</strong> <code>.status-dot.warning</code></p>
           <p><span class="status-dot danger"></span><strong>Critical</strong> <code>.status-dot.danger</code></p>
           <p><span class="status-dot info"></span><strong>Active</strong> <code>.status-dot.info</code></p>
-          <p><span class="status-dot"></span><strong>Neutral</strong> <code>.status-dot</code></p>
+          <p><span class="status-dot neutral"></span><strong>Neutral</strong> <code>.status-dot.neutral</code></p>
+          <p><span class="status-dot idle" data-status="idle"></span><strong>Idle</strong> <code>.status-dot.idle</code></p>
           <footer><small>WCAG 2.2 §1.4.11 contrast compliant (&ge; 3:1) with forced-colors outline</small></footer>
         </article>
         <article>
@@ -675,6 +676,7 @@ ${rowsHtml}
           <p><span class="badge warning"><span class="status-dot warning"></span> Memory Pressure</span></p>
           <p><span class="badge invalid"><span class="status-dot danger"></span> Node Offline</span></p>
           <p><span class="badge primary"><span class="status-dot info"></span> Job Running</span></p>
+          <p><span class="badge"><span class="status-dot idle" data-status="idle"></span> Service Idle</span></p>
           <footer><small>Contextual inline spacing via child selectors</small></footer>
         </article>
         <article>
