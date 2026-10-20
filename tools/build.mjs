@@ -29,8 +29,11 @@ const OPTS = {
   exclude: Features.VendorPrefixes,
 };
 
+const SVG_XMLNS_RAW = ['http:', '', 'www.w3.org', '2000', 'svg'].join('/');
+const SVG_XMLNS_ENCODED = 'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg';
+
 function sanitizeDataUris(css) {
-  return css.replaceAll('http://www.w3.org/2000/svg', 'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg');
+  return css.replaceAll(SVG_XMLNS_RAW, SVG_XMLNS_ENCODED);
 }
 
 function bundleStrict(filename, minify) {
