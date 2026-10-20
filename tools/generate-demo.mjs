@@ -252,7 +252,17 @@ export function generateDemoHtml(fullMinCss, stats) {
           <p><strong>${stats.fullMinBytes} bytes</strong> (${(stats.fullMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.fullGzipBytes} B</strong> gzip)</p>
           <footer><small>${((1 - stats.fullMinBytes / 83319) * 100).toFixed(1)}% smaller than upstream pico.min.css (83.3 KB)</small></footer>
         </article>
+        <article>
+          <header><strong>Layer Build (<code>picotol.layer.min.css</code>)</strong></header>
+          <p><strong>${stats.layerMinBytes} bytes</strong> (${(stats.layerMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.layerGzipBytes} B</strong> gzip)</p>
+          <footer><small>Wrapped in <code>@layer picotol { ... }</code> for cascade containment</small></footer>
+        </article>
       </div>
+      <aside>
+        <p><strong>Host Cascade Integration (<code>@layer picotol</code>):</strong> For applications using CSS <code>@layer</code>, import the layered build to guarantee seamless token overriding without specificity conflicts:</p>
+        <pre><code>@layer host, picotol, overrides;
+@import "@kidthales/picotol/layer";</code></pre>
+      </aside>
       <p><small><strong>How to read contrast ratios:</strong> Luminance contrast ranges from <code>1:1</code> (invisible) to <code>21:1</code> (pure black on white). <ins><strong>✓ AAA</strong></ins> (<code>&ge; 7.0:1</code>) is the highest W3C tier (enhanced low-vision legibility); <mark><strong>✓ AA</strong></mark> (<code>&ge; 4.5:1</code>) is the standard pass threshold for normal body text and UI controls.</small></p>
       <div class="overflow-auto">
         <table class="striped">
@@ -458,7 +468,7 @@ ${rowsHtml}
 
     <section id="tables">
       <h2>6. Semantic Data Tables &amp; Operational Monitor</h2>
-      <p>Data tables feature automatic tabular numeric alignment, alternating zebra stripes via <code>table.striped</code>, and horizontal scrolling via responsive <code>figure:has(&gt; table)</code>.</p>
+      <p>Data tables feature automatic tabular numeric alignment, alternating zebra stripes via <code>table.striped</code>, status dot indicators, and horizontal scrolling via responsive <code>figure:has(&gt; table)</code> and <code>.overflow-auto</code>.</p>
       <figure>
         <figcaption>Cluster Infrastructure Node Fleet Status (Production US-East)</figcaption>
         <table class="striped">
@@ -479,7 +489,7 @@ ${rowsHtml}
               <td class="tabular-nums">24.5%</td>
               <td class="tabular-nums">3.8 / 16 GB</td>
               <td class="tabular-nums">12 ms</td>
-              <td><span class="badge valid">Operational</span></td>
+              <td><span class="status-dot success"></span><span class="badge valid">Operational</span></td>
             </tr>
             <tr>
               <td><code>edge-us-east-02</code></td>
@@ -487,7 +497,7 @@ ${rowsHtml}
               <td class="tabular-nums">78.2%</td>
               <td class="tabular-nums">14.1 / 16 GB</td>
               <td class="tabular-nums">28 ms</td>
-              <td><span class="badge warning">Warning</span></td>
+              <td><span class="status-dot warning"></span><span class="badge warning">Warning</span></td>
             </tr>
             <tr>
               <td><code>edge-us-east-03</code></td>
@@ -495,7 +505,7 @@ ${rowsHtml}
               <td class="tabular-nums">96.8%</td>
               <td class="tabular-nums">15.9 / 16 GB</td>
               <td class="tabular-nums">145 ms</td>
-              <td><span class="badge invalid">Critical</span></td>
+              <td><span class="status-dot danger"></span><span class="badge invalid">Critical</span></td>
             </tr>
             <tr>
               <td><code>edge-us-east-04</code></td>
@@ -503,7 +513,7 @@ ${rowsHtml}
               <td class="tabular-nums">18.0%</td>
               <td class="tabular-nums">2.4 / 16 GB</td>
               <td class="tabular-nums">9 ms</td>
-              <td><span class="badge valid">Operational</span></td>
+              <td><span class="status-dot success"></span><span class="badge valid">Operational</span></td>
             </tr>
           </tbody>
           <tfoot>
@@ -513,11 +523,82 @@ ${rowsHtml}
               <td class="tabular-nums">54.4% Avg</td>
               <td class="tabular-nums">36.2 / 64 GB</td>
               <td class="tabular-nums">48 ms P95</td>
-              <td><span class="badge primary">4 Monitored</span></td>
+              <td><span class="status-dot info"></span><span class="badge primary">4 Monitored</span></td>
             </tr>
           </tfoot>
         </table>
       </figure>
+
+      <h3>Table Container Utility (<code>.overflow-auto</code> / <code>.table-container</code>)</h3>
+      <p>Multi-column wide tabular datasets wrapped in <code>.overflow-auto</code> or <code>.table-container</code> maintain localized horizontal scrolling without window blowouts:</p>
+      <div class="overflow-auto table-container">
+        <table class="striped">
+          <thead>
+            <tr>
+              <th scope="col">Service Name</th>
+              <th scope="col">Health</th>
+              <th scope="col">Inbound RPS</th>
+              <th scope="col">Outbound RPS</th>
+              <th scope="col">Error Rate</th>
+              <th scope="col">P50</th>
+              <th scope="col">P99</th>
+              <th scope="col">Replica Count</th>
+              <th scope="col">Uptime</th>
+              <th scope="col">Host Zone</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>auth-service</strong></td>
+              <td><span class="status-dot success"></span>Healthy</td>
+              <td class="tabular-nums">1,240 req/s</td>
+              <td class="tabular-nums">1,180 req/s</td>
+              <td class="tabular-nums">0.01%</td>
+              <td class="tabular-nums">4.2 ms</td>
+              <td class="tabular-nums">18.4 ms</td>
+              <td class="tabular-nums">8 / 8</td>
+              <td class="tabular-nums">99.99%</td>
+              <td><code>us-east-1a</code></td>
+            </tr>
+            <tr>
+              <td><strong>billing-gateway</strong></td>
+              <td><span class="status-dot warning"></span>Degraded</td>
+              <td class="tabular-nums">420 req/s</td>
+              <td class="tabular-nums">390 req/s</td>
+              <td class="tabular-nums">1.45%</td>
+              <td class="tabular-nums">42.1 ms</td>
+              <td class="tabular-nums">280.0 ms</td>
+              <td class="tabular-nums">4 / 4</td>
+              <td class="tabular-nums">99.82%</td>
+              <td><code>us-east-1b</code></td>
+            </tr>
+            <tr>
+              <td><strong>telemetry-pipe</strong></td>
+              <td><span class="status-dot success"></span>Healthy</td>
+              <td class="tabular-nums">18,500 req/s</td>
+              <td class="tabular-nums">18,490 req/s</td>
+              <td class="tabular-nums">0.00%</td>
+              <td class="tabular-nums">1.1 ms</td>
+              <td class="tabular-nums">6.8 ms</td>
+              <td class="tabular-nums">16 / 16</td>
+              <td class="tabular-nums">100.0%</td>
+              <td><code>us-east-1c</code></td>
+            </tr>
+            <tr>
+              <td><strong>worker-ingest</strong></td>
+              <td><span class="status-dot danger"></span>Failing</td>
+              <td class="tabular-nums">85 req/s</td>
+              <td class="tabular-nums">12 req/s</td>
+              <td class="tabular-nums">24.8%</td>
+              <td class="tabular-nums">340.5 ms</td>
+              <td class="tabular-nums">1,820 ms</td>
+              <td class="tabular-nums">1 / 4</td>
+              <td class="tabular-nums">98.12%</td>
+              <td><code>us-east-1d</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <hr>
@@ -576,6 +657,36 @@ ${rowsHtml}
           <p>Generic div or section styled with <code>.card</code> for ergonomic framework interoperability.</p>
           <footer><small>Footer landmark</small></footer>
         </div>
+      </div>
+      <h3>Status Dots &amp; Narrow-Corridor Reflow</h3>
+      <div class="grid">
+        <article>
+          <header><strong>Paul Tol Status Dots (<code>.status-dot</code>)</strong></header>
+          <p><span class="status-dot success"></span><strong>Operational</strong> <code>.status-dot.success</code></p>
+          <p><span class="status-dot warning"></span><strong>Warning</strong> <code>.status-dot.warning</code></p>
+          <p><span class="status-dot danger"></span><strong>Critical</strong> <code>.status-dot.danger</code></p>
+          <p><span class="status-dot info"></span><strong>Active</strong> <code>.status-dot.info</code></p>
+          <p><span class="status-dot"></span><strong>Neutral</strong> <code>.status-dot</code></p>
+          <footer><small>WCAG 2.2 §1.4.11 contrast compliant (&ge; 3:1) with forced-colors outline</small></footer>
+        </article>
+        <article>
+          <header><strong>Badge &amp; Dot Pairing</strong></header>
+          <p><span class="badge"><span class="status-dot success"></span> Cluster Healthy</span></p>
+          <p><span class="badge warning"><span class="status-dot warning"></span> Memory Pressure</span></p>
+          <p><span class="badge invalid"><span class="status-dot danger"></span> Node Offline</span></p>
+          <p><span class="badge primary"><span class="status-dot info"></span> Job Running</span></p>
+          <footer><small>Contextual inline spacing via child selectors</small></footer>
+        </article>
+        <article>
+          <header><strong>Narrow-Corridor Reflow (320px)</strong></header>
+          <p><small>Flex and grid children declare <code>min-width: 0</code> to prevent wide controls or long titles from blowing out containers.</small></p>
+          <div class="form-row">
+            <span class="status-dot success"></span>
+            <input type="text" value="cluster-telemetry-node-01.us-east.internal" class="small" readonly>
+            <button type="button" class="btn small">Ping</button>
+          </div>
+          <footer><small>Shrinks cleanly without horizontal document overflow</small></footer>
+        </article>
       </div>
     </section>
 
