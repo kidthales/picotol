@@ -674,6 +674,20 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
     "Status dot must support data-status=no-status"
   );
 
+  // Spacing & Margin Compounding Prevention in Flex Gap Containers
+  assert.ok(
+    fullCss.includes("margin-inline-end: 0.35rem") || fullCss.includes("margin-inline-end: .35rem"),
+    "Status dot preserves default inline spacing when not only or last child"
+  );
+  assert.ok(
+    fullCss.includes(".no-margin") && fullCss.includes(".m-0"),
+    "Status dot must support .no-margin and .m-0 modifiers"
+  );
+  assert.ok(
+    fullCss.includes("margin-inline-end: 0"),
+    "Status dot must eliminate margin compounding within flex/gap parent containers"
+  );
+
   // Forced colors mode outline
   assert.ok(
     /outline:\s*1px\s+solid\s+canvastext/i.test(fullCss) || /outline:1px solid canvastext/i.test(fullMin),

@@ -380,6 +380,7 @@
   :where(.badge, [role="status"]) {
     display: inline-flex;
     align-items: center;
+    gap: 0.35em;
     padding: 0.125em 0.5em;
     border-radius: 99px;
     border: 1px solid var(--pt-muted-border);
@@ -409,8 +410,7 @@
     }
 
     & > :where(svg.icon, [data-icon], .status-dot) {
-      &:first-child:not(:only-child) { margin-inline-end: 0.35em; }
-      &:last-child:not(:only-child) { margin-inline-start: 0.35em; }
+      margin: 0;
     }
   }
 
@@ -426,6 +426,14 @@
 
     &:not(:only-child, :last-child) {
       margin-inline-end: 0.35rem;
+    }
+
+    :where([style*="gap"], [class*="gap"], .grid, .flex, [role="group"], .badge, [role="status"]) > & {
+      margin-inline-end: 0;
+    }
+
+    &:is(.no-margin, .m-0) {
+      margin: 0;
     }
 
     &:is(.neutral, .idle, [data-status="neutral"], [data-status="idle"], [data-status="backlog"], [data-status="no-status"]) {

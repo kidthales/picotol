@@ -677,7 +677,8 @@ ${rowsHtml}
           <p><span class="badge invalid"><span class="status-dot danger"></span> Node Offline</span></p>
           <p><span class="badge primary"><span class="status-dot info"></span> Job Running</span></p>
           <p><span class="badge"><span class="status-dot idle" data-status="idle"></span> Service Idle</span></p>
-          <footer><small>Contextual inline spacing via child selectors</small></footer>
+          <p style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;"><span class="status-dot success no-margin"></span><small>Flex gap layout (<code>.no-margin</code> / <code>.m-0</code>)</small></p>
+          <footer><small>Contextual inline spacing without margin compounding</small></footer>
         </article>
         <article>
           <header><strong>Narrow-Corridor Reflow (320px)</strong></header>
