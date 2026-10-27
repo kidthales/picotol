@@ -25,6 +25,7 @@ test("npm pack --dry-run enforces size budgets and excludes demo/dev/CI files", 
   assert.ok(paths.includes("dist/picotol.core.min.css"), "dist/picotol.core.min.css must be included");
   assert.ok(paths.includes("dist/picotol.layer.min.css"), "dist/picotol.layer.min.css must be included");
   assert.ok(paths.includes("dist/sri.json"), "dist/sri.json must be included");
+  assert.ok(paths.includes("types/index.d.ts"), "types/index.d.ts must be included in tarball");
 
   for (const p of paths) {
     assert.doesNotMatch(
@@ -51,9 +52,83 @@ test("all 11 package.json subpath exports resolve to valid files", () => {
   ];
   for (const exp of expectedExports) {
     assert.ok(pkg.exports[exp], `Missing export "${exp}" in package.json`);
-    const targetPath = path.join(ROOT, pkg.exports[exp]);
-    assert.ok(fs.existsSync(targetPath), `Export "${exp}" target "${pkg.exports[exp]}" does not exist`);
+    const targets =
+      typeof pkg.exports[exp] === "string"
+        ? [pkg.exports[exp]]
+        : Object.values(pkg.exports[exp]);
+    for (const t of targets) {
+      const targetPath = path.join(ROOT, t);
+      assert.ok(fs.existsSync(targetPath), `Export "${exp}" target "${t}" does not exist`);
+    }
   }
+});
+
+test("all exported subpaths have resolving TypeScript ambient definitions and types metadata", () => {
+  // 1. Root types declaration entrypoint
+  assert.equal(pkg.types, "./types/index.d.ts", "package.json must expose 'types': './types/index.d.ts'");
+  const rootTypesPath = path.join(ROOT, pkg.types);
+  assert.ok(fs.existsSync(rootTypesPath), `Types entrypoint ${pkg.types} does not exist on disk`);
+
+  // 2. files array includes types/
+  assert.ok(pkg.files.includes("types/"), "package.json 'files' must include 'types/'");
+
+  // 3. All public subpaths configure types condition in exports
+  const subpathsWithTypes = [
+    ".",
+    "./css",
+    "./core",
+    "./core/css",
+    "./layer",
+    "./layer/css",
+    "./tokens",
+    "./palettes",
+    "./palette-data",
+    "./sri",
+  ];
+
+  for (const subpath of subpathsWithTypes) {
+    const entry = pkg.exports[subpath];
+    assert.ok(entry, `Subpath ${subpath} missing from package.json exports`);
+    assert.equal(
+      typeof entry === "object" ? entry.types : undefined,
+      "./types/index.d.ts",
+      `Subpath "${subpath}" exports must define "types": "./types/index.d.ts"`
+    );
+    const resolvedTypes = path.join(ROOT, entry.types);
+    assert.ok(fs.existsSync(resolvedTypes), `Resolved types for ${subpath} (${entry.types}) does not exist`);
+  }
+
+  // 4. Verify types/index.d.ts contents declare all required ambient modules and qualitative structures
+  const typesContent = fs.readFileSync(rootTypesPath, "utf8");
+
+  const expectedAmbientModules = [
+    "@kidthales/picotol",
+    "@kidthales/picotol/css",
+    "@kidthales/picotol/core",
+    "@kidthales/picotol/core/css",
+    "@kidthales/picotol/layer",
+    "@kidthales/picotol/layer/css",
+    "@kidthales/picotol/tokens",
+    "@kidthales/picotol/palettes",
+    "@kidthales/picotol/palette-data",
+    "@kidthales/picotol/sri",
+  ];
+
+  for (const mod of expectedAmbientModules) {
+    const modulePattern = new RegExp(`declare\\s+module\\s+['"]${mod.replace(/\//g, '\\/')}['"]`);
+    assert.ok(modulePattern.test(typesContent), `Missing ambient declaration for module "${mod}" in types/index.d.ts`);
+  }
+
+  // 5. Verify qualitative palette types
+  assert.ok(typesContent.includes("TolQualitativeSchemeId"), "types/index.d.ts must export TolQualitativeSchemeId");
+  assert.ok(typesContent.includes("TolColor"), "types/index.d.ts must export TolColor");
+  assert.ok(typesContent.includes("TolAchromaticStop"), "types/index.d.ts must export TolAchromaticStop");
+  assert.ok(typesContent.includes("TolScheme"), "types/index.d.ts must export TolScheme");
+  assert.ok(typesContent.includes("TolQualitativeData"), "types/index.d.ts must export TolQualitativeData");
+
+  // 6. Verify export default statements for stylesheet and data modules
+  assert.ok(typesContent.includes("export default styles;"), "Stylesheet modules must provide default export");
+  assert.ok(typesContent.includes("export default data;"), "palette-data module must provide default export");
 });
 
 test("package.json is configured for public npm release", () => {
