@@ -20,6 +20,7 @@
     --pt-border-radius: .25rem;
     --pt-transition: .15s ease-in-out;
     --pt-spacing: 1rem;
+    --pt-card-padding: var(--pt-spacing);
     --pt-form-y: .5rem;
     --pt-form-x: .75rem;
     --pt-container-max: 70rem;
@@ -76,6 +77,15 @@
     --pt-p3: #b48;
     --pt-p4: #936;
     --pt-p5: #825;
+  }
+
+  [data-density="compact"], .pt-compact {
+    --pt-spacing: .5rem;
+    --pt-card-padding: .5rem;
+    --pt-form-y: .25rem;
+    --pt-form-x: .5rem;
+    --pt-line-height: 1.35;
+    font-size: clamp(85%, 80% + .3vw, 95%);
   }
 }
 
@@ -205,7 +215,7 @@
   :where(section) {
     margin-bottom: calc(var(--pt-spacing) * 1.5);
 
-    :where(.flex, .grid, [style*="gap"]) > & {
+    :where(.flex, .grid, [style*="gap"]) > &, :where([data-density="compact"], .pt-compact) & {
       margin-bottom: 0;
     }
   }
@@ -366,7 +376,7 @@
     border: 0;
     border-top: var(--pt-border);
 
-    :where(.flex, .grid, [style*="gap"]) > & {
+    :where(.flex, .grid, [style*="gap"]) > &, :where([data-density="compact"], .pt-compact) & {
       margin-block: 0;
     }
   }
@@ -467,7 +477,7 @@
     }
   }
 
-  :where(table, [role="table"], code, kbd, samp, time, .tabular-nums) {
+  :where(table, [role="table"], code, kbd, samp, time, .tabular-nums, .pt-tabular) {
     font-variant-numeric: tabular-nums lining-nums;
   }
 
@@ -728,27 +738,27 @@
   :where(article, .card) {
     min-width: 0;
     margin-bottom: var(--pt-spacing);
-    padding: var(--pt-spacing);
+    padding: var(--pt-card-padding);
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
     background-color: var(--pt-card-bg);
     box-shadow: var(--pt-box-shadow);
     overflow: hidden;
 
-    :where(.flex, .grid, [style*="gap"]) > & {
+    :where(.flex, .grid, [style*="gap"]) > &, :where([data-density="compact"], .pt-compact) & {
       margin-bottom: 0;
     }
 
     & > :where(header, footer) {
       min-width: 0;
-      margin-inline: calc(-1 * var(--pt-spacing));
-      padding: calc(var(--pt-spacing) * .66) var(--pt-spacing);
+      margin-inline: calc(-1 * var(--pt-card-padding));
+      padding: calc(var(--pt-card-padding) * .66) var(--pt-card-padding);
       background-color: var(--pt-surface-subtle);
     }
 
     & > header {
       min-width: 0;
-      margin-block: calc(-1 * var(--pt-spacing)) var(--pt-spacing);
+      margin-block: calc(-1 * var(--pt-card-padding)) var(--pt-card-padding);
       border-bottom: var(--pt-border);
 
       & > * {
@@ -758,7 +768,7 @@
 
     & > footer {
       min-width: 0;
-      margin-block: var(--pt-spacing) calc(-1 * var(--pt-spacing));
+      margin-block: var(--pt-card-padding) calc(-1 * var(--pt-card-padding));
       border-top: var(--pt-border);
     }
   }

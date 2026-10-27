@@ -3,32 +3,33 @@
   :where(article, .card) {
     min-width: 0;
     margin-bottom: var(--pt-spacing);
-    padding: var(--pt-spacing);
+    padding: var(--pt-card-padding);
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
     background-color: var(--pt-card-bg);
     box-shadow: var(--pt-box-shadow);
     overflow: hidden;
 
-    :where(.flex, .grid, [style*="gap"]) > & {
+    :where(.flex, .grid, [style*="gap"]) > &,
+    :where([data-density="compact"], .pt-compact) & {
       margin-bottom: 0;
     }
 
     & > :where(header, footer) {
       min-width: 0;
-      margin-inline: calc(-1 * var(--pt-spacing));
-      padding: calc(var(--pt-spacing) * 0.66) var(--pt-spacing);
+      margin-inline: calc(-1 * var(--pt-card-padding));
+      padding: calc(var(--pt-card-padding) * 0.66) var(--pt-card-padding);
       background-color: var(--pt-surface-subtle);
     }
     & > header {
       min-width: 0;
-      margin-block: calc(-1 * var(--pt-spacing)) var(--pt-spacing);
+      margin-block: calc(-1 * var(--pt-card-padding)) var(--pt-card-padding);
       border-bottom: var(--pt-border);
       & > * { min-width: 0; }
     }
     & > footer {
       min-width: 0;
-      margin-block: var(--pt-spacing) calc(-1 * var(--pt-spacing));
+      margin-block: var(--pt-card-padding) calc(-1 * var(--pt-card-padding));
       border-top: var(--pt-border);
     }
   }

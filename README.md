@@ -21,9 +21,9 @@
   - Non-color validation cues (`2px` border + `✓` / `✗` prefix icons on `[aria-invalid] + small`) and $\ge 24\times24\text{px}$ target sizes (WCAG 2.2 SC 2.5.8).
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
-  - **`dist/picotol.core.min.css`** (<= 11.8 KB minified, ~3.8 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 22.5 KB minified, ~5.9 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot`, `<progress>`, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
-  - **`dist/picotol.layer.min.css`** (<= 22.6 KB minified, ~5.9 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
+  - **`dist/picotol.core.min.css`** (<= 12.0 KB minified, ~4.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
+  - **`dist/picotol.min.css`** (<= 23.5 KB minified, ~6.2 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot`, `<progress>`, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.layer.min.css`** (<= 23.6 KB minified, ~6.2 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
 
