@@ -242,19 +242,130 @@
     &::after { transform: translate(-50%, -50%) rotate(-45deg); }
   }
 
-  /* 6. Progress (<progress>) */
+  /* 6. Progress (<progress>, .pt-progress) & Gauge Meter Pins */
+  :where(progress, .pt-progress, [role="progressbar"]:not(progress), .pt-meter) {
+    --pt-progress-height: 0.5rem;
+    --pt-progress-radius: var(--pt-border-radius);
+    --pt-progress-bg: var(--pt-surface);
+    --pt-progress-fill: var(--pt-primary);
+  }
+
+  :where([data-density="compact"], .pt-compact) :where(progress, .pt-progress, [role="progressbar"]:not(progress), .pt-meter) {
+    --pt-progress-height: 0.375rem;
+  }
+
+  :is(.pt-progress-success, [data-status="success"]) {
+    --pt-progress-fill: var(--pt-valid);
+    --pt-marker-color: var(--pt-valid);
+  }
+
+  :is(.pt-progress-warning, [data-status="warning"]) {
+    --pt-progress-fill: var(--pt-warning);
+    --pt-marker-color: var(--pt-warning);
+  }
+
+  :is(.pt-progress-danger, [data-status="danger"]) {
+    --pt-progress-fill: var(--pt-invalid);
+    --pt-marker-color: var(--pt-invalid);
+  }
+
   progress {
+    display: block;
     width: 100%;
-    height: 0.5rem;
+    height: var(--pt-progress-height);
     margin-bottom: 0.5rem;
     overflow: hidden;
     border: 0;
-    border-radius: var(--pt-border-radius);
-    background-color: var(--pt-surface);
-    accent-color: var(--pt-primary);
+    border-radius: var(--pt-progress-radius);
+    background-color: var(--pt-progress-bg);
+    accent-color: var(--pt-progress-fill);
+    vertical-align: middle;
+
     &::-webkit-progress-bar { background: none; }
-    &::-webkit-progress-value { background-color: var(--pt-primary); }
-    &::-moz-progress-bar { background-color: var(--pt-primary); }
+    &::-webkit-progress-value { background-color: var(--pt-progress-fill); }
+    &::-moz-progress-bar { background-color: var(--pt-progress-fill); }
+  }
+
+  :where(.pt-progress, [role="progressbar"]:not(progress)) {
+    --pt-progress-value: 0%;
+    display: block;
+    position: relative;
+    width: 100%;
+    height: var(--pt-progress-height);
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--pt-progress-radius);
+    background-color: var(--pt-progress-bg);
+    vertical-align: middle;
+
+    &:has(.pt-gauge-marker, .pt-meter-pin) {
+      overflow: visible;
+    }
+  }
+
+  .pt-progress-fill {
+    display: block;
+    height: 100%;
+    width: var(--pt-progress-value, 0%);
+    background-color: var(--pt-progress-fill);
+    border-radius: inherit;
+    transition: width var(--pt-transition);
+  }
+
+  :where(.pt-meter) {
+    display: block;
+    position: relative;
+    width: 100%;
+    margin-bottom: 0.5rem;
+
+    & > :where(progress, .pt-progress) {
+      margin-bottom: 0;
+    }
+  }
+
+  :where(.pt-gauge-marker, .pt-meter-pin) {
+    --pt-marker-pos: 0%;
+    --pt-marker-color: var(--pt-color);
+    position: absolute;
+    top: 0;
+    height: var(--pt-progress-height);
+    inset-inline-start: var(--marker-pos, var(--pt-marker-pos));
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: var(--pt-font-mono);
+    font-size: 0.75rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--pt-marker-color);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      bottom: -2px;
+      width: 2px;
+      background-color: var(--pt-marker-color);
+      border-radius: 1px;
+      transform: translateX(-50%);
+    }
+
+    & :where(span, small, .pt-gauge-label) {
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 0;
+      transform: translateX(-50%);
+    }
+
+    &.bottom :where(span, small, .pt-gauge-label),
+    &[data-placement="bottom"] :where(span, small, .pt-gauge-label) {
+      bottom: auto;
+      top: calc(100% + 4px);
+    }
   }
 
   /* 7. Switch ([role="switch"]) & Range ([type="range"]) */
@@ -293,7 +404,15 @@
         &::before { background-color: HighlightText; }
       }
     }
-    progress { border: 1px solid; }
+    progress, :where(.pt-progress) {
+      border: 1px solid CanvasText;
+    }
+    :where(.pt-progress-fill) {
+      background-color: Highlight;
+    }
+    :where(.pt-gauge-marker, .pt-meter-pin)::before {
+      background-color: CanvasText;
+    }
   }
 
   [type="range"] {
