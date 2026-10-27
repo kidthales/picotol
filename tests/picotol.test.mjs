@@ -89,22 +89,22 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 11.8 KB, picotol.min.css <= 22.5 KB, and picotol.layer.min.css <= 22.6 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 23.5 KB, and picotol.layer.min.css <= 23.6 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
   const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
 
   assert.ok(
-    coreMin <= 11.8 * 1024,
-    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 12083 B`
+    coreMin <= 12.0 * 1024,
+    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 12288 B`
   );
   assert.ok(
-    fullMin <= 22.5 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 23040 B`
+    fullMin <= 23.5 * 1024,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= 24064 B`
   );
   assert.ok(
-    layerMin <= 22.6 * 1024,
-    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 23142 B`
+    layerMin <= 23.6 * 1024,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 24166 B`
   );
 });
 
@@ -807,6 +807,101 @@ test("Consumer @layer Guide: README documents canonical 4-layer cascade architec
   assert.ok(
     readme.includes("@layer theme") && readme.includes("--pt-primary: var(--host-brand-primary") && readme.includes("color-scheme: dark;"),
     "README must detail interaction with host CSS custom property bridges and dark/light mode toggles"
+  );
+});
+
+test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numerics Utility (Issue #93)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Root default and compact modifiers in tokens
+  for (const css of [fullCss, coreCss]) {
+    assert.ok(
+      css.includes("--pt-card-padding: var(--pt-spacing);") || css.includes("--pt-card-padding:var(--pt-spacing)"),
+      "Must define default --pt-card-padding: var(--pt-spacing) on root tokens"
+    );
+    assert.ok(
+      css.includes('[data-density="compact"]') || css.includes("[data-density=compact]"),
+      "Must support [data-density='compact'] selector modifier"
+    );
+    assert.ok(
+      css.includes(".pt-compact"),
+      "Must support .pt-compact class modifier"
+    );
+    assert.ok(
+      /--pt-spacing:\s*0?\.5rem/.test(css),
+      "Compact modifier must reduce --pt-spacing to 0.5rem"
+    );
+    assert.ok(
+      /--pt-card-padding:\s*0?\.5rem/.test(css),
+      "Compact modifier must reduce --pt-card-padding to 0.5rem"
+    );
+    assert.ok(
+      /--pt-form-y:\s*0?\.25rem/.test(css),
+      "Compact modifier must reduce --pt-form-y to 0.25rem"
+    );
+    assert.ok(
+      /--pt-form-x:\s*0?\.5rem/.test(css),
+      "Compact modifier must reduce --pt-form-x to 0.5rem"
+    );
+    assert.ok(
+      /--pt-line-height:\s*1\.35/.test(css),
+      "Compact modifier must tighten --pt-line-height to 1.35"
+    );
+    assert.ok(
+      /clamp\(85%,\s*80%\s*\+\s*0?\.3vw,\s*95%\)/.test(css),
+      "Compact modifier must apply micro-type scale clamp(85%, 80% + 0.3vw, 95%)"
+    );
+  }
+
+  // 2. Block margin resets on section, article, and hr within compact context
+  for (const css of [fullCss, coreCss]) {
+    assert.ok(
+      (css.includes('[data-density="compact"]') || css.includes("[data-density=compact]")) &&
+      css.includes(".pt-compact") &&
+      css.includes("margin-bottom: 0"),
+      "Section must zero block margin in compact context"
+    );
+    assert.ok(
+      (css.includes('[data-density="compact"]') || css.includes("[data-density=compact]")) &&
+      css.includes(".pt-compact") &&
+      css.includes("margin-block: 0"),
+      "HR must zero margin-block in compact context"
+    );
+  }
+
+  assert.ok(
+    fullCss.includes("padding: var(--pt-card-padding);") || fullCss.includes("padding:var(--pt-card-padding)"),
+    "Article and card padding must use --pt-card-padding token"
+  );
+
+  // 3. Tabular numerics utility (.pt-tabular)
+  for (const css of [fullCss, coreCss, fullMin, coreMin]) {
+    assert.ok(
+      css.includes(".pt-tabular"),
+      "Must export .pt-tabular utility class"
+    );
+    assert.ok(
+      css.includes("tabular-nums"),
+      "Must apply tabular-nums font-variant-numeric"
+    );
+  }
+
+  // 4. Demo HTML verification
+  assert.ok(
+    demoHtml.includes('data-density="compact"'),
+    "Demo HTML must showcase data-density='compact' container"
+  );
+  assert.ok(
+    demoHtml.includes('class="card pt-compact"') || demoHtml.includes("pt-compact"),
+    "Demo HTML must showcase .pt-compact utility class"
+  );
+  assert.ok(
+    demoHtml.includes("pt-tabular"),
+    "Demo HTML must showcase .pt-tabular utility"
   );
 });
 

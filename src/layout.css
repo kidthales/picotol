@@ -13,7 +13,8 @@
 
   :where(section) {
     margin-bottom: calc(var(--pt-spacing) * 1.5);
-    :where(.flex, .grid, [style*="gap"]) > & {
+    :where(.flex, .grid, [style*="gap"]) > &,
+    :where([data-density="compact"], .pt-compact) & {
       margin-bottom: 0;
     }
   }

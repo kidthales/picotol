@@ -706,6 +706,36 @@ ${rowsHtml}
           <footer><small>No vertical margin compounding; exact 4px rhythm preserved</small></footer>
         </article>
       </div>
+      <h3>Compact Mode &amp; Tabular Numerics (<code>[data-density="compact"]</code> / <code>.pt-compact</code> / <code>.pt-tabular</code>)</h3>
+      <div class="grid">
+        <article>
+          <header><strong>Standard Density</strong></header>
+          <p>Default density uses standard spacing tokens and typography scale.</p>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div>Row A Latency: <span class="pt-tabular">1,234.56 ms</span></div>
+            <div>Row B Latency: <span class="pt-tabular">0,098.10 ms</span></div>
+          </div>
+          <footer><small>Default <code>--pt-spacing</code> (1rem)</small></footer>
+        </article>
+        <article data-density="compact">
+          <header><strong>Compact Mode (<code>data-density="compact"</code>)</strong></header>
+          <p>Micro-type scale, tighter card padding, and compressed control spacing for data-dense dashboards.</p>
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <div>Throughput: <span class="pt-tabular">142,857 req/s</span></div>
+            <div>Latency P99: <span class="pt-tabular">012.45 ms</span></div>
+          </div>
+          <footer><small><code>--pt-spacing: 0.5rem</code>; micro-scale clamp</small></footer>
+        </article>
+        <div class="card pt-compact">
+          <header><strong>Compact Utility (<code>.pt-compact</code>)</strong></header>
+          <p>Applied via class modifier to any container or component.</p>
+          <div class="form-row">
+            <input type="text" value="compact-node-01" class="small" readonly>
+            <button type="button" class="btn small">Inspect</button>
+          </div>
+          <footer><small>Zero margin compounding on nested sections/cards</small></footer>
+        </div>
+      </div>
     </section>
 
     <hr>
