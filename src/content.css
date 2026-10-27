@@ -50,7 +50,14 @@
   }
   :where(figcaption, blockquote footer) { margin-top: 0.5rem; color: var(--pt-muted-color); font-size: 0.875em; }
 
-  hr { border: 0; border-top: var(--pt-border); }
+  hr {
+    border: 0;
+    border-top: var(--pt-border);
+    :where(.flex, .grid, [style*="gap"]) > &,
+    :where([data-density="compact"], .pt-compact) & {
+      margin-block: 0;
+    }
+  }
 
 
   :where(.secondary, [type="reset"]) {
@@ -126,7 +133,7 @@
     & > code { padding: 0; background: none; font-size: inherit; }
   }
 
-  :where(table, [role="table"], code, kbd, samp, time, .tabular-nums) {
+  :where(table, [role="table"], code, kbd, samp, time, .tabular-nums, .pt-tabular) {
     font-variant-numeric: tabular-nums lining-nums;
   }
 

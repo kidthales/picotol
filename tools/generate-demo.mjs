@@ -386,6 +386,24 @@ ${rowsHtml}
         <button type="button" class="btn small">Compact .btn.small</button>
         <button type="button" class="outline sm">Compact Outline .sm</button>
       </p>
+      <h3>Dedicated Square Icon Buttons (<code>.btn-icon</code>, <code>.icon-btn</code>)</h3>
+      <p style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+        <button type="button" class="btn-icon" aria-label="Search" title="Search">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
+        <button type="button" class="btn-icon secondary" aria-label="Settings" title="Settings">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+        <button type="button" class="icon-btn outline" aria-label="Refresh" title="Refresh">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        </button>
+        <button type="button" class="icon-btn contrast" aria-label="Bookmark" title="Bookmark">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+        </button>
+        <button type="button" class="btn-icon small outline secondary" aria-label="Filter (Compact)" title="Filter">
+          <svg class="icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+        </button>
+      </p>
     </section>
 
     <hr>
@@ -690,6 +708,176 @@ ${rowsHtml}
           </div>
           <footer><small>Shrinks cleanly without horizontal document overflow</small></footer>
         </article>
+        <article>
+          <header><strong>High-Density Flex Containment (gap: 4px)</strong></header>
+          <p><small>Child <code>section</code>, <code>article</code>, and <code>hr</code> elements automatically zero their block margins in flex and grid containers, preventing compound spacing.</small></p>
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 0.5rem; background: var(--pt-surface-subtle); border-radius: var(--pt-border-radius);">
+            <div style="font-size: 0.8125rem; font-weight: 600;">Flex Shell (gap: 4px)</div>
+            <section style="padding: 0.25rem 0.5rem; background: var(--pt-card-bg); border: var(--pt-border); border-radius: var(--pt-border-radius); font-size: 0.8125rem;">
+              Tier 1 Section (margin-bottom: 0)
+            </section>
+            <hr style="border-top: 1px solid var(--pt-muted-border);">
+            <article style="padding: 0.25rem 0.5rem; background: var(--pt-card-bg); border: var(--pt-border); border-radius: var(--pt-border-radius); font-size: 0.8125rem;">
+              Tier 2 Card (margin-bottom: 0)
+            </article>
+          </div>
+          <footer><small>No vertical margin compounding; exact 4px rhythm preserved</small></footer>
+        </article>
+      </div>
+      <h3>Compact Mode &amp; Tabular Numerics (<code>[data-density="compact"]</code> / <code>.pt-compact</code> / <code>.pt-tabular</code>)</h3>
+      <div class="grid">
+        <article>
+          <header><strong>Standard Density</strong></header>
+          <p>Default density uses standard spacing tokens and typography scale.</p>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div>Row A Latency: <span class="pt-tabular">1,234.56 ms</span></div>
+            <div>Row B Latency: <span class="pt-tabular">0,098.10 ms</span></div>
+          </div>
+          <footer><small>Default <code>--pt-spacing</code> (1rem)</small></footer>
+        </article>
+        <article data-density="compact">
+          <header><strong>Compact Mode (<code>data-density="compact"</code>)</strong></header>
+          <p>Micro-type scale, tighter card padding, and compressed control spacing for data-dense dashboards.</p>
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <div>Throughput: <span class="pt-tabular">142,857 req/s</span></div>
+            <div>Latency P99: <span class="pt-tabular">012.45 ms</span></div>
+          </div>
+          <footer><small><code>--pt-spacing: 0.5rem</code>; micro-scale clamp</small></footer>
+        </article>
+        <div class="card pt-compact">
+          <header><strong>Compact Utility (<code>.pt-compact</code>)</strong></header>
+          <p>Applied via class modifier to any container or component.</p>
+          <div class="form-row">
+            <input type="text" value="compact-node-01" class="small" readonly>
+            <button type="button" class="btn small">Inspect</button>
+          </div>
+          <footer><small>Zero margin compounding on nested sections/cards</small></footer>
+        </div>
+      </div>
+      <h3>Meters, Progressbars &amp; Gauge Threshold Pins (<code>.pt-progress</code> / <code>.pt-gauge-marker</code>)</h3>
+      <div class="grid">
+        <article>
+          <header><strong>Native &lt;progress&gt; &amp; Status</strong></header>
+          <p><small>Default accent, compact height, and Paul Tol semantic modifiers.</small></p>
+          <progress value="65" max="100"></progress>
+          <progress value="85" max="100" class="pt-progress-success"></progress>
+          <progress value="50" max="100" class="pt-progress-warning"></progress>
+          <progress value="92" max="100" class="pt-progress-danger"></progress>
+          <footer><small>Native engine rendering via <code>--pt-progress-*</code> tokens</small></footer>
+        </article>
+        <article>
+          <header><strong>Accessible Fallback (<code>.pt-progress</code>)</strong></header>
+          <p><small>Cross-webview fallback with explicit <code>role="progressbar"</code> and ARIA semantics.</small></p>
+          <div class="pt-progress" role="progressbar" aria-valuenow="72" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 72%;">
+            <div class="pt-progress-fill"></div>
+          </div>
+          <div class="pt-progress pt-progress-success" role="progressbar" aria-valuenow="94" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 94%;">
+            <div class="pt-progress-fill"></div>
+          </div>
+          <div class="pt-progress pt-progress-warning" role="progressbar" aria-valuenow="48" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 48%;">
+            <div class="pt-progress-fill"></div>
+          </div>
+          <footer><small>Pure CSS variable-driven <code>--pt-progress-value</code></small></footer>
+        </article>
+        <article>
+          <header><strong>Gauge Threshold Markers (<code>.pt-meter</code>)</strong></header>
+          <p><small>Positioned threshold pins with tabular labels and semantic indicators.</small></p>
+          <div class="pt-meter">
+            <div class="pt-progress" role="progressbar" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 78%;">
+              <div class="pt-progress-fill"></div>
+              <div class="pt-gauge-marker" style="--marker-pos: 80%;"><small>80% SLA</small></div>
+            </div>
+          </div>
+          <div class="pt-meter" style="margin-top: 1.5rem;">
+            <div class="pt-progress pt-progress-danger" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 92%;">
+              <div class="pt-progress-fill"></div>
+              <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><small>70% Warn</small></div>
+              <div class="pt-gauge-marker pt-progress-danger" style="--marker-pos: 90%;"><small>90% Crit</small></div>
+            </div>
+          </div>
+          <footer><small>Pinned via <code>--marker-pos</code> with high-contrast support</small></footer>
+        </article>
+      </div>
+      <h3>Accessible Callouts, Status Dots &amp; Copy Pills (<code>.pt-callout</code> / <code>.pt-copy-pill</code>)</h3>
+      <div class="grid">
+        <aside class="pt-callout pt-callout-critical">
+          <strong>Critical Incident (#379)</strong>
+          <p><span class="pt-status-dot pt-status-dot-danger pulse"></span> High-severity degradation on primary cluster node.</p>
+          <p><button type="button" class="pt-copy-pill">kubectl logs pod/cluster-edge-01</button> <span class="pt-chip">p0-crit</span></p>
+        </aside>
+        <aside class="pt-callout pt-callout-warning">
+          <strong>Capacity Warning (#360)</strong>
+          <p><span class="pt-status-dot pt-status-dot-warning"></span> Memory threshold approaching 85% headroom limit.</p>
+          <p><button type="button" class="pt-copy-pill">curl -X POST /api/scale</button> <span class="pt-chip">warning</span></p>
+        </aside>
+        <aside class="pt-callout pt-callout-info">
+          <strong>Operational Notice</strong>
+          <p><span class="pt-status-dot pt-status-dot-success"></span> All satellite sync nodes operational and healthy.</p>
+          <p><button type="button" class="pt-copy-pill">seldon status --prs</button> <span class="pt-chip">steady</span></p>
+        </aside>
+      </div>
+
+      <h3>Native Accessible Disclosures, Accordion Cards &amp; Popovers (<code>.pt-details</code> / <code>.accordion-card</code> / <code>.pt-popover</code>)</h3>
+      <div class="grid">
+        <article class="card accordion-card">
+          <details class="pt-card-disclosure" open>
+            <summary>Platform Architecture &amp; Layer Isolation</summary>
+            <p>Strict four-layer cascade isolation ensures design tokens and reset styles never bleed into extended component boundaries.</p>
+          </details>
+          <details class="pt-card-disclosure">
+            <summary>Zero-JS Keyboard &amp; Screen Reader Accessibility</summary>
+            <p>Native HTML5 <code>&lt;details&gt;</code> and <code>&lt;summary&gt;</code> elements provide keyboard navigation (<code>Enter</code> / <code>Space</code>) and screen reader announcements without runtime JavaScript.</p>
+          </details>
+          <details class="pt-card-disclosure">
+            <summary>Monotonic Greyscale Luminance Separation</summary>
+            <p>Every severity tier (critical, warning, notice) is certified to maintain distinct relative luminance steps across greyscale conversions.</p>
+          </details>
+        </article>
+        <div>
+          <details class="card accordion-card pt-card-disclosure" open>
+            <summary>Standalone Collapsible Card (<code>.pt-card-disclosure</code>)</summary>
+            <p>Self-contained disclosure card with integrated surface styling, elevated header transition, and flush content padding.</p>
+          </details>
+          <div class="grid" style="margin-top: 1rem;">
+            <details class="pt-popover">
+              <summary role="button">Action Popover (Start)</summary>
+              <div class="pt-popover-menu">
+                <a href="#components">View Telemetry</a>
+                <a href="#components">Download SRI Hash</a>
+                <hr>
+                <button type="button" class="pt-menu-item">Trigger Sync</button>
+              </div>
+            </details>
+            <details class="pt-popover" role="menu">
+              <summary role="button" class="secondary">Options (End)</summary>
+              <div class="pt-popover-menu end">
+                <a href="#components">Export Config</a>
+                <a href="#components">Verify Contrast</a>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <h3>Equal-Fill Segmented Controls (<code>.segmented.segmented-fill</code> / <code>.segmented-equal</code>)</h3>
+      <div class="grid">
+        <div>
+          <p><small>Equal distribution across items (<code>flex: 1 1 0</code>) with automatic text ellipsis on narrow containers.</small></p>
+          <div role="tablist" class="segmented segmented-fill" aria-label="Equal fill view options">
+            <button type="button" role="tab" aria-selected="true">Daily View</button>
+            <button type="button" role="tab" aria-selected="false">Weekly View</button>
+            <button type="button" role="tab" aria-selected="false">Monthly View</button>
+            <button type="button" role="tab" aria-selected="false">Quarterly Long-Term</button>
+          </div>
+        </div>
+        <div>
+          <p><small>Toolbar mode switch with <code>.segmented-equal</code> alias and compact viewport resilience.</small></p>
+          <nav role="tablist" class="segmented segmented-equal" aria-label="Display mode switch">
+            <button type="button" role="tab" aria-selected="false">Grid</button>
+            <button type="button" role="tab" aria-selected="true">List</button>
+            <button type="button" role="tab" aria-selected="false">Kanban</button>
+          </nav>
+        </div>
       </div>
     </section>
 

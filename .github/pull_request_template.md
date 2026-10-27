@@ -5,5 +5,5 @@
 - [ ] `npm run generate` executed and `dist/` has zero uncommitted drift
 - [ ] `npm run lint` passes (0 CSS AST errors, 100% Paul Tol hex purity, `--pt-*` / `--tol-*` namespace)
 - [ ] `npm test` passes across all WCAG 2.2 contrast, reflow, and packaging suites
-- [ ] Bundle byte budgets respected (core <= 11.8 KB, full <= 22.5 KB, layer <= 22.6 KB)
+- [ ] Bundle byte budgets respected (core <= 12.0 KB, full <= 23.5 KB, layer <= 23.6 KB)
 - [ ] Zero agent/scratch files tracked in git

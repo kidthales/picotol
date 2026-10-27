@@ -21,9 +21,9 @@
   - Non-color validation cues (`2px` border + `✓` / `✗` prefix icons on `[aria-invalid] + small`) and $\ge 24\times24\text{px}$ target sizes (WCAG 2.2 SC 2.5.8).
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
-  - **`dist/picotol.core.min.css`** (<= 11.8 KB minified, ~3.8 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 22.5 KB minified, ~5.9 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot`, `<progress>`, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
-  - **`dist/picotol.layer.min.css`** (<= 22.6 KB minified, ~5.9 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
+  - **`dist/picotol.core.min.css`** (<= 12.0 KB minified, ~4.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
+  - **`dist/picotol.min.css`** (<= 29.5 KB minified, ~7.3 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.layer.min.css`** (<= 29.5 KB minified, ~7.3 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
 
@@ -315,6 +315,11 @@ High-density status dots (`.status-dot`) map directly to Paul Tol's qualitative 
 <span class="status-dot neutral"></span> Neutral
 <span class="status-dot idle"></span> Idle
 
+<!-- Standalone .pt-status-dot Utility with Pulse Animation -->
+<span class="pt-status-dot pt-status-dot-danger pulse"></span> Live Alert
+<span class="pt-status-dot pt-status-dot-warning"></span> Elevated
+<span class="pt-status-dot pt-status-dot-success"></span> Healthy
+
 <!-- Combined with Badges (Flex Gap Spacing) -->
 <span class="badge"><span class="status-dot success"></span> Active</span>
 <span class="badge"><span class="status-dot idle"></span> Inactive</span>
@@ -326,12 +331,87 @@ High-density status dots (`.status-dot`) map directly to Paul Tol's qualitative 
 </div>
 ```
 
+### 4c. Callout Banners, Copy Pills & Chips
+
+High-contrast, unignorable severity banners (`.pt-callout`) feature 4px solid start borders, 8% translucent alpha washes, and full WCAG 2.2 AA contrast compliance across light/dark surfaces and greyscale simulation:
+
+```html
+<!-- Critical, Warning, and Info Callouts -->
+<aside class="pt-callout pt-callout-critical">
+  <strong>Critical Incident (#379)</strong>
+  <p><span class="pt-status-dot pt-status-dot-danger pulse"></span> High-severity degradation on primary cluster node.</p>
+  <p><button type="button" class="pt-copy-pill">kubectl logs pod/cluster-edge-01</button> <span class="pt-chip">p0-crit</span></p>
+</aside>
+
+<aside class="pt-callout pt-callout-warning">
+  <strong>Capacity Warning (#360)</strong>
+  <p><span class="pt-status-dot pt-status-dot-warning"></span> Memory threshold approaching 85% headroom limit.</p>
+</aside>
+
+<aside class="pt-callout pt-callout-info">
+  <strong>Operational Notice</strong>
+  <p><span class="pt-status-dot pt-status-dot-success"></span> All satellite sync nodes operational and healthy.</p>
+</aside>
+```
+
+### 4d. Native Disclosures, Accordion Cards & Popovers
+
+Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature smooth chevron marker rotations, structured accordion card containment (`.card.accordion-card` / `.pt-card-disclosure`), and elevated popover menus (`.pt-popover` / `.pt-popover-menu`):
+
+```html
+<!-- Structured Accordion Card Container -->
+<article class="card accordion-card">
+  <details class="pt-card-disclosure" open>
+    <summary>Platform Architecture</summary>
+    <p>Four-layer cascade isolation ensures design tokens remain pure.</p>
+  </details>
+  <details class="pt-card-disclosure">
+    <summary>Security & Access Control</summary>
+    <p>Zero-JS native keyboard disclosure and screen-reader announcements.</p>
+  </details>
+</article>
+
+<!-- Native Popover Menu (Zero-JS Click-Away Backdrop) -->
+<details class="pt-popover">
+  <summary role="button">Actions</summary>
+  <div class="pt-popover-menu">
+    <a href="#view">View Details</a>
+    <a href="#export">Export Data</a>
+    <hr>
+    <button type="button" class="pt-menu-item">Disconnect</button>
+  </div>
+</details>
+```
+
+### 4e. Equal-Fill Segmented Controls & Square Icon Buttons
+
+For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, segmented controls can distribute width equally (`flex: 1 1 0`) across tabs with automatic ellipsis truncation, and icon buttons enforce a reliable 1:1 square aspect ratio:
+
+```html
+<!-- Equal-Fill Segmented Control (Ellipsis Truncation on Reflow) -->
+<nav role="tablist" class="segmented segmented-fill" aria-label="View options">
+  <button type="button" role="tab" aria-selected="true">Daily View</button>
+  <button type="button" role="tab" aria-selected="false">Weekly View</button>
+  <button type="button" role="tab" aria-selected="false">Monthly View</button>
+  <button type="button" role="tab" aria-selected="false">Quarterly Long-Term</button>
+</nav>
+
+<!-- Dedicated 1:1 Square Icon Buttons (Zero-Padding, Flex Centered) -->
+<button type="button" class="btn-icon" aria-label="Search">
+  <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+</button>
+<button type="button" class="icon-btn outline" aria-label="Refresh">
+  <svg class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+</button>
+```
+
 ### 5. Interactive Operational Showcase & Palette Explorer
 
 The interactive demonstration suite at `dist/demo/index.html` showcases:
 - **Opt-in `@layer picotol` Integration**: Cascade layer containment for modular host application embedding.
 - **Concurrent 4-Accent Subtree Theming**: `blue`, `cyan`, `purple`, and `magenta` run simultaneously in isolated scopes via `[data-accent]`.
 - **Operational Data Tables**: Responsive infrastructure monitor wrapped in `figure:has(> table)` and `.table-container` with `.tabular-nums` alignment, `.status-dot` indicators, and `table.striped`.
+- **Equal-Fill Segmented Controls & Icon Buttons**: View navigators with `flex: 1 1 0` equal distribution and 1:1 square icon buttons (`.btn-icon`, `.icon-btn`).
 - **Interactive Dashboard Console**: Tabpanel switching (`Overview`, `Analytics`, `System Logs`) and segmented time filters (`1H`, `24H`, `7D`, `30D`) with zero-CLS skeleton loading transitions (`.skeleton`).
 - **Paul Tol Canonical Palette Explorer**: Swatch grid of all canonical qualitative colours loaded from `data/tol-qualitative.json` with live search filtering and click-to-copy tokens.
 

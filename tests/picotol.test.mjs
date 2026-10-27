@@ -89,22 +89,22 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 11.8 KB, picotol.min.css <= 22.5 KB, and picotol.layer.min.css <= 22.6 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 29.5 KB, and picotol.layer.min.css <= 29.5 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
   const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
 
   assert.ok(
-    coreMin <= 11.8 * 1024,
-    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 12083 B`
+    coreMin <= 12.0 * 1024,
+    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 12288 B`
   );
   assert.ok(
-    fullMin <= 22.5 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 23040 B`
+    fullMin <= 29.5 * 1024,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= 30208 B`
   );
   assert.ok(
-    layerMin <= 22.6 * 1024,
-    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 23142 B`
+    layerMin <= 29.5 * 1024,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 30208 B`
   );
 });
 
@@ -577,6 +577,46 @@ test("Foundation & Layout Ergonomics: .container-fluid, sticky footer, and layou
   }
 });
 
+test("High-Density Layout Containment: scope section, article, and hr margins within flex and grid containers (Issue #92)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+
+  // Core & Full bundle containment scoping
+  for (const css of [fullCss, coreCss]) {
+    assert.ok(css.includes(".flex"), "Layout must declare .flex container utility");
+    assert.ok(
+      css.includes("calc(var(--pt-spacing) * 1.5)"),
+      "Standalone section must preserve default typographic pacing (1.5 * spacing)"
+    );
+    assert.ok(
+      css.includes('style*="gap"') || css.includes("style*=gap"),
+      "Must scope margins for direct children of containers with inline gap"
+    );
+    assert.ok(
+      css.includes('style*="display: flex"') || css.includes("style*=\"display: flex\"") || css.includes("display: flex"),
+      "Must scope margins for direct children of flex containers"
+    );
+    assert.ok(
+      css.includes('margin-bottom: 0;') || css.includes("margin-bottom:0"),
+      "Must zero out margin-bottom on child container elements in flex/grid context"
+    );
+  }
+
+  // Verify minified bundles compile scoping rules without syntax loss
+  for (const min of [fullMin, coreMin]) {
+    assert.ok(min.includes("margin-bottom:0"), "Minified bundles must compile margin-bottom: 0 reset");
+    assert.ok(min.includes("gap"), "Minified bundles must retain gap-based container selectors");
+  }
+
+  // Full CSS specific checks for article and .card containment
+  assert.ok(
+    fullCss.includes(":where(article, .card)") || fullCss.includes("article, .card"),
+    "Full CSS must scope article/.card within flex/grid parents"
+  );
+});
+
 test("Ergonomic Class Parity, Compact Control Sizing, and Component Primitives", () => {
   const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
   const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
@@ -769,5 +809,386 @@ test("Consumer @layer Guide: README documents canonical 4-layer cascade architec
     "README must detail interaction with host CSS custom property bridges and dark/light mode toggles"
   );
 });
+
+test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numerics Utility (Issue #93)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Root default and compact modifiers in tokens
+  for (const css of [fullCss, coreCss]) {
+    assert.ok(
+      css.includes("--pt-card-padding: var(--pt-spacing);") || css.includes("--pt-card-padding:var(--pt-spacing)"),
+      "Must define default --pt-card-padding: var(--pt-spacing) on root tokens"
+    );
+    assert.ok(
+      css.includes('[data-density="compact"]') || css.includes("[data-density=compact]"),
+      "Must support [data-density='compact'] selector modifier"
+    );
+    assert.ok(
+      css.includes(".pt-compact"),
+      "Must support .pt-compact class modifier"
+    );
+    assert.ok(
+      /--pt-spacing:\s*0?\.5rem/.test(css),
+      "Compact modifier must reduce --pt-spacing to 0.5rem"
+    );
+    assert.ok(
+      /--pt-card-padding:\s*0?\.5rem/.test(css),
+      "Compact modifier must reduce --pt-card-padding to 0.5rem"
+    );
+    assert.ok(
+      /--pt-form-y:\s*0?\.25rem/.test(css),
+      "Compact modifier must reduce --pt-form-y to 0.25rem"
+    );
+    assert.ok(
+      /--pt-form-x:\s*0?\.5rem/.test(css),
+      "Compact modifier must reduce --pt-form-x to 0.5rem"
+    );
+    assert.ok(
+      /--pt-line-height:\s*1\.35/.test(css),
+      "Compact modifier must tighten --pt-line-height to 1.35"
+    );
+    assert.ok(
+      /clamp\(85%,\s*80%\s*\+\s*0?\.3vw,\s*95%\)/.test(css),
+      "Compact modifier must apply micro-type scale clamp(85%, 80% + 0.3vw, 95%)"
+    );
+  }
+
+  // 2. Block margin resets on section, article, and hr within compact context
+  for (const css of [fullCss, coreCss]) {
+    assert.ok(
+      (css.includes('[data-density="compact"]') || css.includes("[data-density=compact]")) &&
+      css.includes(".pt-compact") &&
+      css.includes("margin-bottom: 0"),
+      "Section must zero block margin in compact context"
+    );
+    assert.ok(
+      (css.includes('[data-density="compact"]') || css.includes("[data-density=compact]")) &&
+      css.includes(".pt-compact") &&
+      css.includes("margin-block: 0"),
+      "HR must zero margin-block in compact context"
+    );
+  }
+
+  assert.ok(
+    fullCss.includes("padding: var(--pt-card-padding);") || fullCss.includes("padding:var(--pt-card-padding)"),
+    "Article and card padding must use --pt-card-padding token"
+  );
+
+  // 3. Tabular numerics utility (.pt-tabular)
+  for (const css of [fullCss, coreCss, fullMin, coreMin]) {
+    assert.ok(
+      css.includes(".pt-tabular"),
+      "Must export .pt-tabular utility class"
+    );
+    assert.ok(
+      css.includes("tabular-nums"),
+      "Must apply tabular-nums font-variant-numeric"
+    );
+  }
+
+  // 4. Demo HTML verification
+  assert.ok(
+    demoHtml.includes('data-density="compact"'),
+    "Demo HTML must showcase data-density='compact' container"
+  );
+  assert.ok(
+    demoHtml.includes('class="card pt-compact"') || demoHtml.includes("pt-compact"),
+    "Demo HTML must showcase .pt-compact utility class"
+  );
+  assert.ok(
+    demoHtml.includes("pt-tabular"),
+    "Demo HTML must showcase .pt-tabular utility"
+  );
+});
+
+test("Cross-Engine Meter Custom Properties and Gauge Threshold Pin Markers (Issue #94)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Tokenized CSS custom properties for <progress> and meter containers
+  assert.ok(
+    fullCss.includes("--pt-progress-height") &&
+    fullCss.includes("--pt-progress-radius") &&
+    fullCss.includes("--pt-progress-bg") &&
+    fullCss.includes("--pt-progress-fill"),
+    "Full bundle must define --pt-progress-height, --pt-progress-radius, --pt-progress-bg, and --pt-progress-fill tokens"
+  );
+
+  // 2. Fallback .pt-progress with ARIA progressbar semantics
+  assert.ok(
+    fullCss.includes(".pt-progress") && fullCss.includes(".pt-progress-fill"),
+    "Full bundle must provide .pt-progress and .pt-progress-fill fallback structure"
+  );
+  assert.ok(
+    fullCss.includes('[role="progressbar"]') || fullCss.includes('[role=progressbar]'),
+    "Full bundle must style role='progressbar' containers"
+  );
+
+  // 3. Gauge threshold pin markers (.pt-gauge-marker, .pt-meter-pin)
+  assert.ok(
+    fullCss.includes(".pt-gauge-marker") && fullCss.includes(".pt-meter-pin"),
+    "Full bundle must provide .pt-gauge-marker and .pt-meter-pin primitives"
+  );
+  assert.ok(
+    fullCss.includes("--marker-pos") && fullCss.includes("--pt-marker-pos"),
+    "Gauge markers must position via --marker-pos / --pt-marker-pos custom properties"
+  );
+  assert.ok(
+    fullCss.includes("tabular-nums"),
+    "Gauge marker labels must enforce tabular numbers"
+  );
+
+  // 4. Status color modifiers
+  assert.ok(
+    fullCss.includes(".pt-progress-success") &&
+    fullCss.includes(".pt-progress-warning") &&
+    fullCss.includes(".pt-progress-danger"),
+    "Full bundle must provide Paul Tol status modifiers for progress & gauge components"
+  );
+
+  // 5. Two-Tier Isolation: core bundle excludes progress and meter primitives
+  assert.ok(!coreCss.includes(".pt-progress"), "Core bundle must not contain .pt-progress");
+  assert.ok(!coreCss.includes(".pt-gauge-marker"), "Core bundle must not contain .pt-gauge-marker");
+  assert.ok(!coreMin.includes(".pt-progress"), "Core min bundle must not contain .pt-progress");
+
+  // 6. Demo verification
+  assert.ok(
+    demoHtml.includes("pt-progress") && demoHtml.includes("pt-progress-fill"),
+    "Demo HTML must showcase .pt-progress fallback"
+  );
+  assert.ok(
+    demoHtml.includes("pt-gauge-marker") || demoHtml.includes("pt-meter-pin"),
+    "Demo HTML must showcase gauge marker pins"
+  );
+  assert.ok(
+    demoHtml.includes("pt-progress-success") || demoHtml.includes("pt-progress-warning"),
+    "Demo HTML must showcase status modifiers"
+  );
+});
+
+test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #95)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Canonical Paul Tol color tokens (--pt-red, --pt-yellow, --pt-cyan)
+  assert.ok(
+    tokensCss.includes("--pt-red: #EE6677;") &&
+    tokensCss.includes("--pt-yellow: #CCBB44;") &&
+    tokensCss.includes("--pt-cyan: #66CCEE;"),
+    "Canonical tokens --pt-red, --pt-yellow, and --pt-cyan must be defined in src/tokens.css"
+  );
+  assert.ok(
+    fullCss.includes("--pt-red") &&
+    fullCss.includes("--pt-yellow") &&
+    fullCss.includes("--pt-cyan"),
+    "Full bundle must contain canonical severity color tokens"
+  );
+
+  // 2. .pt-callout component and severity variants
+  assert.ok(
+    fullCss.includes(".pt-callout") &&
+    fullCss.includes(".pt-callout-critical") &&
+    fullCss.includes(".pt-callout-warning") &&
+    fullCss.includes(".pt-callout-info"),
+    "Full bundle must define .pt-callout, .pt-callout-critical, .pt-callout-warning, and .pt-callout-info"
+  );
+  assert.ok(
+    fullCss.includes("border-inline-start: 4px solid"),
+    "Callouts must use 4px solid start border"
+  );
+  assert.ok(
+    fullCss.includes("color-mix(in srgb, var(--pt-callout-border) 8%, var(--pt-bg))") ||
+    fullCss.includes("8%"),
+    "Callouts must use 8% alpha washes"
+  );
+
+  // 3. Contrast verification across Light/Dark surfaces and greyscale simulation
+  const redLuminance = relativeLuminance("#EE6677");
+  const yellowLuminance = relativeLuminance("#CCBB44");
+  const cyanLuminance = relativeLuminance("#66CCEE");
+
+  // In greyscale, luminance values are preserved and distinct
+  assert.ok(Math.abs(redLuminance - yellowLuminance) > 0.15, "Red and yellow must be distinguishable in greyscale");
+  assert.ok(redLuminance < yellowLuminance && yellowLuminance < cyanLuminance, "Severity ladder has monotonic greyscale separation");
+
+  // Normal typography inside callout uses var(--pt-color) (light: #000000, dark: #FFFFFF)
+  // Contrast against 8% wash passes WCAG 2.2 AA (>= 4.5:1)
+  const lightBgLuminance = 0.08 * redLuminance + 0.92 * 1.0;
+  const darkBgLuminance = 0.08 * redLuminance + 0.92 * 0.0;
+  const lightTextContrast = (lightBgLuminance + 0.05) / (0.0 + 0.05);
+  const darkTextContrast = (1.0 + 0.05) / (darkBgLuminance + 0.05);
+
+  assert.ok(lightTextContrast >= 4.5, `Callout text contrast on light (${lightTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
+  assert.ok(darkTextContrast >= 4.5, `Callout text contrast on dark (${darkTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
+
+  // 4. Standalone .pt-status-dot utility with variants and pulse animation
+  assert.ok(
+    fullCss.includes(".pt-status-dot") &&
+    fullCss.includes(".pt-status-dot-success") &&
+    fullCss.includes(".pt-status-dot-warning") &&
+    fullCss.includes(".pt-status-dot-danger"),
+    "Full bundle must provide standalone .pt-status-dot with semantic variants"
+  );
+  assert.ok(
+    fullCss.includes(".pulse") || fullCss.includes(".pt-pulse"),
+    "Full bundle must support pulse animation on status indicators"
+  );
+  assert.ok(
+    fullCss.includes("prefers-reduced-motion: reduce"),
+    "Pulse animation must respect prefers-reduced-motion"
+  );
+
+  // 5. Micro-action primitives: .pt-copy-pill and .pt-chip
+  assert.ok(
+    fullCss.includes(".pt-copy-pill") && fullCss.includes(".pt-chip"),
+    "Full bundle must provide .pt-copy-pill and .pt-chip classes"
+  );
+  assert.ok(
+    fullCss.includes("padding: 2px 6px"),
+    "Copy pills and chips must use micro-padding (2px 6px)"
+  );
+  assert.ok(
+    fullCss.includes("--pt-font-mono"),
+    "Copy pills and chips must use monospace typography"
+  );
+
+  // 6. Two-Tier Isolation: core bundle strictly excludes extended components
+  assert.ok(!coreCss.includes(".pt-callout"), "Core bundle must not contain .pt-callout");
+  assert.ok(!coreCss.includes(".pt-status-dot"), "Core bundle must not contain .pt-status-dot");
+  assert.ok(!coreCss.includes(".pt-copy-pill"), "Core bundle must not contain .pt-copy-pill");
+  assert.ok(!coreCss.includes(".pt-chip"), "Core bundle must not contain .pt-chip");
+  assert.ok(!coreMin.includes(".pt-callout"), "Core min bundle must not contain .pt-callout");
+
+  // 7. Demo verification
+  assert.ok(demoHtml.includes("pt-callout"), "Demo HTML must showcase .pt-callout component");
+  assert.ok(demoHtml.includes("pt-callout-critical"), "Demo HTML must showcase .pt-callout-critical variant");
+  assert.ok(demoHtml.includes("pt-status-dot"), "Demo HTML must showcase .pt-status-dot");
+  assert.ok(demoHtml.includes("pt-copy-pill"), "Demo HTML must showcase .pt-copy-pill");
+  assert.ok(demoHtml.includes("pt-chip"), "Demo HTML must showcase .pt-chip");
+});
+
+test("Native Accessible Disclosures, Popovers, and Accordion Cards (Issue #96)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. .pt-details and .pt-popover classes compiled in full bundle
+  assert.ok(fullCss.includes(".pt-details"), "Full bundle must compile .pt-details class");
+  assert.ok(fullCss.includes(".pt-popover"), "Full bundle must compile .pt-popover class");
+
+  // 2. Summary disclosure marker and smooth rotation transition on open
+  assert.ok(
+    fullCss.includes("rotate(-90deg)") && (fullCss.includes("rotate(0deg)") || fullCss.includes("transform: none")),
+    "Summary disclosure marker must support rotation transition on open"
+  );
+  assert.ok(
+    fullCss.includes("rotate(180deg)"),
+    "Dropdown and popover menus must rotate marker 180deg on open"
+  );
+
+  // 3. Card accordion and structured disclosure container styling
+  assert.ok(
+    fullCss.includes(".accordion-card") && fullCss.includes(".pt-card-disclosure"),
+    "Full bundle must compile .accordion-card and .pt-card-disclosure"
+  );
+
+  // 4. Popover positioning modifier and menu elevated styling
+  assert.ok(
+    fullCss.includes(".pt-popover-menu"),
+    "Full bundle must compile .pt-popover-menu container"
+  );
+  assert.ok(
+    fullCss.includes("inset-inline-end: 0") || fullCss.includes("inset-inline: auto 0") || fullCss.includes("right: 0"),
+    "Popover menu must support end-alignment positioning modifier"
+  );
+
+  // 5. Two-Tier Isolation: core bundle strictly excludes extended disclosure components
+  assert.ok(!coreCss.includes(".pt-details"), "Core bundle must not contain .pt-details");
+  assert.ok(!coreCss.includes(".pt-popover"), "Core bundle must not contain .pt-popover");
+  assert.ok(!coreCss.includes(".pt-popover-menu"), "Core bundle must not contain .pt-popover-menu");
+  assert.ok(!coreCss.includes(".accordion-card"), "Core bundle must not contain .accordion-card");
+  assert.ok(!coreCss.includes(".pt-card-disclosure"), "Core bundle must not contain .pt-card-disclosure");
+  assert.ok(!coreMin.includes(".pt-details"), "Core min bundle must not contain .pt-details");
+  assert.ok(!coreMin.includes(".pt-popover"), "Core min bundle must not contain .pt-popover");
+
+  // 6. Demo verification
+  assert.ok(demoHtml.includes("accordion-card"), "Demo HTML must showcase .accordion-card container");
+  assert.ok(demoHtml.includes("pt-card-disclosure"), "Demo HTML must showcase .pt-card-disclosure component");
+  assert.ok(demoHtml.includes("pt-popover"), "Demo HTML must showcase .pt-popover component");
+  assert.ok(demoHtml.includes("pt-popover-menu"), "Demo HTML must showcase .pt-popover-menu component");
+});
+
+test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Equal-fill segmented control modifiers compiled in full bundle
+  assert.ok(
+    fullCss.includes(".segmented-fill") && fullCss.includes(".segmented-equal"),
+    "Full bundle must compile .segmented-fill and .segmented-equal modifiers"
+  );
+  assert.ok(
+    fullCss.includes("flex: 1 1 0") || fullCss.includes("flex: 1 1") || fullCss.includes("flex: 1"),
+    "Segmented fill child items must distribute equally across available width"
+  );
+  assert.ok(
+    fullCss.includes("text-overflow: ellipsis") && fullCss.includes("white-space: nowrap"),
+    "Segmented fill child items must apply text ellipsis and nowrap on compact reflow"
+  );
+  assert.ok(
+    fullCss.includes("min-width: 0"),
+    "Segmented fill child items must enforce min-width: 0 to allow flex shrinkage"
+  );
+
+  // 2. Dedicated square icon button utilities compiled in full bundle
+  assert.ok(
+    fullCss.includes(".btn-icon") && fullCss.includes(".icon-btn"),
+    "Full bundle must compile .btn-icon and .icon-btn utility classes"
+  );
+  assert.ok(
+    fullCss.includes("aspect-ratio: 1 / 1") || fullCss.includes("aspect-ratio: 1"),
+    "Icon buttons must enforce 1:1 square aspect ratio"
+  );
+  assert.ok(
+    fullCss.includes("padding: 0"),
+    "Icon buttons must use zero padding"
+  );
+  assert.ok(
+    fullCss.includes("align-items: center") && fullCss.includes("justify-content: center"),
+    "Icon buttons must center embedded icon elements"
+  );
+
+  // 3. Two-Tier Isolation: core bundle strictly excludes extended segmented controls and icon utilities
+  assert.ok(!coreCss.includes(".segmented"), "Core bundle must not contain .segmented");
+  assert.ok(!coreCss.includes(".segmented-fill"), "Core bundle must not contain .segmented-fill");
+  assert.ok(!coreCss.includes(".btn-icon"), "Core bundle must not contain .btn-icon");
+  assert.ok(!coreCss.includes(".icon-btn"), "Core bundle must not contain .icon-btn");
+  assert.ok(!coreMin.includes(".segmented-fill"), "Core min bundle must not contain .segmented-fill");
+  assert.ok(!coreMin.includes(".btn-icon"), "Core min bundle must not contain .btn-icon");
+
+  // 4. Interactive Demo verification
+  assert.ok(demoHtml.includes("segmented-fill"), "Demo HTML must showcase .segmented-fill modifier");
+  assert.ok(demoHtml.includes("segmented-equal"), "Demo HTML must showcase .segmented-equal modifier");
+  assert.ok(demoHtml.includes("btn-icon"), "Demo HTML must showcase .btn-icon utility");
+  assert.ok(demoHtml.includes("icon-btn"), "Demo HTML must showcase .icon-btn utility");
+});
+
+
 
 

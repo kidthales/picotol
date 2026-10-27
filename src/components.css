@@ -3,28 +3,33 @@
   :where(article, .card) {
     min-width: 0;
     margin-bottom: var(--pt-spacing);
-    padding: var(--pt-spacing);
+    padding: var(--pt-card-padding);
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
-    background-color: var(--pt-card-bg, var(--pt-bg));
+    background-color: var(--pt-card-bg);
     box-shadow: var(--pt-box-shadow);
     overflow: hidden;
 
+    :where(.flex, .grid, [style*="gap"]) > &,
+    :where([data-density="compact"], .pt-compact) & {
+      margin-bottom: 0;
+    }
+
     & > :where(header, footer) {
       min-width: 0;
-      margin-inline: calc(-1 * var(--pt-spacing));
-      padding: calc(var(--pt-spacing) * 0.66) var(--pt-spacing);
+      margin-inline: calc(-1 * var(--pt-card-padding));
+      padding: calc(var(--pt-card-padding) * 0.66) var(--pt-card-padding);
       background-color: var(--pt-surface-subtle);
     }
     & > header {
       min-width: 0;
-      margin-block: calc(-1 * var(--pt-spacing)) var(--pt-spacing);
+      margin-block: calc(-1 * var(--pt-card-padding)) var(--pt-card-padding);
       border-bottom: var(--pt-border);
       & > * { min-width: 0; }
     }
     & > footer {
       min-width: 0;
-      margin-block: var(--pt-spacing) calc(-1 * var(--pt-spacing));
+      margin-block: var(--pt-card-padding) calc(-1 * var(--pt-card-padding));
       border-top: var(--pt-border);
     }
   }
@@ -37,8 +42,8 @@
     --pt-btn-color: var(--pt-bg);
   }
 
-  /* 2. Accordion (<details>) & 3. Dropdown (details.dropdown) */
-  details {
+  /* 2. Accordion (<details>, .pt-details) */
+  :where(details, .pt-details) {
     margin-bottom: var(--pt-spacing);
     padding-bottom: 0.75rem;
     border-bottom: var(--pt-border);
@@ -50,7 +55,8 @@
       list-style: none;
       cursor: pointer;
       font-weight: 600;
-      &::marker { display: none; }
+      user-select: none;
+      &::-webkit-details-marker, &::marker { display: none; }
       &::after {
         content: "";
         width: 1rem;
@@ -64,52 +70,112 @@
 
     &[open] > summary {
       margin-bottom: 0.75rem;
+      &::after { transform: rotate(0deg); }
+    }
+  }
+
+  /* 3. Dropdown & Native Popover (details.dropdown, .pt-popover, details[role="menu"]) */
+  :where(details.dropdown, .pt-popover, details[role="menu"]) {
+    position: relative;
+    border: 0;
+    padding: 0;
+
+    & > summary {
+      margin: 0;
+      padding: var(--pt-form-y) var(--pt-form-x);
+      border: var(--pt-border);
+      border-radius: var(--pt-border-radius);
+      background-color: var(--pt-bg);
       &::after { transform: none; }
     }
 
-    &.dropdown {
-      position: relative;
+    &[open] > summary::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 98;
+      background: transparent;
+      cursor: default;
+    }
+
+    &[open] > summary::after {
+      transform: rotate(180deg);
+    }
+  }
+
+  :where(details.dropdown > ul, .pt-popover-menu, .pt-popover > :not(summary)) {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    inset-inline-start: 0;
+    z-index: 99;
+    min-width: 100%;
+    margin: 0;
+    padding: 0.25rem 0;
+    border: var(--pt-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-card-bg);
+    box-shadow: var(--pt-box-shadow);
+    list-style: none;
+
+    &.end, &[data-align="end"] {
+      inset-inline-start: auto;
+      inset-inline-end: 0;
+    }
+
+    & :where(li, a, button, .pt-menu-item) {
+      display: block;
+      margin: 0;
+      padding: 0.375rem var(--pt-form-x);
+      color: var(--pt-color);
+      text-decoration: none;
+      background: transparent;
       border: 0;
-      padding: 0;
-      & > summary {
-        margin: 0;
-        padding: var(--pt-form-y) var(--pt-form-x);
-        border: var(--pt-border);
-        border-radius: var(--pt-border-radius);
-        background-color: var(--pt-bg);
-        &::after { transform: none; }
+      text-align: start;
+      white-space: nowrap;
+      cursor: pointer;
+
+      &:hover, &:focus-visible {
+        background-color: var(--pt-surface-subtle);
       }
-      &[open] > summary::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        z-index: 98;
-        background: transparent;
-        cursor: default;
+    }
+
+    & hr {
+      margin: 0.25rem 0;
+      border: 0;
+      border-top: var(--pt-border);
+    }
+  }
+
+  /* Accordion Cards & Card Disclosures */
+  :where(.card.accordion-card, .accordion-card) {
+    padding: 0;
+    overflow: hidden;
+
+    & > :where(details, .pt-details, .pt-card-disclosure) {
+      margin: 0;
+      padding: var(--pt-card-padding);
+      border-bottom: var(--pt-border);
+
+      &:last-child {
+        border-bottom: 0;
       }
-      &[open] > summary::after {
-        transform: rotate(180deg);
+
+      &[open] > summary {
+        margin-bottom: calc(var(--pt-card-padding) / 2);
       }
-      & > ul {
-        position: absolute;
-        top: calc(100% + 0.25rem);
-        inset-inline-start: 0;
-        z-index: 99;
-        min-width: 100%;
-        margin: 0;
-        padding: 0.25rem 0;
-        border: var(--pt-border);
-        border-radius: var(--pt-border-radius);
-        background-color: var(--pt-bg);
-        box-shadow: var(--pt-box-shadow);
-        list-style: none;
-        & li {
-          margin: 0;
-          padding: 0.375rem var(--pt-form-x);
-          white-space: nowrap;
-          &:hover { background-color: var(--pt-surface-subtle); }
-        }
-      }
+    }
+  }
+
+  :where(details.accordion-card, details.pt-card-disclosure) {
+    border: var(--pt-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-card-bg);
+    box-shadow: var(--pt-box-shadow);
+    padding: var(--pt-card-padding);
+
+    &[open] > summary {
+      padding-bottom: calc(var(--pt-card-padding) / 2);
+      border-bottom: var(--pt-border);
     }
   }
 
@@ -237,19 +303,130 @@
     &::after { transform: translate(-50%, -50%) rotate(-45deg); }
   }
 
-  /* 6. Progress (<progress>) */
+  /* 6. Progress (<progress>, .pt-progress) & Gauge Meter Pins */
+  :where(progress, .pt-progress, [role="progressbar"]:not(progress), .pt-meter) {
+    --pt-progress-height: 0.5rem;
+    --pt-progress-radius: var(--pt-border-radius);
+    --pt-progress-bg: var(--pt-surface);
+    --pt-progress-fill: var(--pt-primary);
+  }
+
+  :where([data-density="compact"], .pt-compact) :where(progress, .pt-progress, [role="progressbar"]:not(progress), .pt-meter) {
+    --pt-progress-height: 0.375rem;
+  }
+
+  :is(.pt-progress-success, [data-status="success"]) {
+    --pt-progress-fill: var(--pt-valid);
+    --pt-marker-color: var(--pt-valid);
+  }
+
+  :is(.pt-progress-warning, [data-status="warning"]) {
+    --pt-progress-fill: var(--pt-warning);
+    --pt-marker-color: var(--pt-warning);
+  }
+
+  :is(.pt-progress-danger, [data-status="danger"]) {
+    --pt-progress-fill: var(--pt-invalid);
+    --pt-marker-color: var(--pt-invalid);
+  }
+
   progress {
+    display: block;
     width: 100%;
-    height: 0.5rem;
+    height: var(--pt-progress-height);
     margin-bottom: 0.5rem;
     overflow: hidden;
     border: 0;
-    border-radius: var(--pt-border-radius);
-    background-color: var(--pt-surface);
-    accent-color: var(--pt-primary);
+    border-radius: var(--pt-progress-radius);
+    background-color: var(--pt-progress-bg);
+    accent-color: var(--pt-progress-fill);
+    vertical-align: middle;
+
     &::-webkit-progress-bar { background: none; }
-    &::-webkit-progress-value { background-color: var(--pt-primary); }
-    &::-moz-progress-bar { background-color: var(--pt-primary); }
+    &::-webkit-progress-value { background-color: var(--pt-progress-fill); }
+    &::-moz-progress-bar { background-color: var(--pt-progress-fill); }
+  }
+
+  :where(.pt-progress, [role="progressbar"]:not(progress)) {
+    --pt-progress-value: 0%;
+    display: block;
+    position: relative;
+    width: 100%;
+    height: var(--pt-progress-height);
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--pt-progress-radius);
+    background-color: var(--pt-progress-bg);
+    vertical-align: middle;
+
+    &:has(.pt-gauge-marker, .pt-meter-pin) {
+      overflow: visible;
+    }
+  }
+
+  .pt-progress-fill {
+    display: block;
+    height: 100%;
+    width: var(--pt-progress-value, 0%);
+    background-color: var(--pt-progress-fill);
+    border-radius: inherit;
+    transition: width var(--pt-transition);
+  }
+
+  :where(.pt-meter) {
+    display: block;
+    position: relative;
+    width: 100%;
+    margin-bottom: 0.5rem;
+
+    & > :where(progress, .pt-progress) {
+      margin-bottom: 0;
+    }
+  }
+
+  :where(.pt-gauge-marker, .pt-meter-pin) {
+    --pt-marker-pos: 0%;
+    --pt-marker-color: var(--pt-color);
+    position: absolute;
+    top: 0;
+    height: var(--pt-progress-height);
+    inset-inline-start: var(--marker-pos, var(--pt-marker-pos));
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: var(--pt-font-mono);
+    font-size: 0.75rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--pt-marker-color);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      bottom: -2px;
+      width: 2px;
+      background-color: var(--pt-marker-color);
+      border-radius: 1px;
+      transform: translateX(-50%);
+    }
+
+    & :where(span, small, .pt-gauge-label) {
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 0;
+      transform: translateX(-50%);
+    }
+
+    &.bottom :where(span, small, .pt-gauge-label),
+    &[data-placement="bottom"] :where(span, small, .pt-gauge-label) {
+      bottom: auto;
+      top: calc(100% + 4px);
+    }
   }
 
   /* 7. Switch ([role="switch"]) & Range ([type="range"]) */
@@ -288,7 +465,15 @@
         &::before { background-color: HighlightText; }
       }
     }
-    progress { border: 1px solid; }
+    progress, :where(.pt-progress) {
+      border: 1px solid CanvasText;
+    }
+    :where(.pt-progress-fill) {
+      background-color: Highlight;
+    }
+    :where(.pt-gauge-marker, .pt-meter-pin)::before {
+      background-color: CanvasText;
+    }
   }
 
   [type="range"] {
@@ -409,13 +594,13 @@
       color: var(--pt-valid);
     }
 
-    & > :where(svg.icon, [data-icon], .status-dot) {
+    & > :where(svg.icon, [data-icon], .status-dot, .pt-status-dot) {
       margin: 0;
     }
   }
 
   /* 11b. Status Indicator Dots */
-  :where(.status-dot) {
+  :where(.status-dot, .pt-status-dot) {
     display: inline-block;
     width: 0.5rem;
     height: 0.5rem;
@@ -439,17 +624,20 @@
     &:is(.neutral, .idle, [data-status="neutral"], [data-status="idle"], [data-status="backlog"], [data-status="no-status"]) {
       background-color: var(--pt-muted-border);
     }
-    &:is(.success, .valid, [data-status="success"], [data-status="valid"]) {
+    &:is(.success, .valid, .pt-status-dot-success, [data-status="success"], [data-status="valid"]) {
       background-color: var(--pt-valid);
     }
-    &:is(.warning, [data-status="warning"]) {
+    &:is(.warning, .pt-status-dot-warning, [data-status="warning"]) {
       background-color: var(--pt-warning);
     }
-    &:is(.danger, .invalid, [data-status="danger"], [data-status="invalid"]) {
+    &:is(.danger, .invalid, .pt-status-dot-danger, [data-status="danger"], [data-status="invalid"]) {
       background-color: var(--pt-invalid);
     }
     &:is(.info, .primary, [data-status="info"], [data-status="primary"]) {
       background-color: var(--pt-primary);
+    }
+    &:is(.pulse, .pt-pulse) {
+      animation: pt-pulse 1.5s ease-in-out infinite;
     }
 
     @media (forced-colors: active) {
@@ -457,21 +645,69 @@
     }
   }
 
-  /* 12. Accessible Tabs */
-  :where([role="tablist"]) {
+  :where(.pt-status-dot-success) { background-color: var(--pt-valid); }
+  :where(.pt-status-dot-warning) { background-color: var(--pt-warning); }
+  :where(.pt-status-dot-danger) { background-color: var(--pt-invalid); }
+
+  /* 11c. Micro-Action Copy Pills & Chips */
+  :where(.pt-copy-pill, .pt-chip) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--pt-font-mono);
+    line-height: 1.25;
+    padding: 2px 6px;
+    border: 1px solid var(--pt-muted-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-surface-subtle);
+    color: var(--pt-color);
+    white-space: nowrap;
+    vertical-align: middle;
+    user-select: all;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color var(--pt-transition), border-color var(--pt-transition);
+
+    &:hover {
+      background-color: var(--pt-surface);
+      border-color: var(--pt-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--pt-primary);
+      outline-offset: 1px;
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+
+    & > :where(svg.icon, [data-icon], .status-dot, .pt-status-dot) {
+      margin: 0;
+    }
+  }
+
+  :where(.pt-chip) {
+    border-radius: 99px;
+    user-select: auto;
+  }
+
+  /* 12. Accessible Tabs & Segmented Controls */
+  :where([role="tablist"], .segmented) {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
     margin-bottom: var(--pt-spacing);
-    border-bottom: 2px solid var(--pt-muted-border);
+
+    &:not(.segmented) {
+      border-bottom: 2px solid var(--pt-muted-border);
+    }
 
     & > * {
       display: inline-flex;
       align-items: center;
       padding: 0.5rem 1rem;
       border: 0;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
       background: none;
       color: var(--pt-muted-color);
       font-weight: 500;
@@ -480,16 +716,27 @@
 
       &:is(:hover, :focus-visible) {
         color: var(--pt-color);
-        border-bottom-color: var(--pt-muted-border);
       }
       &:is([aria-selected="true"], [aria-current="page"], .active) {
         color: var(--pt-primary);
-        border-bottom-color: var(--pt-primary);
         font-weight: 600;
       }
     }
 
-    &.segmented {
+    &:not(.segmented) > * {
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+
+      &:is(:hover, :focus-visible) {
+        border-bottom-color: var(--pt-muted-border);
+      }
+      &:is([aria-selected="true"], [aria-current="page"], .active) {
+        border-bottom-color: var(--pt-primary);
+      }
+    }
+
+    &.segmented,
+    &:is(.segmented-fill, .segmented-equal) {
       display: inline-flex;
       padding: 0.25rem;
       border: var(--pt-border);
@@ -508,6 +755,38 @@
           box-shadow: var(--pt-box-shadow);
         }
       }
+
+      &:is(.segmented-fill, .segmented-equal, .fill) {
+        display: flex;
+        width: 100%;
+
+        & > * {
+          flex: 1 1 0;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          text-align: center;
+          justify-content: center;
+        }
+      }
+    }
+  }
+
+  /* 16. Dedicated Square Icon Buttons (.btn-icon, .icon-btn) */
+  :where(.btn-icon, .icon-btn, button.btn-icon, button.icon-btn, a.icon-btn, a.btn-icon) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1 / 1;
+    height: calc(1lh + 2 * var(--pt-form-y) + 2px);
+    padding: 0;
+    line-height: 1;
+    vertical-align: middle;
+
+    & > :where(svg, img, [data-icon], .icon) {
+      margin: 0;
+      flex-shrink: 0;
     }
   }
 
@@ -612,6 +891,47 @@
       opacity: 1;
       pointer-events: auto;
       transform: translateY(0);
+    }
+  }
+
+  /* 15. Callout Banners */
+  :where(.pt-callout) {
+    --pt-callout-border: var(--pt-muted-border);
+    --pt-callout-bg: color-mix(in srgb, var(--pt-callout-border) 8%, var(--pt-bg));
+    display: block;
+    min-width: 0;
+    margin-bottom: var(--pt-spacing);
+    padding: var(--pt-spacing);
+    border: 0;
+    border-inline-start: 4px solid var(--pt-callout-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-callout-bg);
+    color: var(--pt-color);
+
+    &:where(.flex > *, .grid > *, :last-child) {
+      margin-bottom: 0;
+    }
+
+    & :where(h1, h2, h3, h4, h5, h6, strong, b) {
+      color: var(--pt-color);
+    }
+
+    &:is(.pt-callout-critical, .critical, .danger) {
+      --pt-callout-border: var(--pt-red);
+      --pt-callout-bg: color-mix(in srgb, var(--pt-red) 8%, var(--pt-bg));
+    }
+    &:is(.pt-callout-warning, .warning) {
+      --pt-callout-border: var(--pt-yellow);
+      --pt-callout-bg: color-mix(in srgb, var(--pt-yellow) 8%, var(--pt-bg));
+    }
+    &:is(.pt-callout-info, .info, .primary) {
+      --pt-callout-border: var(--pt-cyan);
+      --pt-callout-bg: color-mix(in srgb, var(--pt-cyan) 8%, var(--pt-bg));
+    }
+
+    @media (forced-colors: active) {
+      border: 1px solid CanvasText;
+      border-inline-start-width: 4px;
     }
   }
 }
