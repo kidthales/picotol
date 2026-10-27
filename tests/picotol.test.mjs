@@ -808,6 +808,12 @@ test("Consumer @layer Guide: README documents canonical 4-layer cascade architec
     readme.includes("@layer theme") && readme.includes("--pt-primary: var(--host-brand-primary") && readme.includes("color-scheme: dark;"),
     "README must detail interaction with host CSS custom property bridges and dark/light mode toggles"
   );
+  assert.ok(
+    readme.includes("Body Layout Reset & Sticky Footer Integration") &&
+    readme.includes("min-height: 100dvh") &&
+    readme.includes("flex-direction: column"),
+    "README must document body flex column layout reset, sticky footer, and host layer overrides"
+  );
 });
 
 test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numerics Utility (Issue #93)", () => {

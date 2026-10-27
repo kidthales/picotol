@@ -22,8 +22,8 @@
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
   - **`dist/picotol.core.min.css`** (<= 12.0 KB minified, ~4.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 29.5 KB minified, ~7.3 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
-  - **`dist/picotol.layer.min.css`** (<= 29.5 KB minified, ~7.3 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
+  - **`dist/picotol.min.css`** (<= 32.0 KB minified, ~7.7 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.layer.min.css`** (<= 32.0 KB minified, ~7.7 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
 
@@ -198,6 +198,38 @@ Host themes can bridge host custom properties to picotol's `--pt-*` tokens or co
   }
 }
 ```
+
+### Body Layout Reset & Sticky Footer Integration
+
+`@kidthales/picotol`'s `base` layer applies an ergonomic document layout reset to `<body>` ensuring semantic footers stay pinned to the bottom of the viewport even on sparse pages:
+
+```css
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  & > :where(main, [role="main"]) {
+    flex: 1 0 auto;
+  }
+}
+```
+
+#### Integration Caveats & Host Scoping
+When embedding `@kidthales/picotol` into an existing application shell, legacy layout wrapper, or micro-frontend container with its own scrolling or grid layout:
+- **Full Viewport vs. Embedded Containers**: If your host application already manages viewport height or body display (e.g., CSS grid or fixed header/sidebar layouts), the `min-height: 100dvh` and flex column reset on `body` can be cleanly overridden or neutralized in your host `@layer app`:
+
+```css
+@layer app {
+  /* Neutralize or reconfigure body layout when embedding into custom shells */
+  body {
+    min-height: auto;
+    display: block; /* or display: grid */
+  }
+}
+```
+
+- **Scoped Wrappers**: When embedding picotol components inside a sub-tree container rather than a full page, import `@kidthales/picotol/layer` within `@layer picotol` and scope layout landmarks inside dedicated wrapper elements (`.container` or custom host panels) without inheriting top-level body flex behaviors.
 
 ---
 
