@@ -780,6 +780,24 @@ ${rowsHtml}
           <footer><small>Pinned via <code>--marker-pos</code> with high-contrast support</small></footer>
         </article>
       </div>
+      <h3>Accessible Callouts, Status Dots &amp; Copy Pills (<code>.pt-callout</code> / <code>.pt-copy-pill</code>)</h3>
+      <div class="grid">
+        <aside class="pt-callout pt-callout-critical">
+          <strong>Critical Incident (#379)</strong>
+          <p><span class="pt-status-dot pt-status-dot-danger pulse"></span> High-severity degradation on primary cluster node.</p>
+          <p><button type="button" class="pt-copy-pill">kubectl logs pod/cluster-edge-01</button> <span class="pt-chip">p0-crit</span></p>
+        </aside>
+        <aside class="pt-callout pt-callout-warning">
+          <strong>Capacity Warning (#360)</strong>
+          <p><span class="pt-status-dot pt-status-dot-warning"></span> Memory threshold approaching 85% headroom limit.</p>
+          <p><button type="button" class="pt-copy-pill">curl -X POST /api/scale</button> <span class="pt-chip">warning</span></p>
+        </aside>
+        <aside class="pt-callout pt-callout-info">
+          <strong>Operational Notice</strong>
+          <p><span class="pt-status-dot pt-status-dot-success"></span> All satellite sync nodes operational and healthy.</p>
+          <p><button type="button" class="pt-copy-pill">seldon status --prs</button> <span class="pt-chip">steady</span></p>
+        </aside>
+      </div>
     </section>
 
     <hr>

@@ -533,13 +533,13 @@
       color: var(--pt-valid);
     }
 
-    & > :where(svg.icon, [data-icon], .status-dot) {
+    & > :where(svg.icon, [data-icon], .status-dot, .pt-status-dot) {
       margin: 0;
     }
   }
 
   /* 11b. Status Indicator Dots */
-  :where(.status-dot) {
+  :where(.status-dot, .pt-status-dot) {
     display: inline-block;
     width: 0.5rem;
     height: 0.5rem;
@@ -563,22 +563,72 @@
     &:is(.neutral, .idle, [data-status="neutral"], [data-status="idle"], [data-status="backlog"], [data-status="no-status"]) {
       background-color: var(--pt-muted-border);
     }
-    &:is(.success, .valid, [data-status="success"], [data-status="valid"]) {
+    &:is(.success, .valid, .pt-status-dot-success, [data-status="success"], [data-status="valid"]) {
       background-color: var(--pt-valid);
     }
-    &:is(.warning, [data-status="warning"]) {
+    &:is(.warning, .pt-status-dot-warning, [data-status="warning"]) {
       background-color: var(--pt-warning);
     }
-    &:is(.danger, .invalid, [data-status="danger"], [data-status="invalid"]) {
+    &:is(.danger, .invalid, .pt-status-dot-danger, [data-status="danger"], [data-status="invalid"]) {
       background-color: var(--pt-invalid);
     }
     &:is(.info, .primary, [data-status="info"], [data-status="primary"]) {
       background-color: var(--pt-primary);
     }
+    &:is(.pulse, .pt-pulse) {
+      animation: pt-pulse 1.5s ease-in-out infinite;
+    }
 
     @media (forced-colors: active) {
       outline: 1px solid CanvasText;
     }
+  }
+
+  :where(.pt-status-dot-success) { background-color: var(--pt-valid); }
+  :where(.pt-status-dot-warning) { background-color: var(--pt-warning); }
+  :where(.pt-status-dot-danger) { background-color: var(--pt-invalid); }
+
+  /* 11c. Micro-Action Copy Pills & Chips */
+  :where(.pt-copy-pill, .pt-chip) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--pt-font-mono);
+    line-height: 1.25;
+    padding: 2px 6px;
+    border: 1px solid var(--pt-muted-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-surface-subtle);
+    color: var(--pt-color);
+    white-space: nowrap;
+    vertical-align: middle;
+    user-select: all;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color var(--pt-transition), border-color var(--pt-transition);
+
+    &:hover {
+      background-color: var(--pt-surface);
+      border-color: var(--pt-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--pt-primary);
+      outline-offset: 1px;
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+
+    & > :where(svg.icon, [data-icon], .status-dot, .pt-status-dot) {
+      margin: 0;
+    }
+  }
+
+  :where(.pt-chip) {
+    border-radius: 99px;
+    user-select: auto;
   }
 
   /* 12. Accessible Tabs */
@@ -738,6 +788,51 @@
       transform: translateY(0);
     }
   }
+
+  /* 15. Callout Banners */
+  :where(.pt-callout) {
+    --pt-callout-border: var(--pt-muted-border);
+    --pt-callout-bg: color-mix(in srgb, var(--pt-callout-border) 8%, var(--pt-bg));
+    display: block;
+    min-width: 0;
+    margin-bottom: var(--pt-spacing);
+    padding: var(--pt-spacing);
+    border: 0;
+    border-inline-start: 4px solid var(--pt-callout-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-callout-bg);
+    color: var(--pt-color);
+
+    &:where(.flex > *, .grid > *, :last-child) {
+      margin-bottom: 0;
+    }
+
+    & :where(h1, h2, h3, h4, h5, h6, strong, b) {
+      color: var(--pt-color);
+    }
+
+    &:is(.pt-callout-critical, .critical, .danger) {
+      --pt-callout-border: var(--pt-red);
+      --pt-callout-bg: color-mix(in srgb, var(--pt-red) 8%, var(--pt-bg));
+    }
+    &:is(.pt-callout-warning, .warning) {
+      --pt-callout-border: var(--pt-yellow);
+      --pt-callout-bg: color-mix(in srgb, var(--pt-yellow) 8%, var(--pt-bg));
+    }
+    &:is(.pt-callout-info, .info, .primary) {
+      --pt-callout-border: var(--pt-cyan);
+      --pt-callout-bg: color-mix(in srgb, var(--pt-cyan) 8%, var(--pt-bg));
+    }
+
+    @media (forced-colors: active) {
+      border: 1px solid CanvasText;
+      border-inline-start-width: 4px;
+    }
+  }
+
+  :where(.pt-callout-critical) { --pt-callout-border: var(--pt-red); }
+  :where(.pt-callout-warning) { --pt-callout-border: var(--pt-yellow); }
+  :where(.pt-callout-info) { --pt-callout-border: var(--pt-cyan); }
 }
 
 

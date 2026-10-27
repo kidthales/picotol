@@ -39,6 +39,9 @@
     --pt-valid: light-dark(#064, #4b9);
     --pt-warning: light-dark(#750, #ed8);
     --pt-invalid: light-dark(#c31, #e67);
+    --pt-red: #e67;
+    --pt-yellow: #cb4;
+    --pt-cyan: #6ce;
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
     --pt-primary: light-dark(var(--pt-p4), var(--pt-p2));

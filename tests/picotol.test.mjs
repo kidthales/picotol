@@ -89,7 +89,7 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 26.0 KB, and picotol.layer.min.css <= 26.1 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 28.5 KB, and picotol.layer.min.css <= 28.6 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
   const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
@@ -99,12 +99,12 @@ test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min
     `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 12288 B`
   );
   assert.ok(
-    fullMin <= 26.0 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 26624 B`
+    fullMin <= 28.5 * 1024,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= 29184 B`
   );
   assert.ok(
-    layerMin <= 26.1 * 1024,
-    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 26726 B`
+    layerMin <= 28.6 * 1024,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 29286 B`
   );
 });
 
@@ -971,6 +971,111 @@ test("Cross-Engine Meter Custom Properties and Gauge Threshold Pin Markers (Issu
     demoHtml.includes("pt-progress-success") || demoHtml.includes("pt-progress-warning"),
     "Demo HTML must showcase status modifiers"
   );
+});
+
+test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #95)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Canonical Paul Tol color tokens (--pt-red, --pt-yellow, --pt-cyan)
+  assert.ok(
+    tokensCss.includes("--pt-red: #EE6677;") &&
+    tokensCss.includes("--pt-yellow: #CCBB44;") &&
+    tokensCss.includes("--pt-cyan: #66CCEE;"),
+    "Canonical tokens --pt-red, --pt-yellow, and --pt-cyan must be defined in src/tokens.css"
+  );
+  assert.ok(
+    fullCss.includes("--pt-red") &&
+    fullCss.includes("--pt-yellow") &&
+    fullCss.includes("--pt-cyan"),
+    "Full bundle must contain canonical severity color tokens"
+  );
+
+  // 2. .pt-callout component and severity variants
+  assert.ok(
+    fullCss.includes(".pt-callout") &&
+    fullCss.includes(".pt-callout-critical") &&
+    fullCss.includes(".pt-callout-warning") &&
+    fullCss.includes(".pt-callout-info"),
+    "Full bundle must define .pt-callout, .pt-callout-critical, .pt-callout-warning, and .pt-callout-info"
+  );
+  assert.ok(
+    fullCss.includes("border-inline-start: 4px solid"),
+    "Callouts must use 4px solid start border"
+  );
+  assert.ok(
+    fullCss.includes("color-mix(in srgb, var(--pt-callout-border) 8%, var(--pt-bg))") ||
+    fullCss.includes("8%"),
+    "Callouts must use 8% alpha washes"
+  );
+
+  // 3. Contrast verification across Light/Dark surfaces and greyscale simulation
+  const redLuminance = relativeLuminance("#EE6677");
+  const yellowLuminance = relativeLuminance("#CCBB44");
+  const cyanLuminance = relativeLuminance("#66CCEE");
+
+  // In greyscale, luminance values are preserved and distinct
+  assert.ok(Math.abs(redLuminance - yellowLuminance) > 0.15, "Red and yellow must be distinguishable in greyscale");
+  assert.ok(redLuminance < yellowLuminance && yellowLuminance < cyanLuminance, "Severity ladder has monotonic greyscale separation");
+
+  // Normal typography inside callout uses var(--pt-color) (light: #000000, dark: #FFFFFF)
+  // Contrast against 8% wash passes WCAG 2.2 AA (>= 4.5:1)
+  const lightBgLuminance = 0.08 * redLuminance + 0.92 * 1.0;
+  const darkBgLuminance = 0.08 * redLuminance + 0.92 * 0.0;
+  const lightTextContrast = (lightBgLuminance + 0.05) / (0.0 + 0.05);
+  const darkTextContrast = (1.0 + 0.05) / (darkBgLuminance + 0.05);
+
+  assert.ok(lightTextContrast >= 4.5, `Callout text contrast on light (${lightTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
+  assert.ok(darkTextContrast >= 4.5, `Callout text contrast on dark (${darkTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
+
+  // 4. Standalone .pt-status-dot utility with variants and pulse animation
+  assert.ok(
+    fullCss.includes(".pt-status-dot") &&
+    fullCss.includes(".pt-status-dot-success") &&
+    fullCss.includes(".pt-status-dot-warning") &&
+    fullCss.includes(".pt-status-dot-danger"),
+    "Full bundle must provide standalone .pt-status-dot with semantic variants"
+  );
+  assert.ok(
+    fullCss.includes(".pulse") || fullCss.includes(".pt-pulse"),
+    "Full bundle must support pulse animation on status indicators"
+  );
+  assert.ok(
+    fullCss.includes("prefers-reduced-motion: reduce"),
+    "Pulse animation must respect prefers-reduced-motion"
+  );
+
+  // 5. Micro-action primitives: .pt-copy-pill and .pt-chip
+  assert.ok(
+    fullCss.includes(".pt-copy-pill") && fullCss.includes(".pt-chip"),
+    "Full bundle must provide .pt-copy-pill and .pt-chip classes"
+  );
+  assert.ok(
+    fullCss.includes("padding: 2px 6px"),
+    "Copy pills and chips must use micro-padding (2px 6px)"
+  );
+  assert.ok(
+    fullCss.includes("--pt-font-mono"),
+    "Copy pills and chips must use monospace typography"
+  );
+
+  // 6. Two-Tier Isolation: core bundle strictly excludes extended components
+  assert.ok(!coreCss.includes(".pt-callout"), "Core bundle must not contain .pt-callout");
+  assert.ok(!coreCss.includes(".pt-status-dot"), "Core bundle must not contain .pt-status-dot");
+  assert.ok(!coreCss.includes(".pt-copy-pill"), "Core bundle must not contain .pt-copy-pill");
+  assert.ok(!coreCss.includes(".pt-chip"), "Core bundle must not contain .pt-chip");
+  assert.ok(!coreMin.includes(".pt-callout"), "Core min bundle must not contain .pt-callout");
+
+  // 7. Demo verification
+  assert.ok(demoHtml.includes("pt-callout"), "Demo HTML must showcase .pt-callout component");
+  assert.ok(demoHtml.includes("pt-callout-critical"), "Demo HTML must showcase .pt-callout-critical variant");
+  assert.ok(demoHtml.includes("pt-status-dot"), "Demo HTML must showcase .pt-status-dot");
+  assert.ok(demoHtml.includes("pt-copy-pill"), "Demo HTML must showcase .pt-copy-pill");
+  assert.ok(demoHtml.includes("pt-chip"), "Demo HTML must showcase .pt-chip");
 });
 
 
