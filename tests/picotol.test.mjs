@@ -577,6 +577,46 @@ test("Foundation & Layout Ergonomics: .container-fluid, sticky footer, and layou
   }
 });
 
+test("High-Density Layout Containment: scope section, article, and hr margins within flex and grid containers (Issue #92)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+
+  // Core & Full bundle containment scoping
+  for (const css of [fullCss, coreCss]) {
+    assert.ok(css.includes(".flex"), "Layout must declare .flex container utility");
+    assert.ok(
+      css.includes("calc(var(--pt-spacing) * 1.5)"),
+      "Standalone section must preserve default typographic pacing (1.5 * spacing)"
+    );
+    assert.ok(
+      css.includes('style*="gap"') || css.includes("style*=gap"),
+      "Must scope margins for direct children of containers with inline gap"
+    );
+    assert.ok(
+      css.includes('style*="display: flex"') || css.includes("style*=\"display: flex\"") || css.includes("display: flex"),
+      "Must scope margins for direct children of flex containers"
+    );
+    assert.ok(
+      css.includes('margin-bottom: 0;') || css.includes("margin-bottom:0"),
+      "Must zero out margin-bottom on child container elements in flex/grid context"
+    );
+  }
+
+  // Verify minified bundles compile scoping rules without syntax loss
+  for (const min of [fullMin, coreMin]) {
+    assert.ok(min.includes("margin-bottom:0"), "Minified bundles must compile margin-bottom: 0 reset");
+    assert.ok(min.includes("gap"), "Minified bundles must retain gap-based container selectors");
+  }
+
+  // Full CSS specific checks for article and .card containment
+  assert.ok(
+    fullCss.includes(":where(article, .card)") || fullCss.includes("article, .card"),
+    "Full CSS must scope article/.card within flex/grid parents"
+  );
+});
+
 test("Ergonomic Class Parity, Compact Control Sizing, and Component Primitives", () => {
   const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
   const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");

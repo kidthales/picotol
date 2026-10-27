@@ -202,25 +202,36 @@
     padding: var(--pt-spacing);
   }
 
-  section {
+  :where(section) {
     margin-bottom: calc(var(--pt-spacing) * 1.5);
+
+    :where(.flex, .grid, [style*="gap"]) > & {
+      margin-bottom: 0;
+    }
   }
 
   :where(.mb-0, .no-margin-bottom) {
     margin-bottom: 0 !important;
   }
 
-  .grid {
+  :where(.grid, .flex) {
     gap: var(--pt-grid-gap, var(--pt-spacing));
-    display: grid;
 
     & > * {
       min-width: 0;
     }
+  }
+
+  .grid {
+    display: grid;
 
     @media (width >= 48rem) {
       grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--pt-grid-min)), 1fr));
     }
+  }
+
+  :where(.flex) {
+    display: flex;
   }
 
   :where(.overflow-auto, .table-container) {
@@ -354,6 +365,10 @@
   hr {
     border: 0;
     border-top: var(--pt-border);
+
+    :where(.flex, .grid, [style*="gap"]) > & {
+      margin-block: 0;
+    }
   }
 
   :where(.secondary, [type="reset"]) {

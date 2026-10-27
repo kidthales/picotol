@@ -50,7 +50,13 @@
   }
   :where(figcaption, blockquote footer) { margin-top: 0.5rem; color: var(--pt-muted-color); font-size: 0.875em; }
 
-  hr { border: 0; border-top: var(--pt-border); }
+  hr {
+    border: 0;
+    border-top: var(--pt-border);
+    :where(.flex, .grid, [style*="gap"]) > & {
+      margin-block: 0;
+    }
+  }
 
 
   :where(.secondary, [type="reset"]) {
