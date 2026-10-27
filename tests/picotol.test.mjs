@@ -1078,4 +1078,58 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
   assert.ok(demoHtml.includes("pt-chip"), "Demo HTML must showcase .pt-chip");
 });
 
+test("Native Accessible Disclosures, Popovers, and Accordion Cards (Issue #96)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. .pt-details and .pt-popover classes compiled in full bundle
+  assert.ok(fullCss.includes(".pt-details"), "Full bundle must compile .pt-details class");
+  assert.ok(fullCss.includes(".pt-popover"), "Full bundle must compile .pt-popover class");
+
+  // 2. Summary disclosure marker and smooth rotation transition on open
+  assert.ok(
+    fullCss.includes("rotate(-90deg)") && (fullCss.includes("rotate(0deg)") || fullCss.includes("transform: none")),
+    "Summary disclosure marker must support rotation transition on open"
+  );
+  assert.ok(
+    fullCss.includes("rotate(180deg)"),
+    "Dropdown and popover menus must rotate marker 180deg on open"
+  );
+
+  // 3. Card accordion and structured disclosure container styling
+  assert.ok(
+    fullCss.includes(".accordion-card") && fullCss.includes(".pt-card-disclosure"),
+    "Full bundle must compile .accordion-card and .pt-card-disclosure"
+  );
+
+  // 4. Popover positioning modifier and menu elevated styling
+  assert.ok(
+    fullCss.includes(".pt-popover-menu"),
+    "Full bundle must compile .pt-popover-menu container"
+  );
+  assert.ok(
+    fullCss.includes("inset-inline-end: 0") || fullCss.includes("inset-inline: auto 0") || fullCss.includes("right: 0"),
+    "Popover menu must support end-alignment positioning modifier"
+  );
+
+  // 5. Two-Tier Isolation: core bundle strictly excludes extended disclosure components
+  assert.ok(!coreCss.includes(".pt-details"), "Core bundle must not contain .pt-details");
+  assert.ok(!coreCss.includes(".pt-popover"), "Core bundle must not contain .pt-popover");
+  assert.ok(!coreCss.includes(".pt-popover-menu"), "Core bundle must not contain .pt-popover-menu");
+  assert.ok(!coreCss.includes(".accordion-card"), "Core bundle must not contain .accordion-card");
+  assert.ok(!coreCss.includes(".pt-card-disclosure"), "Core bundle must not contain .pt-card-disclosure");
+  assert.ok(!coreMin.includes(".pt-details"), "Core min bundle must not contain .pt-details");
+  assert.ok(!coreMin.includes(".pt-popover"), "Core min bundle must not contain .pt-popover");
+
+  // 6. Demo verification
+  assert.ok(demoHtml.includes("accordion-card"), "Demo HTML must showcase .accordion-card container");
+  assert.ok(demoHtml.includes("pt-card-disclosure"), "Demo HTML must showcase .pt-card-disclosure component");
+  assert.ok(demoHtml.includes("pt-popover"), "Demo HTML must showcase .pt-popover component");
+  assert.ok(demoHtml.includes("pt-popover-menu"), "Demo HTML must showcase .pt-popover-menu component");
+});
+
+
 

@@ -784,18 +784,23 @@
     --pt-btn-color: var(--pt-bg);
   }
 
-  details {
+  :where(details, .pt-details) {
     margin-bottom: var(--pt-spacing);
     border-bottom: var(--pt-border);
     padding-bottom: .75rem;
 
     & summary {
       cursor: pointer;
+      user-select: none;
       justify-content: space-between;
       align-items: center;
       font-weight: 600;
       list-style: none;
       display: flex;
+
+      &::-webkit-details-marker {
+        display: none;
+      }
 
       &::marker {
         display: none;
@@ -816,64 +821,113 @@
       margin-bottom: .75rem;
 
       &:after {
+        transform: rotate(0);
+      }
+    }
+  }
+
+  :where(details.dropdown, .pt-popover, details[role="menu"]) {
+    border: 0;
+    padding: 0;
+    position: relative;
+
+    & > summary {
+      padding: var(--pt-form-y) var(--pt-form-x);
+      border: var(--pt-border);
+      border-radius: var(--pt-border-radius);
+      background-color: var(--pt-bg);
+      margin: 0;
+
+      &:after {
         transform: none;
       }
     }
 
-    &.dropdown {
+    &[open] > summary:before {
+      content: "";
+      z-index: 98;
+      cursor: default;
+      background: none;
+      position: fixed;
+      inset: 0;
+    }
+
+    &[open] > summary:after {
+      transform: rotate(180deg);
+    }
+  }
+
+  :where(details.dropdown > ul, .pt-popover-menu, .pt-popover > :not(summary)) {
+    top: calc(100% + .25rem);
+    z-index: 99;
+    border: var(--pt-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-card-bg);
+    min-width: 100%;
+    box-shadow: var(--pt-box-shadow);
+    margin: 0;
+    padding: .25rem 0;
+    list-style: none;
+    position: absolute;
+    inset-inline-start: 0;
+
+    &.end, &[data-align="end"] {
+      inset-inline: auto 0;
+    }
+
+    & :where(li, a, button, .pt-menu-item) {
+      padding: .375rem var(--pt-form-x);
+      color: var(--pt-color);
+      text-align: start;
+      white-space: nowrap;
+      cursor: pointer;
+      background: none;
       border: 0;
-      padding: 0;
-      position: relative;
+      margin: 0;
+      text-decoration: none;
+      display: block;
 
-      & > summary {
-        padding: var(--pt-form-y) var(--pt-form-x);
-        border: var(--pt-border);
-        border-radius: var(--pt-border-radius);
-        background-color: var(--pt-bg);
-        margin: 0;
+      &:hover, &:focus-visible {
+        background-color: var(--pt-surface-subtle);
+      }
+    }
 
-        &:after {
-          transform: none;
-        }
+    & hr {
+      border: 0;
+      border-top: var(--pt-border);
+      margin: .25rem 0;
+    }
+  }
+
+  :where(.card.accordion-card, .accordion-card) {
+    padding: 0;
+    overflow: hidden;
+
+    & > :where(details, .pt-details, .pt-card-disclosure) {
+      padding: var(--pt-card-padding);
+      border-bottom: var(--pt-border);
+      margin: 0;
+
+      &:last-child {
+        border-bottom: 0;
       }
 
-      &[open] > summary:before {
-        content: "";
-        z-index: 98;
-        cursor: default;
-        background: none;
-        position: fixed;
-        inset: 0;
+      &[open] > summary {
+        margin-bottom: calc(var(--pt-card-padding) / 2);
       }
+    }
+  }
 
-      &[open] > summary:after {
-        transform: rotate(180deg);
-      }
+  :where(details.accordion-card, details.pt-card-disclosure) {
+    border: var(--pt-border);
+    border-radius: var(--pt-border-radius);
+    background-color: var(--pt-card-bg);
+    box-shadow: var(--pt-box-shadow);
+    padding: var(--pt-card-padding);
 
-      & > ul {
-        top: calc(100% + .25rem);
-        z-index: 99;
-        border: var(--pt-border);
-        border-radius: var(--pt-border-radius);
-        background-color: var(--pt-bg);
-        min-width: 100%;
-        box-shadow: var(--pt-box-shadow);
-        margin: 0;
-        padding: .25rem 0;
-        list-style: none;
-        position: absolute;
-        inset-inline-start: 0;
-
-        & li {
-          padding: .375rem var(--pt-form-x);
-          white-space: nowrap;
-          margin: 0;
-
-          &:hover {
-            background-color: var(--pt-surface-subtle);
-          }
-        }
-      }
+    &[open] > summary {
+      padding-bottom: calc(var(--pt-card-padding) / 2);
+      border-bottom: var(--pt-border);
     }
   }
 
@@ -1648,17 +1702,5 @@
       border: 1px solid canvastext;
       border-inline-start-width: 4px;
     }
-  }
-
-  :where(.pt-callout-critical) {
-    --pt-callout-border: var(--pt-red);
-  }
-
-  :where(.pt-callout-warning) {
-    --pt-callout-border: var(--pt-yellow);
-  }
-
-  :where(.pt-callout-info) {
-    --pt-callout-border: var(--pt-cyan);
   }
 }

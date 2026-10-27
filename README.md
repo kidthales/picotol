@@ -354,6 +354,35 @@ High-contrast, unignorable severity banners (`.pt-callout`) feature 4px solid st
 </aside>
 ```
 
+### 4d. Native Disclosures, Accordion Cards & Popovers
+
+Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature smooth chevron marker rotations, structured accordion card containment (`.card.accordion-card` / `.pt-card-disclosure`), and elevated popover menus (`.pt-popover` / `.pt-popover-menu`):
+
+```html
+<!-- Structured Accordion Card Container -->
+<article class="card accordion-card">
+  <details class="pt-card-disclosure" open>
+    <summary>Platform Architecture</summary>
+    <p>Four-layer cascade isolation ensures design tokens remain pure.</p>
+  </details>
+  <details class="pt-card-disclosure">
+    <summary>Security & Access Control</summary>
+    <p>Zero-JS native keyboard disclosure and screen-reader announcements.</p>
+  </details>
+</article>
+
+<!-- Native Popover Menu (Zero-JS Click-Away Backdrop) -->
+<details class="pt-popover">
+  <summary role="button">Actions</summary>
+  <div class="pt-popover-menu">
+    <a href="#view">View Details</a>
+    <a href="#export">Export Data</a>
+    <hr>
+    <button type="button" class="pt-menu-item">Disconnect</button>
+  </div>
+</details>
+```
+
 ### 5. Interactive Operational Showcase & Palette Explorer
 
 The interactive demonstration suite at `dist/demo/index.html` showcases:
