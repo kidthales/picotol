@@ -6,9 +6,13 @@
     padding: var(--pt-spacing);
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
-    background-color: var(--pt-card-bg, var(--pt-bg));
+    background-color: var(--pt-card-bg);
     box-shadow: var(--pt-box-shadow);
     overflow: hidden;
+
+    :where(.flex, .grid, [style*="gap"]) > & {
+      margin-bottom: 0;
+    }
 
     & > :where(header, footer) {
       min-width: 0;

@@ -690,6 +690,21 @@ ${rowsHtml}
           </div>
           <footer><small>Shrinks cleanly without horizontal document overflow</small></footer>
         </article>
+        <article>
+          <header><strong>High-Density Flex Containment (gap: 4px)</strong></header>
+          <p><small>Child <code>section</code>, <code>article</code>, and <code>hr</code> elements automatically zero their block margins in flex and grid containers, preventing compound spacing.</small></p>
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 0.5rem; background: var(--pt-surface-subtle); border-radius: var(--pt-border-radius);">
+            <div style="font-size: 0.8125rem; font-weight: 600;">Flex Shell (gap: 4px)</div>
+            <section style="padding: 0.25rem 0.5rem; background: var(--pt-card-bg); border: var(--pt-border); border-radius: var(--pt-border-radius); font-size: 0.8125rem;">
+              Tier 1 Section (margin-bottom: 0)
+            </section>
+            <hr style="border-top: 1px solid var(--pt-muted-border);">
+            <article style="padding: 0.25rem 0.5rem; background: var(--pt-card-bg); border: var(--pt-border); border-radius: var(--pt-border-radius); font-size: 0.8125rem;">
+              Tier 2 Card (margin-bottom: 0)
+            </article>
+          </div>
+          <footer><small>No vertical margin compounding; exact 4px rhythm preserved</small></footer>
+        </article>
       </div>
     </section>
 
