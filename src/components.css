@@ -692,21 +692,22 @@
     user-select: auto;
   }
 
-  /* 12. Accessible Tabs */
-  :where([role="tablist"]) {
+  /* 12. Accessible Tabs & Segmented Controls */
+  :where([role="tablist"], .segmented) {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
     margin-bottom: var(--pt-spacing);
-    border-bottom: 2px solid var(--pt-muted-border);
+
+    &:not(.segmented) {
+      border-bottom: 2px solid var(--pt-muted-border);
+    }
 
     & > * {
       display: inline-flex;
       align-items: center;
       padding: 0.5rem 1rem;
       border: 0;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
       background: none;
       color: var(--pt-muted-color);
       font-weight: 500;
@@ -715,16 +716,27 @@
 
       &:is(:hover, :focus-visible) {
         color: var(--pt-color);
-        border-bottom-color: var(--pt-muted-border);
       }
       &:is([aria-selected="true"], [aria-current="page"], .active) {
         color: var(--pt-primary);
-        border-bottom-color: var(--pt-primary);
         font-weight: 600;
       }
     }
 
-    &.segmented {
+    &:not(.segmented) > * {
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+
+      &:is(:hover, :focus-visible) {
+        border-bottom-color: var(--pt-muted-border);
+      }
+      &:is([aria-selected="true"], [aria-current="page"], .active) {
+        border-bottom-color: var(--pt-primary);
+      }
+    }
+
+    &.segmented,
+    &:is(.segmented-fill, .segmented-equal) {
       display: inline-flex;
       padding: 0.25rem;
       border: var(--pt-border);
@@ -743,6 +755,38 @@
           box-shadow: var(--pt-box-shadow);
         }
       }
+
+      &:is(.segmented-fill, .segmented-equal, .fill) {
+        display: flex;
+        width: 100%;
+
+        & > * {
+          flex: 1 1 0;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          text-align: center;
+          justify-content: center;
+        }
+      }
+    }
+  }
+
+  /* 16. Dedicated Square Icon Buttons (.btn-icon, .icon-btn) */
+  :where(.btn-icon, .icon-btn, button.btn-icon, button.icon-btn, a.icon-btn, a.btn-icon) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1 / 1;
+    height: calc(1lh + 2 * var(--pt-form-y) + 2px);
+    padding: 0;
+    line-height: 1;
+    vertical-align: middle;
+
+    & > :where(svg, img, [data-icon], .icon) {
+      margin: 0;
+      flex-shrink: 0;
     }
   }
 
