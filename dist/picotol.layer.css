@@ -1019,14 +1019,42 @@
       }
     }
 
+    :where(progress, .pt-progress, [role="progressbar"]:not(progress), .pt-meter) {
+      --pt-progress-height: .5rem;
+      --pt-progress-radius: var(--pt-border-radius);
+      --pt-progress-bg: var(--pt-surface);
+      --pt-progress-fill: var(--pt-primary);
+    }
+
+    :where([data-density="compact"], .pt-compact) :where(progress, .pt-progress, [role="progressbar"]:not(progress), .pt-meter) {
+      --pt-progress-height: .375rem;
+    }
+
+    :is(.pt-progress-success, [data-status="success"]) {
+      --pt-progress-fill: var(--pt-valid);
+      --pt-marker-color: var(--pt-valid);
+    }
+
+    :is(.pt-progress-warning, [data-status="warning"]) {
+      --pt-progress-fill: var(--pt-warning);
+      --pt-marker-color: var(--pt-warning);
+    }
+
+    :is(.pt-progress-danger, [data-status="danger"]) {
+      --pt-progress-fill: var(--pt-invalid);
+      --pt-marker-color: var(--pt-invalid);
+    }
+
     progress {
-      border-radius: var(--pt-border-radius);
-      background-color: var(--pt-surface);
       width: 100%;
-      height: .5rem;
-      accent-color: var(--pt-primary);
+      height: var(--pt-progress-height);
+      border-radius: var(--pt-progress-radius);
+      background-color: var(--pt-progress-bg);
+      accent-color: var(--pt-progress-fill);
+      vertical-align: middle;
       border: 0;
       margin-bottom: .5rem;
+      display: block;
       overflow: hidden;
 
       &::-webkit-progress-bar {
@@ -1034,11 +1062,92 @@
       }
 
       &::-webkit-progress-value {
-        background-color: var(--pt-primary);
+        background-color: var(--pt-progress-fill);
       }
 
       &::-moz-progress-bar {
-        background-color: var(--pt-primary);
+        background-color: var(--pt-progress-fill);
+      }
+    }
+
+    :where(.pt-progress, [role="progressbar"]:not(progress)) {
+      --pt-progress-value: 0%;
+      width: 100%;
+      height: var(--pt-progress-height);
+      border-radius: var(--pt-progress-radius);
+      background-color: var(--pt-progress-bg);
+      vertical-align: middle;
+      border: 0;
+      margin-bottom: .5rem;
+      display: block;
+      position: relative;
+      overflow: hidden;
+
+      &:has(.pt-gauge-marker, .pt-meter-pin) {
+        overflow: visible;
+      }
+    }
+
+    .pt-progress-fill {
+      height: 100%;
+      width: var(--pt-progress-value, 0%);
+      background-color: var(--pt-progress-fill);
+      border-radius: inherit;
+      transition: width var(--pt-transition);
+      display: block;
+    }
+
+    :where(.pt-meter) {
+      width: 100%;
+      margin-bottom: .5rem;
+      display: block;
+      position: relative;
+
+      & > :where(progress, .pt-progress) {
+        margin-bottom: 0;
+      }
+    }
+
+    :where(.pt-gauge-marker, .pt-meter-pin) {
+      --pt-marker-pos: 0%;
+      --pt-marker-color: var(--pt-color);
+      height: var(--pt-progress-height);
+      font-family: var(--pt-font-mono);
+      font-variant-numeric: tabular-nums;
+      color: var(--pt-marker-color);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 1;
+      top: 0;
+      flex-direction: column;
+      align-items: center;
+      font-size: .75rem;
+      line-height: 1;
+      display: inline-flex;
+      position: absolute;
+      inset-inline-start: var(--marker-pos, var(--pt-marker-pos));
+
+      &:before {
+        content: "";
+        background-color: var(--pt-marker-color);
+        border-radius: 1px;
+        width: 2px;
+        position: absolute;
+        top: -2px;
+        bottom: -2px;
+        transform: translateX(-50%);
+      }
+
+      & :where(span, small, .pt-gauge-label) {
+        position: absolute;
+        bottom: calc(100% + 4px);
+        left: 0;
+        transform: translateX(-50%);
+      }
+
+      &.bottom :where(span, small, .pt-gauge-label), &[data-placement="bottom"] :where(span, small, .pt-gauge-label) {
+        top: calc(100% + 4px);
+        bottom: auto;
       }
     }
 
@@ -1090,8 +1199,16 @@
         }
       }
 
-      progress {
-        border: 1px solid;
+      progress, :where(.pt-progress) {
+        border: 1px solid canvastext;
+      }
+
+      :where(.pt-progress-fill) {
+        background-color: highlight;
+      }
+
+      :where(.pt-gauge-marker, .pt-meter-pin):before {
+        background-color: canvastext;
       }
     }
 

@@ -147,8 +147,9 @@ export function runLint() {
     const definedVars = new Set([...bundledCss.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]));
     const usedVars = new Set([...bundledCss.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map((m) => m[1]));
 
-    // Allow --pt-btn-color as optional override hook with fallback var(--pt-btn-color, var(--pt-color))
+    // Allow --pt-btn-color and --marker-pos as optional override hooks with fallback
     definedVars.add('--pt-btn-color');
+    definedVars.add('--marker-pos');
 
     for (const used of usedVars) {
       if (!definedVars.has(used)) {

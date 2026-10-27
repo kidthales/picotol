@@ -736,6 +736,50 @@ ${rowsHtml}
           <footer><small>Zero margin compounding on nested sections/cards</small></footer>
         </div>
       </div>
+      <h3>Meters, Progressbars &amp; Gauge Threshold Pins (<code>.pt-progress</code> / <code>.pt-gauge-marker</code>)</h3>
+      <div class="grid">
+        <article>
+          <header><strong>Native &lt;progress&gt; &amp; Status</strong></header>
+          <p><small>Default accent, compact height, and Paul Tol semantic modifiers.</small></p>
+          <progress value="65" max="100"></progress>
+          <progress value="85" max="100" class="pt-progress-success"></progress>
+          <progress value="50" max="100" class="pt-progress-warning"></progress>
+          <progress value="92" max="100" class="pt-progress-danger"></progress>
+          <footer><small>Native engine rendering via <code>--pt-progress-*</code> tokens</small></footer>
+        </article>
+        <article>
+          <header><strong>Accessible Fallback (<code>.pt-progress</code>)</strong></header>
+          <p><small>Cross-webview fallback with explicit <code>role="progressbar"</code> and ARIA semantics.</small></p>
+          <div class="pt-progress" role="progressbar" aria-valuenow="72" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 72%;">
+            <div class="pt-progress-fill"></div>
+          </div>
+          <div class="pt-progress pt-progress-success" role="progressbar" aria-valuenow="94" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 94%;">
+            <div class="pt-progress-fill"></div>
+          </div>
+          <div class="pt-progress pt-progress-warning" role="progressbar" aria-valuenow="48" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 48%;">
+            <div class="pt-progress-fill"></div>
+          </div>
+          <footer><small>Pure CSS variable-driven <code>--pt-progress-value</code></small></footer>
+        </article>
+        <article>
+          <header><strong>Gauge Threshold Markers (<code>.pt-meter</code>)</strong></header>
+          <p><small>Positioned threshold pins with tabular labels and semantic indicators.</small></p>
+          <div class="pt-meter">
+            <div class="pt-progress" role="progressbar" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 78%;">
+              <div class="pt-progress-fill"></div>
+              <div class="pt-gauge-marker" style="--marker-pos: 80%;"><small>80% SLA</small></div>
+            </div>
+          </div>
+          <div class="pt-meter" style="margin-top: 1.5rem;">
+            <div class="pt-progress pt-progress-danger" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 92%;">
+              <div class="pt-progress-fill"></div>
+              <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><small>70% Warn</small></div>
+              <div class="pt-gauge-marker pt-progress-danger" style="--marker-pos: 90%;"><small>90% Crit</small></div>
+            </div>
+          </div>
+          <footer><small>Pinned via <code>--marker-pos</code> with high-contrast support</small></footer>
+        </article>
+      </div>
     </section>
 
     <hr>

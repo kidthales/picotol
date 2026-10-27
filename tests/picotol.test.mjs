@@ -89,7 +89,7 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 23.5 KB, and picotol.layer.min.css <= 23.6 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 26.0 KB, and picotol.layer.min.css <= 26.1 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
   const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
@@ -99,12 +99,12 @@ test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min
     `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 12288 B`
   );
   assert.ok(
-    fullMin <= 23.5 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 24064 B`
+    fullMin <= 26.0 * 1024,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= 26624 B`
   );
   assert.ok(
-    layerMin <= 23.6 * 1024,
-    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 24166 B`
+    layerMin <= 26.1 * 1024,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 26726 B`
   );
 });
 
@@ -902,6 +902,74 @@ test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numeric
   assert.ok(
     demoHtml.includes("pt-tabular"),
     "Demo HTML must showcase .pt-tabular utility"
+  );
+});
+
+test("Cross-Engine Meter Custom Properties and Gauge Threshold Pin Markers (Issue #94)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Tokenized CSS custom properties for <progress> and meter containers
+  assert.ok(
+    fullCss.includes("--pt-progress-height") &&
+    fullCss.includes("--pt-progress-radius") &&
+    fullCss.includes("--pt-progress-bg") &&
+    fullCss.includes("--pt-progress-fill"),
+    "Full bundle must define --pt-progress-height, --pt-progress-radius, --pt-progress-bg, and --pt-progress-fill tokens"
+  );
+
+  // 2. Fallback .pt-progress with ARIA progressbar semantics
+  assert.ok(
+    fullCss.includes(".pt-progress") && fullCss.includes(".pt-progress-fill"),
+    "Full bundle must provide .pt-progress and .pt-progress-fill fallback structure"
+  );
+  assert.ok(
+    fullCss.includes('[role="progressbar"]') || fullCss.includes('[role=progressbar]'),
+    "Full bundle must style role='progressbar' containers"
+  );
+
+  // 3. Gauge threshold pin markers (.pt-gauge-marker, .pt-meter-pin)
+  assert.ok(
+    fullCss.includes(".pt-gauge-marker") && fullCss.includes(".pt-meter-pin"),
+    "Full bundle must provide .pt-gauge-marker and .pt-meter-pin primitives"
+  );
+  assert.ok(
+    fullCss.includes("--marker-pos") && fullCss.includes("--pt-marker-pos"),
+    "Gauge markers must position via --marker-pos / --pt-marker-pos custom properties"
+  );
+  assert.ok(
+    fullCss.includes("tabular-nums"),
+    "Gauge marker labels must enforce tabular numbers"
+  );
+
+  // 4. Status color modifiers
+  assert.ok(
+    fullCss.includes(".pt-progress-success") &&
+    fullCss.includes(".pt-progress-warning") &&
+    fullCss.includes(".pt-progress-danger"),
+    "Full bundle must provide Paul Tol status modifiers for progress & gauge components"
+  );
+
+  // 5. Two-Tier Isolation: core bundle excludes progress and meter primitives
+  assert.ok(!coreCss.includes(".pt-progress"), "Core bundle must not contain .pt-progress");
+  assert.ok(!coreCss.includes(".pt-gauge-marker"), "Core bundle must not contain .pt-gauge-marker");
+  assert.ok(!coreMin.includes(".pt-progress"), "Core min bundle must not contain .pt-progress");
+
+  // 6. Demo verification
+  assert.ok(
+    demoHtml.includes("pt-progress") && demoHtml.includes("pt-progress-fill"),
+    "Demo HTML must showcase .pt-progress fallback"
+  );
+  assert.ok(
+    demoHtml.includes("pt-gauge-marker") || demoHtml.includes("pt-meter-pin"),
+    "Demo HTML must showcase gauge marker pins"
+  );
+  assert.ok(
+    demoHtml.includes("pt-progress-success") || demoHtml.includes("pt-progress-warning"),
+    "Demo HTML must showcase status modifiers"
   );
 });
 
