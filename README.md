@@ -22,8 +22,8 @@
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
   - **`dist/picotol.core.min.css`** (<= 12.0 KB minified, ~4.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 28.5 KB minified, ~7.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
-  - **`dist/picotol.layer.min.css`** (<= 28.6 KB minified, ~7.0 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
+  - **`dist/picotol.min.css`** (<= 29.5 KB minified, ~7.3 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.layer.min.css`** (<= 29.5 KB minified, ~7.3 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
 
@@ -383,12 +383,35 @@ Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature sm
 </details>
 ```
 
+### 4e. Equal-Fill Segmented Controls & Square Icon Buttons
+
+For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, segmented controls can distribute width equally (`flex: 1 1 0`) across tabs with automatic ellipsis truncation, and icon buttons enforce a reliable 1:1 square aspect ratio:
+
+```html
+<!-- Equal-Fill Segmented Control (Ellipsis Truncation on Reflow) -->
+<nav role="tablist" class="segmented segmented-fill" aria-label="View options">
+  <button type="button" role="tab" aria-selected="true">Daily View</button>
+  <button type="button" role="tab" aria-selected="false">Weekly View</button>
+  <button type="button" role="tab" aria-selected="false">Monthly View</button>
+  <button type="button" role="tab" aria-selected="false">Quarterly Long-Term</button>
+</nav>
+
+<!-- Dedicated 1:1 Square Icon Buttons (Zero-Padding, Flex Centered) -->
+<button type="button" class="btn-icon" aria-label="Search">
+  <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+</button>
+<button type="button" class="icon-btn outline" aria-label="Refresh">
+  <svg class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+</button>
+```
+
 ### 5. Interactive Operational Showcase & Palette Explorer
 
 The interactive demonstration suite at `dist/demo/index.html` showcases:
 - **Opt-in `@layer picotol` Integration**: Cascade layer containment for modular host application embedding.
 - **Concurrent 4-Accent Subtree Theming**: `blue`, `cyan`, `purple`, and `magenta` run simultaneously in isolated scopes via `[data-accent]`.
 - **Operational Data Tables**: Responsive infrastructure monitor wrapped in `figure:has(> table)` and `.table-container` with `.tabular-nums` alignment, `.status-dot` indicators, and `table.striped`.
+- **Equal-Fill Segmented Controls & Icon Buttons**: View navigators with `flex: 1 1 0` equal distribution and 1:1 square icon buttons (`.btn-icon`, `.icon-btn`).
 - **Interactive Dashboard Console**: Tabpanel switching (`Overview`, `Analytics`, `System Logs`) and segmented time filters (`1H`, `24H`, `7D`, `30D`) with zero-CLS skeleton loading transitions (`.skeleton`).
 - **Paul Tol Canonical Palette Explorer**: Swatch grid of all canonical qualitative colours loaded from `data/tol-qualitative.json` with live search filtering and click-to-copy tokens.
 

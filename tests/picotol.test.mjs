@@ -89,7 +89,7 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 28.5 KB, and picotol.layer.min.css <= 28.6 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 29.5 KB, and picotol.layer.min.css <= 29.5 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
   const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
@@ -99,12 +99,12 @@ test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min
     `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 12288 B`
   );
   assert.ok(
-    fullMin <= 28.5 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 29184 B`
+    fullMin <= 29.5 * 1024,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= 30208 B`
   );
   assert.ok(
-    layerMin <= 28.6 * 1024,
-    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 29286 B`
+    layerMin <= 29.5 * 1024,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 30208 B`
   );
 });
 
@@ -1130,6 +1130,65 @@ test("Native Accessible Disclosures, Popovers, and Accordion Cards (Issue #96)",
   assert.ok(demoHtml.includes("pt-popover"), "Demo HTML must showcase .pt-popover component");
   assert.ok(demoHtml.includes("pt-popover-menu"), "Demo HTML must showcase .pt-popover-menu component");
 });
+
+test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Equal-fill segmented control modifiers compiled in full bundle
+  assert.ok(
+    fullCss.includes(".segmented-fill") && fullCss.includes(".segmented-equal"),
+    "Full bundle must compile .segmented-fill and .segmented-equal modifiers"
+  );
+  assert.ok(
+    fullCss.includes("flex: 1 1 0") || fullCss.includes("flex: 1 1") || fullCss.includes("flex: 1"),
+    "Segmented fill child items must distribute equally across available width"
+  );
+  assert.ok(
+    fullCss.includes("text-overflow: ellipsis") && fullCss.includes("white-space: nowrap"),
+    "Segmented fill child items must apply text ellipsis and nowrap on compact reflow"
+  );
+  assert.ok(
+    fullCss.includes("min-width: 0"),
+    "Segmented fill child items must enforce min-width: 0 to allow flex shrinkage"
+  );
+
+  // 2. Dedicated square icon button utilities compiled in full bundle
+  assert.ok(
+    fullCss.includes(".btn-icon") && fullCss.includes(".icon-btn"),
+    "Full bundle must compile .btn-icon and .icon-btn utility classes"
+  );
+  assert.ok(
+    fullCss.includes("aspect-ratio: 1 / 1") || fullCss.includes("aspect-ratio: 1"),
+    "Icon buttons must enforce 1:1 square aspect ratio"
+  );
+  assert.ok(
+    fullCss.includes("padding: 0"),
+    "Icon buttons must use zero padding"
+  );
+  assert.ok(
+    fullCss.includes("align-items: center") && fullCss.includes("justify-content: center"),
+    "Icon buttons must center embedded icon elements"
+  );
+
+  // 3. Two-Tier Isolation: core bundle strictly excludes extended segmented controls and icon utilities
+  assert.ok(!coreCss.includes(".segmented"), "Core bundle must not contain .segmented");
+  assert.ok(!coreCss.includes(".segmented-fill"), "Core bundle must not contain .segmented-fill");
+  assert.ok(!coreCss.includes(".btn-icon"), "Core bundle must not contain .btn-icon");
+  assert.ok(!coreCss.includes(".icon-btn"), "Core bundle must not contain .icon-btn");
+  assert.ok(!coreMin.includes(".segmented-fill"), "Core min bundle must not contain .segmented-fill");
+  assert.ok(!coreMin.includes(".btn-icon"), "Core min bundle must not contain .btn-icon");
+
+  // 4. Interactive Demo verification
+  assert.ok(demoHtml.includes("segmented-fill"), "Demo HTML must showcase .segmented-fill modifier");
+  assert.ok(demoHtml.includes("segmented-equal"), "Demo HTML must showcase .segmented-equal modifier");
+  assert.ok(demoHtml.includes("btn-icon"), "Demo HTML must showcase .btn-icon utility");
+  assert.ok(demoHtml.includes("icon-btn"), "Demo HTML must showcase .icon-btn utility");
+});
+
 
 
 

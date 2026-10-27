@@ -1506,21 +1506,22 @@
     border-radius: 99px;
   }
 
-  :where([role="tablist"]) {
+  :where([role="tablist"], .segmented) {
     margin-bottom: var(--pt-spacing);
-    border-bottom: 2px solid var(--pt-muted-border);
     flex-wrap: wrap;
     gap: .25rem;
     display: flex;
+
+    &:not(.segmented) {
+      border-bottom: 2px solid var(--pt-muted-border);
+    }
 
     & > * {
       color: var(--pt-muted-color);
       cursor: pointer;
       background: none;
       border: 0;
-      border-bottom: 2px solid #0000;
       align-items: center;
-      margin-bottom: -2px;
       padding: .5rem 1rem;
       font-weight: 500;
       text-decoration: none;
@@ -1528,17 +1529,28 @@
 
       &:is(:hover, :focus-visible) {
         color: var(--pt-color);
-        border-bottom-color: var(--pt-muted-border);
       }
 
       &:is([aria-selected="true"], [aria-current="page"], .active) {
         color: var(--pt-primary);
-        border-bottom-color: var(--pt-primary);
         font-weight: 600;
       }
     }
 
-    &.segmented {
+    &:not(.segmented) > * {
+      border-bottom: 2px solid #0000;
+      margin-bottom: -2px;
+
+      &:is(:hover, :focus-visible) {
+        border-bottom-color: var(--pt-muted-border);
+      }
+
+      &:is([aria-selected="true"], [aria-current="page"], .active) {
+        border-bottom-color: var(--pt-primary);
+      }
+    }
+
+    &.segmented, &:is(.segmented-fill, .segmented-equal) {
       border: var(--pt-border);
       border-radius: var(--pt-border-radius);
       background: var(--pt-surface-subtle);
@@ -1557,6 +1569,37 @@
           box-shadow: var(--pt-box-shadow);
         }
       }
+
+      &:is(.segmented-fill, .segmented-equal, .fill) {
+        width: 100%;
+        display: flex;
+
+        & > * {
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          text-align: center;
+          flex: 1 1 0;
+          justify-content: center;
+          min-width: 0;
+          overflow: hidden;
+        }
+      }
+    }
+  }
+
+  :where(.btn-icon, .icon-btn, button.btn-icon, button.icon-btn, a.icon-btn, a.btn-icon) {
+    aspect-ratio: 1;
+    height: calc(1lh + 2 * var(--pt-form-y) + 2px);
+    vertical-align: middle;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    line-height: 1;
+    display: inline-flex;
+
+    & > :where(svg, img, [data-icon], .icon) {
+      flex-shrink: 0;
+      margin: 0;
     }
   }
 

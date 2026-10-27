@@ -386,6 +386,24 @@ ${rowsHtml}
         <button type="button" class="btn small">Compact .btn.small</button>
         <button type="button" class="outline sm">Compact Outline .sm</button>
       </p>
+      <h3>Dedicated Square Icon Buttons (<code>.btn-icon</code>, <code>.icon-btn</code>)</h3>
+      <p style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+        <button type="button" class="btn-icon" aria-label="Search" title="Search">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
+        <button type="button" class="btn-icon secondary" aria-label="Settings" title="Settings">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+        <button type="button" class="icon-btn outline" aria-label="Refresh" title="Refresh">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        </button>
+        <button type="button" class="icon-btn contrast" aria-label="Bookmark" title="Bookmark">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+        </button>
+        <button type="button" class="btn-icon small outline secondary" aria-label="Filter (Compact)" title="Filter">
+          <svg class="icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+        </button>
+      </p>
     </section>
 
     <hr>
@@ -838,6 +856,27 @@ ${rowsHtml}
               </div>
             </details>
           </div>
+        </div>
+      </div>
+
+      <h3>Equal-Fill Segmented Controls (<code>.segmented.segmented-fill</code> / <code>.segmented-equal</code>)</h3>
+      <div class="grid">
+        <div>
+          <p><small>Equal distribution across items (<code>flex: 1 1 0</code>) with automatic text ellipsis on narrow containers.</small></p>
+          <div role="tablist" class="segmented segmented-fill" aria-label="Equal fill view options">
+            <button type="button" role="tab" aria-selected="true">Daily View</button>
+            <button type="button" role="tab" aria-selected="false">Weekly View</button>
+            <button type="button" role="tab" aria-selected="false">Monthly View</button>
+            <button type="button" role="tab" aria-selected="false">Quarterly Long-Term</button>
+          </div>
+        </div>
+        <div>
+          <p><small>Toolbar mode switch with <code>.segmented-equal</code> alias and compact viewport resilience.</small></p>
+          <nav role="tablist" class="segmented segmented-equal" aria-label="Display mode switch">
+            <button type="button" role="tab" aria-selected="false">Grid</button>
+            <button type="button" role="tab" aria-selected="true">List</button>
+            <button type="button" role="tab" aria-selected="false">Kanban</button>
+          </nav>
         </div>
       </div>
     </section>
