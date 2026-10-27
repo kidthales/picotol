@@ -69,8 +69,11 @@ export function runLint() {
     // Ignore if git is unavailable
   }
 
-  // Package exports resolution check
+  // Package exports and types resolution check
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  if (pkg.types && !fs.existsSync(path.join(ROOT, pkg.types))) {
+    errors.push(`[types] Root "types" field target "${pkg.types}" does not exist on disk.`);
+  }
   for (const [subpath, target] of Object.entries(pkg.exports ?? {})) {
     const targets = typeof target === 'string' ? [target] : Object.values(target);
     for (const t of targets) {

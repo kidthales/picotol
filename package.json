@@ -10,6 +10,7 @@
   },
   "main": "./dist/picotol.min.css",
   "style": "./dist/picotol.min.css",
+  "types": "./types/index.d.ts",
   "unpkg": "./dist/picotol.min.css",
   "jsdelivr": "./dist/picotol.min.css",
   "repository": {
@@ -37,21 +38,52 @@
     "dist/sri.json",
     "src/",
     "data/tol-qualitative.json",
+    "types/",
     "LICENSE",
     "NOTICE",
     "README.md"
   ],
   "exports": {
-    ".": "./dist/picotol.min.css",
-    "./css": "./dist/picotol.css",
-    "./core": "./dist/picotol.core.min.css",
-    "./core/css": "./dist/picotol.core.css",
-    "./layer": "./dist/picotol.layer.min.css",
-    "./layer/css": "./dist/picotol.layer.css",
-    "./tokens": "./src/tokens.css",
-    "./palettes": "./src/palettes.css",
-    "./palette-data": "./data/tol-qualitative.json",
-    "./sri": "./dist/sri.json",
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./dist/picotol.min.css"
+    },
+    "./css": {
+      "types": "./types/index.d.ts",
+      "default": "./dist/picotol.css"
+    },
+    "./core": {
+      "types": "./types/index.d.ts",
+      "default": "./dist/picotol.core.min.css"
+    },
+    "./core/css": {
+      "types": "./types/index.d.ts",
+      "default": "./dist/picotol.core.css"
+    },
+    "./layer": {
+      "types": "./types/index.d.ts",
+      "default": "./dist/picotol.layer.min.css"
+    },
+    "./layer/css": {
+      "types": "./types/index.d.ts",
+      "default": "./dist/picotol.layer.css"
+    },
+    "./tokens": {
+      "types": "./types/index.d.ts",
+      "default": "./src/tokens.css"
+    },
+    "./palettes": {
+      "types": "./types/index.d.ts",
+      "default": "./src/palettes.css"
+    },
+    "./palette-data": {
+      "types": "./types/index.d.ts",
+      "default": "./data/tol-qualitative.json"
+    },
+    "./sri": {
+      "types": "./types/index.d.ts",
+      "default": "./dist/sri.json"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": [
