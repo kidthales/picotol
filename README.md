@@ -22,8 +22,8 @@
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
   - **`dist/picotol.core.min.css`** (<= 12.0 KB minified, ~4.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 26.0 KB minified, ~6.6 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot`, `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
-  - **`dist/picotol.layer.min.css`** (<= 26.1 KB minified, ~6.6 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
+  - **`dist/picotol.min.css`** (<= 28.5 KB minified, ~7.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.layer.min.css`** (<= 28.6 KB minified, ~7.0 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
 
@@ -315,6 +315,11 @@ High-density status dots (`.status-dot`) map directly to Paul Tol's qualitative 
 <span class="status-dot neutral"></span> Neutral
 <span class="status-dot idle"></span> Idle
 
+<!-- Standalone .pt-status-dot Utility with Pulse Animation -->
+<span class="pt-status-dot pt-status-dot-danger pulse"></span> Live Alert
+<span class="pt-status-dot pt-status-dot-warning"></span> Elevated
+<span class="pt-status-dot pt-status-dot-success"></span> Healthy
+
 <!-- Combined with Badges (Flex Gap Spacing) -->
 <span class="badge"><span class="status-dot success"></span> Active</span>
 <span class="badge"><span class="status-dot idle"></span> Inactive</span>
@@ -324,6 +329,29 @@ High-density status dots (`.status-dot`) map directly to Paul Tol's qualitative 
   <span class="status-dot success no-margin"></span>
   <span>Connected</span>
 </div>
+```
+
+### 4c. Callout Banners, Copy Pills & Chips
+
+High-contrast, unignorable severity banners (`.pt-callout`) feature 4px solid start borders, 8% translucent alpha washes, and full WCAG 2.2 AA contrast compliance across light/dark surfaces and greyscale simulation:
+
+```html
+<!-- Critical, Warning, and Info Callouts -->
+<aside class="pt-callout pt-callout-critical">
+  <strong>Critical Incident (#379)</strong>
+  <p><span class="pt-status-dot pt-status-dot-danger pulse"></span> High-severity degradation on primary cluster node.</p>
+  <p><button type="button" class="pt-copy-pill">kubectl logs pod/cluster-edge-01</button> <span class="pt-chip">p0-crit</span></p>
+</aside>
+
+<aside class="pt-callout pt-callout-warning">
+  <strong>Capacity Warning (#360)</strong>
+  <p><span class="pt-status-dot pt-status-dot-warning"></span> Memory threshold approaching 85% headroom limit.</p>
+</aside>
+
+<aside class="pt-callout pt-callout-info">
+  <strong>Operational Notice</strong>
+  <p><span class="pt-status-dot pt-status-dot-success"></span> All satellite sync nodes operational and healthy.</p>
+</aside>
 ```
 
 ### 5. Interactive Operational Showcase & Palette Explorer
