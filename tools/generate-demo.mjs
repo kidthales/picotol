@@ -798,6 +798,48 @@ ${rowsHtml}
           <p><button type="button" class="pt-copy-pill">seldon status --prs</button> <span class="pt-chip">steady</span></p>
         </aside>
       </div>
+
+      <h3>Native Accessible Disclosures, Accordion Cards &amp; Popovers (<code>.pt-details</code> / <code>.accordion-card</code> / <code>.pt-popover</code>)</h3>
+      <div class="grid">
+        <article class="card accordion-card">
+          <details class="pt-card-disclosure" open>
+            <summary>Platform Architecture &amp; Layer Isolation</summary>
+            <p>Strict four-layer cascade isolation ensures design tokens and reset styles never bleed into extended component boundaries.</p>
+          </details>
+          <details class="pt-card-disclosure">
+            <summary>Zero-JS Keyboard &amp; Screen Reader Accessibility</summary>
+            <p>Native HTML5 <code>&lt;details&gt;</code> and <code>&lt;summary&gt;</code> elements provide keyboard navigation (<code>Enter</code> / <code>Space</code>) and screen reader announcements without runtime JavaScript.</p>
+          </details>
+          <details class="pt-card-disclosure">
+            <summary>Monotonic Greyscale Luminance Separation</summary>
+            <p>Every severity tier (critical, warning, notice) is certified to maintain distinct relative luminance steps across greyscale conversions.</p>
+          </details>
+        </article>
+        <div>
+          <details class="card accordion-card pt-card-disclosure" open>
+            <summary>Standalone Collapsible Card (<code>.pt-card-disclosure</code>)</summary>
+            <p>Self-contained disclosure card with integrated surface styling, elevated header transition, and flush content padding.</p>
+          </details>
+          <div class="grid" style="margin-top: 1rem;">
+            <details class="pt-popover">
+              <summary role="button">Action Popover (Start)</summary>
+              <div class="pt-popover-menu">
+                <a href="#components">View Telemetry</a>
+                <a href="#components">Download SRI Hash</a>
+                <hr>
+                <button type="button" class="pt-menu-item">Trigger Sync</button>
+              </div>
+            </details>
+            <details class="pt-popover" role="menu">
+              <summary role="button" class="secondary">Options (End)</summary>
+              <div class="pt-popover-menu end">
+                <a href="#components">Export Config</a>
+                <a href="#components">Verify Contrast</a>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
     </section>
 
     <hr>
