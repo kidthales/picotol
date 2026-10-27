@@ -649,6 +649,11 @@ ${rowsHtml}
             </details>
             <button type="button" class="secondary" onclick="document.getElementById('demo-modal').showModal()">Open Modal</button>
           </div>
+          <p><strong>Slide-Over Drawers (&lt;dialog class="sheet"&gt;)</strong></p>
+          <div class="grid">
+            <button type="button" class="outline" onclick="document.getElementById('demo-sheet-right').showModal()">Open Right Drawer</button>
+            <button type="button" class="outline" onclick="document.getElementById('demo-sheet-left').showModal()">Open Left Drawer</button>
+          </div>
         </div>
       </div>
       <dialog id="demo-modal" aria-labelledby="modal-title">
@@ -662,6 +667,31 @@ ${rowsHtml}
             <button type="button" onclick="document.getElementById('demo-modal').close()">Close</button>
           </footer>
         </article>
+      </dialog>
+      <dialog id="demo-sheet-right" class="sheet sheet-right" aria-labelledby="sheet-right-title">
+        <div class="sheet-header">
+          <strong id="sheet-right-title">Telemetry &amp; Audit Drawer</strong>
+          <button type="button" aria-label="Close" class="close" onclick="document.getElementById('demo-sheet-right').close()"></button>
+        </div>
+        <div class="sheet-body">
+          <p>Edge-anchored native <code>&lt;dialog class="sheet"&gt;</code> primitive with scrollable content.</p>
+          <p>Features pure CSS slide transition, native <code>::backdrop</code>, and responsive full-width collapse on viewports &le; 600px.</p>
+        </div>
+        <div class="sheet-footer">
+          <button type="button" onclick="document.getElementById('demo-sheet-right').close()">Close</button>
+        </div>
+      </dialog>
+      <dialog id="demo-sheet-left" class="sheet sheet-left" aria-labelledby="sheet-left-title">
+        <div class="sheet-header">
+          <strong id="sheet-left-title">Navigation Drawer (Left)</strong>
+          <button type="button" aria-label="Close" class="close" onclick="document.getElementById('demo-sheet-left').close()"></button>
+        </div>
+        <div class="sheet-body">
+          <p>Left-docked modifier <code>&lt;dialog class="sheet sheet-left"&gt;</code> for side navigation and drawers.</p>
+        </div>
+        <div class="sheet-footer">
+          <button type="button" onclick="document.getElementById('demo-sheet-left').close()">Close</button>
+        </div>
       </dialog>
       <h3>Card Component Parity (&lt;article&gt; vs .card)</h3>
       <div class="grid">

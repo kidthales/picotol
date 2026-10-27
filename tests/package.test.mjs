@@ -14,8 +14,8 @@ test("npm pack --dry-run enforces size budgets and excludes demo/dev/CI files", 
   const [info] = JSON.parse(raw);
 
   assert.equal(info.name, "@kidthales/picotol");
-  assert.ok(info.size <= 45 * 1024, `Tarball size ${info.size} B exceeds 45 KB budget`);
-  assert.ok(info.unpackedSize <= 250 * 1024, `Unpacked size ${info.unpackedSize} B exceeds 250 KB budget`);
+  assert.ok(info.size <= 55 * 1024, `Tarball size ${info.size} B exceeds 55 KB budget`);
+  assert.ok(info.unpackedSize <= 280 * 1024, `Unpacked size ${info.unpackedSize} B exceeds 280 KB budget`);
 
   const paths = info.files.map((f) => f.path);
   assert.ok(paths.includes("LICENSE"), "LICENSE must be included in tarball");

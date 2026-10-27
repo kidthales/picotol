@@ -276,7 +276,7 @@
     }
   }
 
-  dialog :where(header, form) button:is([aria-label="Close" i], [rel="prev"], .close) {
+  dialog :where(header, form, .sheet-header) button:is([aria-label="Close" i], [rel="prev"], .close) {
     position: relative;
     width: 1.5rem;
     height: 1.5rem;
@@ -301,6 +301,138 @@
       transform: translate(-50%, -50%) rotate(45deg);
     }
     &::after { transform: translate(-50%, -50%) rotate(-45deg); }
+  }
+
+  /* 5b. Native Slide-Over Drawer Sheet (<dialog class="sheet">) */
+  @keyframes pt-sheet-slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes pt-sheet-slide-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  :where(dialog.sheet, .sheet, .sheet-right, .sheet-left) {
+    position: fixed;
+    inset-block: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: var(--pt-sheet-width, min(100vw, 24rem));
+    max-width: 100vw;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background-color: var(--pt-bg);
+    color: var(--pt-color);
+    box-shadow: var(--pt-box-shadow);
+    flex-direction: column;
+    z-index: 999;
+    overflow: hidden;
+
+    &:not([open]) { display: none; }
+    &[open] { display: flex; }
+
+    &:has(> article) {
+      padding: 0;
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+
+    & > article {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+  }
+
+  /* Right-docked default (.sheet, .sheet-right) */
+  :where(dialog.sheet, .sheet, .sheet-right):not(.sheet-left) {
+    inset-inline: auto 0;
+    margin-inline: auto 0;
+    border-inline-start: var(--pt-border);
+    animation: pt-sheet-slide-in-right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Left-docked modifier (.sheet-left) */
+  :where(dialog.sheet-left, .sheet-left) {
+    inset-inline: 0 auto;
+    margin-inline: 0 auto;
+    border-inline-end: var(--pt-border);
+    border-inline-start: 0;
+    animation: pt-sheet-slide-in-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Sub-elements: header, scrollable body, footer */
+  :where(.sheet-header, dialog.sheet > header, dialog.sheet article > header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: calc(var(--pt-spacing) * 0.75) var(--pt-spacing);
+    background-color: var(--pt-surface-subtle);
+    border-bottom: var(--pt-border);
+    flex-shrink: 0;
+    min-width: 0;
+    margin: 0;
+    & > * { min-width: 0; }
+  }
+
+  :where(.sheet-body, dialog.sheet article > .sheet-body) {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: var(--pt-spacing);
+    min-width: 0;
+  }
+
+  :where(.sheet-footer, dialog.sheet > footer, dialog.sheet article > footer) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: calc(var(--pt-spacing) * 0.75) var(--pt-spacing);
+    background-color: var(--pt-surface-subtle);
+    border-top: var(--pt-border);
+    flex-shrink: 0;
+    min-width: 0;
+    margin: 0;
+  }
+
+  /* Responsive full-width collapse on viewports <= 600px */
+  @media (max-width: 600px) {
+    :where(dialog.sheet, .sheet, .sheet-right, .sheet-left) {
+      --pt-sheet-width: 100vw;
+      width: 100vw;
+      max-width: 100vw;
+      border-inline: 0;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    :where(dialog.sheet, .sheet, .sheet-right, .sheet-left) {
+      animation: none;
+    }
   }
 
   /* 6. Progress (<progress>, .pt-progress) & Gauge Meter Pins */
