@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { bundle, transform, Features } from 'lightningcss';
 import { generateDemoHtml } from './generate-demo.mjs';
+import { packageAssets } from './package-assets.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = join(root, 'dist');
@@ -129,6 +130,10 @@ export function buildAll() {
 
   const demoHtml = generateDemoHtml(fullMin, stats);
   writeFileSync(join(demoDir, 'index.html'), demoHtml, 'utf8');
+  writeFileSync(join(demoDir, 'CNAME'), 'picotol.kidthales.com\n', 'utf8');
+
+  const assetStats = packageAssets();
+  stats.assetStats = assetStats;
 
   return stats;
 }
@@ -140,6 +145,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       `  • picotol.core.min.css:  ${stats.coreMinBytes} B (${(stats.coreMinBytes / 1024).toFixed(2)} KB, gzip ${stats.coreGzipBytes} B) [${stats.coreIntegrity}]\n` +
       `  • picotol.min.css:       ${stats.fullMinBytes} B (${(stats.fullMinBytes / 1024).toFixed(2)} KB, gzip ${stats.fullGzipBytes} B) [${stats.fullIntegrity}]\n` +
       `  • picotol.layer.min.css: ${stats.layerMinBytes} B (${(stats.layerMinBytes / 1024).toFixed(2)} KB, gzip ${stats.layerGzipBytes} B) [${stats.layerIntegrity}]\n` +
-      `  • sri.json & demo:       generated`
+      `  • sri.json, demo & CNAME: generated\n` +
+      `  • offline asset bundle:  ${stats.assetStats.zipName} (${stats.assetStats.byteLength} B)`
   );
 }

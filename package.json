@@ -6,7 +6,8 @@
   "author": "kidthales",
   "type": "module",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "main": "./dist/picotol.min.css",
   "style": "./dist/picotol.min.css",
@@ -94,10 +95,12 @@
   },
   "scripts": {
     "sync:tokens": "node tools/sync-tokens.mjs",
+    "package:assets": "node tools/package-assets.mjs",
     "build": "node tools/build.mjs",
     "lint": "node tools/lint.mjs",
     "generate": "npm run sync:tokens && npm run build",
-    "test": "npm run lint && node --test"
+    "test": "npm run lint && node --test",
+    "ci:local": "pwsh -NoProfile -ExecutionPolicy Bypass ./scripts/ci-local.ps1"
   },
   "devDependencies": {
     "lightningcss": "^1.30.1"

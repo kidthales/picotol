@@ -3,6 +3,11 @@
 **Pure-CSS, ultra-minified semantic HTML framework powered strictly by Paul Tol's colorblind-safe colour schemes.**
 
 [![CI](https://github.com/kidthales/picotol/actions/workflows/ci.yml/badge.svg)](https://github.com/kidthales/picotol/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@kidthales/picotol.svg?style=flat&color=332288)](https://www.npmjs.com/package/@kidthales/picotol)
+[![License: MIT](https://img.shields.io/badge/License-MIT-44AA99.svg)](LICENSE)
+[![Bundle Size](https://img.shields.io/badge/bundle%20size-%E2%89%A4%2032%20KB%20min%20%7C%20%E2%89%A4%208%20KB%20gzip-117733.svg)](dist/sri.json)
+[![WCAG 2.2 AA / AAA](https://img.shields.io/badge/WCAG%202.2-AA%20%2F%20AAA-88CCEE.svg)](tests/picotol.test.mjs)
+[![Interactive Demo](https://img.shields.io/badge/demo-interactive%20showcase-AA4499.svg)](https://kidthales.github.io/picotol/)
 
 ---
 
@@ -29,7 +34,39 @@
 
 ## Quick Start
 
-### 1. Bundler Import (Vite / Astro / Next / Webpack)
+### Installation
+
+#### npm (Public Registry — Zero Config)
+
+Install directly from the npm public registry:
+
+```bash
+npm install @kidthales/picotol
+```
+
+#### GitHub Packages (Alternative)
+
+To install from GitHub Packages instead, configure the `@kidthales` scope in your project `.npmrc`:
+
+```ini
+@kidthales:registry=https://npm.pkg.github.com
+```
+
+Then install:
+
+```bash
+npm install @kidthales/picotol
+```
+
+#### Standalone Asset Bundles (Offline & Standalone)
+
+Each GitHub Release attaches an offline asset bundle `picotol-v<version>.zip` containing all CSS bundles (minified and expanded), design tokens, palette JSON, SRI hash manifest, and the demo showcase. Download directly from [GitHub Releases](https://github.com/kidthales/picotol/releases).
+
+---
+
+### Usage
+
+#### 1. Bundler Import (Vite / Astro / Next / Webpack)
 
 ```js
 // Full bundle (Core + Components)
@@ -464,6 +501,58 @@ npm run lint
 # Run automated linter, Paul Tol hex-purity, WCAG contrast, accessibility, and byte-budget tests
 npm test
 ```
+
+---
+
+---
+
+## Community & Governance
+
+- **Code of Conduct**: This project is governed by the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Violations may be reported to `admin@agogpixel.com`.
+- **Issue Guidelines**: Blank issues are disabled to ensure structured submissions. Use [Issue Templates](https://github.com/kidthales/picotol/issues/new/choose) or join [GitHub Discussions](https://github.com/kidthales/picotol/discussions).
+
+---
+
+## Citation & Academic Attribution
+
+If you use `@kidthales/picotol` in academic research, design system documentation, or software projects, please cite both this framework and the foundational works:
+
+### CFF Metadata
+Machine-readable metadata is provided in [`CITATION.cff`](CITATION.cff) (v1.2.0).
+
+### BibTeX
+```bibtex
+@software{kidthales_picotol_2026,
+  author       = {kidthales},
+  title        = {@kidthales/picotol: Pure-CSS Semantic HTML Framework Powered Strictly by Paul Tol Colour Schemes},
+  year         = {2026},
+  publisher    = {GitHub},
+  url          = {https://github.com/kidthales/picotol}
+}
+
+@techreport{tol_colour_schemes_2021,
+  author       = {Tol, Paul},
+  title        = {Colour schemes and templates},
+  institution  = {SRON Netherlands Institute for Space Research},
+  year         = {2021},
+  number       = {SRON/EPS/TN/09-002},
+  type         = {Technical Report},
+  url          = {https://personal.sron.nl/~pault/}
+}
+
+@software{larroche_pico_2024,
+  author       = {Larroche, Lucas},
+  title        = {Pico CSS: Minimal CSS Framework for Semantic HTML},
+  year         = {2024},
+  url          = {https://picocss.com/},
+  note         = {Lucas Driscoll}
+}
+```
+
+### APA
+- kidthales. (2026). *@kidthales/picotol: Pure-CSS Semantic HTML Framework Powered Strictly by Paul Tol Colour Schemes* (Version 0.1.0) [Computer software]. https://github.com/kidthales/picotol
+- Tol, P. (2021). *Colour schemes and templates* (SRON Technical Report SRON/EPS/TN/09-002, Issue 3.2). SRON Netherlands Institute for Space Research.
+- Larroche, L. (Lucas Driscoll). (2024). *Pico CSS: Minimal CSS Framework for Semantic HTML* (Version 2.1.1) [Computer software]. https://picocss.com/
 
 ---
 
