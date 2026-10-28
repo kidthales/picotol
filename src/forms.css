@@ -62,7 +62,7 @@
     cursor: pointer;
   }
 
-  label:has(> [type="checkbox"], > [type="radio"]) {
+  label:has(> :is([type="checkbox"], [type="radio"])) {
     display: inline-flex;
     align-items: center;
     min-height: 1.75rem;
@@ -81,7 +81,7 @@
       margin-bottom: 0;
     }
 
-    & > :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"], [type="reset"]), select) {
+    & > :where(input, select) {
       width: auto;
       flex: 1 1 auto;
     }
