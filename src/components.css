@@ -335,11 +335,12 @@
   }
 
   :where(.sheet, .sheet-right, .sheet-left) {
+    --pt-sheet-width: min(100vw, 24rem);
     position: fixed;
     inset-block: 0;
     height: 100dvh;
     max-height: 100dvh;
-    width: var(--pt-sheet-width, min(100vw, 24rem));
+    width: var(--pt-sheet-width);
     max-width: 100vw;
     margin: 0;
     padding: 0;
@@ -437,13 +438,6 @@
       width: 100vw;
       max-width: 100vw;
       border-inline: 0;
-    }
-  }
-
-  /* Reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-    :where(.sheet, .sheet-right, .sheet-left) {
-      animation: none;
     }
   }
 
@@ -835,6 +829,11 @@
     text-decoration: none;
     transition: background-color var(--pt-transition), border-color var(--pt-transition);
 
+    :where([data-density="compact"], .pt-compact) & {
+      --pt-btn-padding-block: 1px;
+      padding-block: var(--pt-btn-padding-block);
+    }
+
     &:hover {
       background-color: var(--pt-surface);
       border-color: var(--pt-primary);
@@ -1033,7 +1032,6 @@
 
   @media (prefers-reduced-motion: reduce) {
     :where(.skeleton) {
-      animation: none !important;
       opacity: 0.6;
     }
   }
