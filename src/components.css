@@ -1,6 +1,8 @@
 @layer components {
   /* 1. Card (<article>, .card) */
   :where(article, .card) {
+    display: flex;
+    flex-direction: column;
     min-width: 0;
     margin-bottom: var(--pt-spacing);
     padding: var(--pt-card-padding);
@@ -10,9 +12,18 @@
     box-shadow: var(--pt-box-shadow);
     overflow: hidden;
 
-    :where(.flex, .grid, [style*="gap"]) > &,
+    :where(.flex, .grid, [style*="gap"]) > & {
+      height: 100%;
+      margin-bottom: 0;
+    }
+
     :where([data-density="compact"], .pt-compact) & {
       margin-bottom: 0;
+    }
+
+    & > :where(main, .card-body, .body, [data-card-body]) {
+      flex: 1 1 auto;
+      min-width: 0;
     }
 
     & > :where(header, footer) {
@@ -29,7 +40,8 @@
     }
     & > footer {
       min-width: 0;
-      margin-block: var(--pt-card-padding) calc(-1 * var(--pt-card-padding));
+      margin-block-start: auto;
+      margin-block-end: calc(-1 * var(--pt-card-padding));
       border-top: var(--pt-border);
     }
   }

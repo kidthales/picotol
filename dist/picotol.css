@@ -747,10 +747,22 @@
     border-radius: var(--pt-border-radius);
     background-color: var(--pt-card-bg);
     box-shadow: var(--pt-box-shadow);
+    flex-direction: column;
+    display: flex;
     overflow: hidden;
 
-    :where(.flex, .grid, [style*="gap"]) > &, :where([data-density="compact"], .pt-compact) & {
+    :where(.flex, .grid, [style*="gap"]) > & {
+      height: 100%;
       margin-bottom: 0;
+    }
+
+    :where([data-density="compact"], .pt-compact) & {
+      margin-bottom: 0;
+    }
+
+    & > :where(main, .card-body, .body, [data-card-body]) {
+      flex: auto;
+      min-width: 0;
     }
 
     & > :where(header, footer) {
@@ -772,8 +784,9 @@
 
     & > footer {
       min-width: 0;
-      margin-block: var(--pt-card-padding) calc(-1 * var(--pt-card-padding));
       border-top: var(--pt-border);
+      margin-block-start: auto;
+      margin-block-end: calc(-1 * var(--pt-card-padding));
     }
   }
 
