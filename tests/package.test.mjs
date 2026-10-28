@@ -199,3 +199,19 @@ test("tools/package-assets.mjs produces compliant PKZip offline bundle containin
     );
   }
 });
+
+test(".github/workflows/release.yml defines dual publishing to npm and GitHub Packages, and release asset upload", () => {
+  const releaseYmlPath = path.join(ROOT, ".github", "workflows", "release.yml");
+  assert.ok(fs.existsSync(releaseYmlPath), "release.yml workflow must exist");
+  const content = fs.readFileSync(releaseYmlPath, "utf8");
+
+  assert.ok(content.includes("publish-npm:"), "Must define publish-npm job");
+  assert.ok(content.includes("publish-gpr:"), "Must define publish-gpr job");
+  assert.ok(content.includes("attach-assets:"), "Must define attach-assets job");
+  assert.ok(content.includes("https://npm.pkg.github.com"), "Must publish to GitHub Packages registry");
+  assert.ok(content.includes("https://registry.npmjs.org"), "Must publish to npm public registry");
+  assert.ok(content.includes("dist/assets/picotol-v*.zip"), "Must upload asset bundle zip to GitHub Release");
+  assert.ok(content.includes("packages: write"), "Must grant packages: write permission for GitHub Packages");
+  assert.ok(content.includes("contents: write"), "Must grant contents: write permission for asset upload");
+  assert.ok(content.includes("id-token: write"), "Must grant id-token: write permission for npm provenance");
+});
