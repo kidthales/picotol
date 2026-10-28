@@ -34,7 +34,39 @@
 
 ## Quick Start
 
-### 1. Bundler Import (Vite / Astro / Next / Webpack)
+### Installation
+
+#### npm (Public Registry — Zero Config)
+
+Install directly from the npm public registry:
+
+```bash
+npm install @kidthales/picotol
+```
+
+#### GitHub Packages (Alternative)
+
+To install from GitHub Packages instead, configure the `@kidthales` scope in your project `.npmrc`:
+
+```ini
+@kidthales:registry=https://npm.pkg.github.com
+```
+
+Then install:
+
+```bash
+npm install @kidthales/picotol
+```
+
+#### Standalone Asset Bundles (Offline & Standalone)
+
+Each GitHub Release attaches an offline asset bundle `picotol-v<version>.zip` containing all CSS bundles (minified and expanded), design tokens, palette JSON, SRI hash manifest, and the demo showcase. Download directly from [GitHub Releases](https://github.com/kidthales/picotol/releases).
+
+---
+
+### Usage
+
+#### 1. Bundler Import (Vite / Astro / Next / Webpack)
 
 ```js
 // Full bundle (Core + Components)

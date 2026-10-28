@@ -7,15 +7,14 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: release-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Verify & Publish to npm
+  verify:
+    name: Verify & Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -26,7 +25,6 @@ jobs:
         with:
           node-version: 22
           cache: "npm"
-          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: npm ci
@@ -43,33 +41,129 @@ jobs:
       - name: Run Paul Tol test suite
         run: npm test
 
-      - name: Preflight registry check & publish with provenance
+      - name: Dry-run packaging
+        run: npm pack --dry-run
+
+  publish-npm:
+    name: Publish to npm Public Registry
+    needs: [verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish to npm (Idempotent with Provenance)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "Target release version: $VERSION"
-
-          if npm view "@kidthales/picotol@$VERSION" version > /dev/null 2>&1; then
-            echo "Version $VERSION is already published to npm registry. Skipping publish for idempotency."
-            exit 0
+          PKG_NAME=$(node -p "require('./package.json').name")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "Checking if ${PKG_NAME}@${PKG_VER} already exists on npm public registry..."
+          if npm view "${PKG_NAME}@${PKG_VER}" version --registry=https://registry.npmjs.org/ >/dev/null 2>&1; then
+            echo "::notice ::Version ${PKG_VER} of ${PKG_NAME} is already published on npm. Skipping publish step."
+          else
+            echo "Publishing ${PKG_NAME}@${PKG_VER} to npm with provenance..."
+            npm publish --provenance --access public
+            echo "Successfully published ${PKG_NAME}@${PKG_VER} to npm."
           fi
 
-          echo "Publishing @kidthales/picotol@$VERSION with provenance..."
-          npm publish --provenance --access public
+  publish-gpr:
+    name: Publish to GitHub Packages
+    needs: [verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          registry-url: "https://npm.pkg.github.com"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish to GitHub Packages (Idempotent)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PKG_NAME=$(node -p "require('./package.json').name")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "Checking if ${PKG_NAME}@${PKG_VER} already exists on GitHub Packages..."
+          if npm view "${PKG_NAME}@${PKG_VER}" version --registry=https://npm.pkg.github.com/ >/dev/null 2>&1; then
+            echo "::notice ::Version ${PKG_VER} of ${PKG_NAME} is already published on GitHub Packages. Skipping publish step."
+          else
+            echo "Publishing ${PKG_NAME}@${PKG_VER} to GitHub Packages..."
+            npm publish --registry=https://npm.pkg.github.com/
+            echo "Successfully published ${PKG_NAME}@${PKG_VER} to GitHub Packages."
+          fi
+
+  attach-assets:
+    name: Attach Release Asset Bundles
+    needs: [verify]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build CSS bundles and generate standalone asset zip
+        run: npm run build
+
+      - name: Upload zip bundle to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            dist/assets/picotol-v*.zip \
+            --clobber
 
   notify:
     name: Discord Release Notification
-    needs: [publish]
+    needs: [publish-npm, publish-gpr, attach-assets]
     if: always()
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK }}
     steps:
       - name: Dispatch release status card to #dev-ci-builds
         if: env.WEBHOOK_URL != ''
         env:
-          JOB_STATUS: ${{ needs.publish.result }}
+          JOB_STATUS: ${{ contains(needs.*.result, 'failure') && 'failure' || contains(needs.*.result, 'cancelled') && 'cancelled' || 'success' }}
+          NPM_STATUS: ${{ needs.publish-npm.result }}
+          GPR_STATUS: ${{ needs.publish-gpr.result }}
+          ASSETS_STATUS: ${{ needs.attach-assets.result }}
           REPO: ${{ github.repository }}
           REF_NAME: ${{ github.ref_name }}
           SHA: ${{ github.sha }}
@@ -92,6 +186,9 @@ jobs:
             --arg repo "$REPO" \
             --arg tag "$REF_NAME" \
             --arg sha "$SHA" \
+            --arg npm "$NPM_STATUS" \
+            --arg gpr "$GPR_STATUS" \
+            --arg assets "$ASSETS_STATUS" \
             --argjson color "$COLOR" \
             '{
               username: "kidthales CI",
@@ -103,7 +200,10 @@ jobs:
                 fields: [
                   { name: "Repository", value: $repo, inline: true },
                   { name: "Tag / Ref", value: $tag, inline: true },
-                  { name: "Commit", value: ($sha | .[0:7]), inline: true }
+                  { name: "Commit", value: ($sha | .[0:7]), inline: true },
+                  { name: "npm Registry", value: $npm, inline: true },
+                  { name: "GitHub Packages", value: $gpr, inline: true },
+                  { name: "Asset Bundle", value: $assets, inline: true }
                 ],
                 footer: {
                   text: "GitHub Actions • picotol",
