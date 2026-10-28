@@ -571,6 +571,14 @@
       bottom: auto;
       top: calc(100% + 4px);
     }
+
+    &:is(.ok, .success) { --pt-marker-color: var(--pt-status-ok-border); }
+    &:is(.warning) {
+      --pt-marker-color: var(--pt-status-warning-border);
+      color: var(--pt-status-warning-fg);
+    }
+    &:is(.critical, .danger) { --pt-marker-color: var(--pt-status-critical-border); }
+    &:is(.info) { --pt-marker-color: var(--pt-status-info-border); }
   }
 
   /* 7. Switch ([role="switch"]) & Range ([type="range"]) */
@@ -768,17 +776,17 @@
     &:is(.neutral, .idle, [data-status="neutral"], [data-status="idle"], [data-status="backlog"], [data-status="no-status"]) {
       background-color: var(--pt-muted-border);
     }
-    &:is(.success, .valid, .pt-status-dot-success, [data-status="success"], [data-status="valid"]) {
-      background-color: var(--pt-valid);
+    &:is(.success, .valid, .ok, .pt-status-dot-success, .pt-status-dot-ok, [data-status="success"], [data-status="valid"], [data-status="ok"]) {
+      background-color: var(--pt-status-ok-border, var(--pt-valid));
     }
     &:is(.warning, .pt-status-dot-warning, [data-status="warning"]) {
-      background-color: var(--pt-warning);
+      background-color: var(--pt-status-warning-border, var(--pt-warning));
     }
-    &:is(.danger, .invalid, .pt-status-dot-danger, [data-status="danger"], [data-status="invalid"]) {
-      background-color: var(--pt-invalid);
+    &:is(.danger, .invalid, .critical, .pt-status-dot-danger, .pt-status-dot-critical, [data-status="danger"], [data-status="invalid"], [data-status="critical"]) {
+      background-color: var(--pt-status-critical-border, var(--pt-invalid));
     }
-    &:is(.info, .primary, [data-status="info"], [data-status="primary"]) {
-      background-color: var(--pt-primary);
+    &:is(.info, .primary, .pt-status-dot-info, [data-status="info"], [data-status="primary"]) {
+      background-color: var(--pt-status-info-border, var(--pt-primary));
     }
     &:is(.pulse, .pt-pulse) {
       animation: pt-pulse 1.5s ease-in-out infinite;
@@ -789,9 +797,6 @@
     }
   }
 
-  :where(.pt-status-dot-success) { background-color: var(--pt-valid); }
-  :where(.pt-status-dot-warning) { background-color: var(--pt-warning); }
-  :where(.pt-status-dot-danger) { background-color: var(--pt-invalid); }
 
   /* 11c. Micro-Action Copy Pills & Chips */
   :where(.pt-copy-pill, .pt-chip) {
@@ -1060,17 +1065,21 @@
       color: var(--pt-color);
     }
 
+    &:is(.pt-callout-ok, .pt-callout-success, .ok, .success) {
+      --pt-callout-border: var(--pt-status-ok-border);
+      --pt-callout-bg: var(--pt-status-ok-bg);
+    }
     &:is(.pt-callout-critical, .critical, .danger) {
-      --pt-callout-border: var(--pt-red);
-      --pt-callout-bg: color-mix(in srgb, var(--pt-red) 8%, var(--pt-bg));
+      --pt-callout-border: var(--pt-status-critical-border);
+      --pt-callout-bg: var(--pt-status-critical-bg);
     }
     &:is(.pt-callout-warning, .warning) {
-      --pt-callout-border: var(--pt-yellow);
-      --pt-callout-bg: color-mix(in srgb, var(--pt-yellow) 8%, var(--pt-bg));
+      --pt-callout-border: var(--pt-status-warning-border);
+      --pt-callout-bg: var(--pt-status-warning-bg);
     }
     &:is(.pt-callout-info, .info, .primary) {
-      --pt-callout-border: var(--pt-cyan);
-      --pt-callout-bg: color-mix(in srgb, var(--pt-cyan) 8%, var(--pt-bg));
+      --pt-callout-border: var(--pt-status-info-border);
+      --pt-callout-bg: var(--pt-status-info-bg);
     }
 
     @media (forced-colors: active) {

@@ -1,5 +1,5 @@
 @layer content {
-  :where(p, ul, ol, dl, blockquote, pre, figure, table, address, hr, hgroup, h1, h2, h3, h4, h5, h6) {
+  :where(p, ul, ol, dl, blockquote, pre, figure, table, hr, h1, h2, h3, h4, h5, h6) {
     margin-block: 0 var(--pt-spacing);
   }
 
@@ -20,8 +20,8 @@
   h3 { font-size: clamp(1.3rem, 1.15rem + 0.5vw, 1.55rem); }
   :where(h4, h5, h6) { color: var(--pt-muted-color); }
   h4 { font-size: 1.2rem; }
-  h5 { font-size: 1.05rem; font-weight: 600; }
-  h6 { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  h5 { font-size: 1.05rem; }
+  h6 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }
 
   hgroup > * {
     margin: 0;
@@ -32,16 +32,14 @@
     padding-inline-start: 1.5rem;
     & li { margin-bottom: 0.25rem; }
   }
-  dl {
-    & dt { font-weight: 700; }
-    & dd { margin: 0 0 0.5rem 1.5rem; }
-  }
+  dt { font-weight: 700; }
+  dd { margin: 0 0 0.5rem 1.5rem; }
 
   small { font-size: 0.875em; }
   mark { padding: 0.125em 0.25em; border-radius: var(--pt-border-radius); background: var(--pt-mark-bg); color: var(--pt-color); }
   ins { color: var(--pt-valid); text-decoration: none; }
   del { color: var(--pt-invalid); }
-  abbr[title] { border-bottom: 1px dotted; text-decoration: none; cursor: help; }
+  abbr[title] { border-bottom: 1px dotted; cursor: help; }
 
   blockquote {
     margin-inline: 0;
@@ -67,11 +65,11 @@
     --pt-primary-hover-bg: var(--pt-muted-border);
   }
 
-  :where(a:not([role="button"], .button, .btn)) {
+  :where(a:not(.button, .btn, [role="button"])) {
     color: var(--pt-primary);
     text-decoration: underline color-mix(in srgb, var(--pt-primary) 50%, transparent);
     text-underline-offset: 2px;
-    &:is(:hover, :active, :focus-visible) { color: var(--pt-primary-hover); text-decoration-color: var(--pt-primary-hover); }
+    &:is(:hover, :active, :focus-visible) { color: var(--pt-primary-hover); }
   }
 
   :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"], .button, .btn) {
@@ -94,13 +92,13 @@
     }
   }
 
-  :where(button, input, select, [role="button"], .button, .btn):is(.small, .sm) {
+  :where(button, input, select, .button, .btn):is(.small, .sm) {
     --pt-form-y: 0.25rem;
     --pt-form-x: 0.5rem;
     font-size: 0.8125rem;
   }
 
-  :where(.nowrap, .text-nowrap) {
+  .nowrap {
     white-space: nowrap;
   }
 
@@ -139,10 +137,10 @@
 
   table { width: 100%; border-collapse: collapse; }
   :where(th, td) { padding: 0.5rem 0.75rem; border-bottom: var(--pt-border); text-align: start; }
-  :where(thead, tfoot) :is(th, td) { border-bottom-width: 2px; font-weight: 600; }
+  :where(thead, tfoot) :where(th, td) { border-bottom-width: 2px; }
   table.striped tbody tr:nth-child(odd) { background: var(--pt-surface-subtle); }
 
-  :where(img, video) { max-width: 100%; height: auto; }
+  img, video { max-width: 100%; height: auto; }
   figure { margin-inline: 0; }
   :where(figure:has(> table)) { overflow-x: auto; }
 
@@ -155,8 +153,6 @@
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 
     &:is([fill]:not([fill="none"]), [data-filled], .solid) {
       fill: currentColor;
@@ -164,7 +160,7 @@
     }
   }
 
-  :where(button, [role="button"], .button, .btn, a):has(> :where(svg.icon, [data-icon])) {
+  :where(button, .button, .btn, a):has(> :where(svg.icon, [data-icon])) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -172,7 +168,7 @@
     gap: 0.5rem;
   }
 
-  :where(button, [role="button"], .button, .btn):is([aria-label], [aria-labelledby], [title]):has(> :where(svg.icon, [data-icon]):only-child) {
+  :where(button, .button, .btn):is([aria-label], [aria-labelledby], [title]):has(> :where(svg.icon, [data-icon]):only-child) {
     padding: var(--pt-form-y);
     height: calc(1lh + 2 * var(--pt-form-y) + 2px);
     aspect-ratio: 1;

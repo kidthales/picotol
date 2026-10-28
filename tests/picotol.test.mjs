@@ -1397,6 +1397,144 @@ test("Card Flex Column Layout, Auto-Docking Footers, and Vertical Body Fill (Iss
   );
 });
 
+test("Semantic Status Tokens and Dark Mode Contrast Calibration (Issue #126)", () => {
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+
+  // 1. Definition of all 12 semantic status CSS custom property pairings in tokens and compiled bundles
+  const expectedTokens = [
+    "--pt-status-ok-fg",
+    "--pt-status-ok-border",
+    "--pt-status-ok-bg",
+    "--pt-status-warning-fg",
+    "--pt-status-warning-border",
+    "--pt-status-warning-bg",
+    "--pt-status-critical-fg",
+    "--pt-status-critical-border",
+    "--pt-status-critical-bg",
+    "--pt-status-info-fg",
+    "--pt-status-info-border",
+    "--pt-status-info-bg",
+  ];
+
+  for (const token of expectedTokens) {
+    assert.ok(tokensCss.includes(token), `tokens.css must define ${token}`);
+    assert.ok(coreCss.includes(token), `picotol.core.css must include ${token}`);
+    assert.ok(fullCss.includes(token), `picotol.css must include ${token}`);
+    assert.ok(layerCss.includes(token), `picotol.layer.css must include ${token}`);
+  }
+
+  // 2. Paul Tol Canonical Color Mapping Verification
+  // OK: light #228833 (Tol bright green), dark #44AA99 (Tol muted teal)
+  // Warning: light fg #775500 (Tol dark 9), dark fg #DDAA33 (Tol high-contrast yellow), dark border #EE8866 (Tol light orange)
+  // Critical: light #CC3311 (Tol vibrant red), dark #EE6677 (Tol bright red)
+  // Info: light #4477AA (Tol bright blue), dark #66CCEE (Tol bright cyan)
+  assert.ok(tokensCss.includes("#228833") && tokensCss.includes("#44AA99"), "OK token must use canonical Tol green and teal");
+  assert.ok(tokensCss.includes("#DDAA33") && tokensCss.includes("#EE8866"), "Warning token must use canonical Tol yellow and orange");
+  assert.ok(tokensCss.includes("#CC3311") && tokensCss.includes("#EE6677"), "Critical token must use canonical Tol red");
+  assert.ok(tokensCss.includes("#4477AA") && tokensCss.includes("#66CCEE"), "Info token must use canonical Tol blue and cyan");
+
+  // 3. Automated WCAG 2.2 Contrast Verification against Dark Surfaces (#000000 root, #444444 surface)
+  const darkRoot = "#000000";
+  const darkSurface = "#444444";
+  const lightRoot = "#FFFFFF";
+
+  // Warning Dark Mode Calibration:
+  // Text: #DDAA33 must strictly achieve >= 4.5:1 on both root (#000000) and surface (#444444)
+  const crWarnFgDarkRoot = contrastRatio("#DDAA33", darkRoot);
+  const crWarnFgDarkSurface = contrastRatio("#DDAA33", darkSurface);
+  assert.ok(
+    crWarnFgDarkRoot >= 4.5,
+    `Warning text #DDAA33 on dark root #000000 must be >= 4.5:1 (got ${crWarnFgDarkRoot.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crWarnFgDarkSurface >= 4.5,
+    `Warning text #DDAA33 on dark surface #444444 must be >= 4.5:1 (got ${crWarnFgDarkSurface.toFixed(2)}:1)`
+  );
+
+  // Non-Text / Border: #EE8866 must strictly achieve >= 3.0:1 on both root (#000000) and surface (#444444)
+  const crWarnBorderDarkRoot = contrastRatio("#EE8866", darkRoot);
+  const crWarnBorderDarkSurface = contrastRatio("#EE8866", darkSurface);
+  assert.ok(
+    crWarnBorderDarkRoot >= 3.0,
+    `Warning border #EE8866 on dark root #000000 must be >= 3.0:1 (got ${crWarnBorderDarkRoot.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crWarnBorderDarkSurface >= 3.0,
+    `Warning border #EE8866 on dark surface #444444 must be >= 3.0:1 (got ${crWarnBorderDarkSurface.toFixed(2)}:1)`
+  );
+
+  // OK Contrast Verification:
+  // Light text #228833 on white >= 4.5:1
+  const crOkLight = contrastRatio("#228833", lightRoot);
+  assert.ok(crOkLight >= 4.5, `OK text #228833 on white must be >= 4.5:1 (got ${crOkLight.toFixed(2)}:1)`);
+  // Dark border/text #44AA99 on dark root >= 4.5:1, on dark surface >= 3.0:1
+  const crOkDarkRoot = contrastRatio("#44AA99", darkRoot);
+  const crOkDarkSurface = contrastRatio("#44AA99", darkSurface);
+  assert.ok(crOkDarkRoot >= 4.5, `OK text/border #44AA99 on dark root must be >= 4.5:1 (got ${crOkDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crOkDarkSurface >= 3.0, `OK border #44AA99 on dark surface must be >= 3.0:1 (got ${crOkDarkSurface.toFixed(2)}:1)`);
+
+  // Critical Contrast Verification:
+  // Light text #CC3311 on white >= 4.5:1
+  const crCritLight = contrastRatio("#CC3311", lightRoot);
+  assert.ok(crCritLight >= 4.5, `Critical text #CC3311 on white must be >= 4.5:1 (got ${crCritLight.toFixed(2)}:1)`);
+  // Dark border/text #EE6677 on dark root >= 4.5:1, on dark surface >= 3.0:1
+  const crCritDarkRoot = contrastRatio("#EE6677", darkRoot);
+  const crCritDarkSurface = contrastRatio("#EE6677", darkSurface);
+  assert.ok(crCritDarkRoot >= 4.5, `Critical text/border #EE6677 on dark root must be >= 4.5:1 (got ${crCritDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crCritDarkSurface >= 3.0, `Critical border #EE6677 on dark surface must be >= 3.0:1 (got ${crCritDarkSurface.toFixed(2)}:1)`);
+
+  // Info Contrast Verification:
+  // Light text #4477AA on white >= 4.5:1
+  const crInfoLight = contrastRatio("#4477AA", lightRoot);
+  assert.ok(crInfoLight >= 4.5, `Info text #4477AA on white must be >= 4.5:1 (got ${crInfoLight.toFixed(2)}:1)`);
+  // Dark border/text #66CCEE on dark root >= 4.5:1, on dark surface >= 4.5:1
+  const crInfoDarkRoot = contrastRatio("#66CCEE", darkRoot);
+  const crInfoDarkSurface = contrastRatio("#66CCEE", darkSurface);
+  assert.ok(crInfoDarkRoot >= 4.5, `Info text/border #66CCEE on dark root must be >= 4.5:1 (got ${crInfoDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crInfoDarkSurface >= 4.5, `Info border #66CCEE on dark surface must be >= 4.5:1 (got ${crInfoDarkSurface.toFixed(2)}:1)`);
+
+  // 4. Component Wiring Assertions
+  // Status Dots (.status-dot, .pt-status-dot)
+  assert.ok(
+    compCss.includes("var(--pt-status-ok-border") &&
+    compCss.includes("var(--pt-status-warning-border") &&
+    compCss.includes("var(--pt-status-critical-border") &&
+    compCss.includes("var(--pt-status-info-border"),
+    "src/components.css must wire status dots to semantic status border tokens"
+  );
+  assert.ok(
+    fullCss.includes("var(--pt-status-ok-border") &&
+    fullCss.includes("var(--pt-status-warning-border") &&
+    fullCss.includes("var(--pt-status-critical-border") &&
+    fullCss.includes("var(--pt-status-info-border"),
+    "dist/picotol.css must include status dot semantic token wiring"
+  );
+
+  // Callouts (.pt-callout)
+  assert.ok(
+    compCss.includes("var(--pt-status-ok-bg)") &&
+    compCss.includes("var(--pt-status-warning-bg)") &&
+    compCss.includes("var(--pt-status-critical-bg)") &&
+    compCss.includes("var(--pt-status-info-bg)"),
+    "src/components.css must wire callout backgrounds to semantic status bg tokens"
+  );
+
+  // Gauge Markers & Meter Pins (.pt-gauge-marker, .pt-meter-pin)
+  assert.ok(
+    compCss.includes("--pt-marker-color: var(--pt-status-ok-border)") &&
+    compCss.includes("--pt-marker-color: var(--pt-status-warning-border)") &&
+    compCss.includes("color: var(--pt-status-warning-fg)") &&
+    compCss.includes("--pt-marker-color: var(--pt-status-critical-border)") &&
+    compCss.includes("--pt-marker-color: var(--pt-status-info-border)"),
+    "src/components.css must wire gauge marker pins and labels to calibrated status tokens"
+  );
+});
+
+
 
 
 
