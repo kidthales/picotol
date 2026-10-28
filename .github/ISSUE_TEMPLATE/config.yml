@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/kidthales/picotol/discussions
+    about: Ask questions, share ideas, and discuss picotol with the community.
+  - name: Interactive Documentation Showcase
+    url: https://kidthales.github.io/picotol/
+    about: Explore live component patterns, interactive accent themes, and the Paul Tol palette explorer.

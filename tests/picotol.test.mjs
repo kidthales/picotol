@@ -1272,6 +1272,47 @@ test("Native Slide-Over Drawer Sheet Primitive and Sub-Elements (Issue #90)", ()
   assert.ok(demoHtml.includes("sheet-footer"), "Demo HTML must showcase .sheet-footer");
 });
 
+test("Open Source Governance, Citation Metadata, and Issue Routing (Issue #113)", () => {
+  // 1. CODE_OF_CONDUCT.md exists and adheres to Contributor Covenant v2.1 with reporting email
+  const cocPath = path.join(ROOT, "CODE_OF_CONDUCT.md");
+  assert.ok(fs.existsSync(cocPath), "CODE_OF_CONDUCT.md must exist in root");
+  const cocContent = fs.readFileSync(cocPath, "utf8");
+  assert.ok(cocContent.includes("Contributor Covenant Code of Conduct"), "Must adopt Contributor Covenant Code of Conduct");
+  assert.ok(cocContent.includes("admin@agogpixel.com"), "Must provide contact reporting email admin@agogpixel.com");
+  assert.ok(cocContent.includes("version/2/1/code_of_conduct.html"), "Must reference Contributor Covenant version 2.1");
+
+  // 2. CITATION.cff exists and adheres to v1.2.0 metadata
+  const cffPath = path.join(ROOT, "CITATION.cff");
+  assert.ok(fs.existsSync(cffPath), "CITATION.cff must exist in root");
+  const cffContent = fs.readFileSync(cffPath, "utf8");
+  assert.ok(cffContent.includes("cff-version: 1.2.0"), "Must specify cff-version: 1.2.0");
+  assert.ok(cffContent.includes("@kidthales/picotol"), "Must provide attribution for @kidthales/picotol");
+  assert.ok(cffContent.includes("SRON/EPS/TN/09-002"), "Must cite Paul Tol's SRON/EPS/TN/09-002 report");
+  assert.ok(cffContent.includes("Pico CSS"), "Must cite Pico CSS");
+  assert.ok(cffContent.includes("Lucas Driscoll") || cffContent.includes("Lucas Larroche"), "Must cite Lucas Driscoll / Lucas Larroche");
+
+  // 3. .github/ISSUE_TEMPLATE/config.yml exists, disables blank issues, and links to discussions & showcase
+  const configYmlPath = path.join(ROOT, ".github", "ISSUE_TEMPLATE", "config.yml");
+  assert.ok(fs.existsSync(configYmlPath), ".github/ISSUE_TEMPLATE/config.yml must exist");
+  const configYml = fs.readFileSync(configYmlPath, "utf8");
+  assert.ok(configYml.includes("blank_issues_enabled: false"), "Must disable blank issues");
+  assert.ok(configYml.includes("discussions"), "Must link to GitHub Discussions");
+  assert.ok(configYml.includes("https://kidthales.github.io/picotol/"), "Must link to interactive showcase");
+
+  // 4. README.md badges & citation guidelines
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  assert.ok(readme.includes("actions/workflows/ci.yml/badge.svg"), "README must include GitHub Actions CI status badge");
+  assert.ok(readme.includes("img.shields.io/npm/v/@kidthales/picotol"), "README must include npm package version badge");
+  assert.ok(readme.includes("img.shields.io/badge/License-MIT"), "README must include MIT License badge");
+  assert.ok(readme.includes("img.shields.io/badge/bundle%20size"), "README must include LightningCSS minified bundle size badge");
+  assert.ok(readme.includes("img.shields.io/badge/WCAG%202.2"), "README must include WCAG 2.2 AA / AAA badge");
+  assert.ok(readme.includes("https://kidthales.github.io/picotol/"), "README must link to interactive demo showcase");
+  assert.ok(readme.includes("## Citation & Academic Attribution"), "README must document citation guidelines");
+  assert.ok(readme.includes("CITATION.cff"), "README citation guidelines must reference CITATION.cff");
+  assert.ok(readme.includes("SRON/EPS/TN/09-002"), "README citation guidelines must reference Paul Tol's technical report");
+});
+
+
 
 
 
