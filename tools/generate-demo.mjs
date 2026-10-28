@@ -843,7 +843,7 @@ ${rowsHtml}
         <aside class="pt-callout pt-callout-info">
           <strong>Operational Notice</strong>
           <p><span class="pt-status-dot pt-status-dot-success"></span> All satellite sync nodes operational and healthy.</p>
-          <p><button type="button" class="pt-copy-pill">seldon status --prs</button> <span class="pt-chip">steady</span></p>
+          <p><button type="button" class="pt-copy-pill">git status --short</button> <span class="pt-chip">steady</span></p>
         </aside>
       </div>
 
