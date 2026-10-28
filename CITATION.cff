@@ -1,0 +1,43 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite both this software and the underlying works by Paul Tol and Lucas Driscoll / Lucas Larroche."
+title: "@kidthales/picotol"
+abstract: "Pure-CSS, ultra-minified semantic HTML framework powered strictly by Paul Tol's colorblind-safe colour schemes."
+type: software
+version: 0.1.0
+date-released: 2026-10-28
+license: MIT
+repository-code: "https://github.com/kidthales/picotol"
+url: "https://github.com/kidthales/picotol"
+authors:
+  - alias: kidthales
+    website: "https://github.com/kidthales"
+keywords:
+  - css
+  - semantic-css
+  - classless-css
+  - colorblind-safe
+  - paul-tol
+  - accessibility
+  - wcag
+references:
+  - type: report
+    authors:
+      - family-names: Tol
+        given-names: Paul
+    title: "Colour schemes and templates"
+    institution:
+      name: "SRON Netherlands Institute for Space Research"
+    number: "SRON/EPS/TN/09-002"
+    year: 2021
+    url: "https://personal.sron.nl/~pault/"
+    notes: "Version 3.2 (2021)"
+  - type: software
+    authors:
+      - family-names: Larroche
+        given-names: Lucas
+        alias: "Lucas Driscoll"
+    title: "Pico CSS"
+    url: "https://picocss.com/"
+    repository-code: "https://github.com/picocss/pico"
+    license: MIT
+    notes: "Architectural inspiration and semantic HTML selector patterns"
