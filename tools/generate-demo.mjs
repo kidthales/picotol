@@ -789,13 +789,20 @@ ${rowsHtml}
         <article data-density="compact">
           <header><strong>Compact Mode (<code>data-density="compact"</code>)</strong></header>
           <main>
-            <p>Micro-type scale, tighter card padding, and compressed control spacing for data-dense dashboards.</p>
-            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-              <div>Throughput: <span class="pt-tabular">142,857 req/s</span></div>
-              <div>Latency P99: <span class="pt-tabular">012.45 ms</span></div>
+            <p>Cascading padding into inputs, buttons, tables, and grid gaps.</p>
+            <table class="striped" style="margin-bottom: 0.5rem;">
+              <thead><tr><th>Node</th><th>Status</th><th>P99</th></tr></thead>
+              <tbody>
+                <tr><td>edge-01</td><td><span class="pt-status-dot pt-status-dot-success"></span> Online</td><td class="pt-tabular">12.4ms</td></tr>
+                <tr><td>edge-02</td><td><span class="pt-status-dot pt-status-dot-warning"></span> Degraded</td><td class="pt-tabular">45.8ms</td></tr>
+              </tbody>
+            </table>
+            <div class="form-row">
+              <input type="text" value="cluster-us-east" readonly>
+              <button type="button" class="btn">Deploy</button>
             </div>
           </main>
-          <footer><small><code>--pt-spacing: 0.5rem</code>; micro-scale clamp</small></footer>
+          <footer><small>Cascades <code>--pt-table-cell-padding-*</code> and <code>--pt-form-element-spacing-*</code></small></footer>
         </article>
         <div class="card pt-compact">
           <header><strong>Compact Utility (<code>.pt-compact</code>)</strong></header>

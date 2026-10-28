@@ -6,10 +6,9 @@
   :root, :host {
     color-scheme: light dark;
   }
-  :root, :host, :where([data-accent], [data-theme]) {
-    --pt-font-emoji: "Apple Color Emoji", "Segoe UI Emoji";
-    --pt-font-sans: system-ui, sans-serif, var(--pt-font-emoji);
-    --pt-font-mono: ui-monospace, monospace, var(--pt-font-emoji);
+  :root, :host {
+    --pt-font-sans: system-ui, sans-serif;
+    --pt-font-mono: ui-monospace, monospace;
     --pt-line-height: 1.5;
     --pt-border-radius: 0.25rem;
     --pt-transition: 0.15s ease-in-out;
@@ -17,10 +16,15 @@
     --pt-card-padding: var(--pt-spacing);
     --pt-form-y: 0.5rem;
     --pt-form-x: 0.75rem;
+    --pt-form-element-spacing-vertical: var(--pt-form-y);
+    --pt-form-element-spacing-horizontal: var(--pt-form-x);
+    --pt-btn-padding-block: var(--pt-form-y);
+    --pt-table-cell-padding-block: 0.5rem;
+    --pt-table-cell-padding-inline: 0.75rem;
     --pt-container-max: 70rem;
-    --pt-sheet-width: min(100vw, 24rem);
     --pt-grid-min: 15rem;
     --pt-grid-gap: var(--pt-spacing);
+    --pt-gap-compact: 0.5rem;
     --pt-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     --pt-bg: light-dark(#FFFFFF, #000000);
     --pt-card-bg: var(--pt-bg);
@@ -72,6 +76,9 @@
     --pt-card-padding: 0.5rem;
     --pt-form-y: 0.25rem;
     --pt-form-x: 0.5rem;
+    --pt-table-cell-padding-block: 0.25rem;
+    --pt-table-cell-padding-inline: 0.5rem;
+    --pt-grid-gap: var(--pt-gap-compact);
     --pt-line-height: 1.35;
     font-size: clamp(85%, 80% + 0.3vw, 95%);
   }

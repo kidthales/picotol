@@ -1580,6 +1580,97 @@ test("Meter Pin Label Positioning and Multi-Marker Range Bands (Issue #124)", ()
   assert.ok(demoHtml.includes('data-placement="top"'), "Demo HTML must showcase data-placement=top");
 });
 
+test("Compact Density Cascading into Form Controls, Tables, Buttons, and Layout Gaps (Issue #125)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const formsCss = fs.readFileSync(path.join(ROOT, "src/forms.css"), "utf8");
+  const contentCss = fs.readFileSync(path.join(ROOT, "src/content.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Form control padding wired to --pt-form-element-spacing-vertical and horizontal
+  assert.ok(
+    tokensCss.includes("--pt-form-element-spacing-vertical:") &&
+    tokensCss.includes("--pt-form-element-spacing-horizontal:"),
+    "Tokens CSS must expose --pt-form-element-spacing-vertical and --pt-form-element-spacing-horizontal"
+  );
+  assert.ok(
+    formsCss.includes("var(--pt-form-element-spacing-vertical) var(--pt-form-element-spacing-horizontal)"),
+    "Forms CSS must wire input, select, textarea padding to spacing custom properties"
+  );
+  assert.ok(
+    coreCss.includes("--pt-form-element-spacing-vertical") &&
+    coreCss.includes("--pt-form-element-spacing-horizontal"),
+    "Core bundle must include form element spacing tokens"
+  );
+
+  // 2. Table cell padding wired to --pt-table-cell-padding-block and inline
+  assert.ok(
+    tokensCss.includes("--pt-table-cell-padding-block:") &&
+    tokensCss.includes("--pt-table-cell-padding-inline:"),
+    "Tokens CSS must declare table cell padding tokens at root and compact"
+  );
+  assert.ok(
+    contentCss.includes("padding: var(--pt-table-cell-padding-block) var(--pt-table-cell-padding-inline);"),
+    "Content CSS must wire th, td padding to table cell padding custom properties"
+  );
+  assert.ok(
+    coreCss.includes("--pt-table-cell-padding-block") &&
+    coreCss.includes("--pt-table-cell-padding-inline"),
+    "Core bundle must include table cell padding custom properties"
+  );
+
+  // 3. Button and micro-action vertical padding wired to --pt-btn-padding-block
+  assert.ok(
+    tokensCss.includes("--pt-btn-padding-block:"),
+    "Tokens CSS must declare --pt-btn-padding-block"
+  );
+  assert.ok(
+    contentCss.includes("padding: var(--pt-btn-padding-block) var(--pt-form-x);"),
+    "Content CSS must wire button padding to --pt-btn-padding-block"
+  );
+  assert.ok(
+    compCss.includes("--pt-btn-padding-block: 1px;") &&
+    compCss.includes("padding-block: var(--pt-btn-padding-block);"),
+    "Components CSS must tighten .pt-copy-pill and .pt-chip padding-block in compact context"
+  );
+
+  // 4. Compact gap utility exposed and wired to --pt-grid-gap
+  assert.ok(
+    tokensCss.includes("--pt-gap-compact:"),
+    "Tokens CSS must declare --pt-gap-compact token"
+  );
+  assert.ok(
+    tokensCss.includes("--pt-grid-gap: var(--pt-gap-compact);"),
+    "Tokens CSS compact density block must wire --pt-grid-gap to --pt-gap-compact"
+  );
+
+  // 5. 320px mobile viewport zero-overflow invariants
+  assert.ok(
+    coreCss.includes("box-sizing: border-box") || coreCss.includes("box-sizing:border-box"),
+    "Box-sizing border-box applied to prevent horizontal container blowout"
+  );
+  assert.ok(
+    coreCss.includes("min-width: 0") || coreCss.includes("min-width:0"),
+    "Flex and grid children must include min-width: 0 to avoid overflow on narrow viewports"
+  );
+  assert.ok(
+    coreCss.includes("overflow-x: auto") || coreCss.includes("overflow-x:auto"),
+    "Tables and pre blocks must declare horizontal overflow scrolling"
+  );
+  assert.ok(
+    coreCss.includes("max-width: 100%") || coreCss.includes("max-width:100%"),
+    "Media and container utilities must constrain max-width to 100%"
+  );
+
+  // 6. Demo HTML verification
+  assert.ok(
+    demoHtml.includes('data-density="compact"'),
+    "Demo HTML must showcase data-density=compact showcase"
+  );
+});
+
 
 
 
