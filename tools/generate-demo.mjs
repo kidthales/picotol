@@ -244,17 +244,23 @@ export function generateDemoHtml(fullMinCss, stats) {
       <div class="grid">
         <article>
           <header><strong>Core Bundle (<code>picotol.core.min.css</code>)</strong></header>
-          <p><strong>${stats.coreMinBytes} bytes</strong> (${(stats.coreMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.coreGzipBytes} B</strong> gzip)</p>
+          <main>
+            <p><strong>${stats.coreMinBytes} bytes</strong> (${(stats.coreMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.coreGzipBytes} B</strong> gzip)</p>
+          </main>
           <footer><small>Landmarks, .grid, typography, tables, forms, nav</small></footer>
         </article>
         <article>
           <header><strong>Full Bundle (<code>picotol.min.css</code>)</strong></header>
-          <p><strong>${stats.fullMinBytes} bytes</strong> (${(stats.fullMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.fullGzipBytes} B</strong> gzip)</p>
+          <main>
+            <p><strong>${stats.fullMinBytes} bytes</strong> (${(stats.fullMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.fullGzipBytes} B</strong> gzip)</p>
+          </main>
           <footer><small>${((1 - stats.fullMinBytes / 83319) * 100).toFixed(1)}% smaller than upstream pico.min.css (83.3 KB)</small></footer>
         </article>
         <article>
           <header><strong>Layer Build (<code>picotol.layer.min.css</code>)</strong></header>
-          <p><strong>${stats.layerMinBytes} bytes</strong> (${(stats.layerMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.layerGzipBytes} B</strong> gzip)</p>
+          <main>
+            <p><strong>${stats.layerMinBytes} bytes</strong> (${(stats.layerMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.layerGzipBytes} B</strong> gzip)</p>
+          </main>
           <footer><small>Wrapped in <code>@layer picotol { ... }</code> for cascade containment</small></footer>
         </article>
       </div>
@@ -697,60 +703,73 @@ ${rowsHtml}
       <div class="grid">
         <article>
           <header><strong>Native &lt;article&gt; Card</strong></header>
-          <p>Semantic HTML5 article element styled automatically with zero classes.</p>
-          <footer><small>Footer landmark</small></footer>
+          <main>
+            <p>Semantic HTML5 article element styled automatically with zero classes.</p>
+            <p><small>Features flex column layout, auto-expanding <code>&lt;main&gt;</code>, and flush auto-docking footers.</small></p>
+          </main>
+          <footer><small>Footer landmark (auto-docked)</small></footer>
         </article>
         <div class="card">
           <header><strong>Class Parity <code>.card</code></strong></header>
-          <p>Generic div or section styled with <code>.card</code> for ergonomic framework interoperability.</p>
-          <footer><small>Footer landmark</small></footer>
+          <div class="card-body">
+            <p>Generic div or section styled with <code>.card</code> for ergonomic framework interoperability.</p>
+          </div>
+          <footer><small>Footer landmark (auto-docked)</small></footer>
         </div>
       </div>
       <h3>Status Dots &amp; Narrow-Corridor Reflow</h3>
       <div class="grid">
         <article>
           <header><strong>Paul Tol Status Dots (<code>.status-dot</code>)</strong></header>
-          <p><span class="status-dot success"></span><strong>Operational</strong> <code>.status-dot.success</code></p>
-          <p><span class="status-dot warning"></span><strong>Warning</strong> <code>.status-dot.warning</code></p>
-          <p><span class="status-dot danger"></span><strong>Critical</strong> <code>.status-dot.danger</code></p>
-          <p><span class="status-dot info"></span><strong>Active</strong> <code>.status-dot.info</code></p>
-          <p><span class="status-dot neutral"></span><strong>Neutral</strong> <code>.status-dot.neutral</code></p>
-          <p><span class="status-dot idle" data-status="idle"></span><strong>Idle</strong> <code>.status-dot.idle</code></p>
+          <main>
+            <p><span class="status-dot success"></span><strong>Operational</strong> <code>.status-dot.success</code></p>
+            <p><span class="status-dot warning"></span><strong>Warning</strong> <code>.status-dot.warning</code></p>
+            <p><span class="status-dot danger"></span><strong>Critical</strong> <code>.status-dot.danger</code></p>
+            <p><span class="status-dot info"></span><strong>Active</strong> <code>.status-dot.info</code></p>
+            <p><span class="status-dot neutral"></span><strong>Neutral</strong> <code>.status-dot.neutral</code></p>
+            <p><span class="status-dot idle" data-status="idle"></span><strong>Idle</strong> <code>.status-dot.idle</code></p>
+          </main>
           <footer><small>WCAG 2.2 §1.4.11 contrast compliant (&ge; 3:1) with forced-colors outline</small></footer>
         </article>
         <article>
           <header><strong>Badge &amp; Dot Pairing</strong></header>
-          <p><span class="badge"><span class="status-dot success"></span> Cluster Healthy</span></p>
-          <p><span class="badge warning"><span class="status-dot warning"></span> Memory Pressure</span></p>
-          <p><span class="badge invalid"><span class="status-dot danger"></span> Node Offline</span></p>
-          <p><span class="badge primary"><span class="status-dot info"></span> Job Running</span></p>
-          <p><span class="badge"><span class="status-dot idle" data-status="idle"></span> Service Idle</span></p>
-          <p style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;"><span class="status-dot success no-margin"></span><small>Flex gap layout (<code>.no-margin</code> / <code>.m-0</code>)</small></p>
+          <main>
+            <p><span class="badge"><span class="status-dot success"></span> Cluster Healthy</span></p>
+            <p><span class="badge warning"><span class="status-dot warning"></span> Memory Pressure</span></p>
+            <p><span class="badge invalid"><span class="status-dot danger"></span> Node Offline</span></p>
+            <p><span class="badge primary"><span class="status-dot info"></span> Job Running</span></p>
+            <p><span class="badge"><span class="status-dot idle" data-status="idle"></span> Service Idle</span></p>
+            <p style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;"><span class="status-dot success no-margin"></span><small>Flex gap layout (<code>.no-margin</code> / <code>.m-0</code>)</small></p>
+          </main>
           <footer><small>Contextual inline spacing without margin compounding</small></footer>
         </article>
         <article>
           <header><strong>Narrow-Corridor Reflow (320px)</strong></header>
-          <p><small>Flex and grid children declare <code>min-width: 0</code> to prevent wide controls or long titles from blowing out containers.</small></p>
-          <div class="form-row">
-            <span class="status-dot success"></span>
-            <input type="text" value="cluster-telemetry-node-01.us-east.internal" class="small" readonly>
-            <button type="button" class="btn small">Ping</button>
-          </div>
+          <main>
+            <p><small>Flex and grid children declare <code>min-width: 0</code> to prevent wide controls or long titles from blowing out containers.</small></p>
+            <div class="form-row">
+              <span class="status-dot success"></span>
+              <input type="text" value="cluster-telemetry-node-01.us-east.internal" class="small" readonly>
+              <button type="button" class="btn small">Ping</button>
+            </div>
+          </main>
           <footer><small>Shrinks cleanly without horizontal document overflow</small></footer>
         </article>
         <article>
           <header><strong>High-Density Flex Containment (gap: 4px)</strong></header>
-          <p><small>Child <code>section</code>, <code>article</code>, and <code>hr</code> elements automatically zero their block margins in flex and grid containers, preventing compound spacing.</small></p>
-          <div style="display: flex; flex-direction: column; gap: 4px; padding: 0.5rem; background: var(--pt-surface-subtle); border-radius: var(--pt-border-radius);">
-            <div style="font-size: 0.8125rem; font-weight: 600;">Flex Shell (gap: 4px)</div>
-            <section style="padding: 0.25rem 0.5rem; background: var(--pt-card-bg); border: var(--pt-border); border-radius: var(--pt-border-radius); font-size: 0.8125rem;">
-              Tier 1 Section (margin-bottom: 0)
-            </section>
-            <hr style="border-top: 1px solid var(--pt-muted-border);">
-            <article style="padding: 0.25rem 0.5rem; background: var(--pt-card-bg); border: var(--pt-border); border-radius: var(--pt-border-radius); font-size: 0.8125rem;">
-              Tier 2 Card (margin-bottom: 0)
-            </article>
-          </div>
+          <main>
+            <p><small>Child <code>section</code>, <code>article</code>, and <code>hr</code> elements automatically zero their block margins in flex and grid containers, preventing compound spacing.</small></p>
+            <div style="display: flex; flex-direction: column; gap: 4px; padding: 0.5rem; background: var(--pt-surface-subtle); border-radius: var(--pt-border-radius);">
+              <div style="font-size: 0.8125rem; font-weight: 600;">Flex Shell (gap: 4px)</div>
+              <section style="padding: 0.25rem 0.5rem; background: var(--pt-card-bg); border: var(--pt-border); border-radius: var(--pt-border-radius); font-size: 0.8125rem;">
+                Tier 1 Section (margin-bottom: 0)
+              </section>
+              <hr style="border-top: 1px solid var(--pt-muted-border);">
+              <article style="padding: 0.25rem 0.5rem; background: var(--pt-card-bg); border: var(--pt-border); border-radius: var(--pt-border-radius); font-size: 0.8125rem;">
+                Tier 2 Card (margin-bottom: 0)
+              </article>
+            </div>
+          </main>
           <footer><small>No vertical margin compounding; exact 4px rhythm preserved</small></footer>
         </article>
       </div>
@@ -758,28 +777,34 @@ ${rowsHtml}
       <div class="grid">
         <article>
           <header><strong>Standard Density</strong></header>
-          <p>Default density uses standard spacing tokens and typography scale.</p>
-          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <div>Row A Latency: <span class="pt-tabular">1,234.56 ms</span></div>
-            <div>Row B Latency: <span class="pt-tabular">0,098.10 ms</span></div>
-          </div>
+          <main>
+            <p>Default density uses standard spacing tokens and typography scale.</p>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div>Row A Latency: <span class="pt-tabular">1,234.56 ms</span></div>
+              <div>Row B Latency: <span class="pt-tabular">0,098.10 ms</span></div>
+            </div>
+          </main>
           <footer><small>Default <code>--pt-spacing</code> (1rem)</small></footer>
         </article>
         <article data-density="compact">
           <header><strong>Compact Mode (<code>data-density="compact"</code>)</strong></header>
-          <p>Micro-type scale, tighter card padding, and compressed control spacing for data-dense dashboards.</p>
-          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-            <div>Throughput: <span class="pt-tabular">142,857 req/s</span></div>
-            <div>Latency P99: <span class="pt-tabular">012.45 ms</span></div>
-          </div>
+          <main>
+            <p>Micro-type scale, tighter card padding, and compressed control spacing for data-dense dashboards.</p>
+            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+              <div>Throughput: <span class="pt-tabular">142,857 req/s</span></div>
+              <div>Latency P99: <span class="pt-tabular">012.45 ms</span></div>
+            </div>
+          </main>
           <footer><small><code>--pt-spacing: 0.5rem</code>; micro-scale clamp</small></footer>
         </article>
         <div class="card pt-compact">
           <header><strong>Compact Utility (<code>.pt-compact</code>)</strong></header>
-          <p>Applied via class modifier to any container or component.</p>
-          <div class="form-row">
-            <input type="text" value="compact-node-01" class="small" readonly>
-            <button type="button" class="btn small">Inspect</button>
+          <div class="card-body">
+            <p>Applied via class modifier to any container or component.</p>
+            <div class="form-row">
+              <input type="text" value="compact-node-01" class="small" readonly>
+              <button type="button" class="btn small">Inspect</button>
+            </div>
           </div>
           <footer><small>Zero margin compounding on nested sections/cards</small></footer>
         </div>
@@ -788,43 +813,49 @@ ${rowsHtml}
       <div class="grid">
         <article>
           <header><strong>Native &lt;progress&gt; &amp; Status</strong></header>
-          <p><small>Default accent, compact height, and Paul Tol semantic modifiers.</small></p>
-          <progress value="65" max="100"></progress>
-          <progress value="85" max="100" class="pt-progress-success"></progress>
-          <progress value="50" max="100" class="pt-progress-warning"></progress>
-          <progress value="92" max="100" class="pt-progress-danger"></progress>
+          <main>
+            <p><small>Default accent, compact height, and Paul Tol semantic modifiers.</small></p>
+            <progress value="65" max="100"></progress>
+            <progress value="85" max="100" class="pt-progress-success"></progress>
+            <progress value="50" max="100" class="pt-progress-warning"></progress>
+            <progress value="92" max="100" class="pt-progress-danger"></progress>
+          </main>
           <footer><small>Native engine rendering via <code>--pt-progress-*</code> tokens</small></footer>
         </article>
         <article>
           <header><strong>Accessible Fallback (<code>.pt-progress</code>)</strong></header>
-          <p><small>Cross-webview fallback with explicit <code>role="progressbar"</code> and ARIA semantics.</small></p>
-          <div class="pt-progress" role="progressbar" aria-valuenow="72" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 72%;">
-            <div class="pt-progress-fill"></div>
-          </div>
-          <div class="pt-progress pt-progress-success" role="progressbar" aria-valuenow="94" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 94%;">
-            <div class="pt-progress-fill"></div>
-          </div>
-          <div class="pt-progress pt-progress-warning" role="progressbar" aria-valuenow="48" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 48%;">
-            <div class="pt-progress-fill"></div>
-          </div>
+          <main>
+            <p><small>Cross-webview fallback with explicit <code>role="progressbar"</code> and ARIA semantics.</small></p>
+            <div class="pt-progress" role="progressbar" aria-valuenow="72" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 72%;">
+              <div class="pt-progress-fill"></div>
+            </div>
+            <div class="pt-progress pt-progress-success" role="progressbar" aria-valuenow="94" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 94%;">
+              <div class="pt-progress-fill"></div>
+            </div>
+            <div class="pt-progress pt-progress-warning" role="progressbar" aria-valuenow="48" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 48%;">
+              <div class="pt-progress-fill"></div>
+            </div>
+          </main>
           <footer><small>Pure CSS variable-driven <code>--pt-progress-value</code></small></footer>
         </article>
         <article>
           <header><strong>Gauge Threshold Markers (<code>.pt-meter</code>)</strong></header>
-          <p><small>Positioned threshold pins with tabular labels and semantic indicators.</small></p>
-          <div class="pt-meter">
-            <div class="pt-progress" role="progressbar" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 78%;">
-              <div class="pt-progress-fill"></div>
-              <div class="pt-gauge-marker" style="--marker-pos: 80%;"><small>80% SLA</small></div>
+          <main>
+            <p><small>Positioned threshold pins with tabular labels and semantic indicators.</small></p>
+            <div class="pt-meter">
+              <div class="pt-progress" role="progressbar" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 78%;">
+                <div class="pt-progress-fill"></div>
+                <div class="pt-gauge-marker" style="--marker-pos: 80%;"><small>80% SLA</small></div>
+              </div>
             </div>
-          </div>
-          <div class="pt-meter" style="margin-top: 1.5rem;">
-            <div class="pt-progress pt-progress-danger" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 92%;">
-              <div class="pt-progress-fill"></div>
-              <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><small>70% Warn</small></div>
-              <div class="pt-gauge-marker pt-progress-danger" style="--marker-pos: 90%;"><small>90% Crit</small></div>
+            <div class="pt-meter" style="margin-top: 1.5rem;">
+              <div class="pt-progress pt-progress-danger" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 92%;">
+                <div class="pt-progress-fill"></div>
+                <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><small>70% Warn</small></div>
+                <div class="pt-gauge-marker pt-progress-danger" style="--marker-pos: 90%;"><small>90% Crit</small></div>
+              </div>
             </div>
-          </div>
+          </main>
           <footer><small>Pinned via <code>--marker-pos</code> with high-contrast support</small></footer>
         </article>
       </div>

@@ -1312,6 +1312,92 @@ test("Open Source Governance, Citation Metadata, and Issue Routing (Issue #113)"
   assert.ok(readme.includes("SRON/EPS/TN/09-002"), "README citation guidelines must reference Paul Tol's technical report");
 });
 
+test("Card Flex Column Layout, Auto-Docking Footers, and Vertical Body Fill (Issue #128)", () => {
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Source CSS declarations in src/components.css
+  assert.ok(
+    compCss.includes("display: flex;") && compCss.includes("flex-direction: column;"),
+    "src/components.css must declare display: flex and flex-direction: column on cards"
+  );
+  assert.ok(
+    compCss.includes("margin-block-start: auto;"),
+    "src/components.css must declare margin-block-start: auto on card footers"
+  );
+  assert.ok(
+    compCss.includes("margin-block-end: calc(-1 * var(--pt-card-padding));"),
+    "src/components.css must preserve full-bleed negative margin-block-end on card footers"
+  );
+  assert.ok(
+    compCss.includes(":where(main, .card-body, .body, [data-card-body])"),
+    "src/components.css must support semantic main and .card-body wrappers"
+  );
+  assert.ok(
+    compCss.includes("flex: 1 1 auto;"),
+    "src/components.css must declare flex: 1 1 auto on card body wrappers"
+  );
+  assert.ok(
+    compCss.includes("height: 100%;"),
+    "src/components.css must declare height: 100% on grid/flex cards for track height inheritance"
+  );
+
+  // 2. Compiled CSS verification in dist/picotol.css & dist/picotol.min.css
+  assert.ok(
+    fullCss.includes("flex-direction: column") && fullCss.includes("display: flex"),
+    "Compiled CSS must contain card flex column declarations"
+  );
+  assert.ok(
+    fullCss.includes("margin-block-start: auto"),
+    "Compiled CSS must contain margin-block-start: auto on card footers"
+  );
+  assert.ok(
+    fullCss.includes("height: 100%"),
+    "Compiled CSS must contain height: 100% on grid/flex card containers"
+  );
+  assert.ok(
+    fullCss.includes("main, .card-body, .body, [data-card-body]"),
+    "Compiled CSS must contain card body selector list"
+  );
+
+  // 3. Two-Tier Isolation: Core bundle strictly excludes card body wrappers
+  assert.ok(!coreCss.includes(".card-body"), "Core bundle must not contain .card-body");
+  assert.ok(!coreCss.includes("[data-card-body]"), "Core bundle must not contain [data-card-body]");
+
+  // 4. Demo Verification across all 5 audited grid sections
+  // Section A: Bundle Scorecard
+  assert.ok(
+    demoHtml.includes('id="scorecard"') && demoHtml.includes("<main>"),
+    "Demo Scorecard section must feature semantic <main> body wrappers"
+  );
+  // Section B: Card Parity
+  assert.ok(
+    demoHtml.includes("Card Component Parity") &&
+    demoHtml.includes('class="card-body"') &&
+    demoHtml.includes("Footer landmark (auto-docked)"),
+    "Demo Card Parity section must showcase <main> and .card-body with auto-docked footers"
+  );
+  // Section C: Status Dots
+  assert.ok(
+    demoHtml.includes("Status Dots &amp; Narrow-Corridor Reflow"),
+    "Demo Status Dots section must be present"
+  );
+  // Section D: Compact Density
+  assert.ok(
+    demoHtml.includes('data-density="compact"') && demoHtml.includes('class="card pt-compact"'),
+    "Demo Compact Density section must showcase density variants"
+  );
+  // Section E: Progress / Meters
+  assert.ok(
+    demoHtml.includes("Meters, Progressbars &amp; Gauge Threshold Pins"),
+    "Demo Progress/Meters section must showcase meter cards"
+  );
+});
+
+
 
 
 
