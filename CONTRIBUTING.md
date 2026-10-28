@@ -24,3 +24,11 @@ Thank you for your interest in contributing to `@kidthales/picotol`!
    ```bash
    npm test
    ```
+5. Run the 1:1 local continuous integration pipeline:
+   ```bash
+   npm run ci:local
+   # or directly in PowerShell:
+   pwsh -NoProfile -ExecutionPolicy Bypass ./scripts/ci-local.ps1
+   # Fast loop (lint & tests only):
+   pwsh ./scripts/ci-local.ps1 -Quick
+   ```

@@ -97,7 +97,8 @@
     "build": "node tools/build.mjs",
     "lint": "node tools/lint.mjs",
     "generate": "npm run sync:tokens && npm run build",
-    "test": "npm run lint && node --test"
+    "test": "npm run lint && node --test",
+    "ci:local": "pwsh -NoProfile -ExecutionPolicy Bypass ./scripts/ci-local.ps1"
   },
   "devDependencies": {
     "lightningcss": "^1.30.1"
