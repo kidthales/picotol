@@ -30,8 +30,8 @@ test("npm pack --dry-run enforces size budgets and excludes demo/dev/CI files", 
   for (const p of paths) {
     assert.doesNotMatch(
       p,
-      /^(\.github|tests|tools|dist\/demo)\//,
-      `Demo/dev/CI file "${p}" must not leak into npm tarball`
+      /^(\.github|tests|tools|dist\/demo|dist\/assets)\//,
+      `Demo/dev/CI/asset file "${p}" must not leak into npm tarball`
     );
   }
 });
@@ -134,4 +134,68 @@ test("all exported subpaths have resolving TypeScript ambient definitions and ty
 test("package.json is configured for public npm release", () => {
   assert.equal(pkg.private, undefined, "package.json must not have 'private: true'");
   assert.equal(pkg.publishConfig?.access, "public", "package.json must specify publishConfig.access: 'public'");
+  assert.equal(
+    pkg.publishConfig?.registry,
+    "https://registry.npmjs.org/",
+    "package.json must specify publishConfig.registry: 'https://registry.npmjs.org/'"
+  );
+});
+
+test("tools/package-assets.mjs produces compliant PKZip offline bundle containing all 11 required assets", () => {
+  const zipPath = path.join(ROOT, "dist", "assets", `picotol-v${pkg.version}.zip`);
+  assert.ok(fs.existsSync(zipPath), `Asset bundle ${zipPath} must exist`);
+
+  const stat = fs.statSync(zipPath);
+  assert.ok(stat.size > 0, "Asset zip bundle must not be empty");
+  assert.ok(stat.size <= 100 * 1024, `Asset bundle size ${stat.size} B exceeds 100 KB budget`);
+
+  const zipBuf = fs.readFileSync(zipPath);
+
+  // Parse PKZip Central Directory to inspect Table of Contents
+  let eocdOffset = -1;
+  for (let i = zipBuf.length - 22; i >= Math.max(0, zipBuf.length - 65557); i--) {
+    if (zipBuf.readUInt32LE(i) === 0x06054b50) {
+      eocdOffset = i;
+      break;
+    }
+  }
+  assert.ok(eocdOffset !== -1, "Valid PKZip End of Central Directory signature (0x06054b50) not found");
+
+  const totalEntries = zipBuf.readUInt16LE(eocdOffset + 10);
+  assert.equal(totalEntries, 11, "Zip bundle must contain exactly 11 entries");
+
+  const cdOffset = zipBuf.readUInt32LE(eocdOffset + 16);
+  const foundFiles = [];
+  let pos = cdOffset;
+  for (let i = 0; i < totalEntries; i++) {
+    const sig = zipBuf.readUInt32LE(pos);
+    assert.equal(sig, 0x02014b50, `Invalid Central Directory signature at offset ${pos}`);
+    const nameLen = zipBuf.readUInt16LE(pos + 28);
+    const extraLen = zipBuf.readUInt16LE(pos + 30);
+    const commentLen = zipBuf.readUInt16LE(pos + 32);
+    const fileName = zipBuf.toString("utf8", pos + 46, pos + 46 + nameLen);
+    foundFiles.push(fileName);
+    pos += 46 + nameLen + extraLen + commentLen;
+  }
+
+  const expectedEntries = [
+    "css/picotol.css",
+    "css/picotol.min.css",
+    "css/picotol.core.css",
+    "css/picotol.core.min.css",
+    "css/picotol.layer.css",
+    "css/picotol.layer.min.css",
+    "tokens/tokens.css",
+    "tokens/palettes.css",
+    "tokens/tol-qualitative.json",
+    "sri.json",
+    "index.html",
+  ];
+
+  for (const expected of expectedEntries) {
+    assert.ok(
+      foundFiles.includes(expected),
+      `Asset bundle table of contents missing expected entry: "${expected}"`
+    );
+  }
 });
