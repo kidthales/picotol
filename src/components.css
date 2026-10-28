@@ -159,7 +159,7 @@
   }
 
   /* Accordion Cards & Card Disclosures */
-  :where(.card.accordion-card, .accordion-card) {
+  :where(.accordion-card) {
     padding: 0;
     overflow: hidden;
 
@@ -178,7 +178,7 @@
     }
   }
 
-  :where(details.accordion-card, details.pt-card-disclosure) {
+  :where(details:is(.accordion-card, .pt-card-disclosure)) {
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
     background-color: var(--pt-card-bg);
@@ -288,7 +288,7 @@
     }
   }
 
-  dialog :where(header, form, .sheet-header) button:is([aria-label="Close" i], [rel="prev"], .close) {
+  dialog button:is([aria-label="Close" i], [rel="prev"], .close) {
     position: relative;
     width: 1.5rem;
     height: 1.5rem;
@@ -334,7 +334,7 @@
     }
   }
 
-  :where(dialog.sheet, .sheet, .sheet-right, .sheet-left) {
+  :where(.sheet, .sheet-right, .sheet-left) {
     position: fixed;
     inset-block: 0;
     height: 100dvh;
@@ -379,7 +379,7 @@
   }
 
   /* Right-docked default (.sheet, .sheet-right) */
-  :where(dialog.sheet, .sheet, .sheet-right):not(.sheet-left) {
+  :where(.sheet, .sheet-right):not(.sheet-left) {
     inset-inline: auto 0;
     margin-inline: auto 0;
     border-inline-start: var(--pt-border);
@@ -387,7 +387,7 @@
   }
 
   /* Left-docked modifier (.sheet-left) */
-  :where(dialog.sheet-left, .sheet-left) {
+  :where(.sheet-left) {
     inset-inline: 0 auto;
     margin-inline: 0 auto;
     border-inline-end: var(--pt-border);
@@ -396,7 +396,7 @@
   }
 
   /* Sub-elements: header, scrollable body, footer */
-  :where(.sheet-header, dialog.sheet > header, dialog.sheet article > header) {
+  :where(.sheet-header) {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -410,14 +410,14 @@
     & > * { min-width: 0; }
   }
 
-  :where(.sheet-body, dialog.sheet article > .sheet-body) {
+  :where(.sheet-body) {
     flex: 1 1 auto;
     overflow-y: auto;
     padding: var(--pt-spacing);
     min-width: 0;
   }
 
-  :where(.sheet-footer, dialog.sheet > footer, dialog.sheet article > footer) {
+  :where(.sheet-footer) {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -432,7 +432,7 @@
 
   /* Responsive full-width collapse on viewports <= 600px */
   @media (max-width: 600px) {
-    :where(dialog.sheet, .sheet, .sheet-right, .sheet-left) {
+    :where(.sheet, .sheet-right, .sheet-left) {
       --pt-sheet-width: 100vw;
       width: 100vw;
       max-width: 100vw;
@@ -442,20 +442,20 @@
 
   /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
-    :where(dialog.sheet, .sheet, .sheet-right, .sheet-left) {
+    :where(.sheet, .sheet-right, .sheet-left) {
       animation: none;
     }
   }
 
   /* 6. Progress (<progress>, .pt-progress) & Gauge Meter Pins */
-  :where(progress, .pt-progress, [role="progressbar"]:not(progress), .pt-meter) {
+  :where(progress, .pt-progress, [role="progressbar"], .pt-meter) {
     --pt-progress-height: 0.5rem;
     --pt-progress-radius: var(--pt-border-radius);
     --pt-progress-bg: var(--pt-surface);
     --pt-progress-fill: var(--pt-primary);
   }
 
-  :where([data-density="compact"], .pt-compact) :where(progress, .pt-progress, [role="progressbar"]:not(progress), .pt-meter) {
+  :where([data-density="compact"], .pt-compact) :where(progress, .pt-progress, [role="progressbar"], .pt-meter) {
     --pt-progress-height: 0.375rem;
   }
 
@@ -529,6 +529,24 @@
     }
   }
 
+  :where(.pt-meter-range) {
+    --pt-range-start: 0%;
+    --pt-range-end: 100%;
+    --pt-range-color: var(--pt-surface-subtle);
+    position: absolute;
+    top: 0;
+    height: 100%;
+    inset-inline: var(--pt-range-start) calc(100% - var(--pt-range-end));
+    background-color: var(--pt-range-color);
+    pointer-events: none;
+    border-radius: inherit;
+
+    &:is(.ok, .success) { --pt-range-color: var(--pt-status-ok-bg); }
+    &.warning { --pt-range-color: var(--pt-status-warning-bg); }
+    &:is(.critical, .danger) { --pt-range-color: var(--pt-status-critical-bg); }
+    &.info { --pt-range-color: var(--pt-status-info-bg); }
+  }
+
   :where(.pt-gauge-marker, .pt-meter-pin) {
     --pt-marker-pos: 0%;
     --pt-marker-color: var(--pt-color);
@@ -559,15 +577,15 @@
       transform: translateX(-50%);
     }
 
-    & :where(span, small, .pt-gauge-label) {
+    & :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]) {
       position: absolute;
       bottom: calc(100% + 4px);
       left: 0;
       transform: translateX(-50%);
     }
 
-    &.bottom :where(span, small, .pt-gauge-label),
-    &[data-placement="bottom"] :where(span, small, .pt-gauge-label) {
+    &:is(.bottom, [data-placement="bottom"]) > *,
+    & > :is(.bottom, [data-placement="bottom"]) {
       bottom: auto;
       top: calc(100% + 4px);
     }
@@ -746,7 +764,7 @@
       color: var(--pt-valid);
     }
 
-    & > :where(svg.icon, [data-icon], .status-dot, .pt-status-dot) {
+    & > :where(svg, .status-dot) {
       margin: 0;
     }
   }
@@ -765,7 +783,7 @@
       margin-inline-end: 0.35rem;
     }
 
-    :where([style*="gap"], [class*="gap"], .grid, .flex, [role="group"], .badge, [role="status"]) > & {
+    :where(.grid, .flex, [style*="gap"], [role="group"]) > & {
       margin-inline-end: 0;
     }
 
@@ -831,7 +849,7 @@
       transform: translateY(1px);
     }
 
-    & > :where(svg.icon, [data-icon], .status-dot, .pt-status-dot) {
+    & > :where(svg, .status-dot) {
       margin: 0;
     }
   }
@@ -923,7 +941,7 @@
   }
 
   /* 16. Dedicated Square Icon Buttons (.btn-icon, .icon-btn) */
-  :where(.btn-icon, .icon-btn, button.btn-icon, button.icon-btn, a.icon-btn, a.btn-icon) {
+  :where(.btn-icon, .icon-btn) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -933,7 +951,7 @@
     line-height: 1;
     vertical-align: middle;
 
-    & > :where(svg, img, [data-icon], .icon) {
+    & > :where(svg, img) {
       margin: 0;
       flex-shrink: 0;
     }
@@ -988,7 +1006,7 @@
   }
 
   /* 14. Skeleton Loaders */
-  :where(.skeleton, [aria-busy="true"].skeleton) {
+  :where(.skeleton) {
     display: inline-block;
     width: 100%;
     min-height: 1.2em;
@@ -1014,14 +1032,14 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    :where(.skeleton, [aria-busy="true"].skeleton) {
+    :where(.skeleton) {
       animation: none !important;
       opacity: 0.6;
     }
   }
 
   /* 8. Toast Notification */
-  :where(.toast, [role="status"].toast) {
+  :where(.toast) {
     position: fixed;
     bottom: 1.5rem;
     inset-inline-end: 1.5rem;

@@ -1534,6 +1534,52 @@ test("Semantic Status Tokens and Dark Mode Contrast Calibration (Issue #126)", (
   );
 });
 
+test("Meter Pin Label Positioning and Multi-Marker Range Bands (Issue #124)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. .pt-meter-range primitive and custom property wiring
+  assert.ok(
+    fullCss.includes(".pt-meter-range") &&
+    fullCss.includes("--pt-range-start") &&
+    fullCss.includes("--pt-range-end") &&
+    fullCss.includes("--pt-range-color"),
+    "Full bundle must compile .pt-meter-range primitive with range custom properties"
+  );
+
+  // 2. Canonical data-placement and backwards-compatible .bottom utility on meter pins and labels
+  assert.ok(
+    fullCss.includes('[data-placement="bottom"]') || fullCss.includes('[data-placement=bottom]'),
+    "Full bundle must support canonical data-placement=bottom on meter pins and labels"
+  );
+  assert.ok(
+    compCss.includes(".bottom") && compCss.includes('[data-placement="bottom"]'),
+    "src/components.css must support both .bottom and data-placement=bottom for pin placement"
+  );
+
+  // 3. Child .pt-meter-label and [data-label] support aligned with --pt-marker-pos
+  assert.ok(
+    compCss.includes(".pt-meter-label") && compCss.includes("[data-label]"),
+    "src/components.css must style .pt-meter-label and [data-label] children within pins"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter-label"),
+    "Full bundle must include .pt-meter-label selector"
+  );
+
+  // 4. Two-Tier Isolation: Core bundle strictly excludes extended meter range & pin label primitives
+  assert.ok(!coreCss.includes(".pt-meter-range"), "Core bundle must not contain .pt-meter-range");
+  assert.ok(!coreCss.includes(".pt-meter-label"), "Core bundle must not contain .pt-meter-label");
+
+  // 5. Interactive Demo verification
+  assert.ok(demoHtml.includes("pt-meter-range"), "Demo HTML must showcase .pt-meter-range");
+  assert.ok(demoHtml.includes("pt-meter-label"), "Demo HTML must showcase .pt-meter-label");
+  assert.ok(demoHtml.includes('data-placement="bottom"'), "Demo HTML must showcase data-placement=bottom");
+  assert.ok(demoHtml.includes('data-placement="top"'), "Demo HTML must showcase data-placement=top");
+});
+
 
 
 
