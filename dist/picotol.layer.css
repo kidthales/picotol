@@ -911,7 +911,7 @@
       }
     }
 
-    :where(.card.accordion-card, .accordion-card) {
+    :where(.accordion-card) {
       padding: 0;
       overflow: hidden;
 
@@ -930,7 +930,7 @@
       }
     }
 
-    :where(details.accordion-card, details.pt-card-disclosure) {
+    :where(details:is(.accordion-card, .pt-card-disclosure)) {
       border: var(--pt-border);
       border-radius: var(--pt-border-radius);
       background-color: var(--pt-card-bg);
@@ -1054,7 +1054,7 @@
       }
     }
 
-    dialog :where(header, form, .sheet-header) button:is([aria-label="Close" i], [rel="prev"], .close) {
+    dialog button:is([aria-label="Close" i], [rel="prev"], .close) {
       width: 1.5rem;
       height: 1.5rem;
       color: var(--pt-muted-color);
@@ -1107,7 +1107,7 @@
       }
     }
 
-    :where(dialog.sheet, .sheet, .sheet-right, .sheet-left) {
+    :where(.sheet, .sheet-right, .sheet-left) {
       height: 100dvh;
       max-height: 100dvh;
       width: var(--pt-sheet-width, min(100vw, 24rem));
@@ -1156,14 +1156,14 @@
       }
     }
 
-    :where(dialog.sheet, .sheet, .sheet-right):not(.sheet-left) {
+    :where(.sheet, .sheet-right):not(.sheet-left) {
       border-inline-start: var(--pt-border);
       margin-inline: auto 0;
       animation: .25s cubic-bezier(.16, 1, .3, 1) pt-sheet-slide-in-right;
       inset-inline: auto 0;
     }
 
-    :where(dialog.sheet-left, .sheet-left) {
+    :where(.sheet-left) {
       border-inline-end: var(--pt-border);
       border-inline-start: 0;
       margin-inline: 0 auto;
@@ -1171,7 +1171,7 @@
       inset-inline: 0 auto;
     }
 
-    :where(.sheet-header, dialog.sheet > header, dialog.sheet article > header) {
+    :where(.sheet-header) {
       padding: calc(var(--pt-spacing) * .75) var(--pt-spacing);
       background-color: var(--pt-surface-subtle);
       border-bottom: var(--pt-border);
@@ -1188,14 +1188,14 @@
       }
     }
 
-    :where(.sheet-body, dialog.sheet article > .sheet-body) {
+    :where(.sheet-body) {
       padding: var(--pt-spacing);
       flex: auto;
       min-width: 0;
       overflow-y: auto;
     }
 
-    :where(.sheet-footer, dialog.sheet > footer, dialog.sheet article > footer) {
+    :where(.sheet-footer) {
       padding: calc(var(--pt-spacing) * .75) var(--pt-spacing);
       background-color: var(--pt-surface-subtle);
       border-top: var(--pt-border);
@@ -1209,7 +1209,7 @@
     }
 
     @media (width <= 600px) {
-      :where(dialog.sheet, .sheet, .sheet-right, .sheet-left) {
+      :where(.sheet, .sheet-right, .sheet-left) {
         --pt-sheet-width: 100vw;
         border-inline: 0;
         width: 100vw;
@@ -1218,19 +1218,19 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      :where(dialog.sheet, .sheet, .sheet-right, .sheet-left) {
+      :where(.sheet, .sheet-right, .sheet-left) {
         animation: none;
       }
     }
 
-    :where(progress, .pt-progress, [role="progressbar"]:not(progress), .pt-meter) {
+    :where(progress, .pt-progress, [role="progressbar"], .pt-meter) {
       --pt-progress-height: .5rem;
       --pt-progress-radius: var(--pt-border-radius);
       --pt-progress-bg: var(--pt-surface);
       --pt-progress-fill: var(--pt-primary);
     }
 
-    :where([data-density="compact"], .pt-compact) :where(progress, .pt-progress, [role="progressbar"]:not(progress), .pt-meter) {
+    :where([data-density="compact"], .pt-compact) :where(progress, .pt-progress, [role="progressbar"], .pt-meter) {
       --pt-progress-height: .375rem;
     }
 
@@ -1312,6 +1312,35 @@
       }
     }
 
+    :where(.pt-meter-range) {
+      --pt-range-start: 0%;
+      --pt-range-end: 100%;
+      --pt-range-color: var(--pt-surface-subtle);
+      height: 100%;
+      top: 0;
+      inset-inline: var(--pt-range-start) calc(100% - var(--pt-range-end));
+      background-color: var(--pt-range-color);
+      pointer-events: none;
+      border-radius: inherit;
+      position: absolute;
+
+      &:is(.ok, .success) {
+        --pt-range-color: var(--pt-status-ok-bg);
+      }
+
+      &.warning {
+        --pt-range-color: var(--pt-status-warning-bg);
+      }
+
+      &:is(.critical, .danger) {
+        --pt-range-color: var(--pt-status-critical-bg);
+      }
+
+      &.info {
+        --pt-range-color: var(--pt-status-info-bg);
+      }
+    }
+
     :where(.pt-gauge-marker, .pt-meter-pin) {
       --pt-marker-pos: 0%;
       --pt-marker-color: var(--pt-color);
@@ -1342,14 +1371,14 @@
         transform: translateX(-50%);
       }
 
-      & :where(span, small, .pt-gauge-label) {
+      & :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]) {
         position: absolute;
         bottom: calc(100% + 4px);
         left: 0;
         transform: translateX(-50%);
       }
 
-      &.bottom :where(span, small, .pt-gauge-label), &[data-placement="bottom"] :where(span, small, .pt-gauge-label) {
+      &:is(.bottom, [data-placement="bottom"]) > *, & > :is(.bottom, [data-placement="bottom"]) {
         top: calc(100% + 4px);
         bottom: auto;
       }
@@ -1562,7 +1591,7 @@
         color: var(--pt-valid);
       }
 
-      & > :where(svg.icon, [data-icon], .status-dot, .pt-status-dot) {
+      & > :where(svg, .status-dot) {
         margin: 0;
       }
     }
@@ -1580,7 +1609,7 @@
         margin-inline-end: .35rem;
       }
 
-      :where([style*="gap"], [class*="gap"], .grid, .flex, [role="group"], .badge, [role="status"]) > & {
+      :where(.grid, .flex, [style*="gap"], [role="group"]) > & {
         margin-inline-end: 0;
       }
 
@@ -1649,7 +1678,7 @@
         transform: translateY(1px);
       }
 
-      & > :where(svg.icon, [data-icon], .status-dot, .pt-status-dot) {
+      & > :where(svg, .status-dot) {
         margin: 0;
       }
     }
@@ -1740,7 +1769,7 @@
       }
     }
 
-    :where(.btn-icon, .icon-btn, button.btn-icon, button.icon-btn, a.icon-btn, a.btn-icon) {
+    :where(.btn-icon, .icon-btn) {
       aspect-ratio: 1;
       height: calc(1lh + 2 * var(--pt-form-y) + 2px);
       vertical-align: middle;
@@ -1750,7 +1779,7 @@
       line-height: 1;
       display: inline-flex;
 
-      & > :where(svg, img, [data-icon], .icon) {
+      & > :where(svg, img) {
         flex-shrink: 0;
         margin: 0;
       }
@@ -1803,7 +1832,7 @@
       }
     }
 
-    :where(.skeleton, [aria-busy="true"].skeleton) {
+    :where(.skeleton) {
       border-radius: var(--pt-border-radius);
       background-color: var(--pt-surface-subtle);
       user-select: none;
@@ -1830,13 +1859,13 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      :where(.skeleton, [aria-busy="true"].skeleton) {
+      :where(.skeleton) {
         opacity: .6;
         animation: none !important;
       }
     }
 
-    :where(.toast, [role="status"].toast) {
+    :where(.toast) {
       z-index: 9999;
       border-radius: var(--pt-border-radius);
       background: var(--pt-color);

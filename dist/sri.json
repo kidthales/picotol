@@ -8,14 +8,14 @@
       "integrity": "sha384-SMqYB4hnI6s+skqIZbW2nxwaIcG8oRS/408cerrcGErdc2ndydkicUQ8vMsPNvjt"
     },
     "dist/picotol.min.css": {
-      "bytes": 32737,
-      "gzipBytes": 7694,
-      "integrity": "sha384-AVAhBJSJSgBI0rIemHFj3S7Obqksvd9mK46q7GNJQ8JgU2lxLV+8GgGFlIvgT/Vh"
+      "bytes": 32740,
+      "gzipBytes": 7720,
+      "integrity": "sha384-PkXAai2Tza8KbMYBJtzA+OHy0ODlPIdhs+UDTtRWqiz5xLo2uP53S2k/ECEaIvut"
     },
     "dist/picotol.layer.min.css": {
-      "bytes": 32753,
-      "gzipBytes": 7700,
-      "integrity": "sha384-iFdM0RdKWjQLpmUGe69zqmJGxWuybl2KjHt4RahmWo0+4P9fP9iZPHhL/35m8XNx"
+      "bytes": 32756,
+      "gzipBytes": 7730,
+      "integrity": "sha384-CpS2c6mh1eTowC8HeJl5j3fCj54P9bKdsNq1o+3GPDvSv7hr87r5B7W09pih4bQJ"
     }
   }
 }

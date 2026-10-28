@@ -839,24 +839,27 @@ ${rowsHtml}
           <footer><small>Pure CSS variable-driven <code>--pt-progress-value</code></small></footer>
         </article>
         <article>
-          <header><strong>Gauge Threshold Markers (<code>.pt-meter</code>)</strong></header>
+          <header><strong>Gauge Threshold Markers &amp; Range Bands (<code>.pt-meter</code>)</strong></header>
           <main>
-            <p><small>Positioned threshold pins with tabular labels and semantic indicators.</small></p>
+            <p><small>Positioned threshold pins with canonical <code>data-placement</code>, <code>.pt-meter-label</code>, and shaded <code>.pt-meter-range</code> bands.</small></p>
             <div class="pt-meter">
+              <div class="pt-meter-range ok" style="--pt-range-start: 0%; --pt-range-end: 60%;"></div>
+              <div class="pt-meter-range warning" style="--pt-range-start: 60%; --pt-range-end: 85%;"></div>
+              <div class="pt-meter-range critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
               <div class="pt-progress" role="progressbar" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 78%;">
                 <div class="pt-progress-fill"></div>
-                <div class="pt-gauge-marker" style="--marker-pos: 80%;"><small>80% SLA</small></div>
+                <div class="pt-meter-pin" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
               </div>
             </div>
             <div class="pt-meter" style="margin-top: 1.5rem;">
               <div class="pt-progress pt-progress-danger" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 92%;">
                 <div class="pt-progress-fill"></div>
                 <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><small>70% Warn</small></div>
-                <div class="pt-gauge-marker pt-progress-danger" style="--marker-pos: 90%;"><small>90% Crit</small></div>
+                <div class="pt-meter-pin critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
               </div>
             </div>
           </main>
-          <footer><small>Pinned via <code>--marker-pos</code> with high-contrast support</small></footer>
+          <footer><small>Pinned via <code>--pt-marker-pos</code>, <code>data-placement="top|bottom"</code>, and <code>.pt-meter-range</code></small></footer>
         </article>
       </div>
       <h3>Accessible Callouts, Status Dots &amp; Copy Pills (<code>.pt-callout</code> / <code>.pt-copy-pill</code>)</h3>
