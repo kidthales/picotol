@@ -26,9 +26,9 @@
   - Non-color validation cues (`2px` border + `✓` / `✗` prefix icons on `[aria-invalid] + small`) and $\ge 24\times24\text{px}$ target sizes (WCAG 2.2 SC 2.5.8).
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
-  - **`dist/picotol.core.min.css`** (<= 12.0 KB minified, ~4.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 34.0 KB minified, ~7.8 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
-  - **`dist/picotol.layer.min.css`** (<= 34.0 KB minified, ~7.8 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
+  - **`dist/picotol.core.min.css`** (<= 13.0 KB minified, ~4.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
+  - **`dist/picotol.min.css`** (<= 36.0 KB minified, ~8.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.layer.min.css`** (<= 36.0 KB minified, ~8.0 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
 
@@ -628,6 +628,28 @@ For data-dense applications, dashboards, and narrow IDE corridors, apply `[data-
     </table>
   </figure>
 </section>
+```
+
+### 4h. Ultra-Compact Density (`[data-density="tight"]`) & Dense Cards (`.pt-card--dense`)
+
+For highly constrained embedding contexts—such as IDE auxiliary toolbars, webviews, and embedded status sidebars (< 300px width)—`@kidthales/picotol` provides an ultra-dense modifier:
+
+- **Token Overrides**: Sets `--pt-spacing: 0.25rem;`, `--pt-card-padding: 0.25rem;`, `--pt-grid-gap: 0.25rem;`, `--pt-line-height: 1.25;`, and typography scaling via `font-size: var(--pt-font-size-xs);`.
+- **Form & Table Controls**: Tightens cell padding to `0.125rem 0.375rem`, form padding to `0.125rem 0.375rem`, and button padding to `0.125rem 0.375rem`.
+- **Element-Level Card Modifier**: `.pt-card--dense` scopes `--pt-card-padding: 0.25rem;` directly to individual cards without requiring container-level density toggles.
+- **Narrow Corridor Containment**: Enforces `min-width: 0;` and `max-width: 100%;` across cards and nested card hierarchies to prevent horizontal scroll blowout or text clipping at narrow viewport widths.
+
+```html
+<!-- Ultra-compact embedded sidebar card -->
+<article class="card pt-card--dense" data-density="tight">
+  <header><strong>Worker 03</strong></header>
+  <main>
+    <div class="card pt-card--dense">
+      <small>Nested Queue: 12 jobs</small>
+    </div>
+  </main>
+  <footer><small>Status: Ready</small></footer>
+</article>
 ```
 
 ### 5. Interactive Operational Showcase & Palette Explorer

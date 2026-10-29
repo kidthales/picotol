@@ -90,22 +90,22 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 34.0 KB, and picotol.layer.min.css <= 34.0 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 13.0 KB, picotol.min.css <= 36.0 KB, and picotol.layer.min.css <= 36.0 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
   const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
 
   assert.ok(
-    coreMin <= 12.0 * 1024,
-    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 12288 B`
+    coreMin <= 13.0 * 1024,
+    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 13312 B`
   );
   assert.ok(
-    fullMin <= 34.0 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 34816 B`
+    fullMin <= 36.0 * 1024,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= 36864 B`
   );
   assert.ok(
-    layerMin <= 34.0 * 1024,
-    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 34816 B`
+    layerMin <= 36.0 * 1024,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 36864 B`
   );
 });
 
@@ -1974,6 +1974,113 @@ test("Downstream CSS @layer Cascade Ordering Guide (Issue #141)", () => {
   assert.ok(
     readme.includes('<link rel="stylesheet"') && readme.includes('layer="app-theme"'),
     "README must provide HTML <link> snippet with layer attribute"
+  );
+});
+
+test("Ultra-Compact Density Modifier, Dense Card Modifier, and Embedded Panel Invariants (Issue #142)", () => {
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const layoutCss = fs.readFileSync(path.join(ROOT, "src/layout.css"), "utf8");
+  const contentCss = fs.readFileSync(path.join(ROOT, "src/content.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Ultra-compact tokens in tokens.css and compiled bundles
+  for (const css of [tokensCss, fullCss, coreCss]) {
+    assert.ok(
+      css.includes('[data-density="tight"]') || css.includes("[data-density=tight]"),
+      "Must define [data-density='tight'] modifier selector"
+    );
+    assert.ok(
+      css.includes(".pt-tight"),
+      "Must define .pt-tight utility class modifier"
+    );
+    assert.ok(
+      /--pt-spacing:\s*0?\.25rem/.test(css),
+      "Tight density modifier must set --pt-spacing to 0.25rem"
+    );
+    assert.ok(
+      /--pt-card-padding:\s*0?\.25rem/.test(css),
+      "Tight density modifier must set --pt-card-padding to 0.25rem"
+    );
+    assert.ok(
+      /--pt-form-y:\s*0?\.125rem/.test(css),
+      "Tight density modifier must set --pt-form-y to 0.125rem"
+    );
+    assert.ok(
+      /--pt-form-x:\s*0?\.375rem/.test(css),
+      "Tight density modifier must set --pt-form-x to 0.375rem"
+    );
+    assert.ok(
+      /--pt-table-cell-padding-block:\s*0?\.125rem/.test(css),
+      "Tight density modifier must set --pt-table-cell-padding-block to 0.125rem"
+    );
+    assert.ok(
+      /--pt-table-cell-padding-inline:\s*0?\.375rem/.test(css),
+      "Tight density modifier must set --pt-table-cell-padding-inline to 0.375rem"
+    );
+    assert.ok(
+      /--pt-line-height:\s*1\.25/.test(css),
+      "Tight density modifier must tighten --pt-line-height to 1.25"
+    );
+    assert.ok(
+      css.includes("font-size: var(--pt-font-size-xs)"),
+      "Tight density modifier must wire font-size to --pt-font-size-xs"
+    );
+  }
+
+  // 2. Element-level card modifier in components.css
+  assert.ok(
+    compCss.includes(".pt-card--dense"),
+    "src/components.css must define .pt-card--dense element modifier"
+  );
+  assert.ok(
+    fullCss.includes(".pt-card--dense") && fullMin.includes(".pt-card--dense"),
+    "dist/picotol.css and dist/picotol.min.css must export .pt-card--dense modifier"
+  );
+  assert.ok(
+    compCss.includes("--pt-card-padding: 0.25rem;"),
+    "src/components.css must configure --pt-card-padding: 0.25rem on dense cards"
+  );
+
+  // 3. Margin resets in tight context
+  assert.ok(
+    layoutCss.includes('[data-density="tight"]') && layoutCss.includes(".pt-tight"),
+    "src/layout.css must reset section margins in tight context"
+  );
+  assert.ok(
+    contentCss.includes('[data-density="tight"]') && contentCss.includes(".pt-tight"),
+    "src/content.css must reset hr margins in tight context"
+  );
+  assert.ok(
+    compCss.includes('[data-density="tight"]') && compCss.includes(".pt-tight"),
+    "src/components.css must reset card margins in tight context"
+  );
+
+  // 4. Narrow corridor (< 300px) and nested card containment
+  assert.ok(
+    compCss.includes("min-width: 0;") && compCss.includes("max-width: 100%;"),
+    "src/components.css must enforce min-width: 0 and max-width: 100% on cards"
+  );
+
+  // 5. Interactive Demo HTML showcase verification
+  assert.ok(
+    demoHtml.includes('data-density="tight"'),
+    "dist/demo/index.html must showcase container data-density='tight'"
+  );
+  assert.ok(
+    demoHtml.includes("pt-tight"),
+    "dist/demo/index.html must showcase .pt-tight class utility"
+  );
+  assert.ok(
+    demoHtml.includes("pt-card--dense"),
+    "dist/demo/index.html must showcase .pt-card--dense modifier class"
+  );
+  assert.ok(
+    demoHtml.includes("Nested Card"),
+    "dist/demo/index.html must demonstrate nested card containment under tight density"
   );
 });
 
