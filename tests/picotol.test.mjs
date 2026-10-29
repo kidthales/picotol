@@ -1948,6 +1948,35 @@ test("Release Distribution Integrity: dist/manifest.json exists, is valid JSON, 
   }
 });
 
+test("Downstream CSS @layer Cascade Ordering Guide (Issue #141)", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  assert.ok(
+    readme.includes("Downstream Cascade Layer Ordering Guide"),
+    "README must include dedicated downstream cascade layer ordering guide section"
+  );
+  assert.ok(
+    readme.includes("@layer picotol, app-theme, app-components, app-utilities;"),
+    "README must document canonical downstream layer order declaration (@layer picotol, app-theme, app-components, app-utilities;)"
+  );
+  assert.ok(
+    readme.includes("dist/picotol.layer.min.css"),
+    "README must cross-reference dist/picotol.layer.min.css"
+  );
+  assert.ok(
+    readme.includes("unlayered") && readme.includes("!important"),
+    "README must explain unlayered styles precedence and !important interaction"
+  );
+  assert.ok(
+    readme.includes('@import "@kidthales/picotol/layer"'),
+    "README must provide CSS @import / @layer snippet"
+  );
+  assert.ok(
+    readme.includes('<link rel="stylesheet"') && readme.includes('layer="app-theme"'),
+    "README must provide HTML <link> snippet with layer attribute"
+  );
+});
+
 
 
 
