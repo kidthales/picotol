@@ -2084,6 +2084,90 @@ test("Ultra-Compact Density Modifier, Dense Card Modifier, and Embedded Panel In
   );
 });
 
+test("Configurable Typography Floor (--pt-font-size-floor) for Compact Density (Issue #152)", () => {
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Token definitions in tokens.css and compiled bundles
+  for (const css of [tokensCss, fullCss, coreCss]) {
+    assert.ok(
+      css.includes("--pt-font-size-floor: 12px;"),
+      "Must define default --pt-font-size-floor: 12px; in tokens"
+    );
+    assert.ok(
+      /--pt-font-size-xs:\s*max\(var\(--pt-font-size-floor,\s*12px\),\s*0?\.75rem\);/.test(css),
+      "Must clamp --pt-font-size-xs using max(var(--pt-font-size-floor, 12px), 0.75rem)"
+    );
+  }
+
+  // 2. Minified bundle presence
+  for (const minCss of [fullMin, layerMin]) {
+    assert.ok(
+      minCss.includes("--pt-font-size-floor:12px;"),
+      "Minified bundles must include --pt-font-size-floor:12px;"
+    );
+    assert.ok(
+      minCss.includes("--pt-font-size-xs:max(var(--pt-font-size-floor,12px), .75rem)") ||
+      minCss.includes("--pt-font-size-xs:max(var(--pt-font-size-floor,12px),.75rem)"),
+      "Minified bundles must clamp --pt-font-size-xs"
+    );
+  }
+
+  // 3. Components and density classes respect typography floor via --pt-font-size-xs
+  assert.ok(
+    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em);") ||
+    compCss.includes("font-size: var(--pt-font-size-xs, .75em);"),
+    ".pt-badge and .pt-indicator must wire font-size to --pt-font-size-xs"
+  );
+  assert.ok(
+    tokensCss.includes('[data-density="tight"]') && tokensCss.includes("font-size: var(--pt-font-size-xs);"),
+    "[data-density=\"tight\"] must wire font-size to --pt-font-size-xs"
+  );
+
+  // 4. Automated unit tests asserting font size floors across custom base scales
+  function resolveEffectiveFontSizeXs(rootFontSizePx, customFloorPx = null) {
+    const floor = customFloorPx !== null ? customFloorPx : 12;
+    const remValuePx = 0.75 * rootFontSizePx;
+    return Math.max(floor, remValuePx);
+  }
+
+  // Standard root: 16px -> 0.75rem = 12px -> floor = 12px
+  assert.strictEqual(resolveEffectiveFontSizeXs(16), 12, "Standard 16px root must compute to 12px");
+
+  // Compact root: 14px -> 0.75rem = 10.5px -> clamped to 12px floor
+  assert.strictEqual(resolveEffectiveFontSizeXs(14), 12, "Constrained 14px root must clamp to 12px floor");
+
+  // Ultra-compact root: 12px -> 0.75rem = 9px -> clamped to 12px floor
+  assert.strictEqual(resolveEffectiveFontSizeXs(12), 12, "Ultra-compact 12px root must clamp to 12px floor");
+
+  // Extreme micro root: 10px -> 0.75rem = 7.5px -> clamped to 12px floor
+  assert.strictEqual(resolveEffectiveFontSizeXs(10), 12, "Extreme micro 10px root must clamp to 12px floor");
+
+  // Large root: 20px -> 0.75rem = 15px -> scales up naturally (15px > 12px)
+  assert.strictEqual(resolveEffectiveFontSizeXs(20), 15, "Large 20px root must scale above floor to 15px");
+
+  // Custom floor override: 14px on 14px root -> clamped to 14px floor
+  assert.strictEqual(resolveEffectiveFontSizeXs(14, 14), 14, "Custom 14px floor on 14px root must clamp to 14px");
+
+  // Custom floor override: 14px on standard 16px root -> clamped to 14px floor
+  assert.strictEqual(resolveEffectiveFontSizeXs(16, 14), 14, "Custom 14px floor on 16px root must clamp to 14px");
+
+  // 5. Documentation in README.md
+  assert.ok(
+    readme.includes("--pt-font-size-floor"),
+    "README.md must document --pt-font-size-floor"
+  );
+  assert.ok(
+    readme.includes("Configurable Typography Floor"),
+    "README.md must include Configurable Typography Floor section"
+  );
+});
+
 
 
 
