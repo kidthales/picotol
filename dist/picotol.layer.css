@@ -1787,6 +1787,7 @@
             flex: 1 1 0;
             justify-content: center;
             min-width: 0;
+            display: block;
             overflow: hidden;
           }
         }
