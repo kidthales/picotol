@@ -891,8 +891,16 @@ ${rowsHtml}
                 <div class="pt-meter-pin pt-meter-mark critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
               </div>
             </div>
+            <div class="pt-meter" style="margin-top: 1.5rem;">
+              <div class="pt-progress" role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 65%;">
+                <div class="pt-progress-fill pt-meter-fill"></div>
+                <div class="pt-meter-mark pt-meter-mark--start" data-placement="top" data-align="start" style="--pt-marker-pos: 0%;"><span class="pt-meter-label">0% Min</span></div>
+                <div class="pt-meter-mark" data-placement="top" style="--pt-marker-pos: 50%;"><span class="pt-meter-label">50% Mid</span></div>
+                <div class="pt-meter-mark pt-meter-mark--end" data-placement="top" data-align="end" style="--pt-marker-pos: 100%;"><span class="pt-meter-label">100% Max</span></div>
+              </div>
+            </div>
           </main>
-          <footer><small>Layered via <code>--pt-meter-*-z</code> stacking tokens, <code>data-placement="top|bottom"</code>, and <code>.pt-meter-range</code></small></footer>
+          <footer><small>Layered via <code>--pt-meter-*-z</code> stacking tokens, <code>data-placement="top|bottom"</code>, <code>data-align="start|end"</code> (<code>.pt-meter-mark--start|--end</code>), and <code>.pt-meter-range</code></small></footer>
         </article>
       </div>
       <h3>Accessible Callouts, Status Dots &amp; Copy Pills (<code>.pt-callout</code> / <code>.pt-copy-pill</code>)</h3>
@@ -936,6 +944,16 @@ ${rowsHtml}
           </main>
           <footer><small>Inline-flex alignment with zero boilerplate overrides</small></footer>
         </article>
+        <article class="card">
+          <header><strong>Tabular Numbers &amp; Dynamic Badges (<code>.pt-badge--numeric</code>)</strong></header>
+          <main>
+            <p><span class="pt-badge pt-badge--numeric" data-status="ok"><span class="pt-status-dot ok"></span> 99.98%</span> Uptime SLA</p>
+            <p><span class="pt-badge pt-badge--numeric warning"><span class="pt-status-dot warning"></span> 1,420 ms</span> P99 Latency</p>
+            <p><span class="pt-badge pt-badge--numeric critical"><span class="pt-status-dot critical"></span> 0.042%</span> Drop Rate</p>
+            <p><span class="pt-indicator pt-indicator--numeric info" id="live-indicator-count">Turn #042</span> <span class="pt-badge pt-badge--numeric info" id="live-badge-count">1,842 tok/s</span></p>
+          </main>
+          <footer><small><code>font-variant-numeric: tabular-nums</code> eliminates dynamic layout jitter</small></footer>
+        </article>
       </div>
 
       <h3>Native Accessible Disclosures, Accordion Cards &amp; Popovers (<code>.pt-details</code> / <code>.accordion-card</code> / <code>.pt-popover</code>)</h3>
@@ -943,7 +961,7 @@ ${rowsHtml}
         <article class="card accordion-card">
           <details class="pt-card-disclosure" open>
             <summary>Platform Architecture &amp; Layer Isolation</summary>
-            <p>Strict four-layer cascade isolation ensures design tokens and reset styles never bleed into extended component boundaries.</p>
+            <p>Strict five-tier nested cascade layer isolation ensures design tokens and reset styles never bleed into extended component boundaries.</p>
           </details>
           <details class="pt-card-disclosure">
             <summary>Zero-JS Keyboard &amp; Screen Reader Accessibility</summary>
@@ -1104,6 +1122,8 @@ ${rowsHtml}
         <span class="pt-badge critical">Critical</span>
         <span class="pt-badge info">Information</span>
         <span class="badge" data-accent="purple">Purple Accent</span>
+        <span class="pt-badge pt-badge--numeric ok">99.98%</span>
+        <span class="pt-indicator pt-indicator--numeric info">Turn #042</span>
       </p>
 
       <p>
@@ -1314,6 +1334,20 @@ ${swatchCardsHtml}
           }, 300);
         });
       });
+    }
+
+    // Dynamic streaming telemetry ticker for tabular number badges
+    const liveIndicator = document.getElementById('live-indicator-count');
+    const liveBadge = document.getElementById('live-badge-count');
+    if (liveIndicator && liveBadge) {
+      let turn = 42;
+      let tok = 1842;
+      setInterval(() => {
+        turn = (turn + 1) % 1000;
+        tok = 1800 + Math.floor(Math.sin(turn * 0.2) * 50) + Math.floor(Math.random() * 20);
+        liveIndicator.textContent = 'Turn #' + String(turn).padStart(3, '0');
+        liveBadge.textContent = tok.toLocaleString() + ' tok/s';
+      }, 1500);
     }
 
     // Palette Explorer live search and click-to-copy

@@ -186,18 +186,16 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 ## Architecture & Cascade Layers
 
 ```css
-@layer tokens, base, layout, content, forms, nav, components;
+@layer tokens, reset, base, components, utilities;
 ```
 
-| Layer | Source File | Responsibility |
+| Layer | Source Files | Responsibility |
 | :--- | :--- | :--- |
 | `tokens` | [`src/tokens.css`](src/tokens.css), [`src/palettes.css`](src/palettes.css) | Auto-generated canonical `--tol-*` scheme constants, `--pt-*` semantic tokens, `[data-theme]` & `[data-accent]` ladders |
-| `base` | [`src/base.css`](src/base.css) | Modern box-sizing reset, document defaults, `:focus-visible`, `[tabindex="-1"]` focus guard, `.skip-to-content`, `.sr-only` / `.sr-only-focusable`, `@media print`, reduced-motion baseline |
-| `layout` | [`src/layout.css`](src/layout.css) | Centered `body > header, main, footer` landmarks, `.container`, `.grid` (`min-width: 0`), `.overflow-auto`, `<hr>` |
-| `content` | [`src/content.css`](src/content.css) | Modular `clamp()` headings, `75ch` reading measure, links, neutral slate `.secondary` button ladder, lists, blockquotes, code, tables, figures |
-| `forms` | [`src/forms.css`](src/forms.css) | Semantic buttons, inputs, selects, textareas, WCAG 2.2 SC 2.5.8 target sizing, SC 1.4.11 borders ($\ge 3:1$), `[aria-invalid="true"\|"false"]` validation with `✓`/`✗` cues |
-| `nav` | [`src/nav.css`](src/nav.css) | Responsive wrapping flex `<nav>`, `[role="menubar"]`, breadcrumbs |
-| `components` | [`src/components.css`](src/components.css) | `<article>` card, `<details>` accordion/dropdown, `<dialog>` modal (`::backdrop`), `<progress>`, `[role="switch"]`, `[aria-busy]`, `[role="group"]`, `[data-tooltip]`, `@media (forced-colors: active)` |
+| `reset` | [`src/base.css`](src/base.css) | Modern box-sizing reset, `body` zero-margin and flex column root, button font normalization, `[hidden]` display reset |
+| `base` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/forms.css`](src/forms.css), [`src/nav.css`](src/nav.css) | Document defaults, `:focus-visible`, `[tabindex="-1"]` guard, `@media print`, typography/content hierarchy, form controls, semantic landmarks, `.container` |
+| `components` | [`src/components.css`](src/components.css) | Extended semantic components (`<article>` card, `<details>` accordion/dropdown, `<dialog>` modal, `.pt-badge`, `.pt-callout`, `progress`, `.pt-meter`, segmented controls, tooltips) |
+| `utilities` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css) | Standalone utility classes and layout helpers (`.skip-to-content`, `.sr-only`, `.visually-hidden`, `.grid`, `.flex`, `.overflow-auto`, `.table-container`, `.mb-0`, `.pt-tabular`, `.tabular-nums`) |
 
 ---
 
@@ -234,7 +232,36 @@ Declare layer order upfront in your root stylesheet or HTML document to control 
 
 #### Integration Patterns: `dist/picotol.layer.min.css`
 
-The opt-in bundle [`dist/picotol.layer.min.css`](dist/picotol.layer.min.css) is pre-wrapped in `@layer picotol { ... }`.
+The opt-in bundle [`dist/picotol.layer.min.css`](dist/picotol.layer.min.css) is pre-wrapped in `@layer picotol { ... }` and explicitly declares and exports its 5-tier nested sublayer hierarchy upfront:
+
+```css
+@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
+```
+
+##### Granular Sublayer Extension (`@layer picotol.*`)
+
+Downstream consumers can hook directly into specific sublayers without battling selector specificity:
+
+- **Hooking into `@layer picotol.tokens`**: Bridge or override design tokens and Paul Tol ladders:
+  ```css
+  @layer picotol.tokens {
+    :root {
+      --pt-primary: var(--brand-primary, #2255AA);
+    }
+  }
+  ```
+- **Hooking into `@layer picotol.components`**: Override component styling without breaking utility precedence:
+  ```css
+  @layer picotol.components {
+    article.card {
+      border-radius: 1rem;
+    }
+  }
+  ```
+- **Interleaving Downstream Layers**: Insert application layers between Picotol's sublayers:
+  ```css
+  @layer picotol.tokens, host-theme, picotol.reset, picotol.base, picotol.components, host-components, picotol.utilities;
+  ```
 
 ##### Pattern A: CSS `@import` / Bundler
 
@@ -370,6 +397,20 @@ To preserve privacy, zero runtime network requests, and GDPR compliance, pair `@
 }
 ```
 
+### Configurable Typography Floor (`--pt-font-size-floor`)
+
+To protect readability and accessibility in constrained host environments (e.g., embedded IDE auxiliary webviews, dense sidebars, or host roots with reduced base font sizes), `@kidthales/picotol` enforces a minimum typography floor:
+
+- **Default Floor**: `--pt-font-size-floor: 12px;` declared in `:root, :host` within `@layer tokens`.
+- **Accessibility Clamping**: `--pt-font-size-xs` is clamped via `max(var(--pt-font-size-floor, 12px), 0.75rem)`, guaranteeing micro-scale elements (`.pt-indicator`, `.pt-badge`, and `[data-density="tight"]` / `.pt-tight`) never compute below 12px even when the root font size scales down below 16px.
+- **Consumer Overrides**: Host applications can adjust this accessibility floor globally or within a scoped container:
+
+```css
+:root {
+  --pt-font-size-floor: 13px; /* Elevated accessibility floor for micro-scales */
+}
+```
+
 ---
 
 ## Dashboard Fixtures, Universal Icons & Skeletons
@@ -471,10 +512,10 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 
 | State | CSS Tokens | Light Theme Swatch | Dark Theme Swatch | Contrast Guarantee |
 | :--- | :--- | :--- | :--- | :--- |
-| **OK / Success** | `--pt-status-ok-*` | Paul Tol Green (`#228833`) | Paul Tol Green (`#44AA99`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
-| **Warning** | `--pt-status-warning-*` | Calibrated Tol Yellow (`#DDAA33`) | Calibrated Tol Amber (`#EE8866`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
-| **Critical / Danger** | `--pt-status-critical-*` | Paul Tol Red (`#EE6677`) | Paul Tol Red (`#CC3311`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
-| **Info** | `--pt-status-info-*` | Paul Tol Cyan (`#66CCEE`) | Paul Tol Blue (`#4477AA`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **OK / Success** | `--pt-status-ok-*` | Paul Tol Green (`#228833`) | Paul Tol Teal (`#44AA99`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **Warning** | `--pt-status-warning-*` | Paul Tol Brown (`#662506`) / Yellow (`#DDAA33`) | Paul Tol Yellow (`#DDAA33`) / Orange (`#EE8866`) | $\ge 7:1$ text AAA, $\ge 3:1$ non-text |
+| **Critical / Danger** | `--pt-status-critical-*` | Paul Tol Red (`#CC3311`) | Paul Tol Red (`#EE6677`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **Info** | `--pt-status-info-*` | Paul Tol Blue (`#4477AA`) | Paul Tol Cyan (`#66CCEE`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
 | **Neutral** | `--pt-status-neutral-*` | Paul Tol Grey (`#BBBBBB`) | Paul Tol Grey (`#777777`) | $\ge 3:1$ non-text |
 
 These tokens automatically power `.pt-status-dot`, `.status-dot`, `.pt-badge`, `.pt-indicator`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
@@ -494,6 +535,17 @@ Ready-to-use component primitives (`.pt-badge` and `.pt-indicator`) map natively
 <span class="pt-indicator ok">Online</span>
 <span class="pt-indicator warning">Warning</span>
 <span class="pt-chip critical">p0-crit</span>
+```
+
+#### Tabular Numerics for Streaming Telemetry
+All status badges and indicators default to `font-variant-numeric: tabular-nums` (with explicit modifier parity via `.pt-badge--numeric`, `.pt-indicator--numeric`, and the `.pt-tabular` utility). This eliminates horizontal jitter and dynamic layout flutter when rendering streaming metrics (token throughput, latency timers, SLA percentages, turn counts) while maintaining proportional font letterforms:
+
+```html
+<!-- Tabular Numbers on Numeric Badges and Telemetry Indicators -->
+<span class="pt-badge pt-badge--numeric" data-status="ok"><span class="pt-status-dot ok"></span> 99.98% SLA</span>
+<span class="pt-badge pt-badge--numeric warning"><span class="pt-status-dot warning"></span> 1,420 ms P99</span>
+<span class="pt-indicator pt-indicator--numeric info">Turn #042</span>
+<span class="pt-indicator pt-tabular ok">1,842 tok/s</span>
 ```
 
 High-density status dots (`.status-dot`, `.pt-status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
@@ -582,6 +634,11 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, segmented c
 - **Canonical Placement (`data-placement`)**: `data-placement="top"` (default) or `data-placement="bottom"`. Compatibility classes `.top` and `.bottom` are also supported.
 - **Positioning**: Pin position configured via `--pt-marker-pos` (`0%` to `100%`); range band span configured via `--pt-range-start` and `--pt-range-end`.
 - **Labels**: `.pt-meter-label` or `[data-label]` child elements aligned to the marker with `tabular-nums`.
+- **Boundary-Aligned Modifiers (`data-align` / `.pt-meter-mark--*`)**: Prevent label clipping and container overflow at track extremes (0% and 100%) without shifting the indicator pin:
+  - `data-align="start"` or `.pt-meter-mark--start`: Applies `transform: translateX(0)` for 0% / low-end markers.
+  - `data-align="end"` or `.pt-meter-mark--end`: Applies `transform: translateX(-100%)` for 100% / high-end markers.
+  - `data-align="center"` or `.pt-meter-mark--center`: Explicitly resets to centered default (`transform: translateX(-50%)`).
+  - **Pin Centering Invariant**: The marker pin (`&::before`) remains strictly centered (`transform: translateX(-50%)`) at the target percentage tick.
 - **Tokenized Stacking Layers**: Sub-primitives stack predictably via tokenized z-index layers: `--pt-meter-range-z: 1` (`.pt-meter-range`), `--pt-meter-fill-z: 2` (`.pt-meter-fill`), and `--pt-meter-mark-z: 3` (`.pt-meter-mark`, `.pt-meter-label`, `.pt-gauge-marker`, `.pt-meter-pin`).
 
 ```html
@@ -591,8 +648,9 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, segmented c
   <div class="pt-meter-range critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
   <div class="pt-progress" role="progressbar" aria-valuenow="78" style="--pt-progress-value: 78%;">
     <div class="pt-progress-fill pt-meter-fill"></div>
+    <div class="pt-meter-mark pt-meter-mark--start" data-placement="top" data-align="start" style="--pt-marker-pos: 0%;"><span class="pt-meter-label">0% Min</span></div>
     <div class="pt-meter-pin pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
-    <div class="pt-meter-pin pt-meter-mark critical bottom" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
+    <div class="pt-meter-mark pt-meter-mark--end critical bottom" data-placement="bottom" data-align="end" style="--pt-marker-pos: 100%;"><span class="pt-meter-label" data-label>100% Max</span></div>
   </div>
 </div>
 ```

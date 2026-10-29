@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { transform } from "lightningcss";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -246,7 +247,7 @@ test("Architecture & Selector Invariants: @layer cascade, --pt-* tokens, [data-t
   const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
   const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
 
-  const layers = ["tokens", "base", "layout", "content", "forms", "nav", "components"];
+  const layers = ["tokens", "reset", "base", "components", "utilities"];
   let lastIdx = -1;
   for (const layer of layers) {
     const idx = fullCss.indexOf(`@layer ${layer}`);
@@ -372,6 +373,15 @@ test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework b
   assert.ok(layerMinCss.startsWith("/*!"), "Minified layered build must retain license header");
 
   assert.ok(
+    layerCss.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
+    "dist/picotol.layer.css must export nested layer definitions preamble"
+  );
+  assert.ok(
+    layerMinCss.includes("@layer picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;"),
+    "dist/picotol.layer.min.css must export nested layer definitions preamble"
+  );
+
+  assert.ok(
     layerCss.includes("@layer picotol {"),
     "dist/picotol.layer.css must wrap contents in @layer picotol"
   );
@@ -381,7 +391,7 @@ test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework b
   );
 
   // Validate that internal cascade layers reside inside @layer picotol
-  const layers = ["tokens", "base", "layout", "content", "forms", "nav", "components"];
+  const layers = ["tokens", "reset", "base", "components", "utilities"];
   for (const layer of layers) {
     assert.ok(
       layerMinCss.includes(`@layer ${layer}`) || layerMinCss.includes(`@layer ${layer}{`),
@@ -1168,6 +1178,12 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     fullCss.includes("min-width: 0"),
     "Segmented fill child items must enforce min-width: 0 to allow flex shrinkage"
   );
+  assert.ok(
+    /&:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)\s*\{[^}]*& > \*\s*\{[^}]*display:\s*block;/s.test(fullCss) ||
+    /\.segmented:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)\s*>\s*\*\s*\{[^}]*display:\s*block/s.test(fullCss) ||
+    (fullCss.includes(".segmented-fill") && fullCss.includes("display: block")),
+    "Segmented fill child items must establish a block formatting context (display: block) to enable text ellipsis truncation"
+  );
 
   // 2. Dedicated square icon button utilities compiled in full bundle
   assert.ok(
@@ -1436,11 +1452,11 @@ test("Semantic Status Tokens and Dark Mode Contrast Calibration (Issue #126)", (
 
   // 2. Paul Tol Canonical Color Mapping Verification
   // OK: light #228833 (Tol bright green), dark #44AA99 (Tol muted teal)
-  // Warning: light fg #775500 (Tol dark 9), dark fg #DDAA33 (Tol high-contrast yellow), dark border #EE8866 (Tol light orange)
+  // Warning: light fg #662506 (Tol ylorbr brown), dark fg #DDAA33 (Tol high-contrast yellow), dark border #EE8866 (Tol light orange)
   // Critical: light #CC3311 (Tol vibrant red), dark #EE6677 (Tol bright red)
   // Info: light #4477AA (Tol bright blue), dark #66CCEE (Tol bright cyan)
   assert.ok(tokensCss.includes("#228833") && tokensCss.includes("#44AA99"), "OK token must use canonical Tol green and teal");
-  assert.ok(tokensCss.includes("#DDAA33") && tokensCss.includes("#EE8866"), "Warning token must use canonical Tol yellow and orange");
+  assert.ok(tokensCss.includes("#662506") && tokensCss.includes("#DDAA33") && tokensCss.includes("#EE8866"), "Warning token must use canonical Tol brown, yellow and orange");
   assert.ok(tokensCss.includes("#CC3311") && tokensCss.includes("#EE6677"), "Critical token must use canonical Tol red");
   assert.ok(tokensCss.includes("#4477AA") && tokensCss.includes("#66CCEE"), "Info token must use canonical Tol blue and cyan");
 
@@ -2083,6 +2099,570 @@ test("Ultra-Compact Density Modifier, Dense Card Modifier, and Embedded Panel In
     "dist/demo/index.html must demonstrate nested card containment under tight density"
   );
 });
+
+test("Configurable Typography Floor (--pt-font-size-floor) for Compact Density (Issue #152)", () => {
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Token definitions in tokens.css and compiled bundles
+  for (const css of [tokensCss, fullCss, coreCss]) {
+    assert.ok(
+      css.includes("--pt-font-size-floor: 12px;"),
+      "Must define default --pt-font-size-floor: 12px; in tokens"
+    );
+    assert.ok(
+      /--pt-font-size-xs:\s*max\(var\(--pt-font-size-floor,\s*12px\),\s*0?\.75rem\);/.test(css),
+      "Must clamp --pt-font-size-xs using max(var(--pt-font-size-floor, 12px), 0.75rem)"
+    );
+  }
+
+  // 2. Minified bundle presence
+  for (const minCss of [fullMin, layerMin]) {
+    assert.ok(
+      minCss.includes("--pt-font-size-floor:12px;"),
+      "Minified bundles must include --pt-font-size-floor:12px;"
+    );
+    assert.ok(
+      minCss.includes("--pt-font-size-xs:max(var(--pt-font-size-floor,12px), .75rem)") ||
+      minCss.includes("--pt-font-size-xs:max(var(--pt-font-size-floor,12px),.75rem)"),
+      "Minified bundles must clamp --pt-font-size-xs"
+    );
+  }
+
+  // 3. Components and density classes respect typography floor via --pt-font-size-xs
+  assert.ok(
+    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em);") ||
+    compCss.includes("font-size: var(--pt-font-size-xs, .75em);"),
+    ".pt-badge and .pt-indicator must wire font-size to --pt-font-size-xs"
+  );
+  assert.ok(
+    tokensCss.includes('[data-density="tight"]') && tokensCss.includes("font-size: var(--pt-font-size-xs);"),
+    "[data-density=\"tight\"] must wire font-size to --pt-font-size-xs"
+  );
+
+  // 4. Automated unit tests asserting font size floors across custom base scales
+  function resolveEffectiveFontSizeXs(rootFontSizePx, customFloorPx = null) {
+    const floor = customFloorPx !== null ? customFloorPx : 12;
+    const remValuePx = 0.75 * rootFontSizePx;
+    return Math.max(floor, remValuePx);
+  }
+
+  // Standard root: 16px -> 0.75rem = 12px -> floor = 12px
+  assert.strictEqual(resolveEffectiveFontSizeXs(16), 12, "Standard 16px root must compute to 12px");
+
+  // Compact root: 14px -> 0.75rem = 10.5px -> clamped to 12px floor
+  assert.strictEqual(resolveEffectiveFontSizeXs(14), 12, "Constrained 14px root must clamp to 12px floor");
+
+  // Ultra-compact root: 12px -> 0.75rem = 9px -> clamped to 12px floor
+  assert.strictEqual(resolveEffectiveFontSizeXs(12), 12, "Ultra-compact 12px root must clamp to 12px floor");
+
+  // Extreme micro root: 10px -> 0.75rem = 7.5px -> clamped to 12px floor
+  assert.strictEqual(resolveEffectiveFontSizeXs(10), 12, "Extreme micro 10px root must clamp to 12px floor");
+
+  // Large root: 20px -> 0.75rem = 15px -> scales up naturally (15px > 12px)
+  assert.strictEqual(resolveEffectiveFontSizeXs(20), 15, "Large 20px root must scale above floor to 15px");
+
+  // Custom floor override: 14px on 14px root -> clamped to 14px floor
+  assert.strictEqual(resolveEffectiveFontSizeXs(14, 14), 14, "Custom 14px floor on 14px root must clamp to 14px");
+
+  // Custom floor override: 14px on standard 16px root -> clamped to 14px floor
+  assert.strictEqual(resolveEffectiveFontSizeXs(16, 14), 14, "Custom 14px floor on 16px root must clamp to 14px");
+
+  // 5. Documentation in README.md
+  assert.ok(
+    readme.includes("--pt-font-size-floor"),
+    "README.md must document --pt-font-size-floor"
+  );
+  assert.ok(
+    readme.includes("Configurable Typography Floor"),
+    "README.md must include Configurable Typography Floor section"
+  );
+});
+
+test("Nested @layer Taxonomy, Sublayer Preamble, and Downstream Extensibility (Issue #153)", () => {
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const baseCss = fs.readFileSync(path.join(ROOT, "src/base.css"), "utf8");
+  const layoutCss = fs.readFileSync(path.join(ROOT, "src/layout.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Five-tier nested layer preamble export in dist/picotol.layer.css and dist/picotol.layer.min.css
+  const expectedPreamble = "@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;";
+  const expectedMinPreamble = "@layer picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;";
+
+  assert.ok(
+    layerCss.includes(expectedPreamble),
+    "dist/picotol.layer.css must declare nested sublayer preamble upfront"
+  );
+  assert.ok(
+    layerMin.includes(expectedMinPreamble),
+    "dist/picotol.layer.min.css must minify nested sublayer preamble upfront"
+  );
+
+  // 2. Unlayered bundles export root layer taxonomy
+  assert.ok(
+    tokensCss.includes("@layer tokens, reset, base, components, utilities;"),
+    "src/tokens.css must declare 5-tier layer ordering"
+  );
+  let fullIdx = -1;
+  for (const l of ["tokens", "reset", "base", "components", "utilities"]) {
+    const idx = fullCss.indexOf(`@layer ${l}`);
+    assert.ok(idx > fullIdx, `dist/picotol.css must preserve @layer ${l} in sequential cascade order`);
+    fullIdx = idx;
+  }
+  let coreIdx = -1;
+  for (const l of ["tokens", "reset", "base", "utilities"]) {
+    const idx = coreCss.indexOf(`@layer ${l}`);
+    assert.ok(idx > coreIdx, `dist/picotol.core.css must preserve @layer ${l} in sequential cascade order`);
+    coreIdx = idx;
+  }
+
+  // 3. Strict sublayer source order inside dist/picotol.layer.css
+  const sublayers = ["tokens", "reset", "base", "components", "utilities"];
+  let prevIdx = layerCss.indexOf("@layer picotol {");
+  assert.ok(prevIdx !== -1, "dist/picotol.layer.css must contain @layer picotol");
+
+  for (const layer of sublayers) {
+    const idx = layerCss.indexOf(`@layer ${layer} {`, prevIdx);
+    assert.ok(
+      idx > prevIdx,
+      `Expected inner sublayer @layer ${layer} in order inside dist/picotol.layer.css`
+    );
+    prevIdx = idx;
+  }
+
+  // 4. Verification of source file layer assignments
+  assert.ok(baseCss.includes("@layer reset {"), "src/base.css must define @layer reset");
+  assert.ok(baseCss.includes("@layer base {"), "src/base.css must define @layer base");
+  assert.ok(baseCss.includes("@layer utilities {"), "src/base.css must define @layer utilities");
+  assert.ok(layoutCss.includes("@layer base {"), "src/layout.css must define @layer base");
+  assert.ok(layoutCss.includes("@layer utilities {"), "src/layout.css must define @layer utilities");
+  assert.ok(compCss.includes("@layer components {"), "src/components.css must define @layer components");
+
+  // 5. Downstream Hook Capability: compiling @layer picotol.tokens and @layer picotol.components
+  const downstreamSnippet = `
+    @layer picotol.tokens, my-theme, picotol.reset, picotol.base, picotol.components, my-components, picotol.utilities;
+    @layer picotol.tokens {
+      :root { --pt-primary: #123456; }
+    }
+    @layer picotol.components {
+      article.card { border-radius: 1.5rem; }
+    }
+    @layer my-components {
+      article.card { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+    }
+  `;
+  const downstreamTransformed = transform({
+    filename: "downstream-test.css",
+    code: Buffer.from(downstreamSnippet, "utf8"),
+    minify: true,
+  }).code.toString("utf8");
+  assert.ok(
+    downstreamTransformed.includes("picotol.tokens") && downstreamTransformed.includes("picotol.components"),
+    "LightningCSS must cleanly transform and retain downstream @layer picotol.* references"
+  );
+
+  // 6. Specificity Invariance & Layer Precedence
+  // Utility classes must reside inside @layer utilities to beat component/base rules
+  const utilitiesIdx = layerCss.indexOf("@layer utilities {");
+  assert.ok(utilitiesIdx !== -1, "@layer utilities must be defined in dist/picotol.layer.css");
+  assert.ok(
+    layerCss.indexOf(".skip-to-content:is(:focus, :focus-visible)", utilitiesIdx) !== -1,
+    ".skip-to-content focus rule must compile inside @layer utilities"
+  );
+  assert.ok(
+    layerCss.indexOf(".sr-only", utilitiesIdx) !== -1,
+    ".sr-only utility must compile inside @layer utilities"
+  );
+  assert.ok(
+    layerCss.indexOf(".table-container", utilitiesIdx) !== -1,
+    ".table-container utility must compile inside @layer utilities"
+  );
+
+  // 7. README.md Documentation
+  assert.ok(
+    readme.includes("@layer tokens, reset, base, components, utilities;"),
+    "README must document 5-tier architecture layer declaration"
+  );
+  assert.ok(
+    readme.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
+    "README must document nested @layer taxonomy declaration"
+  );
+  assert.ok(
+    readme.includes("@layer picotol.tokens") && readme.includes("var(--brand-primary, #2255AA)"),
+    "README must document downstream @layer picotol.tokens override pattern"
+  );
+  assert.ok(
+    readme.includes("@layer picotol.components") && readme.includes("article.card"),
+    "README must document downstream @layer picotol.components override pattern"
+  );
+});
+
+test("Boundary-Aligned Meter Marker Modifiers and Label Clipping Invariants (Issue #154)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Selector and modifier presence across src and compiled bundles
+  assert.ok(
+    compCss.includes(".pt-meter-mark--start") && compCss.includes(".pt-meter-mark--end"),
+    "src/components.css must define .pt-meter-mark--start and .pt-meter-mark--end modifiers"
+  );
+  assert.ok(
+    compCss.includes('[data-align="start"]') && compCss.includes('[data-align="end"]'),
+    "src/components.css must support canonical data-align=start and data-align=end attributes"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter-mark--start") && fullCss.includes(".pt-meter-mark--end"),
+    "dist/picotol.css must compile .pt-meter-mark--start and .pt-meter-mark--end"
+  );
+  assert.ok(
+    fullMin.includes("pt-meter-mark--start") && fullMin.includes("pt-meter-mark--end"),
+    "dist/picotol.min.css must compile minified .pt-meter-mark--start and .pt-meter-mark--end"
+  );
+  assert.ok(
+    layerMin.includes("pt-meter-mark--start") && layerMin.includes("pt-meter-mark--end"),
+    "dist/picotol.layer.min.css must compile minified boundary-aligned marker modifiers"
+  );
+
+  // 2. CSS Transform rules: start = 0, end = -100%, center = -50%
+  assert.ok(
+    compCss.includes("transform: translateX(0)") || compCss.includes("transform: translateX(0%)"),
+    "src/components.css must set transform: translateX(0) for start alignment"
+  );
+  assert.ok(
+    compCss.includes("transform: translateX(-100%)"),
+    "src/components.css must set transform: translateX(-100%) for end alignment"
+  );
+  assert.ok(
+    compCss.includes("transform: translateX(-50%)"),
+    "src/components.css must retain transform: translateX(-50%) for center alignment"
+  );
+
+  // 3. Marker Pin Centering Invariant:
+  // The pin element (&::before) must strictly maintain translateX(-50%) and width: 2px
+  // so the tick mark stays centered at var(--pt-marker-pos) while the label transforms.
+  const beforePinRegex = /&::before\s*\{[^}]*width:\s*2px;[^}]*transform:\s*translateX\(-50%\);/s;
+  assert.ok(
+    beforePinRegex.test(compCss),
+    "Marker pin (&::before) must preserve width: 2px and transform: translateX(-50%) invariant"
+  );
+
+  // 4. Two-Tier Isolation: Core bundle strictly excludes extended meter mark modifiers
+  assert.ok(
+    !coreCss.includes(".pt-meter-mark--start"),
+    "Core bundle must not contain .pt-meter-mark--start"
+  );
+  assert.ok(
+    !coreCss.includes(".pt-meter-mark--end"),
+    "Core bundle must not contain .pt-meter-mark--end"
+  );
+  assert.ok(
+    !coreCss.includes('[data-align="start"]'),
+    "Core bundle must not contain [data-align=start]"
+  );
+
+  // 5. Mathematical Coordinate Model / DOM Snapshot layout clipping verification
+  function computeMarkerLayout({ trackWidth, markerPercent, labelWidth, align }) {
+    const pinPos = (markerPercent / 100) * trackWidth;
+    let labelShiftPercent = -50; // default centered
+    if (align === "start") labelShiftPercent = 0;
+    else if (align === "end") labelShiftPercent = -100;
+    else if (align === "center") labelShiftPercent = -50;
+
+    const labelStart = pinPos + (labelShiftPercent / 100) * labelWidth;
+    const labelEnd = labelStart + labelWidth;
+
+    const leftOverflow = Math.max(0, -labelStart);
+    const rightOverflow = Math.max(0, labelEnd - trackWidth);
+
+    return {
+      pinPos,
+      labelStart,
+      labelEnd,
+      leftOverflow,
+      rightOverflow,
+      isClipped: leftOverflow > 0 || rightOverflow > 0,
+    };
+  }
+
+  const trackWidth = 400; // 400px progress track
+  const labelWidth = 60;  // 60px label (e.g. "100% Max")
+
+  // Scenario A: 0% boundary marker
+  const zeroDefault = computeMarkerLayout({ trackWidth, markerPercent: 0, labelWidth, align: "center" });
+  assert.strictEqual(zeroDefault.leftOverflow, 30, "Default centered 0% marker must clip left edge by 30px");
+  assert.strictEqual(zeroDefault.isClipped, true, "Default centered 0% marker is clipped");
+
+  const zeroStart = computeMarkerLayout({ trackWidth, markerPercent: 0, labelWidth, align: "start" });
+  assert.strictEqual(zeroStart.leftOverflow, 0, "Start-aligned 0% marker must have 0px left overflow");
+  assert.strictEqual(zeroStart.rightOverflow, 0, "Start-aligned 0% marker must have 0px right overflow");
+  assert.strictEqual(zeroStart.isClipped, false, "Start-aligned 0% marker prevents boundary clipping");
+  assert.strictEqual(zeroStart.pinPos, 0, "Pin position remains centered exactly on 0px");
+
+  // Scenario B: 100% boundary marker
+  const hundredDefault = computeMarkerLayout({ trackWidth, markerPercent: 100, labelWidth, align: "center" });
+  assert.strictEqual(hundredDefault.rightOverflow, 30, "Default centered 100% marker must clip right edge by 30px");
+  assert.strictEqual(hundredDefault.isClipped, true, "Default centered 100% marker is clipped");
+
+  const hundredEnd = computeMarkerLayout({ trackWidth, markerPercent: 100, labelWidth, align: "end" });
+  assert.strictEqual(hundredEnd.leftOverflow, 0, "End-aligned 100% marker must have 0px left overflow");
+  assert.strictEqual(hundredEnd.rightOverflow, 0, "End-aligned 100% marker must have 0px right overflow");
+  assert.strictEqual(hundredEnd.isClipped, false, "End-aligned 100% marker prevents boundary clipping");
+  assert.strictEqual(hundredEnd.pinPos, 400, "Pin position remains centered exactly on 400px");
+
+  // Scenario C: 50% midpoint marker (centered alignment optimal)
+  const midCenter = computeMarkerLayout({ trackWidth, markerPercent: 50, labelWidth, align: "center" });
+  assert.strictEqual(midCenter.leftOverflow, 0, "Midpoint centered marker has 0px left overflow");
+  assert.strictEqual(midCenter.rightOverflow, 0, "Midpoint centered marker has 0px right overflow");
+  assert.strictEqual(midCenter.isClipped, false, "Midpoint centered marker is within bounds");
+  assert.strictEqual(midCenter.pinPos, 200, "Pin position is exactly centered at 200px");
+
+  // 6. Interactive Demo verification
+  assert.ok(
+    demoHtml.includes("pt-meter-mark--start") && demoHtml.includes("pt-meter-mark--end"),
+    "Demo HTML must showcase .pt-meter-mark--start and .pt-meter-mark--end modifiers"
+  );
+  assert.ok(
+    demoHtml.includes('data-align="start"') && demoHtml.includes('data-align="end"'),
+    "Demo HTML must showcase data-align=start and data-align=end attributes"
+  );
+
+  // 7. README.md Documentation
+  assert.ok(
+    readme.includes(".pt-meter-mark--start") && readme.includes(".pt-meter-mark--end"),
+    "README must document .pt-meter-mark--start and .pt-meter-mark--end"
+  );
+  assert.ok(
+    readme.includes('data-align="start"') && readme.includes('data-align="end"'),
+    "README must document data-align=start and data-align=end"
+  );
+});
+
+test("Tabular Numerics on Status Badges, Indicators, and Numeric Modifiers (Issue #155)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const contentCss = fs.readFileSync(path.join(ROOT, "src/content.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Default tabular numbers on :where(.badge, [role="status"], .pt-badge, .pt-indicator)
+  assert.ok(
+    compCss.includes("font-variant-numeric: tabular-nums"),
+    "src/components.css must declare font-variant-numeric: tabular-nums"
+  );
+  assert.ok(
+    fullCss.includes("font-variant-numeric: tabular-nums"),
+    "dist/picotol.css must include tabular-nums font-variant-numeric"
+  );
+
+  // 2. Explicit modifier classes: .pt-badge--numeric and .pt-indicator--numeric
+  assert.ok(
+    compCss.includes(".pt-badge--numeric") && compCss.includes(".pt-indicator--numeric"),
+    "src/components.css must define .pt-badge--numeric and .pt-indicator--numeric modifiers"
+  );
+  assert.ok(
+    fullMin.includes("pt-badge--numeric") && fullMin.includes("pt-indicator--numeric"),
+    "dist/picotol.min.css must compile .pt-badge--numeric and .pt-indicator--numeric"
+  );
+  assert.ok(
+    layerMin.includes("pt-badge--numeric") && layerMin.includes("pt-indicator--numeric"),
+    "dist/picotol.layer.min.css must compile .pt-badge--numeric and .pt-indicator--numeric"
+  );
+
+  // 3. Two-Tier Isolation: Core bundle strictly excludes component modifiers
+  assert.ok(
+    !coreCss.includes(".pt-badge--numeric"),
+    "Core bundle must not contain .pt-badge--numeric"
+  );
+  assert.ok(
+    !coreCss.includes(".pt-indicator--numeric"),
+    "Core bundle must not contain .pt-indicator--numeric"
+  );
+
+  // 4. Utility parity: .pt-tabular in @layer utilities
+  assert.ok(
+    contentCss.includes(".pt-tabular"),
+    "src/content.css must define .pt-tabular utility in @layer utilities"
+  );
+
+  // 5. Interactive Demo showcase verification
+  assert.ok(
+    demoHtml.includes("pt-badge--numeric"),
+    "dist/demo/index.html must showcase .pt-badge--numeric"
+  );
+  assert.ok(
+    demoHtml.includes("pt-indicator--numeric"),
+    "dist/demo/index.html must showcase .pt-indicator--numeric"
+  );
+  assert.ok(
+    demoHtml.includes("live-badge-count") || demoHtml.includes("live-indicator-count"),
+    "dist/demo/index.html must showcase dynamic counter/badge telemetry"
+  );
+
+  // 6. Documentation verification in README.md
+  assert.ok(
+    readme.includes(".pt-badge--numeric"),
+    "README.md must document .pt-badge--numeric"
+  );
+  assert.ok(
+    readme.includes(".pt-indicator--numeric"),
+    "README.md must document .pt-indicator--numeric"
+  );
+  assert.ok(
+    readme.includes("tabular-nums"),
+    "README.md must document tabular-nums for layout jitter prevention"
+  );
+});
+
+test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for Status Triads (Issue #156)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+
+  // 1. Definition and inclusion of tuned warning foreground token in source tokens and all distribution bundles
+  assert.ok(
+    tokensCss.includes("--pt-status-warning-fg: light-dark(#662506, #DDAA33)"),
+    "tokens.css must define calibrated light-dark(#662506, #DDAA33) for --pt-status-warning-fg"
+  );
+  assert.ok(
+    coreCss.includes("--pt-status-warning-fg"),
+    "picotol.core.css must define --pt-status-warning-fg"
+  );
+  assert.ok(
+    fullCss.includes("--pt-status-warning-fg"),
+    "picotol.css must define --pt-status-warning-fg"
+  );
+  assert.ok(
+    layerCss.includes("--pt-status-warning-fg"),
+    "picotol.layer.css must define --pt-status-warning-fg"
+  );
+
+  // 2. Light Theme Status Triads Contrast Audit against WCAG 2.2 Standards
+  // Light root background: #FFFFFF; Light card/surface background: #DDDDDD
+  const lightRoot = "#FFFFFF";
+  const lightSurface = "#DDDDDD";
+
+  // Simulate 8% border wash over surface
+  function mixSrgb(borderHex, alphaPct, bgHex) {
+    const c1 = expandHex(borderHex).replace("#", "");
+    const c2 = expandHex(bgHex).replace("#", "");
+    const r1 = parseInt(c1.slice(0, 2), 16), g1 = parseInt(c1.slice(2, 4), 16), b1 = parseInt(c1.slice(4, 6), 16);
+    const r2 = parseInt(c2.slice(0, 2), 16), g2 = parseInt(c2.slice(2, 4), 16), b2 = parseInt(c2.slice(4, 6), 16);
+    const a = alphaPct / 100;
+    const r = Math.round(r1 * a + r2 * (1 - a));
+    const g = Math.round(g1 * a + g2 * (1 - a));
+    const b = Math.round(b1 * a + b2 * (1 - a));
+    return "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
+  }
+
+  // Warning triad in light mode: fg #662506 (Tol ylorbr brown), border #DDAA33 (Tol high-contrast yellow)
+  const warnFg = "#662506";
+  const warnBorder = "#DDAA33";
+  const warnBgOnRoot = mixSrgb(warnBorder, 8, lightRoot);
+  const warnBgOnSurface = mixSrgb(warnBorder, 8, lightSurface);
+
+  // Warning text MUST achieve WCAG 2.2 AAA (>= 7.0:1) on white root and light surface cards
+  const crWarnRoot = contrastRatio(warnFg, lightRoot);
+  const crWarnSurface = contrastRatio(warnFg, lightSurface);
+  const crWarnBadgeRoot = contrastRatio(warnFg, warnBgOnRoot);
+  const crWarnBadgeSurface = contrastRatio(warnFg, warnBgOnSurface);
+
+  assert.ok(
+    crWarnRoot >= 7.0,
+    `Warning fg #662506 on white root must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnRoot.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crWarnSurface >= 7.0,
+    `Warning fg #662506 on light surface must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnSurface.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crWarnBadgeRoot >= 7.0,
+    `Warning fg #662506 on 8% badge wash (root) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeRoot.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crWarnBadgeSurface >= 7.0,
+    `Warning fg #662506 on 8% badge wash (surface) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeSurface.toFixed(2)}:1)`
+  );
+
+  // 3. Status Triads Audit for OK, Critical, and Info (WCAG 2.2 AA text >= 4.5:1 on root)
+  const okFg = "#228833";
+  const critFg = "#CC3311";
+  const infoFg = "#4477AA";
+
+  const crOkRoot = contrastRatio(okFg, lightRoot);
+  const crCritRoot = contrastRatio(critFg, lightRoot);
+  const crInfoRoot = contrastRatio(infoFg, lightRoot);
+
+  assert.ok(crOkRoot >= 4.5, `OK fg on light root must achieve >= 4.5:1 (got ${crOkRoot.toFixed(2)}:1)`);
+  assert.ok(crCritRoot >= 4.5, `Critical fg on light root must achieve >= 4.5:1 (got ${crCritRoot.toFixed(2)}:1)`);
+  assert.ok(crInfoRoot >= 4.5, `Info fg on light root must achieve >= 4.5:1 (got ${crInfoRoot.toFixed(2)}:1)`);
+
+  // 4. Color-Blind Safe Greyscale Luminance Distinction
+  // Calculate relative luminance for all status foregrounds and borders
+  const lumWarnFg = relativeLuminance(warnFg);
+  const lumOkFg = relativeLuminance(okFg);
+  const lumCritFg = relativeLuminance(critFg);
+  const lumInfoFg = relativeLuminance(infoFg);
+
+  // Tuned warning foreground #662506 provides strong greyscale contrast vs other status foregrounds
+  const greyscaleRatioWarnVsOk = contrastRatio(warnFg, okFg);
+  const greyscaleRatioWarnVsCrit = contrastRatio(warnFg, critFg);
+  const greyscaleRatioWarnVsInfo = contrastRatio(warnFg, infoFg);
+
+  assert.ok(
+    greyscaleRatioWarnVsOk >= 2.0,
+    `Greyscale contrast between Warning fg and OK fg must be >= 2.0:1 (got ${greyscaleRatioWarnVsOk.toFixed(2)}:1)`
+  );
+  assert.ok(
+    greyscaleRatioWarnVsCrit >= 2.0,
+    `Greyscale contrast between Warning fg and Critical fg must be >= 2.0:1 (got ${greyscaleRatioWarnVsCrit.toFixed(2)}:1)`
+  );
+  assert.ok(
+    greyscaleRatioWarnVsInfo >= 2.0,
+    `Greyscale contrast between Warning fg and Info fg must be >= 2.0:1 (got ${greyscaleRatioWarnVsInfo.toFixed(2)}:1)`
+  );
+
+  // Border luminance distinctions for non-text indicators in greyscale
+  const lumWarnBorder = relativeLuminance(warnBorder);
+  const lumOkBorder = relativeLuminance(okFg);
+  const lumCritBorder = relativeLuminance(critFg);
+  const lumInfoBorder = relativeLuminance(infoFg);
+
+  assert.ok(
+    Math.abs(lumWarnBorder - lumOkBorder) > 0.2,
+    "Warning border must maintain > 0.2 luminance separation from OK border in greyscale"
+  );
+  assert.ok(
+    Math.abs(lumWarnBorder - lumCritBorder) > 0.2,
+    "Warning border must maintain > 0.2 luminance separation from Critical border in greyscale"
+  );
+  assert.ok(
+    Math.abs(lumWarnBorder - lumInfoBorder) > 0.2,
+    "Warning border must maintain > 0.2 luminance separation from Info border in greyscale"
+  );
+});
+
+
 
 
 

@@ -81,7 +81,9 @@ export function buildAll() {
   const fullMin = HEADER + fullMinRaw;
 
   // Opt-in layered distribution build wrapping full bundle within @layer picotol { ... }
-  const layerWrapped = `@layer picotol {\n${fullExpandedRaw}\n}`;
+  // Explicitly exports nested sublayer taxonomy for granular downstream overrides and token bridging
+  const layerPreamble = '@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;\n';
+  const layerWrapped = `${layerPreamble}@layer picotol {\n${fullExpandedRaw}\n}`;
   const layerExpandedRaw = transformStrict('picotol.layer.css', layerWrapped, false);
   const layerMinRaw = transformStrict('picotol.layer.min.css', layerWrapped, true);
   const layerExpanded = HEADER + layerExpandedRaw;

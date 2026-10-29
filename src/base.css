@@ -1,15 +1,5 @@
-@layer base {
+@layer reset {
   *, ::before, ::after { box-sizing: border-box; }
-
-  :root, :host, :where([data-theme]) {
-    background: var(--pt-bg);
-    color: var(--pt-color);
-    font-family: var(--pt-font-sans);
-    font-size: 100%;
-    line-height: var(--pt-line-height);
-    overflow-wrap: break-word;
-    tab-size: 4;
-  }
 
   body {
     margin: 0;
@@ -20,9 +10,23 @@
       flex: 1 0 auto;
     }
   }
+
   :where(button, input, optgroup, select, textarea) { margin: 0; font: inherit; }
-  ::selection { background-color: color-mix(in srgb, var(--pt-primary) 25%, transparent); }
   :where([hidden]) { display: none !important; }
+}
+
+@layer base {
+  :root, :host, :where([data-theme]) {
+    background: var(--pt-bg);
+    color: var(--pt-color);
+    font-family: var(--pt-font-sans);
+    font-size: 100%;
+    line-height: var(--pt-line-height);
+    overflow-wrap: break-word;
+    tab-size: 4;
+  }
+
+  ::selection { background-color: color-mix(in srgb, var(--pt-primary) 25%, transparent); }
 
   :focus-visible {
     outline: 2px solid var(--pt-primary);
@@ -33,6 +37,30 @@
     outline-width: 0;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    :not([aria-busy="true"]) {
+      &, &::before, &::after {
+        animation: none !important;
+      }
+    }
+    *, ::before, ::after {
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  @media print {
+    :root {
+      color-scheme: light;
+      --pt-bg: #fff;
+      --pt-color: #000;
+    }
+    :where(nav, dialog, .skip-to-content) { display: none !important; }
+    :where(pre, blockquote, table, article, figure) { break-inside: avoid; }
+  }
+}
+
+@layer utilities {
   .skip-to-content:is(:focus, :focus-visible) {
     position: fixed;
     top: 0.5rem;
@@ -62,27 +90,4 @@
     white-space: nowrap;
     border: 0;
   }
-
-  @media (prefers-reduced-motion: reduce) {
-    :not([aria-busy="true"]) {
-      &, &::before, &::after {
-        animation: none !important;
-      }
-    }
-    *, ::before, ::after {
-      transition: none !important;
-      scroll-behavior: auto !important;
-    }
-  }
-
-  @media print {
-    :root {
-      color-scheme: light;
-      --pt-bg: #fff;
-      --pt-color: #000;
-    }
-    :where(nav, dialog, .skip-to-content) { display: none !important; }
-    :where(pre, blockquote, table, article, figure) { break-inside: avoid; }
-  }
 }
-

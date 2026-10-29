@@ -116,7 +116,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
   };
 
   const lines = [
-    '@layer tokens, base, layout, content, forms, nav, components;',
+    '@layer tokens, reset, base, components, utilities;',
     '@layer tokens {',
     '  :root, :host, [data-accent="blue"] {',
     `    --pt-p1: ${colorByName('pale', 0)}; --pt-p2: ${colorByName('light', 'light_blue')}; --pt-p3: ${colorByName('bright', 'blue')}; --pt-p4: ${colorByName('dark', 3)}; --pt-p5: ${colorByName('high-contrast', 'blue')};`,
@@ -127,7 +127,8 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     '  :root, :host {',
     '    --pt-font-sans: system-ui, sans-serif;',
     '    --pt-font-mono: ui-monospace, monospace;',
-    '    --pt-font-size-xs: 0.75rem;',
+    '    --pt-font-size-floor: 12px;',
+    '    --pt-font-size-xs: max(var(--pt-font-size-floor, 12px), 0.75rem);',
     '    --pt-line-height: 1.5;',
     '    --pt-border-radius: 0.25rem;',
     '    --pt-transition: 0.15s ease-in-out;',
@@ -165,7 +166,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     `    --pt-status-ok-fg: light-dark(${colorByName('bright', 'green')}, ${colorByName('muted', 'teal')});`,
     '    --pt-status-ok-border: var(--pt-status-ok-fg);',
     '    --pt-status-ok-bg: color-mix(in srgb, var(--pt-status-ok-border) 8%, transparent);',
-    `    --pt-status-warning-fg: light-dark(${colorByName('dark', 9)}, ${colorByName('high-contrast', 'yellow')});`,
+    `    --pt-status-warning-fg: light-dark(${colorByName('ylorbr', 1)}, ${colorByName('high-contrast', 'yellow')});`,
     `    --pt-status-warning-border: light-dark(${colorByName('high-contrast', 'yellow')}, ${colorByName('light', 'orange')});`,
     '    --pt-status-warning-bg: color-mix(in srgb, var(--pt-status-warning-border) 8%, transparent);',
     `    --pt-status-critical-fg: light-dark(${colorByName('vibrant', 'red')}, ${colorByName('bright', 'red')});`,
