@@ -2301,6 +2301,153 @@ test("Nested @layer Taxonomy, Sublayer Preamble, and Downstream Extensibility (I
   );
 });
 
+test("Boundary-Aligned Meter Marker Modifiers and Label Clipping Invariants (Issue #154)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Selector and modifier presence across src and compiled bundles
+  assert.ok(
+    compCss.includes(".pt-meter-mark--start") && compCss.includes(".pt-meter-mark--end"),
+    "src/components.css must define .pt-meter-mark--start and .pt-meter-mark--end modifiers"
+  );
+  assert.ok(
+    compCss.includes('[data-align="start"]') && compCss.includes('[data-align="end"]'),
+    "src/components.css must support canonical data-align=start and data-align=end attributes"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter-mark--start") && fullCss.includes(".pt-meter-mark--end"),
+    "dist/picotol.css must compile .pt-meter-mark--start and .pt-meter-mark--end"
+  );
+  assert.ok(
+    fullMin.includes("pt-meter-mark--start") && fullMin.includes("pt-meter-mark--end"),
+    "dist/picotol.min.css must compile minified .pt-meter-mark--start and .pt-meter-mark--end"
+  );
+  assert.ok(
+    layerMin.includes("pt-meter-mark--start") && layerMin.includes("pt-meter-mark--end"),
+    "dist/picotol.layer.min.css must compile minified boundary-aligned marker modifiers"
+  );
+
+  // 2. CSS Transform rules: start = 0, end = -100%, center = -50%
+  assert.ok(
+    compCss.includes("transform: translateX(0)") || compCss.includes("transform: translateX(0%)"),
+    "src/components.css must set transform: translateX(0) for start alignment"
+  );
+  assert.ok(
+    compCss.includes("transform: translateX(-100%)"),
+    "src/components.css must set transform: translateX(-100%) for end alignment"
+  );
+  assert.ok(
+    compCss.includes("transform: translateX(-50%)"),
+    "src/components.css must retain transform: translateX(-50%) for center alignment"
+  );
+
+  // 3. Marker Pin Centering Invariant:
+  // The pin element (&::before) must strictly maintain translateX(-50%) and width: 2px
+  // so the tick mark stays centered at var(--pt-marker-pos) while the label transforms.
+  const beforePinRegex = /&::before\s*\{[^}]*width:\s*2px;[^}]*transform:\s*translateX\(-50%\);/s;
+  assert.ok(
+    beforePinRegex.test(compCss),
+    "Marker pin (&::before) must preserve width: 2px and transform: translateX(-50%) invariant"
+  );
+
+  // 4. Two-Tier Isolation: Core bundle strictly excludes extended meter mark modifiers
+  assert.ok(
+    !coreCss.includes(".pt-meter-mark--start"),
+    "Core bundle must not contain .pt-meter-mark--start"
+  );
+  assert.ok(
+    !coreCss.includes(".pt-meter-mark--end"),
+    "Core bundle must not contain .pt-meter-mark--end"
+  );
+  assert.ok(
+    !coreCss.includes('[data-align="start"]'),
+    "Core bundle must not contain [data-align=start]"
+  );
+
+  // 5. Mathematical Coordinate Model / DOM Snapshot layout clipping verification
+  function computeMarkerLayout({ trackWidth, markerPercent, labelWidth, align }) {
+    const pinPos = (markerPercent / 100) * trackWidth;
+    let labelShiftPercent = -50; // default centered
+    if (align === "start") labelShiftPercent = 0;
+    else if (align === "end") labelShiftPercent = -100;
+    else if (align === "center") labelShiftPercent = -50;
+
+    const labelStart = pinPos + (labelShiftPercent / 100) * labelWidth;
+    const labelEnd = labelStart + labelWidth;
+
+    const leftOverflow = Math.max(0, -labelStart);
+    const rightOverflow = Math.max(0, labelEnd - trackWidth);
+
+    return {
+      pinPos,
+      labelStart,
+      labelEnd,
+      leftOverflow,
+      rightOverflow,
+      isClipped: leftOverflow > 0 || rightOverflow > 0,
+    };
+  }
+
+  const trackWidth = 400; // 400px progress track
+  const labelWidth = 60;  // 60px label (e.g. "100% Max")
+
+  // Scenario A: 0% boundary marker
+  const zeroDefault = computeMarkerLayout({ trackWidth, markerPercent: 0, labelWidth, align: "center" });
+  assert.strictEqual(zeroDefault.leftOverflow, 30, "Default centered 0% marker must clip left edge by 30px");
+  assert.strictEqual(zeroDefault.isClipped, true, "Default centered 0% marker is clipped");
+
+  const zeroStart = computeMarkerLayout({ trackWidth, markerPercent: 0, labelWidth, align: "start" });
+  assert.strictEqual(zeroStart.leftOverflow, 0, "Start-aligned 0% marker must have 0px left overflow");
+  assert.strictEqual(zeroStart.rightOverflow, 0, "Start-aligned 0% marker must have 0px right overflow");
+  assert.strictEqual(zeroStart.isClipped, false, "Start-aligned 0% marker prevents boundary clipping");
+  assert.strictEqual(zeroStart.pinPos, 0, "Pin position remains centered exactly on 0px");
+
+  // Scenario B: 100% boundary marker
+  const hundredDefault = computeMarkerLayout({ trackWidth, markerPercent: 100, labelWidth, align: "center" });
+  assert.strictEqual(hundredDefault.rightOverflow, 30, "Default centered 100% marker must clip right edge by 30px");
+  assert.strictEqual(hundredDefault.isClipped, true, "Default centered 100% marker is clipped");
+
+  const hundredEnd = computeMarkerLayout({ trackWidth, markerPercent: 100, labelWidth, align: "end" });
+  assert.strictEqual(hundredEnd.leftOverflow, 0, "End-aligned 100% marker must have 0px left overflow");
+  assert.strictEqual(hundredEnd.rightOverflow, 0, "End-aligned 100% marker must have 0px right overflow");
+  assert.strictEqual(hundredEnd.isClipped, false, "End-aligned 100% marker prevents boundary clipping");
+  assert.strictEqual(hundredEnd.pinPos, 400, "Pin position remains centered exactly on 400px");
+
+  // Scenario C: 50% midpoint marker (centered alignment optimal)
+  const midCenter = computeMarkerLayout({ trackWidth, markerPercent: 50, labelWidth, align: "center" });
+  assert.strictEqual(midCenter.leftOverflow, 0, "Midpoint centered marker has 0px left overflow");
+  assert.strictEqual(midCenter.rightOverflow, 0, "Midpoint centered marker has 0px right overflow");
+  assert.strictEqual(midCenter.isClipped, false, "Midpoint centered marker is within bounds");
+  assert.strictEqual(midCenter.pinPos, 200, "Pin position is exactly centered at 200px");
+
+  // 6. Interactive Demo verification
+  assert.ok(
+    demoHtml.includes("pt-meter-mark--start") && demoHtml.includes("pt-meter-mark--end"),
+    "Demo HTML must showcase .pt-meter-mark--start and .pt-meter-mark--end modifiers"
+  );
+  assert.ok(
+    demoHtml.includes('data-align="start"') && demoHtml.includes('data-align="end"'),
+    "Demo HTML must showcase data-align=start and data-align=end attributes"
+  );
+
+  // 7. README.md Documentation
+  assert.ok(
+    readme.includes(".pt-meter-mark--start") && readme.includes(".pt-meter-mark--end"),
+    "README must document .pt-meter-mark--start and .pt-meter-mark--end"
+  );
+  assert.ok(
+    readme.includes('data-align="start"') && readme.includes('data-align="end"'),
+    "README must document data-align=start and data-align=end"
+  );
+});
+
+
 
 
 

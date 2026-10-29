@@ -891,8 +891,16 @@ ${rowsHtml}
                 <div class="pt-meter-pin pt-meter-mark critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
               </div>
             </div>
+            <div class="pt-meter" style="margin-top: 1.5rem;">
+              <div class="pt-progress" role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 65%;">
+                <div class="pt-progress-fill pt-meter-fill"></div>
+                <div class="pt-meter-mark pt-meter-mark--start" data-placement="top" data-align="start" style="--pt-marker-pos: 0%;"><span class="pt-meter-label">0% Min</span></div>
+                <div class="pt-meter-mark" data-placement="top" style="--pt-marker-pos: 50%;"><span class="pt-meter-label">50% Mid</span></div>
+                <div class="pt-meter-mark pt-meter-mark--end" data-placement="top" data-align="end" style="--pt-marker-pos: 100%;"><span class="pt-meter-label">100% Max</span></div>
+              </div>
+            </div>
           </main>
-          <footer><small>Layered via <code>--pt-meter-*-z</code> stacking tokens, <code>data-placement="top|bottom"</code>, and <code>.pt-meter-range</code></small></footer>
+          <footer><small>Layered via <code>--pt-meter-*-z</code> stacking tokens, <code>data-placement="top|bottom"</code>, <code>data-align="start|end"</code> (<code>.pt-meter-mark--start|--end</code>), and <code>.pt-meter-range</code></small></footer>
         </article>
       </div>
       <h3>Accessible Callouts, Status Dots &amp; Copy Pills (<code>.pt-callout</code> / <code>.pt-copy-pill</code>)</h3>
