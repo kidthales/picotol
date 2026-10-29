@@ -5,6 +5,26 @@ All notable changes to `@kidthales/picotol` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-10-28
+
+Second public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.2.0](docs/RELEASE_NOTES_V0_2_0.md).
+
+### Added
+- Meter pin label positioning (`.pt-meter-label`, `[data-label]`) automatically aligned to threshold markers via `--pt-marker-pos` (#124).
+- Multi-marker range band primitive (`.pt-meter-range`) supporting declarative shading via `--pt-range-start`, `--pt-range-end`, and semantic variants (`ok`, `warning`, `critical`) (#124).
+- Comprehensive compact density cascade (`[data-density="compact"]`, `.pt-compact`) into form controls, buttons, table cells (`th, td`), pills, chips, and grid/flex container gaps (`--pt-gap-compact`) (#125).
+- Semantic status token triads (`--pt-status-*-bg`, `--pt-status-*-fg`, `--pt-status-*-border`) across `ok`, `warning`, `critical`, `info`, and `neutral` states with dark-theme contrast calibration (#126).
+- Automated generation of standalone `dist/SHA256SUMS.txt` checksum manifest during build and release workflows (#127).
+- Standalone offline bundle packaging producing `dist/assets/picotol-v0.2.0.zip` (#127).
+
+### Changed
+- Standardized gauge marker placement on `data-placement="top|bottom"` attribute, maintaining `.top` and `.bottom` utility classes for backwards compatibility (#124, #127).
+
+### Fixed
+- Cards (`article`, `.card`) transitioned to flex-column container layout (`display: flex; flex-direction: column; height: 100%`) resolving stranded footers in stretched grid tracks (#128).
+- Card footers now auto-dock flush to the bottom edge using `margin-block-start: auto;` with full-bleed negative block-end margins (#128).
+- Supported vertical body expansion via `<main>`, `.card-body`, `.body`, and `[data-card-body]` (`flex: 1 1 auto; min-width: 0;`) inside cards (#128).
+
 ## [0.1.0] - 2026-10-28
 
 Initial public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architecture overview, see [Release Notes v0.1.0](docs/RELEASE_NOTES_V0_1_0.md).

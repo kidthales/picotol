@@ -73,14 +73,14 @@ Downstream consumers (e.g. Terminus in `kidthales/foundation`) vendor `@kidthale
 
 ```bash
 # Bash: download bundle and verify with sha256sum
-curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.1.0/picotol.layer.min.css
-curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.1.0/SHA256SUMS.txt
+curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.2.0/picotol.layer.min.css
+curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.2.0/SHA256SUMS.txt
 sha256sum --check --ignore-missing SHA256SUMS.txt
 ```
 
 ```powershell
 # PowerShell: download and assert Get-FileHash integrity against SHA256SUMS.txt
-$u = "https://github.com/kidthales/picotol/releases/download/v0.1.0"
+$u = "https://github.com/kidthales/picotol/releases/download/v0.2.0"
 Invoke-WebRequest "$u/picotol.layer.min.css" -OutFile "./picotol.layer.min.css"
 $hash = (Get-FileHash ./picotol.layer.min.css -Algorithm SHA256).Hash.ToLower()
 $exp = ((Invoke-RestMethod "$u/SHA256SUMS.txt") -split "`n" | Where-Object { $_ -match "picotol\.layer\.min\.css" } | ForEach-Object { (-split $_)[0] }).Trim().ToLower()
@@ -92,7 +92,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.1.0/dist/picotol.min.css" integrity="sha384-d2V2LoKHaFuJPMeFbFJ+/N9o+SpEGgL6M5EZnZzhLxvMAhzkNWgOJTV6t0P2B76z" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.2.0/dist/picotol.min.css" integrity="sha384-uThhcrCrwcw7PWy4do5XlhlY4PFZkbOetIK9jsDriPx6ejWvDj3KXqspYuK9vYYI" crossorigin="anonymous" />
 ```
 
 ---
@@ -336,6 +336,32 @@ Use semantic `<article class="stat">` or `<dl class="stats">` to display large f
 </div>
 ```
 
+### 1b. Card Flex-Column Layout & Auto-Docking Footers
+
+In `@kidthales/picotol` v0.2.0, cards (`<article>`, `.card`) declare `display: flex; flex-direction: column;` with `height: 100%` when nested in grid or flex layouts (`.grid`, `.flex`). Footers (`<footer>`) automatically dock flush at the bottom edge via `margin-block-start: auto;` while preserving full-bleed negative block-end margins (`calc(-1 * var(--pt-card-padding))`), completely eliminating stranded footers and awkward white-space voids across uneven multi-column grid tracks.
+
+Inner card bodies (`<main>`, `.card-body`, `.body`, or `[data-card-body]`) automatically expand vertically with `flex: 1 1 auto; min-width: 0;`:
+
+```html
+<div class="grid">
+  <article class="card">
+    <header><h3>Plan A</h3></header>
+    <main>
+      <p>Basic tier features with minimal content.</p>
+    </main>
+    <footer><button type="button">Select Plan</button></footer>
+  </article>
+
+  <article class="card">
+    <header><h3>Plan B</h3></header>
+    <main>
+      <p>Pro tier features with comprehensive details, bullet lists, SLA metrics, and extended specifications stretching the grid row height.</p>
+    </main>
+    <footer><button type="button">Select Plan</button></footer>
+  </article>
+</div>
+```
+
 ### 2. Zero-CLS Skeleton Loaders
 
 Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions while content is fetching. Uses a gentle 1.5s opacity pulse (`pt-pulse`) that safely pauses under `prefers-reduced-motion: reduce`:
@@ -379,6 +405,20 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 <span class="badge valid">Healthy</span>
 <span class="badge invalid">Error</span>
 ```
+
+### 4a. Calibrated Semantic Status Tokens
+
+`@kidthales/picotol` v0.2.0 introduces standardized semantic status CSS custom property triads (`--pt-status-*-bg`, `--pt-status-*-fg`, `--pt-status-*-border`) across 5 operational states, mapped directly to Paul Tol qualitative schemes with calibrated dark mode luminance ensuring WCAG 2.2 AA non-text ($\ge 3:1$) and text ($\ge 4.5:1$) contrast:
+
+| State | CSS Tokens | Light Theme Swatch | Dark Theme Swatch | Contrast Guarantee |
+| :--- | :--- | :--- | :--- | :--- |
+| **OK / Success** | `--pt-status-ok-*` | Paul Tol Green (`#228833`) | Paul Tol Green (`#44AA99`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **Warning** | `--pt-status-warning-*` | Calibrated Tol Yellow (`#DDAA33`) | Calibrated Tol Amber (`#EE8866`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **Critical / Danger** | `--pt-status-critical-*` | Paul Tol Red (`#EE6677`) | Paul Tol Red (`#CC3311`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **Info** | `--pt-status-info-*` | Paul Tol Cyan (`#66CCEE`) | Paul Tol Blue (`#4477AA`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **Neutral** | `--pt-status-neutral-*` | Paul Tol Grey (`#BBBBBB`) | Paul Tol Grey (`#777777`) | $\ge 3:1$ non-text |
+
+These tokens automatically power `.pt-status-dot`, `.status-dot`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
 
 ### 4b. Status Indicator Dots
 
@@ -482,6 +522,39 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, segmented c
 </div>
 ```
 
+### 4g. Cascading Compact Density (`[data-density="compact"]`)
+
+For data-dense applications, dashboards, and narrow IDE corridors, apply `[data-density="compact"]` (or `.pt-compact`) to any container or `<html>`/`<body>` element. In `@kidthales/picotol` v0.2.0, compact density cascades deep into interactive components and layout systems:
+
+- **Form Controls**: Reduces vertical and horizontal padding on `input`, `select`, `textarea`, and buttons via `--pt-form-element-spacing-vertical: 0.25rem;` and `--pt-form-element-spacing-horizontal: 0.5rem;`.
+- **Tables**: Tightens cell padding (`th, td`) via `--pt-table-cell-padding-block: 0.25rem;` and `--pt-table-cell-padding-inline: 0.5rem;`.
+- **Layout & Cards**: Tightens grid and flex gaps via `--pt-gap-compact: 0.5rem;`, zeroes outer card bottom margins, and tightens card padding.
+- **Pills & Chips**: Decreases vertical padding on `.pt-copy-pill` and `.pt-chip` (`--pt-btn-padding-block: 0.25rem;`).
+- **320px Reflow**: Retains full WCAG 2.2 SC 1.4.10 mobile reflow with zero horizontal scrolling.
+
+```html
+<!-- Dense Data Table & Compact Form Layout -->
+<section data-density="compact">
+  <form class="grid">
+    <input type="text" placeholder="Search hosts..." aria-label="Search" />
+    <select aria-label="Region"><option>All Regions</option></select>
+    <button type="submit">Filter</button>
+  </form>
+
+  <figure class="table-container">
+    <table class="striped">
+      <thead>
+        <tr><th>Host</th><th>Status</th><th>Latency</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>edge-01.us-east</td><td><span class="pt-status-dot pt-status-dot-success"></span> Online</td><td>14ms</td></tr>
+        <tr><td>edge-02.eu-west</td><td><span class="pt-status-dot pt-status-dot-warning"></span> Degraded</td><td>142ms</td></tr>
+      </tbody>
+    </table>
+  </figure>
+</section>
+```
+
 ### 5. Interactive Operational Showcase & Palette Explorer
 
 The interactive demonstration suite at `dist/demo/index.html` showcases:
@@ -548,7 +621,7 @@ Machine-readable metadata is provided in [`CITATION.cff`](CITATION.cff) (v1.2.0)
 ```
 
 ### APA
-- kidthales. (2026). *@kidthales/picotol: Pure-CSS Semantic HTML Framework Powered Strictly by Paul Tol Colour Schemes* (Version 0.1.0) [Computer software]. https://github.com/kidthales/picotol
+- kidthales. (2026). *@kidthales/picotol: Pure-CSS Semantic HTML Framework Powered Strictly by Paul Tol Colour Schemes* (Version 0.2.0) [Computer software]. https://github.com/kidthales/picotol
 - Tol, P. (2021). *Colour schemes and templates* (SRON Technical Report SRON/EPS/TN/09-002, Issue 3.2). SRON Netherlands Institute for Space Research.
 
 ---
