@@ -537,6 +537,17 @@ Ready-to-use component primitives (`.pt-badge` and `.pt-indicator`) map natively
 <span class="pt-chip critical">p0-crit</span>
 ```
 
+#### Tabular Numerics for Streaming Telemetry
+All status badges and indicators default to `font-variant-numeric: tabular-nums` (with explicit modifier parity via `.pt-badge--numeric`, `.pt-indicator--numeric`, and the `.pt-tabular` utility). This eliminates horizontal jitter and dynamic layout flutter when rendering streaming metrics (token throughput, latency timers, SLA percentages, turn counts) while maintaining proportional font letterforms:
+
+```html
+<!-- Tabular Numbers on Numeric Badges and Telemetry Indicators -->
+<span class="pt-badge pt-badge--numeric" data-status="ok"><span class="pt-status-dot ok"></span> 99.98% SLA</span>
+<span class="pt-badge pt-badge--numeric warning"><span class="pt-status-dot warning"></span> 1,420 ms P99</span>
+<span class="pt-indicator pt-indicator--numeric info">Turn #042</span>
+<span class="pt-indicator pt-tabular ok">1,842 tok/s</span>
+```
+
 High-density status dots (`.status-dot`, `.pt-status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
 
 ```html

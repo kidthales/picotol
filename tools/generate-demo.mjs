@@ -944,6 +944,16 @@ ${rowsHtml}
           </main>
           <footer><small>Inline-flex alignment with zero boilerplate overrides</small></footer>
         </article>
+        <article class="card">
+          <header><strong>Tabular Numbers &amp; Dynamic Badges (<code>.pt-badge--numeric</code>)</strong></header>
+          <main>
+            <p><span class="pt-badge pt-badge--numeric" data-status="ok"><span class="pt-status-dot ok"></span> 99.98%</span> Uptime SLA</p>
+            <p><span class="pt-badge pt-badge--numeric warning"><span class="pt-status-dot warning"></span> 1,420 ms</span> P99 Latency</p>
+            <p><span class="pt-badge pt-badge--numeric critical"><span class="pt-status-dot critical"></span> 0.042%</span> Drop Rate</p>
+            <p><span class="pt-indicator pt-indicator--numeric info" id="live-indicator-count">Turn #042</span> <span class="pt-badge pt-badge--numeric info" id="live-badge-count">1,842 tok/s</span></p>
+          </main>
+          <footer><small><code>font-variant-numeric: tabular-nums</code> eliminates dynamic layout jitter</small></footer>
+        </article>
       </div>
 
       <h3>Native Accessible Disclosures, Accordion Cards &amp; Popovers (<code>.pt-details</code> / <code>.accordion-card</code> / <code>.pt-popover</code>)</h3>
@@ -1112,6 +1122,8 @@ ${rowsHtml}
         <span class="pt-badge critical">Critical</span>
         <span class="pt-badge info">Information</span>
         <span class="badge" data-accent="purple">Purple Accent</span>
+        <span class="pt-badge pt-badge--numeric ok">99.98%</span>
+        <span class="pt-indicator pt-indicator--numeric info">Turn #042</span>
       </p>
 
       <p>
@@ -1322,6 +1334,20 @@ ${swatchCardsHtml}
           }, 300);
         });
       });
+    }
+
+    // Dynamic streaming telemetry ticker for tabular number badges
+    const liveIndicator = document.getElementById('live-indicator-count');
+    const liveBadge = document.getElementById('live-badge-count');
+    if (liveIndicator && liveBadge) {
+      let turn = 42;
+      let tok = 1842;
+      setInterval(() => {
+        turn = (turn + 1) % 1000;
+        tok = 1800 + Math.floor(Math.sin(turn * 0.2) * 50) + Math.floor(Math.random() * 20);
+        liveIndicator.textContent = 'Turn #' + String(turn).padStart(3, '0');
+        liveBadge.textContent = tok.toLocaleString() + ' tok/s';
+      }, 1500);
     }
 
     // Palette Explorer live search and click-to-copy
