@@ -59,6 +59,10 @@ function sha384(content) {
   return 'sha384-' + createHash('sha384').update(content, 'utf8').digest('base64');
 }
 
+function sha256Hex(content) {
+  return createHash('sha256').update(content, 'utf8').digest('hex');
+}
+
 export function buildAll() {
   mkdirSync(demoDir, { recursive: true });
 
@@ -128,6 +132,19 @@ export function buildAll() {
 
   writeFileSync(join(distDir, 'sri.json'), JSON.stringify(sriManifest, null, 2) + '\n', 'utf8');
 
+  const cssFiles = [
+    { name: 'picotol.core.css', content: coreExpanded },
+    { name: 'picotol.core.min.css', content: coreMin },
+    { name: 'picotol.css', content: fullExpanded },
+    { name: 'picotol.layer.css', content: layerExpanded },
+    { name: 'picotol.layer.min.css', content: layerMin },
+    { name: 'picotol.min.css', content: fullMin },
+  ];
+  cssFiles.sort((a, b) => a.name.localeCompare(b.name));
+  const sha256Sums = cssFiles.map((f) => `${sha256Hex(f.content)}  ${f.name}`).join('\n') + '\n';
+  writeFileSync(join(distDir, 'SHA256SUMS.txt'), sha256Sums, 'utf8');
+  stats.sha256Sums = sha256Sums;
+
   const demoHtml = generateDemoHtml(fullMin, stats);
   writeFileSync(join(demoDir, 'index.html'), demoHtml, 'utf8');
   writeFileSync(join(demoDir, 'CNAME'), 'picotol.kidthales.com\n', 'utf8');
@@ -146,6 +163,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       `  • picotol.min.css:       ${stats.fullMinBytes} B (${(stats.fullMinBytes / 1024).toFixed(2)} KB, gzip ${stats.fullGzipBytes} B) [${stats.fullIntegrity}]\n` +
       `  • picotol.layer.min.css: ${stats.layerMinBytes} B (${(stats.layerMinBytes / 1024).toFixed(2)} KB, gzip ${stats.layerGzipBytes} B) [${stats.layerIntegrity}]\n` +
       `  • sri.json, demo & CNAME: generated\n` +
+      `  • SHA256SUMS.txt:        generated (6 bundles)\n` +
       `  • offline asset bundle:  ${stats.assetStats.zipName} (${stats.assetStats.byteLength} B)`
   );
 }

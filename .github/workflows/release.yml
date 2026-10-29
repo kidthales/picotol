@@ -139,12 +139,14 @@ jobs:
       - name: Build CSS bundles and generate standalone asset zip
         run: npm run build
 
-      - name: Upload zip bundle to GitHub Release
+      - name: Upload release assets to GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ github.event.release.tag_name }}" \
             dist/assets/picotol-v*.zip \
+            dist/sri.json \
+            dist/SHA256SUMS.txt \
             --clobber
 
   notify:

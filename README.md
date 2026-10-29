@@ -58,9 +58,42 @@ Then install:
 npm install @kidthales/picotol
 ```
 
-#### Standalone Asset Bundles (Offline & Standalone)
+#### Standalone Asset Bundles & Release Artifacts
 
-Each GitHub Release attaches an offline asset bundle `picotol-v<version>.zip` containing all CSS bundles (minified and expanded), design tokens, palette JSON, SRI hash manifest, and the demo showcase. Download directly from [GitHub Releases](https://github.com/kidthales/picotol/releases).
+Each GitHub Release attaches:
+- **`picotol-v<version>.zip`**: Offline bundle with all 6 CSS builds, tokens, palette JSON, SRI manifest, and demo.
+- **`dist/SHA256SUMS.txt`**: Cryptographic SHA-256 checksum manifest covering all 6 CSS distribution bundles.
+- **`dist/sri.json`**: W3C Subresource Integrity metadata (`sha384-...`).
+
+Download from [GitHub Releases](https://github.com/kidthales/picotol/releases).
+
+#### Downstream Vendoring & Verification
+
+Downstream consumers (e.g. Terminus in `kidthales/foundation`) vendor `@kidthales/picotol` stylesheets with cryptographic verification:
+
+```bash
+# Bash: download bundle and verify with sha256sum
+curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.1.0/picotol.layer.min.css
+curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.1.0/SHA256SUMS.txt
+sha256sum --check --ignore-missing SHA256SUMS.txt
+```
+
+```powershell
+# PowerShell: download and assert Get-FileHash integrity against SHA256SUMS.txt
+$u = "https://github.com/kidthales/picotol/releases/download/v0.1.0"
+Invoke-WebRequest "$u/picotol.layer.min.css" -OutFile "./picotol.layer.min.css"
+$hash = (Get-FileHash ./picotol.layer.min.css -Algorithm SHA256).Hash.ToLower()
+$exp = ((Invoke-RestMethod "$u/SHA256SUMS.txt") -split "`n" | Where-Object { $_ -match "picotol\.layer\.min\.css" } | ForEach-Object { (-split $_)[0] }).Trim().ToLower()
+if ($hash -ne $exp) { throw "SHA256 mismatch" }
+```
+
+##### Subresource Integrity (SRI) `<link>` Integration
+
+When serving from CDNs, assert SRI digests from `dist/sri.json`:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.1.0/dist/picotol.min.css" integrity="sha384-d2V2LoKHaFuJPMeFbFJ+/N9o+SpEGgL6M5EZnZzhLxvMAhzkNWgOJTV6t0P2B76z" crossorigin="anonymous" />
+```
 
 ---
 
@@ -278,27 +311,10 @@ When embedding `@kidthales/picotol` into an existing application shell, legacy l
 
 To preserve privacy, zero runtime network requests, and GDPR compliance, pair `@kidthales/picotol` with locally hosted accessible web fonts:
 
-#### 1. Atkinson Hyperlegible (Low Vision Distinction)
-
 ```css
+/* Recommended accessible font pairings (e.g. Atkinson Hyperlegible, Inter, Lexend) */
 :root, :host {
-  --pt-font-sans: "Atkinson Hyperlegible", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, var(--pt-font-emoji);
-}
-```
-
-#### 2. Inter (High-Density UI & Tabular Numbers)
-
-```css
-:root, :host {
-  --pt-font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, var(--pt-font-emoji);
-}
-```
-
-#### 3. Lexend (Reading Proficiency & Dyslexia Support)
-
-```css
-:root, :host {
-  --pt-font-sans: "Lexend", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, var(--pt-font-emoji);
+  --pt-font-sans: "Atkinson Hyperlegible", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, var(--pt-font-emoji);
 }
 ```
 
@@ -384,20 +400,9 @@ High-density status dots (`.status-dot`) map directly to Paul Tol's qualitative 
 <span class="status-dot neutral"></span> Neutral
 <span class="status-dot idle"></span> Idle
 
-<!-- Standalone .pt-status-dot Utility with Pulse Animation -->
+<!-- Pulse Animation & Badges -->
 <span class="pt-status-dot pt-status-dot-danger pulse"></span> Live Alert
-<span class="pt-status-dot pt-status-dot-warning"></span> Elevated
-<span class="pt-status-dot pt-status-dot-success"></span> Healthy
-
-<!-- Combined with Badges (Flex Gap Spacing) -->
 <span class="badge"><span class="status-dot success"></span> Active</span>
-<span class="badge"><span class="status-dot idle"></span> Inactive</span>
-
-<!-- Custom Flex Containers with Gap -->
-<div style="display: flex; gap: 0.5rem; align-items: center;">
-  <span class="status-dot success no-margin"></span>
-  <span>Connected</span>
-</div>
 ```
 
 ### 4c. Callout Banners, Copy Pills & Chips
@@ -405,21 +410,11 @@ High-density status dots (`.status-dot`) map directly to Paul Tol's qualitative 
 High-contrast, unignorable severity banners (`.pt-callout`) feature 4px solid start borders, 8% translucent alpha washes, and full WCAG 2.2 AA contrast compliance across light/dark surfaces and greyscale simulation:
 
 ```html
-<!-- Critical, Warning, and Info Callouts -->
+<!-- Severity Callout -->
 <aside class="pt-callout pt-callout-critical">
   <strong>Critical Incident (#379)</strong>
   <p><span class="pt-status-dot pt-status-dot-danger pulse"></span> High-severity degradation on primary cluster node.</p>
   <p><button type="button" class="pt-copy-pill">kubectl logs pod/cluster-edge-01</button> <span class="pt-chip">p0-crit</span></p>
-</aside>
-
-<aside class="pt-callout pt-callout-warning">
-  <strong>Capacity Warning (#360)</strong>
-  <p><span class="pt-status-dot pt-status-dot-warning"></span> Memory threshold approaching 85% headroom limit.</p>
-</aside>
-
-<aside class="pt-callout pt-callout-info">
-  <strong>Operational Notice</strong>
-  <p><span class="pt-status-dot pt-status-dot-success"></span> All satellite sync nodes operational and healthy.</p>
 </aside>
 ```
 
@@ -459,19 +454,39 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, segmented c
 ```html
 <!-- Equal-Fill Segmented Control (Ellipsis Truncation on Reflow) -->
 <nav role="tablist" class="segmented segmented-fill" aria-label="View options">
-  <button type="button" role="tab" aria-selected="true">Daily View</button>
-  <button type="button" role="tab" aria-selected="false">Weekly View</button>
-  <button type="button" role="tab" aria-selected="false">Monthly View</button>
-  <button type="button" role="tab" aria-selected="false">Quarterly Long-Term</button>
+  <button type="button" role="tab" aria-selected="true">Daily</button>
+  <button type="button" role="tab" aria-selected="false">Weekly</button>
+  <button type="button" role="tab" aria-selected="false">Monthly</button>
 </nav>
 
 <!-- Dedicated 1:1 Square Icon Buttons (Zero-Padding, Flex Centered) -->
 <button type="button" class="btn-icon" aria-label="Search">
   <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
 </button>
-<button type="button" class="icon-btn outline" aria-label="Refresh">
-  <svg class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+<button type="button" class="icon-btn outline" aria-label="Close">
+  <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
 </button>
+```
+
+### 4f. Gauge Threshold Pins, Range Bands & Progress Bars
+
+`@kidthales/picotol` provides pure-CSS gauge and progress bar primitives (`.pt-meter`, `.pt-progress`, `.pt-meter-range`, `.pt-meter-pin`):
+
+- **Canonical Placement (`data-placement`)**: `data-placement="top"` (default) or `data-placement="bottom"`. Compatibility classes `.top` and `.bottom` are also supported.
+- **Positioning**: Pin position configured via `--pt-marker-pos` (`0%` to `100%`); range band span configured via `--pt-range-start` and `--pt-range-end`.
+- **Labels**: `.pt-meter-label` or `[data-label]` child elements aligned to the marker with `tabular-nums`.
+
+```html
+<div class="pt-meter">
+  <div class="pt-meter-range ok" style="--pt-range-start: 0%; --pt-range-end: 60%;"></div>
+  <div class="pt-meter-range warning" style="--pt-range-start: 60%; --pt-range-end: 85%;"></div>
+  <div class="pt-meter-range critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
+  <div class="pt-progress" role="progressbar" aria-valuenow="78" style="--pt-progress-value: 78%;">
+    <div class="pt-progress-fill"></div>
+    <div class="pt-meter-pin" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
+    <div class="pt-meter-pin critical bottom" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
+  </div>
+</div>
 ```
 
 ### 5. Interactive Operational Showcase & Palette Explorer
@@ -501,8 +516,6 @@ npm run lint
 # Run automated linter, Paul Tol hex-purity, WCAG contrast, accessibility, and byte-budget tests
 npm test
 ```
-
----
 
 ---
 
