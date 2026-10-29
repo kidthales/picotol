@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1670,6 +1671,77 @@ test("Compact Density Cascading into Form Controls, Tables, Buttons, and Layout 
     "Demo HTML must showcase data-density=compact showcase"
   );
 });
+
+test("Release Checksum Manifest and Placement Documentation (Issue #127)", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const releaseYml = fs.readFileSync(path.join(ROOT, ".github/workflows/release.yml"), "utf8");
+  const sumsPath = path.join(ROOT, "dist/SHA256SUMS.txt");
+
+  // 1. Standalone SHA256SUMS.txt manifest validation
+  assert.ok(fs.existsSync(sumsPath), "dist/SHA256SUMS.txt must be generated during build");
+  const sumsContent = fs.readFileSync(sumsPath, "utf8");
+  const lines = sumsContent.trim().split("\n").filter(Boolean);
+  assert.equal(lines.length, 6, "SHA256SUMS.txt must cover all 6 CSS distribution bundles");
+
+  const bundles = [
+    "picotol.core.css",
+    "picotol.core.min.css",
+    "picotol.css",
+    "picotol.layer.css",
+    "picotol.layer.min.css",
+    "picotol.min.css",
+  ];
+
+  for (const b of bundles) {
+    const line = lines.find((l) => l.endsWith(`  ${b}`));
+    assert.ok(line, `Missing checksum entry for ${b}`);
+    const expectedHash = crypto.createHash("sha256").update(fs.readFileSync(path.join(ROOT, "dist", b))).digest("hex");
+    assert.equal(line.split(/\s+/)[0], expectedHash, `Checksum mismatch for ${b}`);
+  }
+
+  // 2. GitHub Release Asset Configuration
+  assert.ok(
+    releaseYml.includes("dist/SHA256SUMS.txt"),
+    ".github/workflows/release.yml must upload dist/SHA256SUMS.txt to GitHub Release"
+  );
+  assert.ok(
+    releaseYml.includes("dist/sri.json"),
+    ".github/workflows/release.yml must upload dist/sri.json to GitHub Release"
+  );
+
+  // 3. Documentation: Gauge Pin Canonical data-placement and compatibility classes
+  assert.ok(
+    readme.includes('data-placement="top|bottom"') || readme.includes('data-placement="top"') && readme.includes('data-placement="bottom"'),
+    "README.md must document canonical data-placement attribute for gauge pins"
+  );
+  assert.ok(
+    readme.includes(".top") && readme.includes(".bottom"),
+    "README.md must note .top and .bottom as compatibility classes"
+  );
+  assert.ok(
+    readme.includes(".pt-meter-range") && readme.includes(".pt-meter-pin"),
+    "README.md must document .pt-meter-range and .pt-meter-pin primitives"
+  );
+
+  // 4. Documentation: Subresource Integrity and Downstream Vendoring Workflows
+  assert.ok(
+    readme.includes("SHA256SUMS.txt") && readme.includes("sri.json"),
+    "README.md must document SHA256SUMS.txt and sri.json artifacts"
+  );
+  assert.ok(
+    readme.includes("sha256sum --check") || readme.includes("sha256sum"),
+    "README.md must document automated bash/POSIX vendoring workflow with sha256sum"
+  );
+  assert.ok(
+    readme.includes("Get-FileHash") && readme.includes("picotol.layer.min.css"),
+    "README.md must document automated PowerShell vendoring workflow with Get-FileHash"
+  );
+  assert.ok(
+    readme.includes("integrity=") && readme.includes("crossorigin="),
+    "README.md must document Subresource Integrity <link> integration"
+  );
+});
+
 
 
 
