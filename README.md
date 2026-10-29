@@ -512,10 +512,10 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 
 | State | CSS Tokens | Light Theme Swatch | Dark Theme Swatch | Contrast Guarantee |
 | :--- | :--- | :--- | :--- | :--- |
-| **OK / Success** | `--pt-status-ok-*` | Paul Tol Green (`#228833`) | Paul Tol Green (`#44AA99`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
-| **Warning** | `--pt-status-warning-*` | Calibrated Tol Yellow (`#DDAA33`) | Calibrated Tol Amber (`#EE8866`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
-| **Critical / Danger** | `--pt-status-critical-*` | Paul Tol Red (`#EE6677`) | Paul Tol Red (`#CC3311`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
-| **Info** | `--pt-status-info-*` | Paul Tol Cyan (`#66CCEE`) | Paul Tol Blue (`#4477AA`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **OK / Success** | `--pt-status-ok-*` | Paul Tol Green (`#228833`) | Paul Tol Teal (`#44AA99`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **Warning** | `--pt-status-warning-*` | Paul Tol Brown (`#662506`) / Yellow (`#DDAA33`) | Paul Tol Yellow (`#DDAA33`) / Orange (`#EE8866`) | $\ge 7:1$ text AAA, $\ge 3:1$ non-text |
+| **Critical / Danger** | `--pt-status-critical-*` | Paul Tol Red (`#CC3311`) | Paul Tol Red (`#EE6677`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **Info** | `--pt-status-info-*` | Paul Tol Blue (`#4477AA`) | Paul Tol Cyan (`#66CCEE`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
 | **Neutral** | `--pt-status-neutral-*` | Paul Tol Grey (`#BBBBBB`) | Paul Tol Grey (`#777777`) | $\ge 3:1$ non-text |
 
 These tokens automatically power `.pt-status-dot`, `.status-dot`, `.pt-badge`, `.pt-indicator`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.

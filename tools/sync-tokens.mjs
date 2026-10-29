@@ -166,7 +166,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     `    --pt-status-ok-fg: light-dark(${colorByName('bright', 'green')}, ${colorByName('muted', 'teal')});`,
     '    --pt-status-ok-border: var(--pt-status-ok-fg);',
     '    --pt-status-ok-bg: color-mix(in srgb, var(--pt-status-ok-border) 8%, transparent);',
-    `    --pt-status-warning-fg: light-dark(${colorByName('dark', 9)}, ${colorByName('high-contrast', 'yellow')});`,
+    `    --pt-status-warning-fg: light-dark(${colorByName('ylorbr', 1)}, ${colorByName('high-contrast', 'yellow')});`,
     `    --pt-status-warning-border: light-dark(${colorByName('high-contrast', 'yellow')}, ${colorByName('light', 'orange')});`,
     '    --pt-status-warning-bg: color-mix(in srgb, var(--pt-status-warning-border) 8%, transparent);',
     `    --pt-status-critical-fg: light-dark(${colorByName('vibrant', 'red')}, ${colorByName('bright', 'red')});`,
