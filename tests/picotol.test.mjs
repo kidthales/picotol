@@ -1913,6 +1913,42 @@ test("Native Status Badge and Indicator Component Primitives for Status Triads (
   assert.ok(readme.includes(".pt-indicator"), "README must document .pt-indicator");
 });
 
+test("Release Distribution Integrity: dist/manifest.json exists, is valid JSON, and matches all 6 bundles in SHA-256 and size_bytes", () => {
+  const manifestPath = path.join(ROOT, "dist/manifest.json");
+  assert.ok(fs.existsSync(manifestPath), "dist/manifest.json must exist");
+  const raw = fs.readFileSync(manifestPath, "utf8");
+  assert.ok(raw.endsWith("\n"), "dist/manifest.json must end with a trailing newline");
+  const manifest = JSON.parse(raw);
+
+  assert.equal(manifest.name, "@kidthales/picotol", "manifest.name must match @kidthales/picotol");
+  assert.ok(manifest.version, "manifest.version must exist");
+  assert.ok(manifest.artifacts && typeof manifest.artifacts === "object", "manifest.artifacts must exist");
+
+  const bundles = [
+    "picotol.core.css",
+    "picotol.core.min.css",
+    "picotol.css",
+    "picotol.min.css",
+    "picotol.layer.css",
+    "picotol.layer.min.css",
+  ];
+
+  for (const b of bundles) {
+    const entry = manifest.artifacts[b];
+    assert.ok(entry, `manifest.json missing artifact entry for ${b}`);
+    assert.equal(typeof entry.sha256, "string", `sha256 for ${b} must be string`);
+    assert.equal(typeof entry.size_bytes, "number", `size_bytes for ${b} must be number`);
+
+    const filePath = path.join(ROOT, "dist", b);
+    assert.ok(fs.existsSync(filePath), `dist/${b} must exist`);
+    const content = fs.readFileSync(filePath);
+    const hash = crypto.createHash("sha256").update(content).digest("hex");
+    assert.equal(entry.sha256, hash, `Hash mismatch for ${b}`);
+    assert.equal(entry.size_bytes, content.byteLength, `Size mismatch for ${b}`);
+  }
+});
+
+
 
 
 

@@ -26,6 +26,7 @@ test("npm pack --dry-run enforces size budgets and excludes demo/dev/CI files", 
   assert.ok(paths.includes("dist/picotol.core.min.css"), "dist/picotol.core.min.css must be included");
   assert.ok(paths.includes("dist/picotol.layer.min.css"), "dist/picotol.layer.min.css must be included");
   assert.ok(paths.includes("dist/sri.json"), "dist/sri.json must be included");
+  assert.ok(paths.includes("dist/manifest.json"), "dist/manifest.json must be included");
   assert.ok(paths.includes("types/index.d.ts"), "types/index.d.ts must be included in tarball");
 
   for (const p of paths) {
@@ -213,6 +214,7 @@ test(".github/workflows/release.yml defines dual publishing to npm and GitHub Pa
   assert.ok(content.includes("https://registry.npmjs.org"), "Must publish to npm public registry");
   assert.ok(content.includes("dist/assets/picotol-v*.zip"), "Must upload asset bundle zip to GitHub Release");
   assert.ok(content.includes("dist/sri.json"), "Must upload sri.json to GitHub Release");
+  assert.ok(content.includes("dist/manifest.json"), "Must upload manifest.json to GitHub Release");
   assert.ok(content.includes("dist/SHA256SUMS.txt"), "Must upload SHA256SUMS.txt to GitHub Release");
   assert.ok(content.includes("packages: write"), "Must grant packages: write permission for GitHub Packages");
   assert.ok(content.includes("contents: write"), "Must grant contents: write permission for asset upload");
@@ -245,6 +247,54 @@ test("dist/SHA256SUMS.txt accurately covers all 6 CSS distribution bundles", () 
     const fileBytes = fs.readFileSync(path.join(ROOT, "dist", filename));
     const computedHash = crypto.createHash("sha256").update(fileBytes).digest("hex");
     assert.equal(hash, computedHash, `Checksum mismatch for ${filename}`);
+  }
+});
+
+test("dist/manifest.json accurately covers all 6 CSS distribution bundles with valid schema, hashes, and byte lengths", () => {
+  const manifestPath = path.join(ROOT, "dist", "manifest.json");
+  assert.ok(fs.existsSync(manifestPath), "dist/manifest.json must exist");
+  const raw = fs.readFileSync(manifestPath, "utf8");
+  assert.ok(raw.endsWith("\n"), "dist/manifest.json must end with a trailing newline");
+
+  const manifest = JSON.parse(raw);
+  assert.equal(manifest.name, pkg.name, "manifest.json name must match package.json name");
+  assert.equal(manifest.version, pkg.version, "manifest.json version must match package.json version");
+  assert.ok(manifest.artifacts && typeof manifest.artifacts === "object", "manifest.json must define artifacts map");
+
+  const expectedBundles = [
+    "picotol.core.css",
+    "picotol.core.min.css",
+    "picotol.css",
+    "picotol.layer.css",
+    "picotol.layer.min.css",
+    "picotol.min.css",
+  ];
+
+  const artifactKeys = Object.keys(manifest.artifacts);
+  assert.deepEqual(artifactKeys.sort(), expectedBundles.sort(), "manifest.json artifacts must cover exactly the 6 distribution bundles");
+
+  // Cross-reference with dist/SHA256SUMS.txt
+  const sumsContent = fs.readFileSync(path.join(ROOT, "dist", "SHA256SUMS.txt"), "utf8");
+  const sumsLines = sumsContent.trim().split("\n").filter(Boolean);
+  const expectedHashes = {};
+  for (const line of sumsLines) {
+    const [, hash, filename] = line.match(/^([a-f0-9]{64})\s+(.+)$/);
+    expectedHashes[filename] = hash;
+  }
+
+  for (const bundle of expectedBundles) {
+    const entry = manifest.artifacts[bundle];
+    assert.ok(entry, `Artifact entry for "${bundle}" must exist in manifest.json`);
+    assert.equal(typeof entry.sha256, "string", `sha256 for "${bundle}" must be a string`);
+    assert.equal(typeof entry.size_bytes, "number", `size_bytes for "${bundle}" must be a number`);
+
+    const fileBytes = fs.readFileSync(path.join(ROOT, "dist", bundle));
+    const computedHash = crypto.createHash("sha256").update(fileBytes).digest("hex");
+    const computedSize = fileBytes.length;
+
+    assert.equal(entry.sha256, computedHash, `sha256 mismatch for ${bundle} in manifest.json`);
+    assert.equal(entry.sha256, expectedHashes[bundle], `sha256 in manifest.json must match SHA256SUMS.txt for ${bundle}`);
+    assert.equal(entry.size_bytes, computedSize, `size_bytes mismatch for ${bundle} in manifest.json`);
   }
 });
 
