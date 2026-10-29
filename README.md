@@ -219,6 +219,54 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 
 When embedding `@kidthales/picotol` into modern host applications (such as dashboards, web portals, or enterprise systems), CSS Cascade Layers cleanly isolate framework rules, host themes, and application overrides without CSS specificity escalation or `!important` workarounds.
 
+### Downstream Cascade Layer Ordering Guide
+
+Declare layer order upfront in your root stylesheet or HTML document to control cascade precedence and avoid unlayered specificity traps:
+
+```css
+@layer picotol, app-theme, app-components, app-utilities;
+```
+
+#### Cascade Precedence Mechanics
+1. **Layer Order Precedence (Later Wins)**: Declaring `@layer picotol, app-theme, app-components, app-utilities;` upfront ensures rules in `@layer app-theme`, `@layer app-components`, and `@layer app-utilities` defeat `@layer picotol` regardless of selector specificity, overriding framework rules without `!important`.
+2. **Unlayered Styles Win Over All Layers**: Per the W3C CSS Cascading and Inheritance Level 5 specification, normal unlayered styles defeat *all* layered styles regardless of specificity.
+3. **The Unlayered Specificity Trap**: Leaving host rules unlayered can unintentionally override layered components. Wrapping downstream styles in explicit layers guarantees predictable overrides. *(Note: `!important` declarations invert this layer priority, making earlier layers win).*
+
+#### Integration Patterns: `dist/picotol.layer.min.css`
+
+The opt-in bundle [`dist/picotol.layer.min.css`](dist/picotol.layer.min.css) is pre-wrapped in `@layer picotol { ... }`.
+
+##### Pattern A: CSS `@import` / Bundler
+
+```css
+@layer picotol, app-theme, app-components, app-utilities;
+@import "@kidthales/picotol/layer";
+
+@layer app-theme {
+  :root { --pt-primary: var(--brand-primary, #2255AA); }
+}
+
+@layer app-components {
+  button.action-btn { border-radius: 9999px; }
+}
+
+@layer app-utilities {
+  .text-center { text-align: center; }
+}
+```
+
+##### Pattern B: HTML `<link>` Loading
+
+```html
+<style>
+  @layer picotol, app-theme, app-components, app-utilities;
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol/dist/picotol.layer.min.css" />
+<link rel="stylesheet" href="/css/theme.css" layer="app-theme" />
+<link rel="stylesheet" href="/css/components.css" layer="app-components" />
+<link rel="stylesheet" href="/css/utilities.css" layer="app-utilities" />
+```
+
 ### Canonical 4-Layer Cascade Architecture
 
 Declare layer precedence upfront at the top of your master stylesheet:
