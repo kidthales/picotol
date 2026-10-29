@@ -815,6 +815,32 @@ ${rowsHtml}
           </div>
           <footer><small>Zero margin compounding on nested sections/cards</small></footer>
         </div>
+        <article data-density="tight">
+          <header><strong>Tight Density (<code>data-density="tight"</code>)</strong></header>
+          <main>
+            <p>Ultra-compact 0.25rem spacing and micro-type for narrow embedded panels.</p>
+            <div class="form-row">
+              <input type="text" value="worker-01.local" readonly>
+              <button type="button" class="btn">Sync</button>
+            </div>
+            <div class="card pt-card--dense">
+              <header><strong>Nested Card (<small>&lt; 300px width</small>)</strong></header>
+              <main><small>Nested cards inherit <code>min-width: 0</code> with zero scroll blowout.</small></main>
+            </div>
+          </main>
+          <footer><small>Ultra-compact <code>--pt-spacing: 0.25rem</code></small></footer>
+        </article>
+        <div class="card pt-card--dense pt-tight">
+          <header><strong>Dense Card Modifier (<code>.pt-card--dense</code>)</strong></header>
+          <div class="card-body">
+            <p>Direct card-level <code>--pt-card-padding: 0.25rem</code> modifier.</p>
+            <div class="card pt-card--dense">
+              <header><strong>Sub-Panel Layer</strong></header>
+              <main><small>No horizontal blowout or text clipping.</small></main>
+            </div>
+          </div>
+          <footer><small>Class-level density scoping</small></footer>
+        </div>
       </div>
       <h3>Meters, Progressbars &amp; Gauge Threshold Pins (<code>.pt-progress</code> / <code>.pt-gauge-marker</code>)</h3>
       <div class="grid">

@@ -50,7 +50,7 @@
     border: 0;
     border-top: var(--pt-border);
     :where(.flex, .grid, [style*="gap"]) > &,
-    :where([data-density="compact"], .pt-compact) & {
+    :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) & {
       margin-block: 0;
     }
   }
