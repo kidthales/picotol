@@ -888,6 +888,30 @@ ${rowsHtml}
         </aside>
       </div>
 
+      <h3>Native Status Badges, Indicators &amp; Triads (<code>.pt-badge</code> / <code>.pt-indicator</code>)</h3>
+      <div class="grid">
+        <article class="card">
+          <header><strong>Status Triad Badges (<code>.pt-badge</code>)</strong></header>
+          <main>
+            <p><span class="pt-badge" data-status="ok"><span class="pt-status-dot ok"></span> Operational</span> <code>[data-status="ok"]</code></p>
+            <p><span class="pt-badge warning"><span class="pt-status-dot warning"></span> Degraded</span> <code>.warning</code></p>
+            <p><span class="pt-badge critical"><span class="pt-status-dot critical"></span> Outage</span> <code>.critical</code></p>
+            <p><span class="pt-badge info"><span class="pt-status-dot info"></span> Rebalancing</span> <code>.info</code></p>
+          </main>
+          <footer><small>Natively bound to <code>--pt-status-*-{fg,bg,border}</code></small></footer>
+        </article>
+        <article class="card">
+          <header><strong>Status Indicators &amp; Semantic Chips (<code>.pt-indicator</code> / <code>.pt-chip</code>)</strong></header>
+          <main>
+            <p><span class="pt-indicator ok">Online</span> <span class="pt-chip ok">v0.2.0</span> <code>.ok</code></p>
+            <p><span class="pt-indicator warning">Pressure</span> <span class="pt-chip warning">high-load</span> <code>.warning</code></p>
+            <p><span class="pt-indicator critical">Failing</span> <span class="pt-chip critical">p0-crit</span> <code>.critical</code></p>
+            <p><span class="pt-indicator info">Syncing</span> <span class="pt-chip info">telemetry</span> <code>.info</code></p>
+          </main>
+          <footer><small>Inline-flex alignment with zero boilerplate overrides</small></footer>
+        </article>
+      </div>
+
       <h3>Native Accessible Disclosures, Accordion Cards &amp; Popovers (<code>.pt-details</code> / <code>.accordion-card</code> / <code>.pt-popover</code>)</h3>
       <div class="grid">
         <article class="card accordion-card">
@@ -1049,9 +1073,10 @@ ${rowsHtml}
       <p>
         <span class="badge">Neutral Badge</span>
         <span class="badge primary">Primary Accent</span>
-        <span class="badge valid">Active</span>
-        <span class="badge warning">Warning</span>
-        <span class="badge invalid">Failed</span>
+        <span class="pt-badge ok">Operational</span>
+        <span class="pt-badge warning">Warning</span>
+        <span class="pt-badge critical">Critical</span>
+        <span class="pt-badge info">Information</span>
         <span class="badge" data-accent="purple">Purple Accent</span>
       </p>
 

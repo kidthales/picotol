@@ -13,6 +13,7 @@
       color-scheme: light dark;
       --pt-font-sans: system-ui, sans-serif;
       --pt-font-mono: ui-monospace, monospace;
+      --pt-font-size-xs: .75rem;
       --pt-line-height: 1.5;
       --pt-border-radius: .25rem;
       --pt-transition: .15s ease-in-out;
@@ -1567,17 +1568,17 @@
       }
     }
 
-    :where(.badge, [role="status"]) {
+    :where(.badge, [role="status"], .pt-badge, .pt-indicator) {
       border: 1px solid var(--pt-muted-border);
       background: var(--pt-surface-subtle);
       color: var(--pt-color);
+      font-size: var(--pt-font-size-xs, .75em);
       white-space: nowrap;
       vertical-align: middle;
       border-radius: 99px;
       align-items: center;
       gap: .35em;
       padding: .125em .5em;
-      font-size: .75em;
       font-weight: 600;
       line-height: 1;
       display: inline-flex;
@@ -1602,9 +1603,33 @@
         color: var(--pt-valid);
       }
 
-      & > :where(svg, .status-dot) {
+      & > :where(svg, .status-dot, .pt-status-dot) {
         margin: 0;
       }
+    }
+
+    .pt-badge[data-status="ok"], .pt-badge.ok, .pt-badge.success, .pt-indicator[data-status="ok"], .pt-indicator.ok, .pt-indicator.success, .pt-chip[data-status="ok"], .pt-chip.ok, .pt-chip.success {
+      color: var(--pt-status-ok-fg);
+      background-color: var(--pt-status-ok-bg);
+      border-color: var(--pt-status-ok-border);
+    }
+
+    .pt-badge[data-status="warning"], .pt-badge.warning, .pt-indicator[data-status="warning"], .pt-indicator.warning, .pt-chip[data-status="warning"], .pt-chip.warning {
+      color: var(--pt-status-warning-fg);
+      background-color: var(--pt-status-warning-bg);
+      border-color: var(--pt-status-warning-border);
+    }
+
+    .pt-badge[data-status="critical"], .pt-badge.critical, .pt-badge[data-status="danger"], .pt-badge.danger, .pt-indicator[data-status="critical"], .pt-indicator.critical, .pt-indicator[data-status="danger"], .pt-indicator.danger, .pt-chip[data-status="critical"], .pt-chip.critical, .pt-chip[data-status="danger"], .pt-chip.danger {
+      color: var(--pt-status-critical-fg);
+      background-color: var(--pt-status-critical-bg);
+      border-color: var(--pt-status-critical-border);
+    }
+
+    .pt-badge[data-status="info"], .pt-badge.info, .pt-indicator[data-status="info"], .pt-indicator.info, .pt-chip[data-status="info"], .pt-chip.info {
+      color: var(--pt-status-info-fg);
+      background-color: var(--pt-status-info-bg);
+      border-color: var(--pt-status-info-border);
     }
 
     :where(.status-dot, .pt-status-dot) {
@@ -1694,7 +1719,7 @@
         transform: translateY(1px);
       }
 
-      & > :where(svg, .status-dot) {
+      & > :where(svg, .status-dot, .pt-status-dot) {
         margin: 0;
       }
     }

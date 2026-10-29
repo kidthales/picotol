@@ -747,8 +747,8 @@
     }
   }
 
-  /* 11. Status Badges */
-  :where(.badge, [role="status"]) {
+  /* 11. Status Badges & Indicators */
+  :where(.badge, [role="status"], .pt-badge, .pt-indicator) {
     display: inline-flex;
     align-items: center;
     gap: 0.35em;
@@ -757,7 +757,7 @@
     border: 1px solid var(--pt-muted-border);
     background: var(--pt-surface-subtle);
     color: var(--pt-color);
-    font-size: 0.75em;
+    font-size: var(--pt-font-size-xs, 0.75em);
     font-weight: 600;
     line-height: 1;
     white-space: nowrap;
@@ -780,9 +780,39 @@
       color: var(--pt-valid);
     }
 
-    & > :where(svg, .status-dot) {
+    & > :where(svg, .status-dot, .pt-status-dot) {
       margin: 0;
     }
+  }
+
+  /* Status Triad Bindings for .pt-badge, .pt-indicator, and .pt-chip */
+  .pt-badge[data-status="ok"], .pt-badge.ok, .pt-badge.success,
+  .pt-indicator[data-status="ok"], .pt-indicator.ok, .pt-indicator.success,
+  .pt-chip[data-status="ok"], .pt-chip.ok, .pt-chip.success {
+    color: var(--pt-status-ok-fg);
+    background-color: var(--pt-status-ok-bg);
+    border-color: var(--pt-status-ok-border);
+  }
+  .pt-badge[data-status="warning"], .pt-badge.warning,
+  .pt-indicator[data-status="warning"], .pt-indicator.warning,
+  .pt-chip[data-status="warning"], .pt-chip.warning {
+    color: var(--pt-status-warning-fg);
+    background-color: var(--pt-status-warning-bg);
+    border-color: var(--pt-status-warning-border);
+  }
+  .pt-badge[data-status="critical"], .pt-badge.critical, .pt-badge[data-status="danger"], .pt-badge.danger,
+  .pt-indicator[data-status="critical"], .pt-indicator.critical, .pt-indicator[data-status="danger"], .pt-indicator.danger,
+  .pt-chip[data-status="critical"], .pt-chip.critical, .pt-chip[data-status="danger"], .pt-chip.danger {
+    color: var(--pt-status-critical-fg);
+    background-color: var(--pt-status-critical-bg);
+    border-color: var(--pt-status-critical-border);
+  }
+  .pt-badge[data-status="info"], .pt-badge.info,
+  .pt-indicator[data-status="info"], .pt-indicator.info,
+  .pt-chip[data-status="info"], .pt-chip.info {
+    color: var(--pt-status-info-fg);
+    background-color: var(--pt-status-info-bg);
+    border-color: var(--pt-status-info-border);
   }
 
   /* 11b. Status Indicator Dots */
@@ -870,7 +900,7 @@
       transform: translateY(1px);
     }
 
-    & > :where(svg, .status-dot) {
+    & > :where(svg, .status-dot, .pt-status-dot) {
       margin: 0;
     }
   }

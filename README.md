@@ -27,7 +27,7 @@
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
   - **`dist/picotol.core.min.css`** (<= 12.0 KB minified, ~4.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 34.0 KB minified, ~7.8 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.min.css`** (<= 34.0 KB minified, ~7.8 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
   - **`dist/picotol.layer.min.css`** (<= 34.0 KB minified, ~7.8 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
@@ -418,11 +418,26 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 | **Info** | `--pt-status-info-*` | Paul Tol Cyan (`#66CCEE`) | Paul Tol Blue (`#4477AA`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
 | **Neutral** | `--pt-status-neutral-*` | Paul Tol Grey (`#BBBBBB`) | Paul Tol Grey (`#777777`) | $\ge 3:1$ non-text |
 
-These tokens automatically power `.pt-status-dot`, `.status-dot`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
+These tokens automatically power `.pt-status-dot`, `.status-dot`, `.pt-badge`, `.pt-indicator`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
 
-### 4b. Status Indicator Dots
+### 4b. Status Badges, Indicators & Dots
 
-High-density status dots (`.status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
+Ready-to-use component primitives (`.pt-badge` and `.pt-indicator`) map natively to calibrated `--pt-status-{ok,warning,critical,info}-{fg,border,bg}` triads via `[data-status]` attributes or semantic modifier classes (`.ok`, `.success`, `.warning`, `.critical`, `.danger`, `.info`):
+
+```html
+<!-- Native Status Badges with Nested Status Dots -->
+<span class="pt-badge" data-status="ok"><span class="pt-status-dot ok"></span> Operational</span>
+<span class="pt-badge warning"><span class="pt-status-dot warning"></span> Degraded</span>
+<span class="pt-badge critical"><span class="pt-status-dot critical"></span> Outage</span>
+<span class="pt-badge info"><span class="pt-status-dot info"></span> Rebalancing</span>
+
+<!-- Status Indicators & Semantic Chips -->
+<span class="pt-indicator ok">Online</span>
+<span class="pt-indicator warning">Warning</span>
+<span class="pt-chip critical">p0-crit</span>
+```
+
+High-density status dots (`.status-dot`, `.pt-status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
 
 ```html
 <!-- Standalone Status Dots -->
