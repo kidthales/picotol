@@ -815,6 +815,32 @@ ${rowsHtml}
           </div>
           <footer><small>Zero margin compounding on nested sections/cards</small></footer>
         </div>
+        <article data-density="tight">
+          <header><strong>Tight Density (<code>data-density="tight"</code>)</strong></header>
+          <main>
+            <p>Ultra-compact 0.25rem spacing and micro-type for narrow embedded panels.</p>
+            <div class="form-row">
+              <input type="text" value="worker-01.local" readonly>
+              <button type="button" class="btn">Sync</button>
+            </div>
+            <div class="card pt-card--dense">
+              <header><strong>Nested Card (<small>&lt; 300px width</small>)</strong></header>
+              <main><small>Nested cards inherit <code>min-width: 0</code> with zero scroll blowout.</small></main>
+            </div>
+          </main>
+          <footer><small>Ultra-compact <code>--pt-spacing: 0.25rem</code></small></footer>
+        </article>
+        <div class="card pt-card--dense pt-tight">
+          <header><strong>Dense Card Modifier (<code>.pt-card--dense</code>)</strong></header>
+          <div class="card-body">
+            <p>Direct card-level <code>--pt-card-padding: 0.25rem</code> modifier.</p>
+            <div class="card pt-card--dense">
+              <header><strong>Sub-Panel Layer</strong></header>
+              <main><small>No horizontal blowout or text clipping.</small></main>
+            </div>
+          </div>
+          <footer><small>Class-level density scoping</small></footer>
+        </div>
       </div>
       <h3>Meters, Progressbars &amp; Gauge Threshold Pins (<code>.pt-progress</code> / <code>.pt-gauge-marker</code>)</h3>
       <div class="grid">
@@ -854,19 +880,19 @@ ${rowsHtml}
               <div class="pt-meter-range warning" style="--pt-range-start: 60%; --pt-range-end: 85%;"></div>
               <div class="pt-meter-range critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
               <div class="pt-progress" role="progressbar" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 78%;">
-                <div class="pt-progress-fill"></div>
-                <div class="pt-meter-pin" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
+                <div class="pt-progress-fill pt-meter-fill"></div>
+                <div class="pt-meter-pin pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
               </div>
             </div>
             <div class="pt-meter" style="margin-top: 1.5rem;">
               <div class="pt-progress pt-progress-danger" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 92%;">
-                <div class="pt-progress-fill"></div>
+                <div class="pt-progress-fill pt-meter-fill"></div>
                 <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><small>70% Warn</small></div>
-                <div class="pt-meter-pin critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
+                <div class="pt-meter-pin pt-meter-mark critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
               </div>
             </div>
           </main>
-          <footer><small>Pinned via <code>--pt-marker-pos</code>, <code>data-placement="top|bottom"</code>, and <code>.pt-meter-range</code></small></footer>
+          <footer><small>Layered via <code>--pt-meter-*-z</code> stacking tokens, <code>data-placement="top|bottom"</code>, and <code>.pt-meter-range</code></small></footer>
         </article>
       </div>
       <h3>Accessible Callouts, Status Dots &amp; Copy Pills (<code>.pt-callout</code> / <code>.pt-copy-pill</code>)</h3>
@@ -886,6 +912,30 @@ ${rowsHtml}
           <p><span class="pt-status-dot pt-status-dot-success"></span> All satellite sync nodes operational and healthy.</p>
           <p><button type="button" class="pt-copy-pill">git status --short</button> <span class="pt-chip">steady</span></p>
         </aside>
+      </div>
+
+      <h3>Native Status Badges, Indicators &amp; Triads (<code>.pt-badge</code> / <code>.pt-indicator</code>)</h3>
+      <div class="grid">
+        <article class="card">
+          <header><strong>Status Triad Badges (<code>.pt-badge</code>)</strong></header>
+          <main>
+            <p><span class="pt-badge" data-status="ok"><span class="pt-status-dot ok"></span> Operational</span> <code>[data-status="ok"]</code></p>
+            <p><span class="pt-badge warning"><span class="pt-status-dot warning"></span> Degraded</span> <code>.warning</code></p>
+            <p><span class="pt-badge critical"><span class="pt-status-dot critical"></span> Outage</span> <code>.critical</code></p>
+            <p><span class="pt-badge info"><span class="pt-status-dot info"></span> Rebalancing</span> <code>.info</code></p>
+          </main>
+          <footer><small>Natively bound to <code>--pt-status-*-{fg,bg,border}</code></small></footer>
+        </article>
+        <article class="card">
+          <header><strong>Status Indicators &amp; Semantic Chips (<code>.pt-indicator</code> / <code>.pt-chip</code>)</strong></header>
+          <main>
+            <p><span class="pt-indicator ok">Online</span> <span class="pt-chip ok">v0.2.0</span> <code>.ok</code></p>
+            <p><span class="pt-indicator warning">Pressure</span> <span class="pt-chip warning">high-load</span> <code>.warning</code></p>
+            <p><span class="pt-indicator critical">Failing</span> <span class="pt-chip critical">p0-crit</span> <code>.critical</code></p>
+            <p><span class="pt-indicator info">Syncing</span> <span class="pt-chip info">telemetry</span> <code>.info</code></p>
+          </main>
+          <footer><small>Inline-flex alignment with zero boilerplate overrides</small></footer>
+        </article>
       </div>
 
       <h3>Native Accessible Disclosures, Accordion Cards &amp; Popovers (<code>.pt-details</code> / <code>.accordion-card</code> / <code>.pt-popover</code>)</h3>
@@ -1049,9 +1099,10 @@ ${rowsHtml}
       <p>
         <span class="badge">Neutral Badge</span>
         <span class="badge primary">Primary Accent</span>
-        <span class="badge valid">Active</span>
-        <span class="badge warning">Warning</span>
-        <span class="badge invalid">Failed</span>
+        <span class="pt-badge ok">Operational</span>
+        <span class="pt-badge warning">Warning</span>
+        <span class="pt-badge critical">Critical</span>
+        <span class="pt-badge info">Information</span>
         <span class="badge" data-accent="purple">Purple Accent</span>
       </p>
 

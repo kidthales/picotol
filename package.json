@@ -37,6 +37,7 @@
   "files": [
     "dist/picotol*.css",
     "dist/sri.json",
+    "dist/manifest.json",
     "src/",
     "data/tol-qualitative.json",
     "types/",

@@ -3,6 +3,7 @@
 //   - dist/picotol.css       & dist/picotol.min.css
 //   - dist/picotol.layer.css & dist/picotol.layer.min.css
 //   - dist/sri.json
+//   - dist/manifest.json
 //   - dist/demo/index.html
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -145,6 +146,23 @@ export function buildAll() {
   writeFileSync(join(distDir, 'SHA256SUMS.txt'), sha256Sums, 'utf8');
   stats.sha256Sums = sha256Sums;
 
+  const artifacts = {};
+  for (const f of cssFiles) {
+    artifacts[f.name] = {
+      sha256: sha256Hex(f.content),
+      size_bytes: Buffer.byteLength(f.content, 'utf8'),
+    };
+  }
+
+  const manifest = {
+    name: pkg.name,
+    version: pkg.version,
+    artifacts,
+  };
+
+  writeFileSync(join(distDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  stats.manifest = manifest;
+
   const demoHtml = generateDemoHtml(fullMin, stats);
   writeFileSync(join(demoDir, 'index.html'), demoHtml, 'utf8');
   writeFileSync(join(demoDir, 'CNAME'), 'picotol.kidthales.com\n', 'utf8');
@@ -162,7 +180,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       `  • picotol.core.min.css:  ${stats.coreMinBytes} B (${(stats.coreMinBytes / 1024).toFixed(2)} KB, gzip ${stats.coreGzipBytes} B) [${stats.coreIntegrity}]\n` +
       `  • picotol.min.css:       ${stats.fullMinBytes} B (${(stats.fullMinBytes / 1024).toFixed(2)} KB, gzip ${stats.fullGzipBytes} B) [${stats.fullIntegrity}]\n` +
       `  • picotol.layer.min.css: ${stats.layerMinBytes} B (${(stats.layerMinBytes / 1024).toFixed(2)} KB, gzip ${stats.layerGzipBytes} B) [${stats.layerIntegrity}]\n` +
-      `  • sri.json, demo & CNAME: generated\n` +
+      `  • sri.json, manifest.json, demo & CNAME: generated\n` +
       `  • SHA256SUMS.txt:        generated (6 bundles)\n` +
       `  • offline asset bundle:  ${stats.assetStats.zipName} (${stats.assetStats.byteLength} B)`
   );

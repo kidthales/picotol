@@ -12,6 +12,7 @@
     color-scheme: light dark;
     --pt-font-sans: system-ui, sans-serif;
     --pt-font-mono: ui-monospace, monospace;
+    --pt-font-size-xs: .75rem;
     --pt-line-height: 1.5;
     --pt-border-radius: .25rem;
     --pt-transition: .15s ease-in-out;
@@ -109,6 +110,22 @@
     --pt-grid-gap: var(--pt-gap-compact);
     --pt-line-height: 1.35;
     font-size: clamp(85%, 80% + .3vw, 95%);
+  }
+
+  [data-density="tight"], .pt-tight, :where([data-density="tight"], .pt-tight) {
+    --pt-spacing: .25rem;
+    --pt-card-padding: .25rem;
+    --pt-form-y: .125rem;
+    --pt-form-x: .375rem;
+    --pt-form-element-spacing-vertical: var(--pt-form-y);
+    --pt-form-element-spacing-horizontal: var(--pt-form-x);
+    --pt-btn-padding-block: var(--pt-form-y);
+    --pt-table-cell-padding-block: .125rem;
+    --pt-table-cell-padding-inline: .375rem;
+    --pt-grid-gap: var(--pt-spacing);
+    --pt-gap-compact: .25rem;
+    --pt-line-height: 1.25;
+    font-size: var(--pt-font-size-xs);
   }
 }
 
@@ -232,7 +249,7 @@
   :where(section) {
     margin-bottom: calc(var(--pt-spacing) * 1.5);
 
-    :where(.flex, .grid, [style*="gap"]) > &, :where([data-density="compact"], .pt-compact) & {
+    :where(.flex, .grid, [style*="gap"]) > &, :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) & {
       margin-bottom: 0;
     }
   }
@@ -385,7 +402,7 @@
     border: 0;
     border-top: var(--pt-border);
 
-    :where(.flex, .grid, [style*="gap"]) > &, :where([data-density="compact"], .pt-compact) & {
+    :where(.flex, .grid, [style*="gap"]) > &, :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) & {
       margin-block: 0;
     }
   }

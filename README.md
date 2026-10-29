@@ -26,9 +26,9 @@
   - Non-color validation cues (`2px` border + `✓` / `✗` prefix icons on `[aria-invalid] + small`) and $\ge 24\times24\text{px}$ target sizes (WCAG 2.2 SC 2.5.8).
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
-  - **`dist/picotol.core.min.css`** (<= 12.0 KB minified, ~4.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 32.0 KB minified, ~7.7 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
-  - **`dist/picotol.layer.min.css`** (<= 32.0 KB minified, ~7.7 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
+  - **`dist/picotol.core.min.css`** (<= 13.0 KB minified, ~4.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
+  - **`dist/picotol.min.css`** (<= 36.0 KB minified, ~8.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.layer.min.css`** (<= 36.0 KB minified, ~8.0 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
 
@@ -63,6 +63,7 @@ npm install @kidthales/picotol
 Each GitHub Release attaches:
 - **`picotol-v<version>.zip`**: Offline bundle with all 6 CSS builds, tokens, palette JSON, SRI manifest, and demo.
 - **`dist/SHA256SUMS.txt`**: Cryptographic SHA-256 checksum manifest covering all 6 CSS distribution bundles.
+- **`dist/manifest.json`**: Structured machine-readable release artifact manifest (`sha256`, `size_bytes`) for automated vendoring and CI pipelines.
 - **`dist/sri.json`**: W3C Subresource Integrity metadata (`sha384-...`).
 
 Download from [GitHub Releases](https://github.com/kidthales/picotol/releases).
@@ -79,7 +80,17 @@ sha256sum --check --ignore-missing SHA256SUMS.txt
 ```
 
 ```powershell
-# PowerShell: download and assert Get-FileHash integrity against SHA256SUMS.txt
+# PowerShell (structured manifest): download and verify directly via dist/manifest.json
+$u = "https://github.com/kidthales/picotol/releases/download/v0.2.0"
+$manifest = Invoke-RestMethod "$u/manifest.json"
+Invoke-WebRequest "$u/picotol.layer.min.css" -OutFile "./picotol.layer.min.css"
+$hash = (Get-FileHash ./picotol.layer.min.css -Algorithm SHA256).Hash.ToLower()
+$exp = $manifest.artifacts["picotol.layer.min.css"].sha256.ToLower()
+if ($hash -ne $exp) { throw "SHA256 mismatch: expected $exp, got $hash" }
+```
+
+```powershell
+# PowerShell (text checksums): download and assert Get-FileHash integrity against SHA256SUMS.txt
 $u = "https://github.com/kidthales/picotol/releases/download/v0.2.0"
 Invoke-WebRequest "$u/picotol.layer.min.css" -OutFile "./picotol.layer.min.css"
 $hash = (Get-FileHash ./picotol.layer.min.css -Algorithm SHA256).Hash.ToLower()
@@ -207,6 +218,54 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 ## Using with CSS Cascade Layers
 
 When embedding `@kidthales/picotol` into modern host applications (such as dashboards, web portals, or enterprise systems), CSS Cascade Layers cleanly isolate framework rules, host themes, and application overrides without CSS specificity escalation or `!important` workarounds.
+
+### Downstream Cascade Layer Ordering Guide
+
+Declare layer order upfront in your root stylesheet or HTML document to control cascade precedence and avoid unlayered specificity traps:
+
+```css
+@layer picotol, app-theme, app-components, app-utilities;
+```
+
+#### Cascade Precedence Mechanics
+1. **Layer Order Precedence (Later Wins)**: Declaring `@layer picotol, app-theme, app-components, app-utilities;` upfront ensures rules in `@layer app-theme`, `@layer app-components`, and `@layer app-utilities` defeat `@layer picotol` regardless of selector specificity, overriding framework rules without `!important`.
+2. **Unlayered Styles Win Over All Layers**: Per the W3C CSS Cascading and Inheritance Level 5 specification, normal unlayered styles defeat *all* layered styles regardless of specificity.
+3. **The Unlayered Specificity Trap**: Leaving host rules unlayered can unintentionally override layered components. Wrapping downstream styles in explicit layers guarantees predictable overrides. *(Note: `!important` declarations invert this layer priority, making earlier layers win).*
+
+#### Integration Patterns: `dist/picotol.layer.min.css`
+
+The opt-in bundle [`dist/picotol.layer.min.css`](dist/picotol.layer.min.css) is pre-wrapped in `@layer picotol { ... }`.
+
+##### Pattern A: CSS `@import` / Bundler
+
+```css
+@layer picotol, app-theme, app-components, app-utilities;
+@import "@kidthales/picotol/layer";
+
+@layer app-theme {
+  :root { --pt-primary: var(--brand-primary, #2255AA); }
+}
+
+@layer app-components {
+  button.action-btn { border-radius: 9999px; }
+}
+
+@layer app-utilities {
+  .text-center { text-align: center; }
+}
+```
+
+##### Pattern B: HTML `<link>` Loading
+
+```html
+<style>
+  @layer picotol, app-theme, app-components, app-utilities;
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol/dist/picotol.layer.min.css" />
+<link rel="stylesheet" href="/css/theme.css" layer="app-theme" />
+<link rel="stylesheet" href="/css/components.css" layer="app-components" />
+<link rel="stylesheet" href="/css/utilities.css" layer="app-utilities" />
+```
 
 ### Canonical 4-Layer Cascade Architecture
 
@@ -418,11 +477,26 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 | **Info** | `--pt-status-info-*` | Paul Tol Cyan (`#66CCEE`) | Paul Tol Blue (`#4477AA`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
 | **Neutral** | `--pt-status-neutral-*` | Paul Tol Grey (`#BBBBBB`) | Paul Tol Grey (`#777777`) | $\ge 3:1$ non-text |
 
-These tokens automatically power `.pt-status-dot`, `.status-dot`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
+These tokens automatically power `.pt-status-dot`, `.status-dot`, `.pt-badge`, `.pt-indicator`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
 
-### 4b. Status Indicator Dots
+### 4b. Status Badges, Indicators & Dots
 
-High-density status dots (`.status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
+Ready-to-use component primitives (`.pt-badge` and `.pt-indicator`) map natively to calibrated `--pt-status-{ok,warning,critical,info}-{fg,border,bg}` triads via `[data-status]` attributes or semantic modifier classes (`.ok`, `.success`, `.warning`, `.critical`, `.danger`, `.info`):
+
+```html
+<!-- Native Status Badges with Nested Status Dots -->
+<span class="pt-badge" data-status="ok"><span class="pt-status-dot ok"></span> Operational</span>
+<span class="pt-badge warning"><span class="pt-status-dot warning"></span> Degraded</span>
+<span class="pt-badge critical"><span class="pt-status-dot critical"></span> Outage</span>
+<span class="pt-badge info"><span class="pt-status-dot info"></span> Rebalancing</span>
+
+<!-- Status Indicators & Semantic Chips -->
+<span class="pt-indicator ok">Online</span>
+<span class="pt-indicator warning">Warning</span>
+<span class="pt-chip critical">p0-crit</span>
+```
+
+High-density status dots (`.status-dot`, `.pt-status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
 
 ```html
 <!-- Standalone Status Dots -->
@@ -508,6 +582,7 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, segmented c
 - **Canonical Placement (`data-placement`)**: `data-placement="top"` (default) or `data-placement="bottom"`. Compatibility classes `.top` and `.bottom` are also supported.
 - **Positioning**: Pin position configured via `--pt-marker-pos` (`0%` to `100%`); range band span configured via `--pt-range-start` and `--pt-range-end`.
 - **Labels**: `.pt-meter-label` or `[data-label]` child elements aligned to the marker with `tabular-nums`.
+- **Tokenized Stacking Layers**: Sub-primitives stack predictably via tokenized z-index layers: `--pt-meter-range-z: 1` (`.pt-meter-range`), `--pt-meter-fill-z: 2` (`.pt-meter-fill`), and `--pt-meter-mark-z: 3` (`.pt-meter-mark`, `.pt-meter-label`, `.pt-gauge-marker`, `.pt-meter-pin`).
 
 ```html
 <div class="pt-meter">
@@ -515,9 +590,9 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, segmented c
   <div class="pt-meter-range warning" style="--pt-range-start: 60%; --pt-range-end: 85%;"></div>
   <div class="pt-meter-range critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
   <div class="pt-progress" role="progressbar" aria-valuenow="78" style="--pt-progress-value: 78%;">
-    <div class="pt-progress-fill"></div>
-    <div class="pt-meter-pin" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
-    <div class="pt-meter-pin critical bottom" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
+    <div class="pt-progress-fill pt-meter-fill"></div>
+    <div class="pt-meter-pin pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
+    <div class="pt-meter-pin pt-meter-mark critical bottom" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
   </div>
 </div>
 ```
@@ -553,6 +628,28 @@ For data-dense applications, dashboards, and narrow IDE corridors, apply `[data-
     </table>
   </figure>
 </section>
+```
+
+### 4h. Ultra-Compact Density (`[data-density="tight"]`) & Dense Cards (`.pt-card--dense`)
+
+For highly constrained embedding contexts—such as IDE auxiliary toolbars, webviews, and embedded status sidebars (< 300px width)—`@kidthales/picotol` provides an ultra-dense modifier:
+
+- **Token Overrides**: Sets `--pt-spacing: 0.25rem;`, `--pt-card-padding: 0.25rem;`, `--pt-grid-gap: 0.25rem;`, `--pt-line-height: 1.25;`, and typography scaling via `font-size: var(--pt-font-size-xs);`.
+- **Form & Table Controls**: Tightens cell padding to `0.125rem 0.375rem`, form padding to `0.125rem 0.375rem`, and button padding to `0.125rem 0.375rem`.
+- **Element-Level Card Modifier**: `.pt-card--dense` scopes `--pt-card-padding: 0.25rem;` directly to individual cards without requiring container-level density toggles.
+- **Narrow Corridor Containment**: Enforces `min-width: 0;` and `max-width: 100%;` across cards and nested card hierarchies to prevent horizontal scroll blowout or text clipping at narrow viewport widths.
+
+```html
+<!-- Ultra-compact embedded sidebar card -->
+<article class="card pt-card--dense" data-density="tight">
+  <header><strong>Worker 03</strong></header>
+  <main>
+    <div class="card pt-card--dense">
+      <small>Nested Queue: 12 jobs</small>
+    </div>
+  </main>
+  <footer><small>Status: Ready</small></footer>
+</article>
 ```
 
 ### 5. Interactive Operational Showcase & Palette Explorer

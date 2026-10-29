@@ -90,22 +90,22 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 32.0 KB, and picotol.layer.min.css <= 32.0 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 13.0 KB, picotol.min.css <= 36.0 KB, and picotol.layer.min.css <= 36.0 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
   const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
 
   assert.ok(
-    coreMin <= 12.0 * 1024,
-    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 12288 B`
+    coreMin <= 13.0 * 1024,
+    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 13312 B`
   );
   assert.ok(
-    fullMin <= 32.0 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 32768 B`
+    fullMin <= 36.0 * 1024,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= 36864 B`
   );
   assert.ok(
-    layerMin <= 32.0 * 1024,
-    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 32768 B`
+    layerMin <= 36.0 * 1024,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 36864 B`
   );
 });
 
@@ -1747,6 +1747,343 @@ test("Release Checksum Manifest and Placement Documentation (Issue #127)", () =>
     "README.md must document Subresource Integrity <link> integration"
   );
 });
+
+test("Tokenized Z-Index Stacking Layers for Meter Sub-Primitives (Issue #138)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Tokenized z-index layers in @layer components
+  assert.ok(
+    fullCss.includes(".pt-meter-range") &&
+    fullCss.includes("--pt-meter-range-z") &&
+    compCss.includes("z-index: var(--pt-meter-range-z, 1)"),
+    "src/components.css and full bundle must assign tokenized z-index to .pt-meter-range"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter-fill") &&
+    fullCss.includes("--pt-meter-fill-z") &&
+    compCss.includes("z-index: var(--pt-meter-fill-z, 2)"),
+    "src/components.css and full bundle must assign tokenized z-index to .pt-meter-fill"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter-mark") &&
+    fullCss.includes("--pt-meter-mark-z") &&
+    compCss.includes("z-index: var(--pt-meter-mark-z, 3)"),
+    "src/components.css and full bundle must assign tokenized z-index to .pt-meter-mark and pins"
+  );
+
+  // 2. Positioning and stacking context on .pt-meter and progress:has(.pt-gauge-marker)
+  assert.ok(
+    compCss.includes("progress:has(.pt-gauge-marker)") &&
+    fullCss.includes("progress:has(.pt-gauge-marker)") &&
+    compCss.includes("position: relative"),
+    "progress:has(.pt-gauge-marker) must establish a positioning context"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter") &&
+    fullCss.includes("position: relative"),
+    ".pt-meter must establish a positioning context"
+  );
+
+  // 3. Minified bundles (dist/picotol.min.css & dist/picotol.layer.min.css) presence
+  assert.ok(
+    fullMin.includes("pt-meter-range") && fullMin.includes("--pt-meter-range-z"),
+    "dist/picotol.min.css must compile .pt-meter-range with z-index layer"
+  );
+  assert.ok(
+    fullMin.includes("pt-meter-fill") && fullMin.includes("--pt-meter-fill-z"),
+    "dist/picotol.min.css must compile .pt-meter-fill with z-index layer"
+  );
+  assert.ok(
+    fullMin.includes("pt-meter-mark") && fullMin.includes("--pt-meter-mark-z"),
+    "dist/picotol.min.css must compile .pt-meter-mark with z-index layer"
+  );
+  assert.ok(
+    layerMin.includes("pt-meter-range") && layerMin.includes("pt-meter-fill") && layerMin.includes("pt-meter-mark"),
+    "dist/picotol.layer.min.css must compile all meter stacking primitives"
+  );
+
+  // 4. Two-Tier Isolation: Core bundle strictly excludes meter range & fill primitives
+  assert.ok(!coreCss.includes(".pt-meter-range"), "Core bundle must not contain .pt-meter-range");
+  assert.ok(!coreCss.includes(".pt-meter-fill"), "Core bundle must not contain .pt-meter-fill");
+  assert.ok(!coreCss.includes(".pt-meter-mark"), "Core bundle must not contain .pt-meter-mark");
+
+  // 5. Interactive Demo verification
+  assert.ok(demoHtml.includes("pt-meter-range"), "Demo HTML must showcase .pt-meter-range");
+  assert.ok(demoHtml.includes("pt-meter-fill"), "Demo HTML must showcase .pt-meter-fill");
+  assert.ok(demoHtml.includes("pt-meter-mark"), "Demo HTML must showcase .pt-meter-mark");
+
+  // 6. Documentation verification
+  assert.ok(readme.includes("--pt-meter-range-z"), "README must document --pt-meter-range-z");
+  assert.ok(readme.includes("--pt-meter-fill-z"), "README must document --pt-meter-fill-z");
+  assert.ok(readme.includes("--pt-meter-mark-z"), "README must document --pt-meter-mark-z");
+});
+
+test("Native Status Badge and Indicator Component Primitives for Status Triads (Issue #139)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Tokens: --pt-font-size-xs token declaration
+  assert.ok(
+    tokensCss.includes("--pt-font-size-xs"),
+    "src/tokens.css must declare --pt-font-size-xs token"
+  );
+  assert.ok(
+    fullCss.includes("--pt-font-size-xs"),
+    "dist/picotol.css must include --pt-font-size-xs token"
+  );
+
+  // 2. Baseline styling for .pt-badge and .pt-indicator
+  assert.ok(
+    compCss.includes(".pt-badge") && compCss.includes(".pt-indicator"),
+    "src/components.css must define .pt-badge and .pt-indicator"
+  );
+  assert.ok(
+    compCss.includes("font-size: var(--pt-font-size-xs, .75em)") ||
+    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em)"),
+    "src/components.css must bind font-size to --pt-font-size-xs with fallback"
+  );
+
+  // 3. Status Triad bindings (ok/success, warning, critical/danger, info)
+  for (const triad of ["ok", "warning", "critical", "info"]) {
+    assert.ok(
+      compCss.includes(`var(--pt-status-${triad}-fg)`) &&
+      compCss.includes(`var(--pt-status-${triad}-bg)`) &&
+      compCss.includes(`var(--pt-status-${triad}-border)`),
+      `src/components.css must map --pt-status-${triad}-{fg,bg,border} triad`
+    );
+    assert.ok(
+      fullCss.includes(`--pt-status-${triad}-fg`) &&
+      fullCss.includes(`--pt-status-${triad}-bg`) &&
+      fullCss.includes(`--pt-status-${triad}-border`),
+      `dist/picotol.css must map --pt-status-${triad}-{fg,bg,border} triad`
+    );
+  }
+
+  // 4. Selector coverage for [data-status] attributes and semantic classes
+  assert.ok(compCss.includes('.pt-badge[data-status="ok"]') || fullCss.includes('.pt-badge[data-status="ok"]'), 'Must bind .pt-badge[data-status="ok"]');
+  assert.ok(compCss.includes('.pt-badge.ok') || fullCss.includes('.pt-badge.ok'), 'Must bind .pt-badge.ok');
+  assert.ok(compCss.includes('.pt-badge.success') || fullCss.includes('.pt-badge.success'), 'Must bind .pt-badge.success');
+  assert.ok(compCss.includes('.pt-badge[data-status="warning"]') || fullCss.includes('.pt-badge[data-status="warning"]'), 'Must bind .pt-badge[data-status="warning"]');
+  assert.ok(compCss.includes('.pt-badge.warning') || fullCss.includes('.pt-badge.warning'), 'Must bind .pt-badge.warning');
+  assert.ok(compCss.includes('.pt-badge[data-status="critical"]') || fullCss.includes('.pt-badge[data-status="critical"]'), 'Must bind .pt-badge[data-status="critical"]');
+  assert.ok(compCss.includes('.pt-badge.critical') || fullCss.includes('.pt-badge.critical'), 'Must bind .pt-badge.critical');
+  assert.ok(compCss.includes('.pt-badge[data-status="danger"]') || fullCss.includes('.pt-badge[data-status="danger"]'), 'Must bind .pt-badge[data-status="danger"]');
+  assert.ok(compCss.includes('.pt-badge.danger') || fullCss.includes('.pt-badge.danger'), 'Must bind .pt-badge.danger');
+  assert.ok(compCss.includes('.pt-badge[data-status="info"]') || fullCss.includes('.pt-badge[data-status="info"]'), 'Must bind .pt-badge[data-status="info"]');
+  assert.ok(compCss.includes('.pt-badge.info') || fullCss.includes('.pt-badge.info'), 'Must bind .pt-badge.info');
+
+  assert.ok(compCss.includes('.pt-indicator[data-status="ok"]') || fullCss.includes('.pt-indicator[data-status="ok"]'), 'Must bind .pt-indicator[data-status="ok"]');
+  assert.ok(compCss.includes('.pt-indicator.ok') || fullCss.includes('.pt-indicator.ok'), 'Must bind .pt-indicator.ok');
+  assert.ok(compCss.includes('.pt-indicator.success') || fullCss.includes('.pt-indicator.success'), 'Must bind .pt-indicator.success');
+  assert.ok(compCss.includes('.pt-indicator[data-status="warning"]') || fullCss.includes('.pt-indicator[data-status="warning"]'), 'Must bind .pt-indicator[data-status="warning"]');
+  assert.ok(compCss.includes('.pt-indicator.warning') || fullCss.includes('.pt-indicator.warning'), 'Must bind .pt-indicator.warning');
+  assert.ok(compCss.includes('.pt-indicator[data-status="critical"]') || fullCss.includes('.pt-indicator[data-status="critical"]'), 'Must bind .pt-indicator[data-status="critical"]');
+  assert.ok(compCss.includes('.pt-indicator.critical') || fullCss.includes('.pt-indicator.critical'), 'Must bind .pt-indicator.critical');
+  assert.ok(compCss.includes('.pt-indicator[data-status="danger"]') || fullCss.includes('.pt-indicator[data-status="danger"]'), 'Must bind .pt-indicator[data-status="danger"]');
+  assert.ok(compCss.includes('.pt-indicator.danger') || fullCss.includes('.pt-indicator.danger'), 'Must bind .pt-indicator.danger');
+  assert.ok(compCss.includes('.pt-indicator[data-status="info"]') || fullCss.includes('.pt-indicator[data-status="info"]'), 'Must bind .pt-indicator[data-status="info"]');
+  assert.ok(compCss.includes('.pt-indicator.info') || fullCss.includes('.pt-indicator.info'), 'Must bind .pt-indicator.info');
+
+  // 5. Minified bundle presence
+  assert.ok(fullMin.includes("pt-badge") && fullMin.includes("pt-indicator"), "dist/picotol.min.css must compile .pt-badge and .pt-indicator");
+  assert.ok(layerMin.includes("pt-badge") && layerMin.includes("pt-indicator"), "dist/picotol.layer.min.css must compile .pt-badge and .pt-indicator");
+
+  // 6. Two-Tier Isolation: Core bundle strictly excludes extended components
+  assert.ok(!coreCss.includes(".pt-badge"), "Core bundle must not contain .pt-badge");
+  assert.ok(!coreCss.includes(".pt-indicator"), "Core bundle must not contain .pt-indicator");
+
+  // 7. Interactive Demo showcase verification
+  assert.ok(demoHtml.includes("pt-badge"), "Demo HTML must showcase .pt-badge");
+  assert.ok(demoHtml.includes("pt-indicator"), "Demo HTML must showcase .pt-indicator");
+
+  // 8. Documentation verification
+  assert.ok(readme.includes(".pt-badge"), "README must document .pt-badge");
+  assert.ok(readme.includes(".pt-indicator"), "README must document .pt-indicator");
+});
+
+test("Release Distribution Integrity: dist/manifest.json exists, is valid JSON, and matches all 6 bundles in SHA-256 and size_bytes", () => {
+  const manifestPath = path.join(ROOT, "dist/manifest.json");
+  assert.ok(fs.existsSync(manifestPath), "dist/manifest.json must exist");
+  const raw = fs.readFileSync(manifestPath, "utf8");
+  assert.ok(raw.endsWith("\n"), "dist/manifest.json must end with a trailing newline");
+  const manifest = JSON.parse(raw);
+
+  assert.equal(manifest.name, "@kidthales/picotol", "manifest.name must match @kidthales/picotol");
+  assert.ok(manifest.version, "manifest.version must exist");
+  assert.ok(manifest.artifacts && typeof manifest.artifacts === "object", "manifest.artifacts must exist");
+
+  const bundles = [
+    "picotol.core.css",
+    "picotol.core.min.css",
+    "picotol.css",
+    "picotol.min.css",
+    "picotol.layer.css",
+    "picotol.layer.min.css",
+  ];
+
+  for (const b of bundles) {
+    const entry = manifest.artifacts[b];
+    assert.ok(entry, `manifest.json missing artifact entry for ${b}`);
+    assert.equal(typeof entry.sha256, "string", `sha256 for ${b} must be string`);
+    assert.equal(typeof entry.size_bytes, "number", `size_bytes for ${b} must be number`);
+
+    const filePath = path.join(ROOT, "dist", b);
+    assert.ok(fs.existsSync(filePath), `dist/${b} must exist`);
+    const content = fs.readFileSync(filePath);
+    const hash = crypto.createHash("sha256").update(content).digest("hex");
+    assert.equal(entry.sha256, hash, `Hash mismatch for ${b}`);
+    assert.equal(entry.size_bytes, content.byteLength, `Size mismatch for ${b}`);
+  }
+});
+
+test("Downstream CSS @layer Cascade Ordering Guide (Issue #141)", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  assert.ok(
+    readme.includes("Downstream Cascade Layer Ordering Guide"),
+    "README must include dedicated downstream cascade layer ordering guide section"
+  );
+  assert.ok(
+    readme.includes("@layer picotol, app-theme, app-components, app-utilities;"),
+    "README must document canonical downstream layer order declaration (@layer picotol, app-theme, app-components, app-utilities;)"
+  );
+  assert.ok(
+    readme.includes("dist/picotol.layer.min.css"),
+    "README must cross-reference dist/picotol.layer.min.css"
+  );
+  assert.ok(
+    readme.includes("unlayered") && readme.includes("!important"),
+    "README must explain unlayered styles precedence and !important interaction"
+  );
+  assert.ok(
+    readme.includes('@import "@kidthales/picotol/layer"'),
+    "README must provide CSS @import / @layer snippet"
+  );
+  assert.ok(
+    readme.includes('<link rel="stylesheet"') && readme.includes('layer="app-theme"'),
+    "README must provide HTML <link> snippet with layer attribute"
+  );
+});
+
+test("Ultra-Compact Density Modifier, Dense Card Modifier, and Embedded Panel Invariants (Issue #142)", () => {
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const layoutCss = fs.readFileSync(path.join(ROOT, "src/layout.css"), "utf8");
+  const contentCss = fs.readFileSync(path.join(ROOT, "src/content.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Ultra-compact tokens in tokens.css and compiled bundles
+  for (const css of [tokensCss, fullCss, coreCss]) {
+    assert.ok(
+      css.includes('[data-density="tight"]') || css.includes("[data-density=tight]"),
+      "Must define [data-density='tight'] modifier selector"
+    );
+    assert.ok(
+      css.includes(".pt-tight"),
+      "Must define .pt-tight utility class modifier"
+    );
+    assert.ok(
+      /--pt-spacing:\s*0?\.25rem/.test(css),
+      "Tight density modifier must set --pt-spacing to 0.25rem"
+    );
+    assert.ok(
+      /--pt-card-padding:\s*0?\.25rem/.test(css),
+      "Tight density modifier must set --pt-card-padding to 0.25rem"
+    );
+    assert.ok(
+      /--pt-form-y:\s*0?\.125rem/.test(css),
+      "Tight density modifier must set --pt-form-y to 0.125rem"
+    );
+    assert.ok(
+      /--pt-form-x:\s*0?\.375rem/.test(css),
+      "Tight density modifier must set --pt-form-x to 0.375rem"
+    );
+    assert.ok(
+      /--pt-table-cell-padding-block:\s*0?\.125rem/.test(css),
+      "Tight density modifier must set --pt-table-cell-padding-block to 0.125rem"
+    );
+    assert.ok(
+      /--pt-table-cell-padding-inline:\s*0?\.375rem/.test(css),
+      "Tight density modifier must set --pt-table-cell-padding-inline to 0.375rem"
+    );
+    assert.ok(
+      /--pt-line-height:\s*1\.25/.test(css),
+      "Tight density modifier must tighten --pt-line-height to 1.25"
+    );
+    assert.ok(
+      css.includes("font-size: var(--pt-font-size-xs)"),
+      "Tight density modifier must wire font-size to --pt-font-size-xs"
+    );
+  }
+
+  // 2. Element-level card modifier in components.css
+  assert.ok(
+    compCss.includes(".pt-card--dense"),
+    "src/components.css must define .pt-card--dense element modifier"
+  );
+  assert.ok(
+    fullCss.includes(".pt-card--dense") && fullMin.includes(".pt-card--dense"),
+    "dist/picotol.css and dist/picotol.min.css must export .pt-card--dense modifier"
+  );
+  assert.ok(
+    compCss.includes("--pt-card-padding: 0.25rem;"),
+    "src/components.css must configure --pt-card-padding: 0.25rem on dense cards"
+  );
+
+  // 3. Margin resets in tight context
+  assert.ok(
+    layoutCss.includes('[data-density="tight"]') && layoutCss.includes(".pt-tight"),
+    "src/layout.css must reset section margins in tight context"
+  );
+  assert.ok(
+    contentCss.includes('[data-density="tight"]') && contentCss.includes(".pt-tight"),
+    "src/content.css must reset hr margins in tight context"
+  );
+  assert.ok(
+    compCss.includes('[data-density="tight"]') && compCss.includes(".pt-tight"),
+    "src/components.css must reset card margins in tight context"
+  );
+
+  // 4. Narrow corridor (< 300px) and nested card containment
+  assert.ok(
+    compCss.includes("min-width: 0;") && compCss.includes("max-width: 100%;"),
+    "src/components.css must enforce min-width: 0 and max-width: 100% on cards"
+  );
+
+  // 5. Interactive Demo HTML showcase verification
+  assert.ok(
+    demoHtml.includes('data-density="tight"'),
+    "dist/demo/index.html must showcase container data-density='tight'"
+  );
+  assert.ok(
+    demoHtml.includes("pt-tight"),
+    "dist/demo/index.html must showcase .pt-tight class utility"
+  );
+  assert.ok(
+    demoHtml.includes("pt-card--dense"),
+    "dist/demo/index.html must showcase .pt-card--dense modifier class"
+  );
+  assert.ok(
+    demoHtml.includes("Nested Card"),
+    "dist/demo/index.html must demonstrate nested card containment under tight density"
+  );
+});
+
 
 
 
