@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -211,9 +212,40 @@ test(".github/workflows/release.yml defines dual publishing to npm and GitHub Pa
   assert.ok(content.includes("https://npm.pkg.github.com"), "Must publish to GitHub Packages registry");
   assert.ok(content.includes("https://registry.npmjs.org"), "Must publish to npm public registry");
   assert.ok(content.includes("dist/assets/picotol-v*.zip"), "Must upload asset bundle zip to GitHub Release");
+  assert.ok(content.includes("dist/sri.json"), "Must upload sri.json to GitHub Release");
+  assert.ok(content.includes("dist/SHA256SUMS.txt"), "Must upload SHA256SUMS.txt to GitHub Release");
   assert.ok(content.includes("packages: write"), "Must grant packages: write permission for GitHub Packages");
   assert.ok(content.includes("contents: write"), "Must grant contents: write permission for asset upload");
   assert.ok(content.includes("id-token: write"), "Must grant id-token: write permission for npm provenance");
+});
+
+test("dist/SHA256SUMS.txt accurately covers all 6 CSS distribution bundles", () => {
+  const sumsPath = path.join(ROOT, "dist", "SHA256SUMS.txt");
+  assert.ok(fs.existsSync(sumsPath), "dist/SHA256SUMS.txt must exist");
+  const content = fs.readFileSync(sumsPath, "utf8");
+  const lines = content.trim().split("\n").filter(Boolean);
+
+  const expectedBundles = [
+    "picotol.core.css",
+    "picotol.core.min.css",
+    "picotol.css",
+    "picotol.layer.css",
+    "picotol.layer.min.css",
+    "picotol.min.css",
+  ];
+
+  assert.equal(lines.length, expectedBundles.length, `SHA256SUMS.txt must cover exactly ${expectedBundles.length} bundles`);
+
+  for (const line of lines) {
+    const match = line.match(/^([a-f0-9]{64})\s+(.+)$/);
+    assert.ok(match, `Invalid SHA256SUMS line format: "${line}"`);
+    const [, hash, filename] = match;
+    assert.ok(expectedBundles.includes(filename), `Unexpected bundle "${filename}" in SHA256SUMS.txt`);
+
+    const fileBytes = fs.readFileSync(path.join(ROOT, "dist", filename));
+    const computedHash = crypto.createHash("sha256").update(fileBytes).digest("hex");
+    assert.equal(hash, computedHash, `Checksum mismatch for ${filename}`);
+  }
 });
 
 test("v0.1.0 pre-release artifacts and documentation adhere to open-source release standards", () => {

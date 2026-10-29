@@ -1,6 +1,6 @@
 @layer content {
-  :where(p, ul, ol, dl, blockquote, pre, figure, table, address, hr, hgroup, h1, h2, h3, h4, h5, h6) {
-    margin-block: 0 var(--pt-spacing);
+  :where(p, ul, ol, dl, blockquote, pre, figure, table, hr, h1, h2, h3, h4, h5, h6) {
+    margin: 0 0 var(--pt-spacing);
   }
 
   :where(.measure, .prose) {
@@ -10,18 +10,17 @@
   :where(h1, h2, h3, h4, h5, h6) {
     font-weight: 700;
     line-height: 1.25;
-    text-wrap: balance;
     &:not(:first-child) { margin-top: 1.5em; }
   }
 
   :where(h1, h2) { line-height: 1.2; }
-  h1 { font-size: clamp(2rem, 1.6rem + 1.5vw, 2.5rem); }
-  h2 { font-size: clamp(1.6rem, 1.3rem + 1vw, 2rem); }
-  h3 { font-size: clamp(1.3rem, 1.15rem + 0.5vw, 1.55rem); }
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.6rem; }
+  h3 { font-size: 1.3rem; }
   :where(h4, h5, h6) { color: var(--pt-muted-color); }
   h4 { font-size: 1.2rem; }
-  h5 { font-size: 1.05rem; font-weight: 600; }
-  h6 { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  h5 { font-size: 1.05rem; }
+  h6 { font-size: 0.9rem; text-transform: uppercase; }
 
   hgroup > * {
     margin: 0;
@@ -32,19 +31,16 @@
     padding-inline-start: 1.5rem;
     & li { margin-bottom: 0.25rem; }
   }
-  dl {
-    & dt { font-weight: 700; }
-    & dd { margin: 0 0 0.5rem 1.5rem; }
-  }
+  dt { font-weight: 700; }
+  dd { margin: 0 0 0.5rem 1.5rem; }
 
   small { font-size: 0.875em; }
   mark { padding: 0.125em 0.25em; border-radius: var(--pt-border-radius); background: var(--pt-mark-bg); color: var(--pt-color); }
   ins { color: var(--pt-valid); text-decoration: none; }
   del { color: var(--pt-invalid); }
-  abbr[title] { border-bottom: 1px dotted; text-decoration: none; cursor: help; }
+  abbr[title] { border-bottom: 1px dotted; cursor: help; }
 
   blockquote {
-    margin-inline: 0;
     padding: 0.5rem var(--pt-spacing);
     border-inline-start: 4px solid var(--pt-muted-border);
   }
@@ -67,16 +63,15 @@
     --pt-primary-hover-bg: var(--pt-muted-border);
   }
 
-  :where(a:not([role="button"], .button, .btn)) {
+  :where(a:not(.button, .btn, [role="button"])) {
     color: var(--pt-primary);
-    text-decoration: underline color-mix(in srgb, var(--pt-primary) 50%, transparent);
-    text-underline-offset: 2px;
-    &:is(:hover, :active, :focus-visible) { color: var(--pt-primary-hover); text-decoration-color: var(--pt-primary-hover); }
+    text-decoration: underline;
+    &:is(:hover, :active, :focus-visible) { color: var(--pt-primary-hover); }
   }
 
   :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"], .button, .btn) {
     display: inline-block;
-    padding: var(--pt-form-y) var(--pt-form-x);
+    padding: var(--pt-btn-padding-block) var(--pt-form-x);
     border: 1px solid var(--pt-primary);
     border-radius: var(--pt-border-radius);
     background: var(--pt-primary-bg);
@@ -94,13 +89,13 @@
     }
   }
 
-  :where(button, input, select, [role="button"], .button, .btn):is(.small, .sm) {
+  :where(button, input, select, .button, .btn):is(.small, .sm) {
     --pt-form-y: 0.25rem;
     --pt-form-x: 0.5rem;
     font-size: 0.8125rem;
   }
 
-  :where(.nowrap, .text-nowrap) {
+  .nowrap {
     white-space: nowrap;
   }
 
@@ -138,12 +133,11 @@
   }
 
   table { width: 100%; border-collapse: collapse; }
-  :where(th, td) { padding: 0.5rem 0.75rem; border-bottom: var(--pt-border); text-align: start; }
-  :where(thead, tfoot) :is(th, td) { border-bottom-width: 2px; font-weight: 600; }
+  :where(th, td) { padding: var(--pt-table-cell-padding-block) var(--pt-table-cell-padding-inline); border-bottom: var(--pt-border); text-align: start; }
+  :where(thead, tfoot) :where(th, td) { border-bottom-width: 2px; }
   table.striped tbody tr:nth-child(odd) { background: var(--pt-surface-subtle); }
 
-  :where(img, video) { max-width: 100%; height: auto; }
-  figure { margin-inline: 0; }
+  img, video { max-width: 100%; height: auto; }
   :where(figure:has(> table)) { overflow-x: auto; }
 
   /* SVG Icon Ergonomics */
@@ -155,8 +149,6 @@
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 
     &:is([fill]:not([fill="none"]), [data-filled], .solid) {
       fill: currentColor;
@@ -164,7 +156,7 @@
     }
   }
 
-  :where(button, [role="button"], .button, .btn, a):has(> :where(svg.icon, [data-icon])) {
+  :where(button, .button, .btn, a):has(> :where(svg.icon, [data-icon])) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -172,7 +164,7 @@
     gap: 0.5rem;
   }
 
-  :where(button, [role="button"], .button, .btn):is([aria-label], [aria-labelledby], [title]):has(> :where(svg.icon, [data-icon]):only-child) {
+  :where(button, .button, .btn):is([aria-label], [aria-labelledby], [title]):has(> :where(svg.icon, [data-icon]):only-child) {
     padding: var(--pt-form-y);
     height: calc(1lh + 2 * var(--pt-form-y) + 2px);
     aspect-ratio: 1;

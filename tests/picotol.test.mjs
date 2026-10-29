@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -547,6 +548,12 @@ test("Color Scheme Scoping & Data-Accent Isolation: [data-accent] must not overr
       accentRulesWithColorScheme,
       null,
       "No [data-accent] selector may declare color-scheme"
+    );
+
+    // Container-level [data-accent] scoping: :where([data-accent]) must re-declare --pt-primary
+    assert.ok(
+      css.includes(":where([data-accent])") && css.includes("--pt-primary: light-dark(var(--pt-p4), var(--pt-p2))"),
+      "CSS tokens must re-declare --pt-primary under :where([data-accent]) to enable container subtree theming"
     );
   }
 
@@ -1311,6 +1318,438 @@ test("Open Source Governance, Citation Metadata, and Issue Routing (Issue #113)"
   assert.ok(readme.includes("CITATION.cff"), "README citation guidelines must reference CITATION.cff");
   assert.ok(readme.includes("SRON/EPS/TN/09-002"), "README citation guidelines must reference Paul Tol's technical report");
 });
+
+test("Card Flex Column Layout, Auto-Docking Footers, and Vertical Body Fill (Issue #128)", () => {
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Source CSS declarations in src/components.css
+  assert.ok(
+    compCss.includes("display: flex;") && compCss.includes("flex-direction: column;"),
+    "src/components.css must declare display: flex and flex-direction: column on cards"
+  );
+  assert.ok(
+    compCss.includes("margin-block-start: auto;"),
+    "src/components.css must declare margin-block-start: auto on card footers"
+  );
+  assert.ok(
+    compCss.includes("margin-block-end: calc(-1 * var(--pt-card-padding));"),
+    "src/components.css must preserve full-bleed negative margin-block-end on card footers"
+  );
+  assert.ok(
+    compCss.includes(":where(main, .card-body, .body, [data-card-body])"),
+    "src/components.css must support semantic main and .card-body wrappers"
+  );
+  assert.ok(
+    compCss.includes("flex: 1 1 auto;"),
+    "src/components.css must declare flex: 1 1 auto on card body wrappers"
+  );
+  assert.ok(
+    compCss.includes("height: 100%;"),
+    "src/components.css must declare height: 100% on grid/flex cards for track height inheritance"
+  );
+
+  // 2. Compiled CSS verification in dist/picotol.css & dist/picotol.min.css
+  assert.ok(
+    fullCss.includes("flex-direction: column") && fullCss.includes("display: flex"),
+    "Compiled CSS must contain card flex column declarations"
+  );
+  assert.ok(
+    fullCss.includes("margin-block-start: auto"),
+    "Compiled CSS must contain margin-block-start: auto on card footers"
+  );
+  assert.ok(
+    fullCss.includes("height: 100%"),
+    "Compiled CSS must contain height: 100% on grid/flex card containers"
+  );
+  assert.ok(
+    fullCss.includes("main, .card-body, .body, [data-card-body]"),
+    "Compiled CSS must contain card body selector list"
+  );
+
+  // 3. Two-Tier Isolation: Core bundle strictly excludes card body wrappers
+  assert.ok(!coreCss.includes(".card-body"), "Core bundle must not contain .card-body");
+  assert.ok(!coreCss.includes("[data-card-body]"), "Core bundle must not contain [data-card-body]");
+
+  // 4. Demo Verification across all 5 audited grid sections
+  // Section A: Bundle Scorecard
+  assert.ok(
+    demoHtml.includes('id="scorecard"') && demoHtml.includes("<main>"),
+    "Demo Scorecard section must feature semantic <main> body wrappers"
+  );
+  // Section B: Card Parity
+  assert.ok(
+    demoHtml.includes("Card Component Parity") &&
+    demoHtml.includes('class="card-body"') &&
+    demoHtml.includes("Footer landmark (auto-docked)"),
+    "Demo Card Parity section must showcase <main> and .card-body with auto-docked footers"
+  );
+  // Section C: Status Dots
+  assert.ok(
+    demoHtml.includes("Status Dots &amp; Narrow-Corridor Reflow"),
+    "Demo Status Dots section must be present"
+  );
+  // Section D: Compact Density
+  assert.ok(
+    demoHtml.includes('data-density="compact"') && demoHtml.includes('class="card pt-compact"'),
+    "Demo Compact Density section must showcase density variants"
+  );
+  // Section E: Progress / Meters
+  assert.ok(
+    demoHtml.includes("Meters, Progressbars &amp; Gauge Threshold Pins"),
+    "Demo Progress/Meters section must showcase meter cards"
+  );
+});
+
+test("Semantic Status Tokens and Dark Mode Contrast Calibration (Issue #126)", () => {
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+
+  // 1. Definition of all 12 semantic status CSS custom property pairings in tokens and compiled bundles
+  const expectedTokens = [
+    "--pt-status-ok-fg",
+    "--pt-status-ok-border",
+    "--pt-status-ok-bg",
+    "--pt-status-warning-fg",
+    "--pt-status-warning-border",
+    "--pt-status-warning-bg",
+    "--pt-status-critical-fg",
+    "--pt-status-critical-border",
+    "--pt-status-critical-bg",
+    "--pt-status-info-fg",
+    "--pt-status-info-border",
+    "--pt-status-info-bg",
+  ];
+
+  for (const token of expectedTokens) {
+    assert.ok(tokensCss.includes(token), `tokens.css must define ${token}`);
+    assert.ok(coreCss.includes(token), `picotol.core.css must include ${token}`);
+    assert.ok(fullCss.includes(token), `picotol.css must include ${token}`);
+    assert.ok(layerCss.includes(token), `picotol.layer.css must include ${token}`);
+  }
+
+  // 2. Paul Tol Canonical Color Mapping Verification
+  // OK: light #228833 (Tol bright green), dark #44AA99 (Tol muted teal)
+  // Warning: light fg #775500 (Tol dark 9), dark fg #DDAA33 (Tol high-contrast yellow), dark border #EE8866 (Tol light orange)
+  // Critical: light #CC3311 (Tol vibrant red), dark #EE6677 (Tol bright red)
+  // Info: light #4477AA (Tol bright blue), dark #66CCEE (Tol bright cyan)
+  assert.ok(tokensCss.includes("#228833") && tokensCss.includes("#44AA99"), "OK token must use canonical Tol green and teal");
+  assert.ok(tokensCss.includes("#DDAA33") && tokensCss.includes("#EE8866"), "Warning token must use canonical Tol yellow and orange");
+  assert.ok(tokensCss.includes("#CC3311") && tokensCss.includes("#EE6677"), "Critical token must use canonical Tol red");
+  assert.ok(tokensCss.includes("#4477AA") && tokensCss.includes("#66CCEE"), "Info token must use canonical Tol blue and cyan");
+
+  // 3. Automated WCAG 2.2 Contrast Verification against Dark Surfaces (#000000 root, #444444 surface)
+  const darkRoot = "#000000";
+  const darkSurface = "#444444";
+  const lightRoot = "#FFFFFF";
+
+  // Warning Dark Mode Calibration:
+  // Text: #DDAA33 must strictly achieve >= 4.5:1 on both root (#000000) and surface (#444444)
+  const crWarnFgDarkRoot = contrastRatio("#DDAA33", darkRoot);
+  const crWarnFgDarkSurface = contrastRatio("#DDAA33", darkSurface);
+  assert.ok(
+    crWarnFgDarkRoot >= 4.5,
+    `Warning text #DDAA33 on dark root #000000 must be >= 4.5:1 (got ${crWarnFgDarkRoot.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crWarnFgDarkSurface >= 4.5,
+    `Warning text #DDAA33 on dark surface #444444 must be >= 4.5:1 (got ${crWarnFgDarkSurface.toFixed(2)}:1)`
+  );
+
+  // Non-Text / Border: #EE8866 must strictly achieve >= 3.0:1 on both root (#000000) and surface (#444444)
+  const crWarnBorderDarkRoot = contrastRatio("#EE8866", darkRoot);
+  const crWarnBorderDarkSurface = contrastRatio("#EE8866", darkSurface);
+  assert.ok(
+    crWarnBorderDarkRoot >= 3.0,
+    `Warning border #EE8866 on dark root #000000 must be >= 3.0:1 (got ${crWarnBorderDarkRoot.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crWarnBorderDarkSurface >= 3.0,
+    `Warning border #EE8866 on dark surface #444444 must be >= 3.0:1 (got ${crWarnBorderDarkSurface.toFixed(2)}:1)`
+  );
+
+  // OK Contrast Verification:
+  // Light text #228833 on white >= 4.5:1
+  const crOkLight = contrastRatio("#228833", lightRoot);
+  assert.ok(crOkLight >= 4.5, `OK text #228833 on white must be >= 4.5:1 (got ${crOkLight.toFixed(2)}:1)`);
+  // Dark border/text #44AA99 on dark root >= 4.5:1, on dark surface >= 3.0:1
+  const crOkDarkRoot = contrastRatio("#44AA99", darkRoot);
+  const crOkDarkSurface = contrastRatio("#44AA99", darkSurface);
+  assert.ok(crOkDarkRoot >= 4.5, `OK text/border #44AA99 on dark root must be >= 4.5:1 (got ${crOkDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crOkDarkSurface >= 3.0, `OK border #44AA99 on dark surface must be >= 3.0:1 (got ${crOkDarkSurface.toFixed(2)}:1)`);
+
+  // Critical Contrast Verification:
+  // Light text #CC3311 on white >= 4.5:1
+  const crCritLight = contrastRatio("#CC3311", lightRoot);
+  assert.ok(crCritLight >= 4.5, `Critical text #CC3311 on white must be >= 4.5:1 (got ${crCritLight.toFixed(2)}:1)`);
+  // Dark border/text #EE6677 on dark root >= 4.5:1, on dark surface >= 3.0:1
+  const crCritDarkRoot = contrastRatio("#EE6677", darkRoot);
+  const crCritDarkSurface = contrastRatio("#EE6677", darkSurface);
+  assert.ok(crCritDarkRoot >= 4.5, `Critical text/border #EE6677 on dark root must be >= 4.5:1 (got ${crCritDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crCritDarkSurface >= 3.0, `Critical border #EE6677 on dark surface must be >= 3.0:1 (got ${crCritDarkSurface.toFixed(2)}:1)`);
+
+  // Info Contrast Verification:
+  // Light text #4477AA on white >= 4.5:1
+  const crInfoLight = contrastRatio("#4477AA", lightRoot);
+  assert.ok(crInfoLight >= 4.5, `Info text #4477AA on white must be >= 4.5:1 (got ${crInfoLight.toFixed(2)}:1)`);
+  // Dark border/text #66CCEE on dark root >= 4.5:1, on dark surface >= 4.5:1
+  const crInfoDarkRoot = contrastRatio("#66CCEE", darkRoot);
+  const crInfoDarkSurface = contrastRatio("#66CCEE", darkSurface);
+  assert.ok(crInfoDarkRoot >= 4.5, `Info text/border #66CCEE on dark root must be >= 4.5:1 (got ${crInfoDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crInfoDarkSurface >= 4.5, `Info border #66CCEE on dark surface must be >= 4.5:1 (got ${crInfoDarkSurface.toFixed(2)}:1)`);
+
+  // 4. Component Wiring Assertions
+  // Status Dots (.status-dot, .pt-status-dot)
+  assert.ok(
+    compCss.includes("var(--pt-status-ok-border") &&
+    compCss.includes("var(--pt-status-warning-border") &&
+    compCss.includes("var(--pt-status-critical-border") &&
+    compCss.includes("var(--pt-status-info-border"),
+    "src/components.css must wire status dots to semantic status border tokens"
+  );
+  assert.ok(
+    fullCss.includes("var(--pt-status-ok-border") &&
+    fullCss.includes("var(--pt-status-warning-border") &&
+    fullCss.includes("var(--pt-status-critical-border") &&
+    fullCss.includes("var(--pt-status-info-border"),
+    "dist/picotol.css must include status dot semantic token wiring"
+  );
+
+  // Callouts (.pt-callout)
+  assert.ok(
+    compCss.includes("var(--pt-status-ok-bg)") &&
+    compCss.includes("var(--pt-status-warning-bg)") &&
+    compCss.includes("var(--pt-status-critical-bg)") &&
+    compCss.includes("var(--pt-status-info-bg)"),
+    "src/components.css must wire callout backgrounds to semantic status bg tokens"
+  );
+
+  // Gauge Markers & Meter Pins (.pt-gauge-marker, .pt-meter-pin)
+  assert.ok(
+    compCss.includes("--pt-marker-color: var(--pt-status-ok-border)") &&
+    compCss.includes("--pt-marker-color: var(--pt-status-warning-border)") &&
+    compCss.includes("color: var(--pt-status-warning-fg)") &&
+    compCss.includes("--pt-marker-color: var(--pt-status-critical-border)") &&
+    compCss.includes("--pt-marker-color: var(--pt-status-info-border)"),
+    "src/components.css must wire gauge marker pins and labels to calibrated status tokens"
+  );
+});
+
+test("Meter Pin Label Positioning and Multi-Marker Range Bands (Issue #124)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. .pt-meter-range primitive and custom property wiring
+  assert.ok(
+    fullCss.includes(".pt-meter-range") &&
+    fullCss.includes("--pt-range-start") &&
+    fullCss.includes("--pt-range-end") &&
+    fullCss.includes("--pt-range-color"),
+    "Full bundle must compile .pt-meter-range primitive with range custom properties"
+  );
+
+  // 2. Canonical data-placement and backwards-compatible .bottom utility on meter pins and labels
+  assert.ok(
+    fullCss.includes('[data-placement="bottom"]') || fullCss.includes('[data-placement=bottom]'),
+    "Full bundle must support canonical data-placement=bottom on meter pins and labels"
+  );
+  assert.ok(
+    compCss.includes(".bottom") && compCss.includes('[data-placement="bottom"]'),
+    "src/components.css must support both .bottom and data-placement=bottom for pin placement"
+  );
+
+  // 3. Child .pt-meter-label and [data-label] support aligned with --pt-marker-pos
+  assert.ok(
+    compCss.includes(".pt-meter-label") && compCss.includes("[data-label]"),
+    "src/components.css must style .pt-meter-label and [data-label] children within pins"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter-label"),
+    "Full bundle must include .pt-meter-label selector"
+  );
+
+  // 4. Two-Tier Isolation: Core bundle strictly excludes extended meter range & pin label primitives
+  assert.ok(!coreCss.includes(".pt-meter-range"), "Core bundle must not contain .pt-meter-range");
+  assert.ok(!coreCss.includes(".pt-meter-label"), "Core bundle must not contain .pt-meter-label");
+
+  // 5. Interactive Demo verification
+  assert.ok(demoHtml.includes("pt-meter-range"), "Demo HTML must showcase .pt-meter-range");
+  assert.ok(demoHtml.includes("pt-meter-label"), "Demo HTML must showcase .pt-meter-label");
+  assert.ok(demoHtml.includes('data-placement="bottom"'), "Demo HTML must showcase data-placement=bottom");
+  assert.ok(demoHtml.includes('data-placement="top"'), "Demo HTML must showcase data-placement=top");
+});
+
+test("Compact Density Cascading into Form Controls, Tables, Buttons, and Layout Gaps (Issue #125)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const formsCss = fs.readFileSync(path.join(ROOT, "src/forms.css"), "utf8");
+  const contentCss = fs.readFileSync(path.join(ROOT, "src/content.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Form control padding wired to --pt-form-element-spacing-vertical and horizontal
+  assert.ok(
+    tokensCss.includes("--pt-form-element-spacing-vertical:") &&
+    tokensCss.includes("--pt-form-element-spacing-horizontal:"),
+    "Tokens CSS must expose --pt-form-element-spacing-vertical and --pt-form-element-spacing-horizontal"
+  );
+  assert.ok(
+    formsCss.includes("var(--pt-form-element-spacing-vertical) var(--pt-form-element-spacing-horizontal)"),
+    "Forms CSS must wire input, select, textarea padding to spacing custom properties"
+  );
+  assert.ok(
+    coreCss.includes("--pt-form-element-spacing-vertical") &&
+    coreCss.includes("--pt-form-element-spacing-horizontal"),
+    "Core bundle must include form element spacing tokens"
+  );
+
+  // 2. Table cell padding wired to --pt-table-cell-padding-block and inline
+  assert.ok(
+    tokensCss.includes("--pt-table-cell-padding-block:") &&
+    tokensCss.includes("--pt-table-cell-padding-inline:"),
+    "Tokens CSS must declare table cell padding tokens at root and compact"
+  );
+  assert.ok(
+    contentCss.includes("padding: var(--pt-table-cell-padding-block) var(--pt-table-cell-padding-inline);"),
+    "Content CSS must wire th, td padding to table cell padding custom properties"
+  );
+  assert.ok(
+    coreCss.includes("--pt-table-cell-padding-block") &&
+    coreCss.includes("--pt-table-cell-padding-inline"),
+    "Core bundle must include table cell padding custom properties"
+  );
+
+  // 3. Button and micro-action vertical padding wired to --pt-btn-padding-block
+  assert.ok(
+    tokensCss.includes("--pt-btn-padding-block:"),
+    "Tokens CSS must declare --pt-btn-padding-block"
+  );
+  assert.ok(
+    contentCss.includes("padding: var(--pt-btn-padding-block) var(--pt-form-x);"),
+    "Content CSS must wire button padding to --pt-btn-padding-block"
+  );
+  assert.ok(
+    compCss.includes("--pt-btn-padding-block: 1px;") &&
+    compCss.includes("padding-block: var(--pt-btn-padding-block);"),
+    "Components CSS must tighten .pt-copy-pill and .pt-chip padding-block in compact context"
+  );
+
+  // 4. Compact gap utility exposed and wired to --pt-grid-gap
+  assert.ok(
+    tokensCss.includes("--pt-gap-compact:"),
+    "Tokens CSS must declare --pt-gap-compact token"
+  );
+  assert.ok(
+    tokensCss.includes("--pt-grid-gap: var(--pt-gap-compact);"),
+    "Tokens CSS compact density block must wire --pt-grid-gap to --pt-gap-compact"
+  );
+
+  // 5. 320px mobile viewport zero-overflow invariants
+  assert.ok(
+    coreCss.includes("box-sizing: border-box") || coreCss.includes("box-sizing:border-box"),
+    "Box-sizing border-box applied to prevent horizontal container blowout"
+  );
+  assert.ok(
+    coreCss.includes("min-width: 0") || coreCss.includes("min-width:0"),
+    "Flex and grid children must include min-width: 0 to avoid overflow on narrow viewports"
+  );
+  assert.ok(
+    coreCss.includes("overflow-x: auto") || coreCss.includes("overflow-x:auto"),
+    "Tables and pre blocks must declare horizontal overflow scrolling"
+  );
+  assert.ok(
+    coreCss.includes("max-width: 100%") || coreCss.includes("max-width:100%"),
+    "Media and container utilities must constrain max-width to 100%"
+  );
+
+  // 6. Demo HTML verification
+  assert.ok(
+    demoHtml.includes('data-density="compact"'),
+    "Demo HTML must showcase data-density=compact showcase"
+  );
+});
+
+test("Release Checksum Manifest and Placement Documentation (Issue #127)", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const releaseYml = fs.readFileSync(path.join(ROOT, ".github/workflows/release.yml"), "utf8");
+  const sumsPath = path.join(ROOT, "dist/SHA256SUMS.txt");
+
+  // 1. Standalone SHA256SUMS.txt manifest validation
+  assert.ok(fs.existsSync(sumsPath), "dist/SHA256SUMS.txt must be generated during build");
+  const sumsContent = fs.readFileSync(sumsPath, "utf8");
+  const lines = sumsContent.trim().split("\n").filter(Boolean);
+  assert.equal(lines.length, 6, "SHA256SUMS.txt must cover all 6 CSS distribution bundles");
+
+  const bundles = [
+    "picotol.core.css",
+    "picotol.core.min.css",
+    "picotol.css",
+    "picotol.layer.css",
+    "picotol.layer.min.css",
+    "picotol.min.css",
+  ];
+
+  for (const b of bundles) {
+    const line = lines.find((l) => l.endsWith(`  ${b}`));
+    assert.ok(line, `Missing checksum entry for ${b}`);
+    const expectedHash = crypto.createHash("sha256").update(fs.readFileSync(path.join(ROOT, "dist", b))).digest("hex");
+    assert.equal(line.split(/\s+/)[0], expectedHash, `Checksum mismatch for ${b}`);
+  }
+
+  // 2. GitHub Release Asset Configuration
+  assert.ok(
+    releaseYml.includes("dist/SHA256SUMS.txt"),
+    ".github/workflows/release.yml must upload dist/SHA256SUMS.txt to GitHub Release"
+  );
+  assert.ok(
+    releaseYml.includes("dist/sri.json"),
+    ".github/workflows/release.yml must upload dist/sri.json to GitHub Release"
+  );
+
+  // 3. Documentation: Gauge Pin Canonical data-placement and compatibility classes
+  assert.ok(
+    readme.includes('data-placement="top|bottom"') || readme.includes('data-placement="top"') && readme.includes('data-placement="bottom"'),
+    "README.md must document canonical data-placement attribute for gauge pins"
+  );
+  assert.ok(
+    readme.includes(".top") && readme.includes(".bottom"),
+    "README.md must note .top and .bottom as compatibility classes"
+  );
+  assert.ok(
+    readme.includes(".pt-meter-range") && readme.includes(".pt-meter-pin"),
+    "README.md must document .pt-meter-range and .pt-meter-pin primitives"
+  );
+
+  // 4. Documentation: Subresource Integrity and Downstream Vendoring Workflows
+  assert.ok(
+    readme.includes("SHA256SUMS.txt") && readme.includes("sri.json"),
+    "README.md must document SHA256SUMS.txt and sri.json artifacts"
+  );
+  assert.ok(
+    readme.includes("sha256sum --check") || readme.includes("sha256sum"),
+    "README.md must document automated bash/POSIX vendoring workflow with sha256sum"
+  );
+  assert.ok(
+    readme.includes("Get-FileHash") && readme.includes("picotol.layer.min.css"),
+    "README.md must document automated PowerShell vendoring workflow with Get-FileHash"
+  );
+  assert.ok(
+    readme.includes("integrity=") && readme.includes("crossorigin="),
+    "README.md must document Subresource Integrity <link> integration"
+  );
+});
+
+
+
 
 
 

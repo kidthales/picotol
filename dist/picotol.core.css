@@ -10,12 +10,8 @@
 
   :root, :host {
     color-scheme: light dark;
-  }
-
-  :root, :host, :where([data-accent], [data-theme]) {
-    --pt-font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    --pt-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", var(--pt-font-emoji), sans-serif;
-    --pt-font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", var(--pt-font-emoji), monospace;
+    --pt-font-sans: system-ui, sans-serif;
+    --pt-font-mono: ui-monospace, monospace;
     --pt-line-height: 1.5;
     --pt-border-radius: .25rem;
     --pt-transition: .15s ease-in-out;
@@ -23,10 +19,15 @@
     --pt-card-padding: var(--pt-spacing);
     --pt-form-y: .5rem;
     --pt-form-x: .75rem;
+    --pt-form-element-spacing-vertical: var(--pt-form-y);
+    --pt-form-element-spacing-horizontal: var(--pt-form-x);
+    --pt-btn-padding-block: var(--pt-form-y);
+    --pt-table-cell-padding-block: .5rem;
+    --pt-table-cell-padding-inline: .75rem;
     --pt-container-max: 70rem;
-    --pt-sheet-width: min(100vw, 24rem);
     --pt-grid-min: 15rem;
     --pt-grid-gap: var(--pt-spacing);
+    --pt-gap-compact: .5rem;
     --pt-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     --pt-bg: light-dark(#fff, #000);
     --pt-card-bg: var(--pt-bg);
@@ -45,6 +46,21 @@
     --pt-cyan: #6ce;
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
+    --pt-status-ok-fg: light-dark(#283, #4a9);
+    --pt-status-ok-border: var(--pt-status-ok-fg);
+    --pt-status-ok-bg: color-mix(in srgb, var(--pt-status-ok-border) 8%, transparent);
+    --pt-status-warning-fg: light-dark(#750, #da3);
+    --pt-status-warning-border: light-dark(#da3, #e86);
+    --pt-status-warning-bg: color-mix(in srgb, var(--pt-status-warning-border) 8%, transparent);
+    --pt-status-critical-fg: light-dark(#c31, #e67);
+    --pt-status-critical-border: var(--pt-status-critical-fg);
+    --pt-status-critical-bg: color-mix(in srgb, var(--pt-status-critical-border) 8%, transparent);
+    --pt-status-info-fg: light-dark(#47a, #6ce);
+    --pt-status-info-border: var(--pt-status-info-fg);
+    --pt-status-info-bg: color-mix(in srgb, var(--pt-status-info-border) 8%, transparent);
+  }
+
+  :root, :host, :where([data-accent]) {
     --pt-primary: light-dark(var(--pt-p4), var(--pt-p2));
     --pt-primary-hover: light-dark(var(--pt-p5), var(--pt-p1));
     --pt-primary-bg: light-dark(var(--pt-p1), var(--pt-p4));
@@ -88,6 +104,9 @@
     --pt-card-padding: .5rem;
     --pt-form-y: .25rem;
     --pt-form-x: .5rem;
+    --pt-table-cell-padding-block: .25rem;
+    --pt-table-cell-padding-inline: .5rem;
+    --pt-grid-gap: var(--pt-gap-compact);
     --pt-line-height: 1.35;
     font-size: clamp(85%, 80% + .3vw, 95%);
   }
@@ -101,16 +120,11 @@
   :root, :host, :where([data-theme]) {
     background: var(--pt-bg);
     color: var(--pt-color);
-  }
-
-  :root, :host {
     font-family: var(--pt-font-sans);
-    font-size: clamp(100%, 95% + .4vw, 125%);
+    font-size: 100%;
     line-height: var(--pt-line-height);
     overflow-wrap: break-word;
     tab-size: 4;
-    font-optical-sizing: auto;
-    font-kerning: normal;
   }
 
   body {
@@ -153,7 +167,6 @@
     border-radius: var(--pt-border-radius);
     background: var(--pt-bg);
     color: var(--pt-color);
-    box-shadow: var(--pt-box-shadow);
     padding: .5rem 1rem;
     font-weight: 700;
     text-decoration: none;
@@ -256,8 +269,8 @@
 }
 
 @layer content {
-  :where(p, ul, ol, dl, blockquote, pre, figure, table, address, hr, hgroup, h1, h2, h3, h4, h5, h6) {
-    margin-block: 0 var(--pt-spacing);
+  :where(p, ul, ol, dl, blockquote, pre, figure, table, hr, h1, h2, h3, h4, h5, h6) {
+    margin: 0 0 var(--pt-spacing);
   }
 
   :where(.measure, .prose) {
@@ -265,7 +278,6 @@
   }
 
   :where(h1, h2, h3, h4, h5, h6) {
-    text-wrap: balance;
     font-weight: 700;
     line-height: 1.25;
 
@@ -279,15 +291,15 @@
   }
 
   h1 {
-    font-size: clamp(2rem, 1.6rem + 1.5vw, 2.5rem);
+    font-size: 2rem;
   }
 
   h2 {
-    font-size: clamp(1.6rem, 1.3rem + 1vw, 2rem);
+    font-size: 1.6rem;
   }
 
   h3 {
-    font-size: clamp(1.3rem, 1.15rem + .5vw, 1.55rem);
+    font-size: 1.3rem;
   }
 
   :where(h4, h5, h6) {
@@ -300,14 +312,11 @@
 
   h5 {
     font-size: 1.05rem;
-    font-weight: 600;
   }
 
   h6 {
     text-transform: uppercase;
-    letter-spacing: .05em;
     font-size: .9rem;
-    font-weight: 600;
   }
 
   hgroup > * {
@@ -328,14 +337,12 @@
     }
   }
 
-  dl {
-    & dt {
-      font-weight: 700;
-    }
+  dt {
+    font-weight: 700;
+  }
 
-    & dd {
-      margin: 0 0 .5rem 1.5rem;
-    }
+  dd {
+    margin: 0 0 .5rem 1.5rem;
   }
 
   small {
@@ -361,13 +368,11 @@
   abbr[title] {
     cursor: help;
     border-bottom: 1px dotted;
-    text-decoration: none;
   }
 
   blockquote {
     padding: .5rem var(--pt-spacing);
     border-inline-start: 4px solid var(--pt-muted-border);
-    margin-inline: 0;
   }
 
   :where(figcaption, blockquote footer) {
@@ -392,19 +397,17 @@
     --pt-primary-hover-bg: var(--pt-muted-border);
   }
 
-  :where(a:not([role="button"], .button, .btn)) {
+  :where(a:not(.button, .btn, [role="button"])) {
     color: var(--pt-primary);
-    text-decoration: underline color-mix(in srgb, var(--pt-primary) 50%, transparent);
-    text-underline-offset: 2px;
+    text-decoration: underline;
 
     &:is(:hover, :active, :focus-visible) {
       color: var(--pt-primary-hover);
-      text-decoration-color: var(--pt-primary-hover);
     }
   }
 
   :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"], .button, .btn) {
-    padding: var(--pt-form-y) var(--pt-form-x);
+    padding: var(--pt-btn-padding-block) var(--pt-form-x);
     border: 1px solid var(--pt-primary);
     border-radius: var(--pt-border-radius);
     background: var(--pt-primary-bg);
@@ -429,13 +432,13 @@
     }
   }
 
-  :where(button, input, select, [role="button"], .button, .btn):is(.small, .sm) {
+  :where(button, input, select, .button, .btn):is(.small, .sm) {
     --pt-form-y: .25rem;
     --pt-form-x: .5rem;
     font-size: .8125rem;
   }
 
-  :where(.nowrap, .text-nowrap) {
+  .nowrap {
     white-space: nowrap;
   }
 
@@ -491,27 +494,22 @@
   }
 
   :where(th, td) {
+    padding: var(--pt-table-cell-padding-block) var(--pt-table-cell-padding-inline);
     border-bottom: var(--pt-border);
     text-align: start;
-    padding: .5rem .75rem;
   }
 
-  :where(thead, tfoot) :is(th, td) {
+  :where(thead, tfoot) :where(th, td) {
     border-bottom-width: 2px;
-    font-weight: 600;
   }
 
   table.striped tbody tr:nth-child(odd) {
     background: var(--pt-surface-subtle);
   }
 
-  :where(img, video) {
+  img, video {
     max-width: 100%;
     height: auto;
-  }
-
-  figure {
-    margin-inline: 0;
   }
 
   :where(figure:has( > table)) {
@@ -523,8 +521,6 @@
     fill: none;
     stroke: currentColor;
     stroke-width: 2px;
-    stroke-linecap: round;
-    stroke-linejoin: round;
     width: 1.15em;
     height: 1.15em;
     display: inline-block;
@@ -535,7 +531,7 @@
     }
   }
 
-  :where(button, [role="button"], .button, .btn, a):has( > :where(svg.icon, [data-icon])) {
+  :where(button, .button, .btn, a):has( > :where(svg.icon, [data-icon])) {
     vertical-align: middle;
     justify-content: center;
     align-items: center;
@@ -543,7 +539,7 @@
     display: inline-flex;
   }
 
-  :where(button, [role="button"], .button, .btn):is([aria-label], [aria-labelledby], [title]):has( > :where(svg.icon, [data-icon]):only-child) {
+  :where(button, .button, .btn):is([aria-label], [aria-labelledby], [title]):has( > :where(svg.icon, [data-icon]):only-child) {
     padding: var(--pt-form-y);
     height: calc(1lh + 2 * var(--pt-form-y) + 2px);
     aspect-ratio: 1;
@@ -566,7 +562,7 @@
   :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"], [type="reset"]), select, textarea) {
     width: 100%;
     margin-bottom: var(--pt-spacing);
-    padding: var(--pt-form-y) var(--pt-form-x);
+    padding: var(--pt-form-element-spacing-vertical) var(--pt-form-element-spacing-horizontal);
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
     background: var(--pt-bg);
@@ -576,8 +572,6 @@
 
     &:focus-visible {
       border-color: var(--pt-primary);
-      outline: 2px solid var(--pt-primary);
-      outline-offset: 1px;
     }
 
     &::placeholder {
@@ -653,7 +647,7 @@
     margin: -2px .5rem 0 0;
   }
 
-  label:has( > [type="checkbox"],  > [type="radio"]) {
+  label:has( > :is([type="checkbox"], [type="radio"])) {
     min-height: 1.75rem;
     cursor: pointer;
     align-items: center;
@@ -672,7 +666,7 @@
       margin-bottom: 0;
     }
 
-    & > :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"], [type="reset"]), select) {
+    & > :where(input, select) {
       flex: auto;
       width: auto;
     }
