@@ -447,6 +447,9 @@
     --pt-progress-radius: var(--pt-border-radius);
     --pt-progress-bg: var(--pt-surface);
     --pt-progress-fill: var(--pt-primary);
+    --pt-meter-range-z: 1;
+    --pt-meter-fill-z: 2;
+    --pt-meter-mark-z: 3;
   }
 
   :where([data-density="compact"], .pt-compact) :where(progress, .pt-progress, [role="progressbar"], .pt-meter) {
@@ -485,6 +488,10 @@
     &::-moz-progress-bar { background-color: var(--pt-progress-fill); }
   }
 
+  progress:has(.pt-gauge-marker) {
+    position: relative;
+  }
+
   :where(.pt-progress, [role="progressbar"]:not(progress)) {
     --pt-progress-value: 0%;
     display: block;
@@ -498,13 +505,14 @@
     background-color: var(--pt-progress-bg);
     vertical-align: middle;
 
-    &:has(.pt-gauge-marker, .pt-meter-pin) {
+    &:has(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark) {
       overflow: visible;
     }
   }
 
-  .pt-progress-fill {
+  :where(.pt-progress-fill, .pt-meter-fill) {
     display: block;
+    position: relative;
     height: 100%;
     width: var(--pt-progress-value, 0%);
     background-color: var(--pt-progress-fill);
@@ -541,7 +549,7 @@
     &.info { --pt-range-color: var(--pt-status-info-bg); }
   }
 
-  :where(.pt-gauge-marker, .pt-meter-pin) {
+  :where(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark) {
     --pt-marker-pos: 0%;
     --pt-marker-color: var(--pt-color);
     position: absolute;
@@ -558,7 +566,6 @@
     color: var(--pt-marker-color);
     white-space: nowrap;
     pointer-events: none;
-    z-index: 1;
 
     &::before {
       content: "";
@@ -591,6 +598,21 @@
     }
     &:is(.critical, .danger) { --pt-marker-color: var(--pt-status-critical-border); }
     &.info { --pt-marker-color: var(--pt-status-info-border); }
+  }
+
+  .pt-meter-range {
+    z-index: var(--pt-meter-range-z, 1);
+  }
+
+  .pt-meter-fill {
+    z-index: var(--pt-meter-fill-z, 2);
+  }
+
+  .pt-meter-mark,
+  .pt-meter-label,
+  .pt-gauge-marker,
+  .pt-meter-pin {
+    z-index: var(--pt-meter-mark-z, 3);
   }
 
   /* 7. Switch ([role="switch"]) & Range ([type="range"]) */
