@@ -549,6 +549,12 @@ test("Color Scheme Scoping & Data-Accent Isolation: [data-accent] must not overr
       null,
       "No [data-accent] selector may declare color-scheme"
     );
+
+    // Container-level [data-accent] scoping: :where([data-accent]) must re-declare --pt-primary
+    assert.ok(
+      css.includes(":where([data-accent])") && css.includes("--pt-primary: light-dark(var(--pt-p4), var(--pt-p2))"),
+      "CSS tokens must re-declare --pt-primary under :where([data-accent]) to enable container subtree theming"
+    );
   }
 
   // Verify purple light mode contrast: p4 (#762A83) on white (#FFFFFF) >= 7.0 (AAA)

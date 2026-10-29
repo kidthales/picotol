@@ -286,20 +286,13 @@ body {
 ```
 
 #### Integration Caveats & Host Scoping
-When embedding `@kidthales/picotol` into an existing application shell, legacy layout wrapper, or micro-frontend container with its own scrolling or grid layout:
-- **Full Viewport vs. Embedded Containers**: If your host application already manages viewport height or body display (e.g., CSS grid or fixed header/sidebar layouts), the `min-height: 100dvh` and flex column reset on `body` can be cleanly overridden or neutralized in your host `@layer app`:
+When embedding `@kidthales/picotol` into an existing application shell with its own layout, the `min-height: 100dvh` and flex column reset on `body` can be overridden in `@layer app`:
 
 ```css
 @layer app {
-  /* Neutralize or reconfigure body layout when embedding into custom shells */
-  body {
-    min-height: auto;
-    display: block; /* or display: grid */
-  }
+  body { min-height: auto; display: block; }
 }
 ```
-
-- **Scoped Wrappers**: When embedding picotol components inside a sub-tree container rather than a full page, import `@kidthales/picotol/layer` within `@layer picotol` and scope layout landmarks inside dedicated wrapper elements (`.container` or custom host panels) without inheriting top-level body flex behaviors.
 
 ---
 
@@ -552,20 +545,11 @@ Machine-readable metadata is provided in [`CITATION.cff`](CITATION.cff) (v1.2.0)
   type         = {Technical Report},
   url          = {https://personal.sron.nl/~pault/}
 }
-
-@software{larroche_pico_2024,
-  author       = {Larroche, Lucas},
-  title        = {Pico CSS: Minimal CSS Framework for Semantic HTML},
-  year         = {2024},
-  url          = {https://picocss.com/},
-  note         = {Lucas Driscoll}
-}
 ```
 
 ### APA
 - kidthales. (2026). *@kidthales/picotol: Pure-CSS Semantic HTML Framework Powered Strictly by Paul Tol Colour Schemes* (Version 0.1.0) [Computer software]. https://github.com/kidthales/picotol
 - Tol, P. (2021). *Colour schemes and templates* (SRON Technical Report SRON/EPS/TN/09-002, Issue 3.2). SRON Netherlands Institute for Space Research.
-- Larroche, L. (Lucas Driscoll). (2024). *Pico CSS: Minimal CSS Framework for Semantic HTML* (Version 2.1.1) [Computer software]. https://picocss.com/
 
 ---
 

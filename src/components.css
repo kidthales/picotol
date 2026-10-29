@@ -585,12 +585,12 @@
     }
 
     &:is(.ok, .success) { --pt-marker-color: var(--pt-status-ok-border); }
-    &:is(.warning) {
+    &.warning {
       --pt-marker-color: var(--pt-status-warning-border);
       color: var(--pt-status-warning-fg);
     }
     &:is(.critical, .danger) { --pt-marker-color: var(--pt-status-critical-border); }
-    &:is(.info) { --pt-marker-color: var(--pt-status-info-border); }
+    &.info { --pt-marker-color: var(--pt-status-info-border); }
   }
 
   /* 7. Switch ([role="switch"]) & Range ([type="range"]) */

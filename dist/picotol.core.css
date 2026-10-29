@@ -46,10 +46,6 @@
     --pt-cyan: #6ce;
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
-    --pt-primary: light-dark(var(--pt-p4), var(--pt-p2));
-    --pt-primary-hover: light-dark(var(--pt-p5), var(--pt-p1));
-    --pt-primary-bg: light-dark(var(--pt-p1), var(--pt-p4));
-    --pt-primary-hover-bg: light-dark(var(--pt-p2), var(--pt-p3));
     --pt-status-ok-fg: light-dark(#283, #4a9);
     --pt-status-ok-border: var(--pt-status-ok-fg);
     --pt-status-ok-bg: color-mix(in srgb, var(--pt-status-ok-border) 8%, transparent);
@@ -62,6 +58,13 @@
     --pt-status-info-fg: light-dark(#47a, #6ce);
     --pt-status-info-border: var(--pt-status-info-fg);
     --pt-status-info-bg: color-mix(in srgb, var(--pt-status-info-border) 8%, transparent);
+  }
+
+  :root, :host, :where([data-accent]) {
+    --pt-primary: light-dark(var(--pt-p4), var(--pt-p2));
+    --pt-primary-hover: light-dark(var(--pt-p5), var(--pt-p1));
+    --pt-primary-bg: light-dark(var(--pt-p1), var(--pt-p4));
+    --pt-primary-hover-bg: light-dark(var(--pt-p2), var(--pt-p3));
   }
 
   [data-theme="light"] {
