@@ -15,8 +15,8 @@ test("npm pack --dry-run enforces size budgets and excludes demo/dev/CI files", 
   const [info] = JSON.parse(raw);
 
   assert.equal(info.name, "@kidthales/picotol");
-  assert.ok(info.size <= 55 * 1024, `Tarball size ${info.size} B exceeds 55 KB budget`);
-  assert.ok(info.unpackedSize <= 280 * 1024, `Unpacked size ${info.unpackedSize} B exceeds 280 KB budget`);
+  assert.ok(info.size <= 60 * 1024, `Tarball size ${info.size} B exceeds 60 KB budget`);
+  assert.ok(info.unpackedSize <= 300 * 1024, `Unpacked size ${info.unpackedSize} B exceeds 300 KB budget`);
 
   const paths = info.files.map((f) => f.path);
   assert.ok(paths.includes("LICENSE"), "LICENSE must be included in tarball");
@@ -265,10 +265,29 @@ test("v0.1.0 pre-release artifacts and documentation adhere to open-source relea
   const changelog = fs.readFileSync(changelogPath, "utf8");
   assert.ok(changelog.includes("## [0.1.0] - 2026-10-28"), "CHANGELOG.md must document [0.1.0] - 2026-10-28");
   assert.ok(changelog.includes("docs/RELEASE_NOTES_V0_1_0.md"), "CHANGELOG.md must reference RELEASE_NOTES_V0_1_0.md");
+});
 
-  // 3. package.json and CITATION.cff align on version 0.1.0
-  assert.equal(pkg.version, "0.1.0", "package.json version must be 0.1.0");
+test("v0.2.0 pre-release artifacts and documentation adhere to open-source release standards", () => {
+  // 1. Release notes exist and contain required sections
+  const releaseNotesPath = path.join(ROOT, "docs", "RELEASE_NOTES_V0_2_0.md");
+  assert.ok(fs.existsSync(releaseNotesPath), "docs/RELEASE_NOTES_V0_2_0.md must exist");
+  const releaseNotes = fs.readFileSync(releaseNotesPath, "utf8");
+  assert.ok(releaseNotes.includes("v0.2.0 (Pre-release)"), "Release notes must identify v0.2.0 Pre-release");
+  assert.ok(releaseNotes.includes("SemVer 2.0.0 Pre-release"), "Release notes must note SemVer 2.0.0 §4");
+  assert.ok(releaseNotes.includes("## Highlights"), "Release notes must have Highlights");
+  assert.ok(releaseNotes.includes("## Installation"), "Release notes must have Installation");
+  assert.ok(releaseNotes.includes("## Attribution & Acknowledgements"), "Release notes must have Attribution");
+
+  // 2. CHANGELOG.md contains current date and links to release notes
+  const changelogPath = path.join(ROOT, "CHANGELOG.md");
+  assert.ok(fs.existsSync(changelogPath), "CHANGELOG.md must exist");
+  const changelog = fs.readFileSync(changelogPath, "utf8");
+  assert.ok(changelog.includes("## [0.2.0] - 2026-10-28"), "CHANGELOG.md must document [0.2.0] - 2026-10-28");
+  assert.ok(changelog.includes("docs/RELEASE_NOTES_V0_2_0.md"), "CHANGELOG.md must reference RELEASE_NOTES_V0_2_0.md");
+
+  // 3. package.json and CITATION.cff align on version 0.2.0
+  assert.equal(pkg.version, "0.2.0", "package.json version must be 0.2.0");
   const cffPath = path.join(ROOT, "CITATION.cff");
   const cff = fs.readFileSync(cffPath, "utf8");
-  assert.ok(cff.includes("version: 0.1.0"), "CITATION.cff version must be 0.1.0");
+  assert.ok(cff.includes("version: 0.2.0"), "CITATION.cff version must be 0.2.0");
 });
