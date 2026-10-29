@@ -623,6 +623,11 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, segmented c
 - **Canonical Placement (`data-placement`)**: `data-placement="top"` (default) or `data-placement="bottom"`. Compatibility classes `.top` and `.bottom` are also supported.
 - **Positioning**: Pin position configured via `--pt-marker-pos` (`0%` to `100%`); range band span configured via `--pt-range-start` and `--pt-range-end`.
 - **Labels**: `.pt-meter-label` or `[data-label]` child elements aligned to the marker with `tabular-nums`.
+- **Boundary-Aligned Modifiers (`data-align` / `.pt-meter-mark--*`)**: Prevent label clipping and container overflow at track extremes (0% and 100%) without shifting the indicator pin:
+  - `data-align="start"` or `.pt-meter-mark--start`: Applies `transform: translateX(0)` for 0% / low-end markers.
+  - `data-align="end"` or `.pt-meter-mark--end`: Applies `transform: translateX(-100%)` for 100% / high-end markers.
+  - `data-align="center"` or `.pt-meter-mark--center`: Explicitly resets to centered default (`transform: translateX(-50%)`).
+  - **Pin Centering Invariant**: The marker pin (`&::before`) remains strictly centered (`transform: translateX(-50%)`) at the target percentage tick.
 - **Tokenized Stacking Layers**: Sub-primitives stack predictably via tokenized z-index layers: `--pt-meter-range-z: 1` (`.pt-meter-range`), `--pt-meter-fill-z: 2` (`.pt-meter-fill`), and `--pt-meter-mark-z: 3` (`.pt-meter-mark`, `.pt-meter-label`, `.pt-gauge-marker`, `.pt-meter-pin`).
 
 ```html
@@ -632,8 +637,9 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, segmented c
   <div class="pt-meter-range critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
   <div class="pt-progress" role="progressbar" aria-valuenow="78" style="--pt-progress-value: 78%;">
     <div class="pt-progress-fill pt-meter-fill"></div>
+    <div class="pt-meter-mark pt-meter-mark--start" data-placement="top" data-align="start" style="--pt-marker-pos: 0%;"><span class="pt-meter-label">0% Min</span></div>
     <div class="pt-meter-pin pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
-    <div class="pt-meter-pin pt-meter-mark critical bottom" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
+    <div class="pt-meter-mark pt-meter-mark--end critical bottom" data-placement="bottom" data-align="end" style="--pt-marker-pos: 100%;"><span class="pt-meter-label" data-label>100% Max</span></div>
   </div>
 </div>
 ```
