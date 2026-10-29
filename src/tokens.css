@@ -48,7 +48,7 @@
     --pt-status-ok-fg: light-dark(#228833, #44AA99);
     --pt-status-ok-border: var(--pt-status-ok-fg);
     --pt-status-ok-bg: color-mix(in srgb, var(--pt-status-ok-border) 8%, transparent);
-    --pt-status-warning-fg: light-dark(#775500, #DDAA33);
+    --pt-status-warning-fg: light-dark(#662506, #DDAA33);
     --pt-status-warning-border: light-dark(#DDAA33, #EE8866);
     --pt-status-warning-bg: color-mix(in srgb, var(--pt-status-warning-border) 8%, transparent);
     --pt-status-critical-fg: light-dark(#CC3311, #EE6677);

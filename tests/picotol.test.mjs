@@ -1446,11 +1446,11 @@ test("Semantic Status Tokens and Dark Mode Contrast Calibration (Issue #126)", (
 
   // 2. Paul Tol Canonical Color Mapping Verification
   // OK: light #228833 (Tol bright green), dark #44AA99 (Tol muted teal)
-  // Warning: light fg #775500 (Tol dark 9), dark fg #DDAA33 (Tol high-contrast yellow), dark border #EE8866 (Tol light orange)
+  // Warning: light fg #662506 (Tol ylorbr brown), dark fg #DDAA33 (Tol high-contrast yellow), dark border #EE8866 (Tol light orange)
   // Critical: light #CC3311 (Tol vibrant red), dark #EE6677 (Tol bright red)
   // Info: light #4477AA (Tol bright blue), dark #66CCEE (Tol bright cyan)
   assert.ok(tokensCss.includes("#228833") && tokensCss.includes("#44AA99"), "OK token must use canonical Tol green and teal");
-  assert.ok(tokensCss.includes("#DDAA33") && tokensCss.includes("#EE8866"), "Warning token must use canonical Tol yellow and orange");
+  assert.ok(tokensCss.includes("#662506") && tokensCss.includes("#DDAA33") && tokensCss.includes("#EE8866"), "Warning token must use canonical Tol brown, yellow and orange");
   assert.ok(tokensCss.includes("#CC3311") && tokensCss.includes("#EE6677"), "Critical token must use canonical Tol red");
   assert.ok(tokensCss.includes("#4477AA") && tokensCss.includes("#66CCEE"), "Info token must use canonical Tol blue and cyan");
 
@@ -2523,6 +2523,136 @@ test("Tabular Numerics on Status Badges, Indicators, and Numeric Modifiers (Issu
   assert.ok(
     readme.includes("tabular-nums"),
     "README.md must document tabular-nums for layout jitter prevention"
+  );
+});
+
+test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for Status Triads (Issue #156)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+
+  // 1. Definition and inclusion of tuned warning foreground token in source tokens and all distribution bundles
+  assert.ok(
+    tokensCss.includes("--pt-status-warning-fg: light-dark(#662506, #DDAA33)"),
+    "tokens.css must define calibrated light-dark(#662506, #DDAA33) for --pt-status-warning-fg"
+  );
+  assert.ok(
+    coreCss.includes("--pt-status-warning-fg"),
+    "picotol.core.css must define --pt-status-warning-fg"
+  );
+  assert.ok(
+    fullCss.includes("--pt-status-warning-fg"),
+    "picotol.css must define --pt-status-warning-fg"
+  );
+  assert.ok(
+    layerCss.includes("--pt-status-warning-fg"),
+    "picotol.layer.css must define --pt-status-warning-fg"
+  );
+
+  // 2. Light Theme Status Triads Contrast Audit against WCAG 2.2 Standards
+  // Light root background: #FFFFFF; Light card/surface background: #DDDDDD
+  const lightRoot = "#FFFFFF";
+  const lightSurface = "#DDDDDD";
+
+  // Simulate 8% border wash over surface
+  function mixSrgb(borderHex, alphaPct, bgHex) {
+    const c1 = expandHex(borderHex).replace("#", "");
+    const c2 = expandHex(bgHex).replace("#", "");
+    const r1 = parseInt(c1.slice(0, 2), 16), g1 = parseInt(c1.slice(2, 4), 16), b1 = parseInt(c1.slice(4, 6), 16);
+    const r2 = parseInt(c2.slice(0, 2), 16), g2 = parseInt(c2.slice(2, 4), 16), b2 = parseInt(c2.slice(4, 6), 16);
+    const a = alphaPct / 100;
+    const r = Math.round(r1 * a + r2 * (1 - a));
+    const g = Math.round(g1 * a + g2 * (1 - a));
+    const b = Math.round(b1 * a + b2 * (1 - a));
+    return "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
+  }
+
+  // Warning triad in light mode: fg #662506 (Tol ylorbr brown), border #DDAA33 (Tol high-contrast yellow)
+  const warnFg = "#662506";
+  const warnBorder = "#DDAA33";
+  const warnBgOnRoot = mixSrgb(warnBorder, 8, lightRoot);
+  const warnBgOnSurface = mixSrgb(warnBorder, 8, lightSurface);
+
+  // Warning text MUST achieve WCAG 2.2 AAA (>= 7.0:1) on white root and light surface cards
+  const crWarnRoot = contrastRatio(warnFg, lightRoot);
+  const crWarnSurface = contrastRatio(warnFg, lightSurface);
+  const crWarnBadgeRoot = contrastRatio(warnFg, warnBgOnRoot);
+  const crWarnBadgeSurface = contrastRatio(warnFg, warnBgOnSurface);
+
+  assert.ok(
+    crWarnRoot >= 7.0,
+    `Warning fg #662506 on white root must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnRoot.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crWarnSurface >= 7.0,
+    `Warning fg #662506 on light surface must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnSurface.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crWarnBadgeRoot >= 7.0,
+    `Warning fg #662506 on 8% badge wash (root) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeRoot.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crWarnBadgeSurface >= 7.0,
+    `Warning fg #662506 on 8% badge wash (surface) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeSurface.toFixed(2)}:1)`
+  );
+
+  // 3. Status Triads Audit for OK, Critical, and Info (WCAG 2.2 AA text >= 4.5:1 on root)
+  const okFg = "#228833";
+  const critFg = "#CC3311";
+  const infoFg = "#4477AA";
+
+  const crOkRoot = contrastRatio(okFg, lightRoot);
+  const crCritRoot = contrastRatio(critFg, lightRoot);
+  const crInfoRoot = contrastRatio(infoFg, lightRoot);
+
+  assert.ok(crOkRoot >= 4.5, `OK fg on light root must achieve >= 4.5:1 (got ${crOkRoot.toFixed(2)}:1)`);
+  assert.ok(crCritRoot >= 4.5, `Critical fg on light root must achieve >= 4.5:1 (got ${crCritRoot.toFixed(2)}:1)`);
+  assert.ok(crInfoRoot >= 4.5, `Info fg on light root must achieve >= 4.5:1 (got ${crInfoRoot.toFixed(2)}:1)`);
+
+  // 4. Color-Blind Safe Greyscale Luminance Distinction
+  // Calculate relative luminance for all status foregrounds and borders
+  const lumWarnFg = relativeLuminance(warnFg);
+  const lumOkFg = relativeLuminance(okFg);
+  const lumCritFg = relativeLuminance(critFg);
+  const lumInfoFg = relativeLuminance(infoFg);
+
+  // Tuned warning foreground #662506 provides strong greyscale contrast vs other status foregrounds
+  const greyscaleRatioWarnVsOk = contrastRatio(warnFg, okFg);
+  const greyscaleRatioWarnVsCrit = contrastRatio(warnFg, critFg);
+  const greyscaleRatioWarnVsInfo = contrastRatio(warnFg, infoFg);
+
+  assert.ok(
+    greyscaleRatioWarnVsOk >= 2.0,
+    `Greyscale contrast between Warning fg and OK fg must be >= 2.0:1 (got ${greyscaleRatioWarnVsOk.toFixed(2)}:1)`
+  );
+  assert.ok(
+    greyscaleRatioWarnVsCrit >= 2.0,
+    `Greyscale contrast between Warning fg and Critical fg must be >= 2.0:1 (got ${greyscaleRatioWarnVsCrit.toFixed(2)}:1)`
+  );
+  assert.ok(
+    greyscaleRatioWarnVsInfo >= 2.0,
+    `Greyscale contrast between Warning fg and Info fg must be >= 2.0:1 (got ${greyscaleRatioWarnVsInfo.toFixed(2)}:1)`
+  );
+
+  // Border luminance distinctions for non-text indicators in greyscale
+  const lumWarnBorder = relativeLuminance(warnBorder);
+  const lumOkBorder = relativeLuminance(okFg);
+  const lumCritBorder = relativeLuminance(critFg);
+  const lumInfoBorder = relativeLuminance(infoFg);
+
+  assert.ok(
+    Math.abs(lumWarnBorder - lumOkBorder) > 0.2,
+    "Warning border must maintain > 0.2 luminance separation from OK border in greyscale"
+  );
+  assert.ok(
+    Math.abs(lumWarnBorder - lumCritBorder) > 0.2,
+    "Warning border must maintain > 0.2 luminance separation from Critical border in greyscale"
+  );
+  assert.ok(
+    Math.abs(lumWarnBorder - lumInfoBorder) > 0.2,
+    "Warning border must maintain > 0.2 luminance separation from Info border in greyscale"
   );
 });
 
