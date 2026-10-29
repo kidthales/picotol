@@ -1553,6 +1553,7 @@
       font-size: var(--pt-font-size-xs, .75em);
       white-space: nowrap;
       vertical-align: middle;
+      font-variant-numeric: tabular-nums;
       border-radius: 99px;
       align-items: center;
       gap: .35em;
@@ -1584,6 +1585,10 @@
       & > :where(svg, .status-dot, .pt-status-dot) {
         margin: 0;
       }
+    }
+
+    :where(.pt-badge--numeric, .pt-indicator--numeric) {
+      font-variant-numeric: tabular-nums;
     }
 
     .pt-badge[data-status="ok"], .pt-badge.ok, .pt-badge.success, .pt-indicator[data-status="ok"], .pt-indicator.ok, .pt-indicator.success, .pt-chip[data-status="ok"], .pt-chip.ok, .pt-chip.success {

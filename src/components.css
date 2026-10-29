@@ -790,6 +790,7 @@
     line-height: 1;
     white-space: nowrap;
     vertical-align: middle;
+    font-variant-numeric: tabular-nums;
 
     &:is(.primary, [data-accent]) {
       border-color: var(--pt-primary);
@@ -811,6 +812,11 @@
     & > :where(svg, .status-dot, .pt-status-dot) {
       margin: 0;
     }
+  }
+
+  /* 11a. Tabular Numbers Modifier for Badges & Indicators */
+  :where(.pt-badge--numeric, .pt-indicator--numeric) {
+    font-variant-numeric: tabular-nums;
   }
 
   /* Status Triad Bindings for .pt-badge, .pt-indicator, and .pt-chip */

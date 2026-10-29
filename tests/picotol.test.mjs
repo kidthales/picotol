@@ -2447,6 +2447,85 @@ test("Boundary-Aligned Meter Marker Modifiers and Label Clipping Invariants (Iss
   );
 });
 
+test("Tabular Numerics on Status Badges, Indicators, and Numeric Modifiers (Issue #155)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const contentCss = fs.readFileSync(path.join(ROOT, "src/content.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Default tabular numbers on :where(.badge, [role="status"], .pt-badge, .pt-indicator)
+  assert.ok(
+    compCss.includes("font-variant-numeric: tabular-nums"),
+    "src/components.css must declare font-variant-numeric: tabular-nums"
+  );
+  assert.ok(
+    fullCss.includes("font-variant-numeric: tabular-nums"),
+    "dist/picotol.css must include tabular-nums font-variant-numeric"
+  );
+
+  // 2. Explicit modifier classes: .pt-badge--numeric and .pt-indicator--numeric
+  assert.ok(
+    compCss.includes(".pt-badge--numeric") && compCss.includes(".pt-indicator--numeric"),
+    "src/components.css must define .pt-badge--numeric and .pt-indicator--numeric modifiers"
+  );
+  assert.ok(
+    fullMin.includes("pt-badge--numeric") && fullMin.includes("pt-indicator--numeric"),
+    "dist/picotol.min.css must compile .pt-badge--numeric and .pt-indicator--numeric"
+  );
+  assert.ok(
+    layerMin.includes("pt-badge--numeric") && layerMin.includes("pt-indicator--numeric"),
+    "dist/picotol.layer.min.css must compile .pt-badge--numeric and .pt-indicator--numeric"
+  );
+
+  // 3. Two-Tier Isolation: Core bundle strictly excludes component modifiers
+  assert.ok(
+    !coreCss.includes(".pt-badge--numeric"),
+    "Core bundle must not contain .pt-badge--numeric"
+  );
+  assert.ok(
+    !coreCss.includes(".pt-indicator--numeric"),
+    "Core bundle must not contain .pt-indicator--numeric"
+  );
+
+  // 4. Utility parity: .pt-tabular in @layer utilities
+  assert.ok(
+    contentCss.includes(".pt-tabular"),
+    "src/content.css must define .pt-tabular utility in @layer utilities"
+  );
+
+  // 5. Interactive Demo showcase verification
+  assert.ok(
+    demoHtml.includes("pt-badge--numeric"),
+    "dist/demo/index.html must showcase .pt-badge--numeric"
+  );
+  assert.ok(
+    demoHtml.includes("pt-indicator--numeric"),
+    "dist/demo/index.html must showcase .pt-indicator--numeric"
+  );
+  assert.ok(
+    demoHtml.includes("live-badge-count") || demoHtml.includes("live-indicator-count"),
+    "dist/demo/index.html must showcase dynamic counter/badge telemetry"
+  );
+
+  // 6. Documentation verification in README.md
+  assert.ok(
+    readme.includes(".pt-badge--numeric"),
+    "README.md must document .pt-badge--numeric"
+  );
+  assert.ok(
+    readme.includes(".pt-indicator--numeric"),
+    "README.md must document .pt-indicator--numeric"
+  );
+  assert.ok(
+    readme.includes("tabular-nums"),
+    "README.md must document tabular-nums for layout jitter prevention"
+  );
+});
+
 
 
 
