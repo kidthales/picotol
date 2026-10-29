@@ -9,6 +9,7 @@
   :root, :host {
     --pt-font-sans: system-ui, sans-serif;
     --pt-font-mono: ui-monospace, monospace;
+    --pt-font-size-xs: 0.75rem;
     --pt-line-height: 1.5;
     --pt-border-radius: 0.25rem;
     --pt-transition: 0.15s ease-in-out;

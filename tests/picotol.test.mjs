@@ -1824,6 +1824,95 @@ test("Tokenized Z-Index Stacking Layers for Meter Sub-Primitives (Issue #138)", 
   assert.ok(readme.includes("--pt-meter-mark-z"), "README must document --pt-meter-mark-z");
 });
 
+test("Native Status Badge and Indicator Component Primitives for Status Triads (Issue #139)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Tokens: --pt-font-size-xs token declaration
+  assert.ok(
+    tokensCss.includes("--pt-font-size-xs"),
+    "src/tokens.css must declare --pt-font-size-xs token"
+  );
+  assert.ok(
+    fullCss.includes("--pt-font-size-xs"),
+    "dist/picotol.css must include --pt-font-size-xs token"
+  );
+
+  // 2. Baseline styling for .pt-badge and .pt-indicator
+  assert.ok(
+    compCss.includes(".pt-badge") && compCss.includes(".pt-indicator"),
+    "src/components.css must define .pt-badge and .pt-indicator"
+  );
+  assert.ok(
+    compCss.includes("font-size: var(--pt-font-size-xs, .75em)") ||
+    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em)"),
+    "src/components.css must bind font-size to --pt-font-size-xs with fallback"
+  );
+
+  // 3. Status Triad bindings (ok/success, warning, critical/danger, info)
+  for (const triad of ["ok", "warning", "critical", "info"]) {
+    assert.ok(
+      compCss.includes(`var(--pt-status-${triad}-fg)`) &&
+      compCss.includes(`var(--pt-status-${triad}-bg)`) &&
+      compCss.includes(`var(--pt-status-${triad}-border)`),
+      `src/components.css must map --pt-status-${triad}-{fg,bg,border} triad`
+    );
+    assert.ok(
+      fullCss.includes(`--pt-status-${triad}-fg`) &&
+      fullCss.includes(`--pt-status-${triad}-bg`) &&
+      fullCss.includes(`--pt-status-${triad}-border`),
+      `dist/picotol.css must map --pt-status-${triad}-{fg,bg,border} triad`
+    );
+  }
+
+  // 4. Selector coverage for [data-status] attributes and semantic classes
+  assert.ok(compCss.includes('.pt-badge[data-status="ok"]') || fullCss.includes('.pt-badge[data-status="ok"]'), 'Must bind .pt-badge[data-status="ok"]');
+  assert.ok(compCss.includes('.pt-badge.ok') || fullCss.includes('.pt-badge.ok'), 'Must bind .pt-badge.ok');
+  assert.ok(compCss.includes('.pt-badge.success') || fullCss.includes('.pt-badge.success'), 'Must bind .pt-badge.success');
+  assert.ok(compCss.includes('.pt-badge[data-status="warning"]') || fullCss.includes('.pt-badge[data-status="warning"]'), 'Must bind .pt-badge[data-status="warning"]');
+  assert.ok(compCss.includes('.pt-badge.warning') || fullCss.includes('.pt-badge.warning'), 'Must bind .pt-badge.warning');
+  assert.ok(compCss.includes('.pt-badge[data-status="critical"]') || fullCss.includes('.pt-badge[data-status="critical"]'), 'Must bind .pt-badge[data-status="critical"]');
+  assert.ok(compCss.includes('.pt-badge.critical') || fullCss.includes('.pt-badge.critical'), 'Must bind .pt-badge.critical');
+  assert.ok(compCss.includes('.pt-badge[data-status="danger"]') || fullCss.includes('.pt-badge[data-status="danger"]'), 'Must bind .pt-badge[data-status="danger"]');
+  assert.ok(compCss.includes('.pt-badge.danger') || fullCss.includes('.pt-badge.danger'), 'Must bind .pt-badge.danger');
+  assert.ok(compCss.includes('.pt-badge[data-status="info"]') || fullCss.includes('.pt-badge[data-status="info"]'), 'Must bind .pt-badge[data-status="info"]');
+  assert.ok(compCss.includes('.pt-badge.info') || fullCss.includes('.pt-badge.info'), 'Must bind .pt-badge.info');
+
+  assert.ok(compCss.includes('.pt-indicator[data-status="ok"]') || fullCss.includes('.pt-indicator[data-status="ok"]'), 'Must bind .pt-indicator[data-status="ok"]');
+  assert.ok(compCss.includes('.pt-indicator.ok') || fullCss.includes('.pt-indicator.ok'), 'Must bind .pt-indicator.ok');
+  assert.ok(compCss.includes('.pt-indicator.success') || fullCss.includes('.pt-indicator.success'), 'Must bind .pt-indicator.success');
+  assert.ok(compCss.includes('.pt-indicator[data-status="warning"]') || fullCss.includes('.pt-indicator[data-status="warning"]'), 'Must bind .pt-indicator[data-status="warning"]');
+  assert.ok(compCss.includes('.pt-indicator.warning') || fullCss.includes('.pt-indicator.warning'), 'Must bind .pt-indicator.warning');
+  assert.ok(compCss.includes('.pt-indicator[data-status="critical"]') || fullCss.includes('.pt-indicator[data-status="critical"]'), 'Must bind .pt-indicator[data-status="critical"]');
+  assert.ok(compCss.includes('.pt-indicator.critical') || fullCss.includes('.pt-indicator.critical'), 'Must bind .pt-indicator.critical');
+  assert.ok(compCss.includes('.pt-indicator[data-status="danger"]') || fullCss.includes('.pt-indicator[data-status="danger"]'), 'Must bind .pt-indicator[data-status="danger"]');
+  assert.ok(compCss.includes('.pt-indicator.danger') || fullCss.includes('.pt-indicator.danger'), 'Must bind .pt-indicator.danger');
+  assert.ok(compCss.includes('.pt-indicator[data-status="info"]') || fullCss.includes('.pt-indicator[data-status="info"]'), 'Must bind .pt-indicator[data-status="info"]');
+  assert.ok(compCss.includes('.pt-indicator.info') || fullCss.includes('.pt-indicator.info'), 'Must bind .pt-indicator.info');
+
+  // 5. Minified bundle presence
+  assert.ok(fullMin.includes("pt-badge") && fullMin.includes("pt-indicator"), "dist/picotol.min.css must compile .pt-badge and .pt-indicator");
+  assert.ok(layerMin.includes("pt-badge") && layerMin.includes("pt-indicator"), "dist/picotol.layer.min.css must compile .pt-badge and .pt-indicator");
+
+  // 6. Two-Tier Isolation: Core bundle strictly excludes extended components
+  assert.ok(!coreCss.includes(".pt-badge"), "Core bundle must not contain .pt-badge");
+  assert.ok(!coreCss.includes(".pt-indicator"), "Core bundle must not contain .pt-indicator");
+
+  // 7. Interactive Demo showcase verification
+  assert.ok(demoHtml.includes("pt-badge"), "Demo HTML must showcase .pt-badge");
+  assert.ok(demoHtml.includes("pt-indicator"), "Demo HTML must showcase .pt-indicator");
+
+  // 8. Documentation verification
+  assert.ok(readme.includes(".pt-badge"), "README must document .pt-badge");
+  assert.ok(readme.includes(".pt-indicator"), "README must document .pt-indicator");
+});
+
 
 
 
