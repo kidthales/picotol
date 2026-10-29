@@ -74,14 +74,14 @@ Downstream consumers (e.g. Terminus in `kidthales/foundation`) vendor `@kidthale
 
 ```bash
 # Bash: download bundle and verify with sha256sum
-curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.3.0/picotol.layer.min.css
-curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.3.0/SHA256SUMS.txt
+curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.4.0/picotol.layer.min.css
+curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.4.0/SHA256SUMS.txt
 sha256sum --check --ignore-missing SHA256SUMS.txt
 ```
 
 ```powershell
 # PowerShell (structured manifest): download and verify directly via dist/manifest.json
-$u = "https://github.com/kidthales/picotol/releases/download/v0.3.0"
+$u = "https://github.com/kidthales/picotol/releases/download/v0.4.0"
 $manifest = Invoke-RestMethod "$u/manifest.json"
 Invoke-WebRequest "$u/picotol.layer.min.css" -OutFile "./picotol.layer.min.css"
 $hash = (Get-FileHash ./picotol.layer.min.css -Algorithm SHA256).Hash.ToLower()
@@ -91,7 +91,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch: expected $exp, got $hash" }
 
 ```powershell
 # PowerShell (text checksums): download and assert Get-FileHash integrity against SHA256SUMS.txt
-$u = "https://github.com/kidthales/picotol/releases/download/v0.3.0"
+$u = "https://github.com/kidthales/picotol/releases/download/v0.4.0"
 Invoke-WebRequest "$u/picotol.layer.min.css" -OutFile "./picotol.layer.min.css"
 $hash = (Get-FileHash ./picotol.layer.min.css -Algorithm SHA256).Hash.ToLower()
 $exp = ((Invoke-RestMethod "$u/SHA256SUMS.txt") -split "`n" | Where-Object { $_ -match "picotol\.layer\.min\.css" } | ForEach-Object { (-split $_)[0] }).Trim().ToLower()
@@ -103,7 +103,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.3.0/dist/picotol.min.css" integrity="sha384-YMlSg73CxNJxgHnhl//raCHWvGvORkncEHoqdgQ8rmsO1h4nlPOEPmkOqaZfTETF" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.4.0/dist/picotol.min.css" integrity="sha384-6JnUpZSzVy3/bydciNuLTHsuFb2KlRCf7Y2Vrr7L/kvfUqc3AlJZRfog7sdcYGy0" crossorigin="anonymous" />
 ```
 
 ---
@@ -608,10 +608,10 @@ Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature sm
 
 ### 4e. Equal-Fill Segmented Controls & Square Icon Buttons
 
-For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, segmented controls can distribute width equally (`flex: 1 1 0`) across tabs with automatic ellipsis truncation, and icon buttons enforce a reliable 1:1 square aspect ratio:
+For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill segmented controls (`.segmented-fill` or `.segmented-control--fill`) distribute width equally across tabs (`flex: 1 1 0`) and establish a block formatting context (`min-width: 0`) ensuring reliable single-line text truncation with CSS ellipsis. Dedicated square icon buttons enforce an exact 1:1 aspect ratio:
 
 ```html
-<!-- Equal-Fill Segmented Control (Ellipsis Truncation on Reflow) -->
+<!-- Equal-Fill Segmented Control (BFC & Ellipsis Truncation on Reflow) -->
 <nav role="tablist" class="segmented segmented-fill" aria-label="View options">
   <button type="button" role="tab" aria-selected="true">Daily</button>
   <button type="button" role="tab" aria-selected="false">Weekly</button>
@@ -776,7 +776,7 @@ Machine-readable metadata is provided in [`CITATION.cff`](CITATION.cff) (v1.2.0)
 ```
 
 ### APA
-- kidthales. (2026). *@kidthales/picotol: Pure-CSS Semantic HTML Framework Powered Strictly by Paul Tol Colour Schemes* (Version 0.3.0) [Computer software]. https://github.com/kidthales/picotol
+- kidthales. (2026). *@kidthales/picotol: Pure-CSS Semantic HTML Framework Powered Strictly by Paul Tol Colour Schemes* (Version 0.4.0) [Computer software]. https://github.com/kidthales/picotol
 - Tol, P. (2021). *Colour schemes and templates* (SRON Technical Report SRON/EPS/TN/09-002, Issue 3.2). SRON Netherlands Institute for Space Research.
 
 ---
