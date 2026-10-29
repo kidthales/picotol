@@ -186,18 +186,16 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 ## Architecture & Cascade Layers
 
 ```css
-@layer tokens, base, layout, content, forms, nav, components;
+@layer tokens, reset, base, components, utilities;
 ```
 
-| Layer | Source File | Responsibility |
+| Layer | Source Files | Responsibility |
 | :--- | :--- | :--- |
 | `tokens` | [`src/tokens.css`](src/tokens.css), [`src/palettes.css`](src/palettes.css) | Auto-generated canonical `--tol-*` scheme constants, `--pt-*` semantic tokens, `[data-theme]` & `[data-accent]` ladders |
-| `base` | [`src/base.css`](src/base.css) | Modern box-sizing reset, document defaults, `:focus-visible`, `[tabindex="-1"]` focus guard, `.skip-to-content`, `.sr-only` / `.sr-only-focusable`, `@media print`, reduced-motion baseline |
-| `layout` | [`src/layout.css`](src/layout.css) | Centered `body > header, main, footer` landmarks, `.container`, `.grid` (`min-width: 0`), `.overflow-auto`, `<hr>` |
-| `content` | [`src/content.css`](src/content.css) | Modular `clamp()` headings, `75ch` reading measure, links, neutral slate `.secondary` button ladder, lists, blockquotes, code, tables, figures |
-| `forms` | [`src/forms.css`](src/forms.css) | Semantic buttons, inputs, selects, textareas, WCAG 2.2 SC 2.5.8 target sizing, SC 1.4.11 borders ($\ge 3:1$), `[aria-invalid="true"\|"false"]` validation with `✓`/`✗` cues |
-| `nav` | [`src/nav.css`](src/nav.css) | Responsive wrapping flex `<nav>`, `[role="menubar"]`, breadcrumbs |
-| `components` | [`src/components.css`](src/components.css) | `<article>` card, `<details>` accordion/dropdown, `<dialog>` modal (`::backdrop`), `<progress>`, `[role="switch"]`, `[aria-busy]`, `[role="group"]`, `[data-tooltip]`, `@media (forced-colors: active)` |
+| `reset` | [`src/base.css`](src/base.css) | Modern box-sizing reset, `body` zero-margin and flex column root, button font normalization, `[hidden]` display reset |
+| `base` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/forms.css`](src/forms.css), [`src/nav.css`](src/nav.css) | Document defaults, `:focus-visible`, `[tabindex="-1"]` guard, `@media print`, typography/content hierarchy, form controls, semantic landmarks, `.container` |
+| `components` | [`src/components.css`](src/components.css) | Extended semantic components (`<article>` card, `<details>` accordion/dropdown, `<dialog>` modal, `.pt-badge`, `.pt-callout`, `progress`, `.pt-meter`, segmented controls, tooltips) |
+| `utilities` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css) | Standalone utility classes and layout helpers (`.skip-to-content`, `.sr-only`, `.visually-hidden`, `.grid`, `.flex`, `.overflow-auto`, `.table-container`, `.mb-0`, `.pt-tabular`, `.tabular-nums`) |
 
 ---
 
@@ -234,7 +232,36 @@ Declare layer order upfront in your root stylesheet or HTML document to control 
 
 #### Integration Patterns: `dist/picotol.layer.min.css`
 
-The opt-in bundle [`dist/picotol.layer.min.css`](dist/picotol.layer.min.css) is pre-wrapped in `@layer picotol { ... }`.
+The opt-in bundle [`dist/picotol.layer.min.css`](dist/picotol.layer.min.css) is pre-wrapped in `@layer picotol { ... }` and explicitly declares and exports its 5-tier nested sublayer hierarchy upfront:
+
+```css
+@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
+```
+
+##### Granular Sublayer Extension (`@layer picotol.*`)
+
+Downstream consumers can hook directly into specific sublayers without battling selector specificity:
+
+- **Hooking into `@layer picotol.tokens`**: Bridge or override design tokens and Paul Tol ladders:
+  ```css
+  @layer picotol.tokens {
+    :root {
+      --pt-primary: var(--brand-primary, #2255AA);
+    }
+  }
+  ```
+- **Hooking into `@layer picotol.components`**: Override component styling without breaking utility precedence:
+  ```css
+  @layer picotol.components {
+    article.card {
+      border-radius: 1rem;
+    }
+  }
+  ```
+- **Interleaving Downstream Layers**: Insert application layers between Picotol's sublayers:
+  ```css
+  @layer picotol.tokens, host-theme, picotol.reset, picotol.base, picotol.components, host-components, picotol.utilities;
+  ```
 
 ##### Pattern A: CSS `@import` / Bundler
 

@@ -116,7 +116,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
   };
 
   const lines = [
-    '@layer tokens, base, layout, content, forms, nav, components;',
+    '@layer tokens, reset, base, components, utilities;',
     '@layer tokens {',
     '  :root, :host, [data-accent="blue"] {',
     `    --pt-p1: ${colorByName('pale', 0)}; --pt-p2: ${colorByName('light', 'light_blue')}; --pt-p3: ${colorByName('bright', 'blue')}; --pt-p4: ${colorByName('dark', 3)}; --pt-p5: ${colorByName('high-contrast', 'blue')};`,

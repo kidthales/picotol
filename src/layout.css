@@ -1,4 +1,4 @@
-@layer layout {
+@layer base {
   :where(body > header, body > main, body > footer, .container) {
     width: 100%;
     max-width: var(--pt-container-max);
@@ -18,7 +18,9 @@
       margin-bottom: 0;
     }
   }
+}
 
+@layer utilities {
   :where(.mb-0, .no-margin-bottom) { margin-bottom: 0 !important; }
 
   :where(.grid, .flex) {

@@ -1,4 +1,4 @@
-@layer forms {
+@layer base {
   :where(label, fieldset > legend) { display: block; margin-bottom: 0.25rem; font-weight: 500; }
   fieldset { margin: 0 0 var(--pt-spacing); padding: 0; border: 0; }
 
