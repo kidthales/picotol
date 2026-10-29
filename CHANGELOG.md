@@ -5,6 +5,23 @@ All notable changes to `@kidthales/picotol` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-10-29
+
+Fourth public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.4.0](docs/RELEASE_NOTES_V0_4_0.md).
+
+### Added
+- Configurable typography floor (`--pt-font-size-floor`, defaulting to `12px`) protecting readability across micro-scale elements (`.pt-indicator`, `.pt-badge`, `[data-density="tight"]`, `.pt-tight`) under extreme viewport downscaling (#152).
+- Formal nested `@layer` taxonomy (`@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;`) declared upfront in `picotol.layer.css`, empowering downstream consumers to target individual sublayers without selector specificity wars (#153).
+- Boundary-aligned meter marker modifiers (`.pt-meter-mark--start`, `.pt-meter-mark--end`, `data-align="start|end"`) eliminating label clipping and container overflow at track extremes (`0%` and `100%`) (#154).
+- Tabular numerics alignment (`font-variant-numeric: tabular-nums`) applied natively to status badges (`.pt-badge`), indicators (`.pt-indicator`), and numeric modifiers (`.pt-badge--numeric`, `.pt-indicator--numeric`, `.pt-tabular`), preventing layout jitter during real-time telemetry streaming (#155).
+- Standalone offline bundle packaging producing `dist/assets/picotol-v0.4.0.zip`.
+
+### Changed
+- Light-mode semantic status triads (`--pt-status-ok-*`, `--pt-status-warning-*`, `--pt-status-critical-*`, `--pt-status-info-*`) calibrated and certified against WCAG 2.2 AAA contrast ratios ($\ge 7:1$) and color-blind greyscale luminance separation (#156).
+
+### Fixed
+- Established block formatting context (`min-width: 0`) on equal-fill segmented items (`.segmented-control--fill > .segmented-item`, `.segmented-fill > *`), restoring single-line text truncation and CSS ellipsis behavior in narrow containers (#163).
+
 ## [0.3.0] - 2026-10-29
 
 Third public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.3.0](docs/RELEASE_NOTES_V0_3_0.md).
