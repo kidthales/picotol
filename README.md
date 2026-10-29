@@ -370,6 +370,20 @@ To preserve privacy, zero runtime network requests, and GDPR compliance, pair `@
 }
 ```
 
+### Configurable Typography Floor (`--pt-font-size-floor`)
+
+To protect readability and accessibility in constrained host environments (e.g., embedded IDE auxiliary webviews, dense sidebars, or host roots with reduced base font sizes), `@kidthales/picotol` enforces a minimum typography floor:
+
+- **Default Floor**: `--pt-font-size-floor: 12px;` declared in `:root, :host` within `@layer tokens`.
+- **Accessibility Clamping**: `--pt-font-size-xs` is clamped via `max(var(--pt-font-size-floor, 12px), 0.75rem)`, guaranteeing micro-scale elements (`.pt-indicator`, `.pt-badge`, and `[data-density="tight"]` / `.pt-tight`) never compute below 12px even when the root font size scales down below 16px.
+- **Consumer Overrides**: Host applications can adjust this accessibility floor globally or within a scoped container:
+
+```css
+:root {
+  --pt-font-size-floor: 13px; /* Elevated accessibility floor for micro-scales */
+}
+```
+
 ---
 
 ## Dashboard Fixtures, Universal Icons & Skeletons

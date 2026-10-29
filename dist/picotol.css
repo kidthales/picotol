@@ -12,7 +12,8 @@
     color-scheme: light dark;
     --pt-font-sans: system-ui, sans-serif;
     --pt-font-mono: ui-monospace, monospace;
-    --pt-font-size-xs: .75rem;
+    --pt-font-size-floor: 12px;
+    --pt-font-size-xs: max(var(--pt-font-size-floor, 12px), .75rem);
     --pt-line-height: 1.5;
     --pt-border-radius: .25rem;
     --pt-transition: .15s ease-in-out;
