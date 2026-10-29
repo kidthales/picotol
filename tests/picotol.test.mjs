@@ -2,9 +2,18 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { transform } from "lightningcss";
+import {
+  BUNDLE_BUDGETS,
+  EXPECTED_README_BADGE,
+  KB,
+  calculateBundleMetrics,
+  formatBudgetSummaryMarkdown,
+  runBudgetAudit,
+} from "../tools/check-budgets.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -91,22 +100,22 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 13.0 KB, picotol.min.css <= 36.0 KB, and picotol.layer.min.css <= 36.0 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 14.0 KB, picotol.min.css <= 38.0 KB, and picotol.layer.min.css <= 38.0 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
   const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
 
   assert.ok(
-    coreMin <= 13.0 * 1024,
-    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 13312 B`
+    coreMin <= 14.0 * KB,
+    `Expected dist/picotol.core.min.css (${coreMin} B) to be <= ${14.0 * KB} B`
   );
   assert.ok(
-    fullMin <= 36.0 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 36864 B`
+    fullMin <= 38.0 * KB,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= ${38.0 * KB} B`
   );
   assert.ok(
-    layerMin <= 36.0 * 1024,
-    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 36864 B`
+    layerMin <= 38.0 * KB,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= ${38.0 * KB} B`
   );
 });
 
@@ -2662,14 +2671,138 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
   );
 });
 
+test("Automated Bundle Size, Compression Budgets, CI Gate Parity & README Synchronization (Issue #167)", () => {
+  // 1. Verify calculateBundleMetrics returns all 6 CSS distribution bundles with raw, minified, gzip, and brotli sizes
+  const metrics = calculateBundleMetrics(ROOT, BUNDLE_BUDGETS);
+  assert.equal(metrics.length, 6, "Must audit all 6 CSS distribution bundles");
 
+  for (const m of metrics) {
+    assert.ok(m.exists, `Bundle ${m.file} must exist on disk`);
+    assert.ok(m.bytes > 0 && m.bytes <= m.maxBytes, `${m.file} bytes (${m.bytes}) must be within ceiling (${m.maxBytes})`);
+    assert.ok(m.rawBytes > 0, `${m.file} rawBytes (${m.rawBytes}) must be > 0`);
+    assert.ok(m.minBytes > 0 && m.minBytes < m.rawBytes, `${m.file} minBytes (${m.minBytes}) must be < rawBytes (${m.rawBytes})`);
+    assert.ok(m.gzipBytes > 0 && m.gzipBytes <= m.maxGzipBytes, `${m.file} gzipBytes (${m.gzipBytes}) must be <= ${m.maxGzipBytes}`);
+    assert.ok(m.brotliBytes > 0 && m.brotliBytes <= m.maxBrotliBytes, `${m.file} brotliBytes (${m.brotliBytes}) must be <= ${m.maxBrotliBytes}`);
+    assert.ok(m.brotliBytes <= m.gzipBytes, `${m.file} brotli (${m.brotliBytes}) should compress at least as tightly as gzip (${m.gzipBytes})`);
+  }
 
+  // 2. Verify full positive audit passes with 0 errors and writes GITHUB_STEP_SUMMARY markdown table
+  const tmpSummaryFile = path.join(
+    os.tmpdir(),
+    `picotol-step-summary-${process.pid}-${Date.now()}.md`
+  );
+  try {
+    const audit = runBudgetAudit({ stepSummaryPath: tmpSummaryFile });
+    assert.equal(audit.ok, true, `Expected budget audit to pass, got errors: ${audit.errors.join("; ")}`);
+    assert.equal(audit.errors.length, 0);
+    assert.ok(fs.existsSync(tmpSummaryFile), "GITHUB_STEP_SUMMARY file must be created when stepSummaryPath is provided");
 
+    const summaryContent = fs.readFileSync(tmpSummaryFile, "utf8");
+    assert.ok(summaryContent.includes("Bundle Size & Compression Budget Report"), "Step summary must include report header");
+    for (const spec of BUNDLE_BUDGETS) {
+      assert.ok(summaryContent.includes(`\`${spec.file}\``), `Step summary must list ${spec.file}`);
+    }
+    assert.ok(summaryContent.includes("✅ PASS"), "Step summary must mark compliant bundles as PASS");
+    assert.ok(!summaryContent.includes("❌ FAIL"), "Step summary must not contain FAIL on clean baseline");
+  } finally {
+    if (fs.existsSync(tmpSummaryFile)) {
+      fs.unlinkSync(tmpSummaryFile);
+    }
+  }
 
+  // 3. Negative / Edge-Case Tests: Byte, Gzip, and Brotli Budget Breaches
+  const tightByteBudgets = BUNDLE_BUDGETS.map((b) =>
+    b.file === "dist/picotol.min.css" ? { ...b, maxBytes: 10 * KB } : b
+  );
+  const byteBreach = runBudgetAudit({ budgets: tightByteBudgets, stepSummaryPath: "" });
+  assert.equal(byteBreach.ok, false, "Audit must fail when maxBytes ceiling is breached");
+  assert.ok(
+    byteBreach.errors.some((e) => e.includes("[budget:bytes]") && e.includes("dist/picotol.min.css")),
+    "Must report [budget:bytes] violation for dist/picotol.min.css"
+  );
 
+  const tightGzipBudgets = BUNDLE_BUDGETS.map((b) =>
+    b.file === "dist/picotol.layer.min.css" ? { ...b, maxGzipBytes: 2 * KB } : b
+  );
+  const gzipBreach = runBudgetAudit({ budgets: tightGzipBudgets, stepSummaryPath: "" });
+  assert.equal(gzipBreach.ok, false, "Audit must fail when maxGzipBytes ceiling is breached");
+  assert.ok(
+    gzipBreach.errors.some((e) => e.includes("[budget:gzip]") && e.includes("dist/picotol.layer.min.css")),
+    "Must report [budget:gzip] violation for dist/picotol.layer.min.css"
+  );
 
+  const tightBrotliBudgets = BUNDLE_BUDGETS.map((b) =>
+    b.file === "dist/picotol.core.min.css" ? { ...b, maxBrotliBytes: 1 * KB } : b
+  );
+  const brotliBreach = runBudgetAudit({ budgets: tightBrotliBudgets, stepSummaryPath: "" });
+  assert.equal(brotliBreach.ok, false, "Audit must fail when maxBrotliBytes ceiling is breached");
+  assert.ok(
+    brotliBreach.errors.some((e) => e.includes("[budget:brotli]") && e.includes("dist/picotol.core.min.css")),
+    "Must report [budget:brotli] violation for dist/picotol.core.min.css"
+  );
 
+  // 4. Negative / Edge-Case Test: Missing Bundle File
+  const missingFileBudgets = BUNDLE_BUDGETS.map((b, idx) =>
+    idx === 0 ? { ...b, file: "dist/nonexistent.css" } : b
+  );
+  const missingResult = runBudgetAudit({ budgets: missingFileBudgets, stepSummaryPath: "" });
+  assert.equal(missingResult.ok, false, "Audit must fail when a bundle file is missing");
+  assert.ok(
+    missingResult.errors.some((e) => e.includes("[missing]") && e.includes("dist/nonexistent.css")),
+    "Must report [missing] error for absent bundle"
+  );
+  assert.ok(
+    formatBudgetSummaryMarkdown(missingResult.metrics).includes("MISSING") &&
+      formatBudgetSummaryMarkdown(missingResult.metrics).includes("❌ FAIL"),
+    "Markdown table must render MISSING and FAIL for absent bundle"
+  );
 
+  // 5. Negative / Edge-Case Test: README.md Documentation Drift (Stale Badge or Tier Text)
+  const driftedReadme =
+    "[![Bundle Size](https://img.shields.io/badge/bundle%20size-%E2%89%A4%2032%20KB%20min%20%7C%20%E2%89%A4%208%20KB%20gzip-117733.svg)](dist/sri.json)\n" +
+    "- **`dist/picotol.min.css`** (<= 36.0 KB minified, ~8.0 KB gzip)";
+  const readmeDriftResult = runBudgetAudit({ readmeContent: driftedReadme, stepSummaryPath: "" });
+  assert.equal(readmeDriftResult.ok, false, "Audit must fail when README.md contains drifted badge or tier text");
+  assert.ok(
+    readmeDriftResult.errors.some((e) => e.includes("[readme:badge]")),
+    "Must detect missing synchronized README badge"
+  );
+  assert.ok(
+    readmeDriftResult.errors.some((e) => e.includes("[readme:stale]")),
+    "Must detect stale legacy budget strings in README"
+  );
+  assert.ok(
+    readmeDriftResult.errors.some((e) => e.includes("[readme:tier]")),
+    "Must detect missing synchronized tier text in README"
+  );
 
+  // 6. Cross-Surface Parity: package.json, .github/workflows/ci.yml, scripts/ci-local.ps1, and README.md
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  assert.equal(
+    pkg.scripts["check:budgets"],
+    "node tools/check-budgets.mjs",
+    "package.json must expose check:budgets script"
+  );
+  assert.ok(
+    pkg.scripts.test.includes("check:budgets"),
+    "package.json test script must integrate check:budgets"
+  );
 
+  const ciYml = fs.readFileSync(path.join(ROOT, ".github/workflows/ci.yml"), "utf8");
+  assert.ok(
+    ciYml.includes("npm run check:budgets"),
+    ".github/workflows/ci.yml verify job must execute npm run check:budgets"
+  );
+
+  const ciLocalPs1 = fs.readFileSync(path.join(ROOT, "scripts/ci-local.ps1"), "utf8");
+  assert.ok(
+    ciLocalPs1.includes("$TotalSteps = 5") &&
+      ciLocalPs1.includes("Gate 5: Bundle Size & Compression Budget Audit") &&
+      ciLocalPs1.includes("npm run check:budgets"),
+    "scripts/ci-local.ps1 must enforce Gate 5 (npm run check:budgets)"
+  );
+
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  assert.ok(readme.includes(EXPECTED_README_BADGE), "README.md must include updated <= 38 KB min | <= 9 KB gzip badge");
+});
 

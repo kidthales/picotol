@@ -7,6 +7,7 @@
     2. PowerShell AST parse validation & CSS AST linter (npm run lint)
     3. Test suite & packaging dry-run (npm test, npm pack --dry-run)
     4. Generated distribution drift audit (npm run generate -> git status dist)
+    5. Bundle size & compression budget audit (npm run check:budgets)
 .PARAMETER Quick
     Runs lint and tests only; skips distribution regeneration and packaging dry-run.
 .PARAMETER SkipGenerate
@@ -45,7 +46,7 @@ Write-Host " picotol Local CI Pipeline" -ForegroundColor Cyan
 Write-Host " Root: $RootDir" -ForegroundColor Gray
 Write-Host "====================================================" -ForegroundColor Cyan
 
-$TotalSteps = 4
+$TotalSteps = 5
 
 Push-Location $RootDir
 try {
@@ -172,6 +173,21 @@ try {
     } else {
         Write-Host "  -> Skipping distribution regeneration (-SkipGenerate or -Quick)." -ForegroundColor Gray
     }
+
+    # -------------------------------------------------------------
+    # Gate 5: Bundle Size & Compression Budget Audit
+    # -------------------------------------------------------------
+    $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
+    Write-StepHeader 5 $TotalSteps "Auditing bundle size & compression budgets (npm run check:budgets)"
+
+    Write-Host "  -> Running npm run check:budgets..." -ForegroundColor DarkGray
+    & npm run check:budgets
+    if ($LASTEXITCODE -ne 0) {
+        Write-Fail "npm run check:budgets failed with exit code $LASTEXITCODE."
+        throw "Gate 5 Failed: Bundle size or compression budget violation detected."
+    }
+
+    Write-Pass "Bundle size, compression budgets, and README sync verified." $StepTimer
 
     # -------------------------------------------------------------
     # Summary
