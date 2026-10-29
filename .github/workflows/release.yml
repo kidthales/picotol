@@ -146,6 +146,7 @@ jobs:
           gh release upload "${{ github.event.release.tag_name }}" \
             dist/assets/picotol-v*.zip \
             dist/sri.json \
+            dist/manifest.json \
             dist/SHA256SUMS.txt \
             --clobber
 

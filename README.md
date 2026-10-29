@@ -63,6 +63,7 @@ npm install @kidthales/picotol
 Each GitHub Release attaches:
 - **`picotol-v<version>.zip`**: Offline bundle with all 6 CSS builds, tokens, palette JSON, SRI manifest, and demo.
 - **`dist/SHA256SUMS.txt`**: Cryptographic SHA-256 checksum manifest covering all 6 CSS distribution bundles.
+- **`dist/manifest.json`**: Structured machine-readable release artifact manifest (`sha256`, `size_bytes`) for automated vendoring and CI pipelines.
 - **`dist/sri.json`**: W3C Subresource Integrity metadata (`sha384-...`).
 
 Download from [GitHub Releases](https://github.com/kidthales/picotol/releases).
@@ -79,7 +80,17 @@ sha256sum --check --ignore-missing SHA256SUMS.txt
 ```
 
 ```powershell
-# PowerShell: download and assert Get-FileHash integrity against SHA256SUMS.txt
+# PowerShell (structured manifest): download and verify directly via dist/manifest.json
+$u = "https://github.com/kidthales/picotol/releases/download/v0.2.0"
+$manifest = Invoke-RestMethod "$u/manifest.json"
+Invoke-WebRequest "$u/picotol.layer.min.css" -OutFile "./picotol.layer.min.css"
+$hash = (Get-FileHash ./picotol.layer.min.css -Algorithm SHA256).Hash.ToLower()
+$exp = $manifest.artifacts["picotol.layer.min.css"].sha256.ToLower()
+if ($hash -ne $exp) { throw "SHA256 mismatch: expected $exp, got $hash" }
+```
+
+```powershell
+# PowerShell (text checksums): download and assert Get-FileHash integrity against SHA256SUMS.txt
 $u = "https://github.com/kidthales/picotol/releases/download/v0.2.0"
 Invoke-WebRequest "$u/picotol.layer.min.css" -OutFile "./picotol.layer.min.css"
 $hash = (Get-FileHash ./picotol.layer.min.css -Algorithm SHA256).Hash.ToLower()
