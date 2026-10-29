@@ -1,4 +1,4 @@
-@layer tokens, base, layout, content, forms, nav, components;
+@layer tokens, reset, base, components, utilities;
 @layer tokens {
   :root, :host, [data-accent="blue"] {
     --pt-p1: #AACCEE; --pt-p2: #77AADD; --pt-p3: #4477AA; --pt-p4: #2255AA; --pt-p5: #004488;

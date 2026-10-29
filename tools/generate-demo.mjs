@@ -943,7 +943,7 @@ ${rowsHtml}
         <article class="card accordion-card">
           <details class="pt-card-disclosure" open>
             <summary>Platform Architecture &amp; Layer Isolation</summary>
-            <p>Strict four-layer cascade isolation ensures design tokens and reset styles never bleed into extended component boundaries.</p>
+            <p>Strict five-tier nested cascade layer isolation ensures design tokens and reset styles never bleed into extended component boundaries.</p>
           </details>
           <details class="pt-card-disclosure">
             <summary>Zero-JS Keyboard &amp; Screen Reader Accessibility</summary>

@@ -1,4 +1,4 @@
-@layer content {
+@layer base {
   :where(p, ul, ol, dl, blockquote, pre, figure, table, hr, h1, h2, h3, h4, h5, h6) {
     margin: 0 0 var(--pt-spacing);
   }
@@ -128,7 +128,7 @@
     & > code { padding: 0; background: none; font-size: inherit; }
   }
 
-  :where(table, [role="table"], code, kbd, samp, time, .tabular-nums, .pt-tabular) {
+  :where(table, [role="table"], code, kbd, samp, time) {
     font-variant-numeric: tabular-nums lining-nums;
   }
 
@@ -170,4 +170,11 @@
     aspect-ratio: 1;
   }
 }
+
+@layer utilities {
+  :where(.tabular-nums, .pt-tabular) {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+}
+
 

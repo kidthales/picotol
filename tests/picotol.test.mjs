@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { transform } from "lightningcss";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -246,7 +247,7 @@ test("Architecture & Selector Invariants: @layer cascade, --pt-* tokens, [data-t
   const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
   const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
 
-  const layers = ["tokens", "base", "layout", "content", "forms", "nav", "components"];
+  const layers = ["tokens", "reset", "base", "components", "utilities"];
   let lastIdx = -1;
   for (const layer of layers) {
     const idx = fullCss.indexOf(`@layer ${layer}`);
@@ -372,6 +373,15 @@ test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework b
   assert.ok(layerMinCss.startsWith("/*!"), "Minified layered build must retain license header");
 
   assert.ok(
+    layerCss.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
+    "dist/picotol.layer.css must export nested layer definitions preamble"
+  );
+  assert.ok(
+    layerMinCss.includes("@layer picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;"),
+    "dist/picotol.layer.min.css must export nested layer definitions preamble"
+  );
+
+  assert.ok(
     layerCss.includes("@layer picotol {"),
     "dist/picotol.layer.css must wrap contents in @layer picotol"
   );
@@ -381,7 +391,7 @@ test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework b
   );
 
   // Validate that internal cascade layers reside inside @layer picotol
-  const layers = ["tokens", "base", "layout", "content", "forms", "nav", "components"];
+  const layers = ["tokens", "reset", "base", "components", "utilities"];
   for (const layer of layers) {
     assert.ok(
       layerMinCss.includes(`@layer ${layer}`) || layerMinCss.includes(`@layer ${layer}{`),
@@ -2167,6 +2177,130 @@ test("Configurable Typography Floor (--pt-font-size-floor) for Compact Density (
     "README.md must include Configurable Typography Floor section"
   );
 });
+
+test("Nested @layer Taxonomy, Sublayer Preamble, and Downstream Extensibility (Issue #153)", () => {
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const baseCss = fs.readFileSync(path.join(ROOT, "src/base.css"), "utf8");
+  const layoutCss = fs.readFileSync(path.join(ROOT, "src/layout.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Five-tier nested layer preamble export in dist/picotol.layer.css and dist/picotol.layer.min.css
+  const expectedPreamble = "@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;";
+  const expectedMinPreamble = "@layer picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;";
+
+  assert.ok(
+    layerCss.includes(expectedPreamble),
+    "dist/picotol.layer.css must declare nested sublayer preamble upfront"
+  );
+  assert.ok(
+    layerMin.includes(expectedMinPreamble),
+    "dist/picotol.layer.min.css must minify nested sublayer preamble upfront"
+  );
+
+  // 2. Unlayered bundles export root layer taxonomy
+  assert.ok(
+    tokensCss.includes("@layer tokens, reset, base, components, utilities;"),
+    "src/tokens.css must declare 5-tier layer ordering"
+  );
+  let fullIdx = -1;
+  for (const l of ["tokens", "reset", "base", "components", "utilities"]) {
+    const idx = fullCss.indexOf(`@layer ${l}`);
+    assert.ok(idx > fullIdx, `dist/picotol.css must preserve @layer ${l} in sequential cascade order`);
+    fullIdx = idx;
+  }
+  let coreIdx = -1;
+  for (const l of ["tokens", "reset", "base", "utilities"]) {
+    const idx = coreCss.indexOf(`@layer ${l}`);
+    assert.ok(idx > coreIdx, `dist/picotol.core.css must preserve @layer ${l} in sequential cascade order`);
+    coreIdx = idx;
+  }
+
+  // 3. Strict sublayer source order inside dist/picotol.layer.css
+  const sublayers = ["tokens", "reset", "base", "components", "utilities"];
+  let prevIdx = layerCss.indexOf("@layer picotol {");
+  assert.ok(prevIdx !== -1, "dist/picotol.layer.css must contain @layer picotol");
+
+  for (const layer of sublayers) {
+    const idx = layerCss.indexOf(`@layer ${layer} {`, prevIdx);
+    assert.ok(
+      idx > prevIdx,
+      `Expected inner sublayer @layer ${layer} in order inside dist/picotol.layer.css`
+    );
+    prevIdx = idx;
+  }
+
+  // 4. Verification of source file layer assignments
+  assert.ok(baseCss.includes("@layer reset {"), "src/base.css must define @layer reset");
+  assert.ok(baseCss.includes("@layer base {"), "src/base.css must define @layer base");
+  assert.ok(baseCss.includes("@layer utilities {"), "src/base.css must define @layer utilities");
+  assert.ok(layoutCss.includes("@layer base {"), "src/layout.css must define @layer base");
+  assert.ok(layoutCss.includes("@layer utilities {"), "src/layout.css must define @layer utilities");
+  assert.ok(compCss.includes("@layer components {"), "src/components.css must define @layer components");
+
+  // 5. Downstream Hook Capability: compiling @layer picotol.tokens and @layer picotol.components
+  const downstreamSnippet = `
+    @layer picotol.tokens, my-theme, picotol.reset, picotol.base, picotol.components, my-components, picotol.utilities;
+    @layer picotol.tokens {
+      :root { --pt-primary: #123456; }
+    }
+    @layer picotol.components {
+      article.card { border-radius: 1.5rem; }
+    }
+    @layer my-components {
+      article.card { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+    }
+  `;
+  const downstreamTransformed = transform({
+    filename: "downstream-test.css",
+    code: Buffer.from(downstreamSnippet, "utf8"),
+    minify: true,
+  }).code.toString("utf8");
+  assert.ok(
+    downstreamTransformed.includes("picotol.tokens") && downstreamTransformed.includes("picotol.components"),
+    "LightningCSS must cleanly transform and retain downstream @layer picotol.* references"
+  );
+
+  // 6. Specificity Invariance & Layer Precedence
+  // Utility classes must reside inside @layer utilities to beat component/base rules
+  const utilitiesIdx = layerCss.indexOf("@layer utilities {");
+  assert.ok(utilitiesIdx !== -1, "@layer utilities must be defined in dist/picotol.layer.css");
+  assert.ok(
+    layerCss.indexOf(".skip-to-content:is(:focus, :focus-visible)", utilitiesIdx) !== -1,
+    ".skip-to-content focus rule must compile inside @layer utilities"
+  );
+  assert.ok(
+    layerCss.indexOf(".sr-only", utilitiesIdx) !== -1,
+    ".sr-only utility must compile inside @layer utilities"
+  );
+  assert.ok(
+    layerCss.indexOf(".table-container", utilitiesIdx) !== -1,
+    ".table-container utility must compile inside @layer utilities"
+  );
+
+  // 7. README.md Documentation
+  assert.ok(
+    readme.includes("@layer tokens, reset, base, components, utilities;"),
+    "README must document 5-tier architecture layer declaration"
+  );
+  assert.ok(
+    readme.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
+    "README must document nested @layer taxonomy declaration"
+  );
+  assert.ok(
+    readme.includes("@layer picotol.tokens") && readme.includes("var(--brand-primary, #2255AA)"),
+    "README must document downstream @layer picotol.tokens override pattern"
+  );
+  assert.ok(
+    readme.includes("@layer picotol.components") && readme.includes("article.card"),
+    "README must document downstream @layer picotol.components override pattern"
+  );
+});
+
 
 
 
