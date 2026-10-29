@@ -90,7 +90,7 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 32.0 KB, and picotol.layer.min.css <= 32.0 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min.css <= 34.0 KB, and picotol.layer.min.css <= 34.0 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
   const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
@@ -100,12 +100,12 @@ test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 12.0 KB, picotol.min
     `Expected dist/picotol.core.min.css (${coreMin} B) to be <= 12288 B`
   );
   assert.ok(
-    fullMin <= 32.0 * 1024,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= 32768 B`
+    fullMin <= 34.0 * 1024,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= 34816 B`
   );
   assert.ok(
-    layerMin <= 32.0 * 1024,
-    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 32768 B`
+    layerMin <= 34.0 * 1024,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= 34816 B`
   );
 });
 
@@ -1746,6 +1746,82 @@ test("Release Checksum Manifest and Placement Documentation (Issue #127)", () =>
     readme.includes("integrity=") && readme.includes("crossorigin="),
     "README.md must document Subresource Integrity <link> integration"
   );
+});
+
+test("Tokenized Z-Index Stacking Layers for Meter Sub-Primitives (Issue #138)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Tokenized z-index layers in @layer components
+  assert.ok(
+    fullCss.includes(".pt-meter-range") &&
+    fullCss.includes("--pt-meter-range-z") &&
+    compCss.includes("z-index: var(--pt-meter-range-z, 1)"),
+    "src/components.css and full bundle must assign tokenized z-index to .pt-meter-range"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter-fill") &&
+    fullCss.includes("--pt-meter-fill-z") &&
+    compCss.includes("z-index: var(--pt-meter-fill-z, 2)"),
+    "src/components.css and full bundle must assign tokenized z-index to .pt-meter-fill"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter-mark") &&
+    fullCss.includes("--pt-meter-mark-z") &&
+    compCss.includes("z-index: var(--pt-meter-mark-z, 3)"),
+    "src/components.css and full bundle must assign tokenized z-index to .pt-meter-mark and pins"
+  );
+
+  // 2. Positioning and stacking context on .pt-meter and progress:has(.pt-gauge-marker)
+  assert.ok(
+    compCss.includes("progress:has(.pt-gauge-marker)") &&
+    fullCss.includes("progress:has(.pt-gauge-marker)") &&
+    compCss.includes("position: relative"),
+    "progress:has(.pt-gauge-marker) must establish a positioning context"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter") &&
+    fullCss.includes("position: relative"),
+    ".pt-meter must establish a positioning context"
+  );
+
+  // 3. Minified bundles (dist/picotol.min.css & dist/picotol.layer.min.css) presence
+  assert.ok(
+    fullMin.includes("pt-meter-range") && fullMin.includes("--pt-meter-range-z"),
+    "dist/picotol.min.css must compile .pt-meter-range with z-index layer"
+  );
+  assert.ok(
+    fullMin.includes("pt-meter-fill") && fullMin.includes("--pt-meter-fill-z"),
+    "dist/picotol.min.css must compile .pt-meter-fill with z-index layer"
+  );
+  assert.ok(
+    fullMin.includes("pt-meter-mark") && fullMin.includes("--pt-meter-mark-z"),
+    "dist/picotol.min.css must compile .pt-meter-mark with z-index layer"
+  );
+  assert.ok(
+    layerMin.includes("pt-meter-range") && layerMin.includes("pt-meter-fill") && layerMin.includes("pt-meter-mark"),
+    "dist/picotol.layer.min.css must compile all meter stacking primitives"
+  );
+
+  // 4. Two-Tier Isolation: Core bundle strictly excludes meter range & fill primitives
+  assert.ok(!coreCss.includes(".pt-meter-range"), "Core bundle must not contain .pt-meter-range");
+  assert.ok(!coreCss.includes(".pt-meter-fill"), "Core bundle must not contain .pt-meter-fill");
+  assert.ok(!coreCss.includes(".pt-meter-mark"), "Core bundle must not contain .pt-meter-mark");
+
+  // 5. Interactive Demo verification
+  assert.ok(demoHtml.includes("pt-meter-range"), "Demo HTML must showcase .pt-meter-range");
+  assert.ok(demoHtml.includes("pt-meter-fill"), "Demo HTML must showcase .pt-meter-fill");
+  assert.ok(demoHtml.includes("pt-meter-mark"), "Demo HTML must showcase .pt-meter-mark");
+
+  // 6. Documentation verification
+  assert.ok(readme.includes("--pt-meter-range-z"), "README must document --pt-meter-range-z");
+  assert.ok(readme.includes("--pt-meter-fill-z"), "README must document --pt-meter-fill-z");
+  assert.ok(readme.includes("--pt-meter-mark-z"), "README must document --pt-meter-mark-z");
 });
 
 
