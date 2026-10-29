@@ -1178,6 +1178,12 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     fullCss.includes("min-width: 0"),
     "Segmented fill child items must enforce min-width: 0 to allow flex shrinkage"
   );
+  assert.ok(
+    /&:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)\s*\{[^}]*& > \*\s*\{[^}]*display:\s*block;/s.test(fullCss) ||
+    /\.segmented:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)\s*>\s*\*\s*\{[^}]*display:\s*block/s.test(fullCss) ||
+    (fullCss.includes(".segmented-fill") && fullCss.includes("display: block")),
+    "Segmented fill child items must establish a block formatting context (display: block) to enable text ellipsis truncation"
+  );
 
   // 2. Dedicated square icon button utilities compiled in full bundle
   assert.ok(
