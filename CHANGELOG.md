@@ -5,6 +5,18 @@ All notable changes to `@kidthales/picotol` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-10-29
+
+Third public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.3.0](docs/RELEASE_NOTES_V0_3_0.md).
+
+### Added
+- Tokenized z-index stacking layers for meter sub-primitives (`--pt-meter-z-track`, `--pt-meter-z-range`, `--pt-meter-z-fill`, `--pt-meter-z-marker`, `--pt-meter-z-label`, `--pt-meter-z-pin`) preventing visual clipping and collision across overlapping meter elements (#138).
+- Native status badge (`.pt-badge`) and indicator (`.pt-indicator`) component primitives with accessible high-contrast outlines and direct binding to semantic status triads (`ok`, `warning`, `critical`, `info`, `neutral`) (#139).
+- Structured machine-readable release manifest (`dist/manifest.json`) recording package metadata, schema URI, artifact checksums (`sha256`), and file size bytes during release builds (#140).
+- Recommended downstream CSS `@layer` cascade ordering guide (`@layer reset, picotol, theme, app;`) documented in README (#141).
+- Ultra-compact density modifier (`[data-density="tight"]`, `.pt-tight`) providing a 50% tighter vertical footprint for high-density IDE panels, embedded toolbars, and micro-dashboards (#142).
+- Standalone offline bundle packaging producing `dist/assets/picotol-v0.3.0.zip`.
+
 ## [0.2.0] - 2026-10-28
 
 Second public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.2.0](docs/RELEASE_NOTES_V0_2_0.md).

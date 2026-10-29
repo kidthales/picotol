@@ -3,8 +3,8 @@ message: "If you use this software, please cite both this software and the under
 title: "@kidthales/picotol"
 abstract: "Pure-CSS, ultra-minified semantic HTML framework powered strictly by Paul Tol's colorblind-safe colour schemes."
 type: software
-version: 0.2.0
-date-released: 2026-10-28
+version: 0.3.0
+date-released: 2026-10-29
 license: MIT
 repository-code: "https://github.com/kidthales/picotol"
 url: "https://github.com/kidthales/picotol"
