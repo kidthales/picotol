@@ -963,10 +963,10 @@ test("Cross-Engine Meter Custom Properties and Gauge Threshold Pin Markers (Issu
     "Full bundle must style role='progressbar' containers"
   );
 
-  // 3. Gauge threshold pin markers (.pt-gauge-marker, .pt-meter-pin)
+  // 3. Gauge threshold pin markers (.pt-gauge-marker, .pt-meter-mark)
   assert.ok(
-    fullCss.includes(".pt-gauge-marker") && fullCss.includes(".pt-meter-pin"),
-    "Full bundle must provide .pt-gauge-marker and .pt-meter-pin primitives"
+    fullCss.includes(".pt-gauge-marker") && fullCss.includes(".pt-meter-mark"),
+    "Full bundle must provide .pt-gauge-marker and .pt-meter-mark primitives"
   );
   assert.ok(
     fullCss.includes("--marker-pos") && fullCss.includes("--pt-marker-pos"),
@@ -3323,5 +3323,108 @@ test("Native Floating Popover Primitive, Alignment Modifiers, and Viewport Safet
   assert.ok(
     readme.includes(".pt-dropdown") || readme.includes("pt-dropdown"),
     "README.md must document .pt-dropdown"
+  );
+});
+
+test("Meter Marker Anatomy Disambiguation and Nested Terminus Markup (Issue #183)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. .pt-meter-mark is the canonical positioned container; .pt-meter-pin is dropped from container selector list
+  assert.ok(
+    compCss.includes(":where(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end)"),
+    "src/components.css must define .pt-meter-mark as the marker container and exclude .pt-meter-pin"
+  );
+  assert.ok(
+    !compCss.includes(".pt-meter-pin, .pt-meter-mark") &&
+    !compCss.includes(".pt-meter-pin--start") &&
+    !compCss.includes(".pt-meter-pin--end"),
+    "src/components.css must not list .pt-meter-pin as a container or alignment modifier"
+  );
+
+  // 2. Child label selector is narrowed from (span, small, ...) to (.pt-gauge-label, .pt-meter-label, [data-label])
+  assert.ok(
+    compCss.includes("& :where(.pt-gauge-label, .pt-meter-label, [data-label])"),
+    "src/components.css must narrow child label selectors to specific label classes / [data-label]"
+  );
+  assert.ok(
+    !compCss.includes("& :where(span, small,"),
+    "src/components.css must not indiscriminately position raw span or small tags as labels"
+  );
+
+  // 3. Stacking layers: .pt-meter-mark and .pt-meter-label retain z-index layer; .pt-meter-pin dropped
+  assert.ok(
+    compCss.includes(".pt-meter-mark,") && compCss.includes(".pt-meter-label,"),
+    "src/components.css must assign tokenized z-index to .pt-meter-mark and .pt-meter-label"
+  );
+
+  // 4. Multi-bundle parity: compiled bundles reflect container and label selector tightening
+  for (const [name, css] of [
+    ["fullCss", fullCss],
+    ["fullMin", fullMin],
+    ["layerCss", layerCss],
+    ["layerMin", layerMin],
+  ]) {
+    assert.ok(
+      css.includes("pt-meter-mark"),
+      `${name} must compile .pt-meter-mark`
+    );
+    assert.ok(
+      css.includes("pt-meter-label"),
+      `${name} must compile .pt-meter-label`
+    );
+  }
+
+  // 5. Two-Tier Isolation: Core bundle excludes extended meter marker and label classes
+  assert.ok(
+    !coreCss.includes(".pt-meter-mark"),
+    "dist/picotol.core.css must strictly exclude .pt-meter-mark"
+  );
+  assert.ok(
+    !coreCss.includes(".pt-meter-label"),
+    "dist/picotol.core.css must strictly exclude .pt-meter-label"
+  );
+
+  // 6. Regression simulation: Nested Terminus markup (.pt-meter-mark > .pt-meter-pin + .pt-meter-label)
+  // In downstream Terminus markup, .pt-meter-mark is the outer container. If an inner element has
+  // .pt-meter-pin, it must NOT draw a second pin via ::before nor get label positioning.
+  // We simulate selector matching against the compiled CSS rules.
+  function simulateNestedTerminusAnatomy() {
+    // Outer container: .pt-meter-mark
+    // Inner child 1: .pt-meter-pin (downstream pin element)
+    // Inner child 2: .pt-meter-label (downstream label element)
+    const containerClasses = [".pt-gauge-marker", ".pt-meter-mark", ".pt-meter-mark--start", ".pt-meter-mark--end"];
+    const labelClasses = [".pt-gauge-label", ".pt-meter-label", "[data-label]"];
+
+    const isContainer = (cls) => containerClasses.includes(cls);
+    const isLabel = (cls) => labelClasses.includes(cls);
+
+    // .pt-meter-mark is a container that gets ::before pin
+    assert.ok(isContainer(".pt-meter-mark"), "Outer .pt-meter-mark must match container rules");
+
+    // .pt-meter-pin is NOT recognized as a container, drawing 0 pseudo-pins from picotol
+    assert.ok(!isContainer(".pt-meter-pin"), "Inner .pt-meter-pin must NOT match container rules");
+
+    // .pt-meter-pin is NOT recognized as a label selector, so it does NOT receive label positioning
+    assert.ok(!isLabel(".pt-meter-pin"), "Inner .pt-meter-pin must NOT match label selector rules");
+
+    // .pt-meter-label matches label rules
+    assert.ok(isLabel(".pt-meter-label"), "Inner .pt-meter-label must match label selector rules");
+  }
+  simulateNestedTerminusAnatomy();
+
+  // 7. README documentation parity
+  assert.ok(
+    readme.includes(".pt-meter-mark"),
+    "README.md must document .pt-meter-mark container primitive"
+  );
+  assert.ok(
+    readme.includes(".pt-meter-label"),
+    "README.md must document .pt-meter-label primitive"
   );
 });

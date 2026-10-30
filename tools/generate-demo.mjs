@@ -893,14 +893,14 @@ ${rowsHtml}
               <div class="pt-meter-range critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
               <div class="pt-progress" role="progressbar" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 78%;">
                 <div class="pt-progress-fill pt-meter-fill"></div>
-                <div class="pt-meter-pin pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
+                <div class="pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
               </div>
             </div>
             <div class="pt-meter" style="margin-top: 1.5rem;">
               <div class="pt-progress pt-progress-danger" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 92%;">
                 <div class="pt-progress-fill pt-meter-fill"></div>
-                <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><small>70% Warn</small></div>
-                <div class="pt-meter-pin pt-meter-mark critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
+                <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><span class="pt-gauge-label">70% Warn</span></div>
+                <div class="pt-meter-mark critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
               </div>
             </div>
             <div class="pt-meter" style="margin-top: 1.5rem;">

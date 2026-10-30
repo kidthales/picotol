@@ -1265,7 +1265,7 @@
     position: relative;
     overflow: hidden;
 
-    &:has(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
       overflow: visible;
     }
   }
@@ -1290,12 +1290,12 @@
       margin-bottom: 0;
     }
 
-    &:has(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
       overflow: visible;
     }
   }
 
-  :where(.pt-meter, .pt-progress):has(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+  :where(.pt-meter, .pt-progress):has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
     overflow: visible;
   }
 
@@ -1328,7 +1328,7 @@
     }
   }
 
-  :where(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end, .pt-meter-pin--start, .pt-meter-pin--end) {
+  :where(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end) {
     --pt-marker-pos: 0%;
     --pt-marker-color: var(--pt-color);
     height: var(--pt-progress-height);
@@ -1359,7 +1359,7 @@
       transform: translateX(-50%);
     }
 
-    & :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]) {
+    & :where(.pt-gauge-label, .pt-meter-label, [data-label]) {
       position: absolute;
       bottom: calc(100% + 4px);
       left: 0;
@@ -1371,15 +1371,15 @@
       bottom: auto;
     }
 
-    &:is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start, .pt-meter-pin--start) :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start, .pt-meter-pin--start, .pt-meter-label--start, .pt-gauge-label--start) {
+    &:is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start) :where(.pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start, .pt-meter-label--start, .pt-gauge-label--start) {
       transform: translateX(0);
     }
 
-    &:is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end, .pt-meter-pin--end) :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end, .pt-meter-pin--end, .pt-meter-label--end, .pt-gauge-label--end) {
+    &:is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end) :where(.pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end, .pt-meter-label--end, .pt-gauge-label--end) {
       transform: translateX(-100%);
     }
 
-    &:is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center, .pt-meter-pin--center) :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center, .pt-meter-pin--center, .pt-meter-label--center, .pt-gauge-label--center) {
+    &:is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center) :where(.pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center, .pt-meter-label--center, .pt-gauge-label--center) {
       transform: translateX(-50%);
     }
 
@@ -1409,7 +1409,7 @@
     z-index: var(--pt-meter-fill-z, 2);
   }
 
-  .pt-meter-mark, .pt-meter-label, .pt-gauge-marker, .pt-meter-pin, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end, .pt-meter-pin--start, .pt-meter-pin--end {
+  .pt-meter-mark, .pt-meter-label, .pt-gauge-marker, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end {
     z-index: var(--pt-meter-mark-z, 3);
   }
 
@@ -1469,7 +1469,7 @@
       background-color: highlight;
     }
 
-    :where(.pt-gauge-marker, .pt-meter-pin):before {
+    :where(.pt-gauge-marker, .pt-meter-mark):before {
       background-color: canvastext;
     }
   }

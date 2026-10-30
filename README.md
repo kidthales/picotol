@@ -638,11 +638,12 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
 
 ### 4f. Gauge Threshold Pins, Range Bands & Progress Bars
 
-`@kidthales/picotol` provides pure-CSS gauge and progress bar primitives (`.pt-meter`, `.pt-progress`, `.pt-meter-range`, `.pt-meter-pin`):
+`@kidthales/picotol` provides pure-CSS gauge and progress bar primitives (`.pt-meter`, `.pt-progress`, `.pt-meter-range`, `.pt-meter-mark`):
 
 > [!NOTE]
-> **Container Pattern & Replaced Element Limits**: Native `<progress>` elements in HTML/browsers (Chromium, Firefox, WebKit) are replaced/void-like elements that cannot render child DOM elements (`.pt-gauge-marker`, `.pt-meter-pin`, `.pt-meter-label`). For rich meters with threshold pins, markers, and range bands, use the standard container pattern: `<div class="pt-meter">` wrapping `<div class="pt-progress" role="progressbar">`. Basic `<progress>` without child pins remains fully supported for simple indeterminate and determinate progress bars.
+> **Container Pattern & Replaced Element Limits**: Native `<progress>` elements in HTML/browsers (Chromium, Firefox, WebKit) are replaced/void-like elements that cannot render child DOM elements (`.pt-gauge-marker`, `.pt-meter-mark`, `.pt-meter-label`). For rich meters with threshold pins, markers, and range bands, use the standard container pattern: `<div class="pt-meter">` wrapping `<div class="pt-progress" role="progressbar">`. Basic `<progress>` without child pins remains fully supported for simple indeterminate and determinate progress bars.
 
+- **Marker Containers & Pin Drawing**: `.pt-meter-mark` (or `.pt-gauge-marker`) serves as the positioned container and automatically draws the indicator pin via its `::before` pseudo-element. Children elements are strictly labels (`.pt-meter-label`, `[data-label]`, or `.pt-gauge-label`). Note: `.pt-meter-pin` was previously used interchangeably for both container and child pins; as of v0.5.0, `.pt-meter-mark` is the canonical container and child elements are labels only.
 - **Canonical Placement (`data-placement`)**: `data-placement="top"` (default) or `data-placement="bottom"`. Compatibility classes `.top` and `.bottom` are also supported.
 - **Positioning**: Pin position configured via `--pt-marker-pos` (`0%` to `100%`); range band span configured via `--pt-range-start` and `--pt-range-end`.
 - **Boundary Clamping & Rounded Corners**: Pin positioning automatically clamps to track corner radius (`inset-inline-start: clamp(var(--pt-progress-radius, 0px), var(--marker-pos, var(--pt-marker-pos, 0%)), calc(100% - var(--pt-progress-radius, 0px)))`), ensuring pins align cleanly within rounded and capsule tracks without overhanging curved ends at 0% or 100%.
@@ -653,7 +654,7 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
   - `data-align="end"` or `.pt-meter-mark--end`: Applies `transform: translateX(-100%)` for 100% / high-end markers.
   - `data-align="center"` or `.pt-meter-mark--center`: Explicitly resets to centered default (`transform: translateX(-50%)`).
   - **Pin Centering Invariant**: The marker pin (`&::before`) remains strictly centered (`transform: translateX(-50%)`) at the target percentage tick.
-- **Tokenized Stacking Layers**: Sub-primitives stack predictably via tokenized z-index layers: `--pt-meter-range-z: 1` (`.pt-meter-range`), `--pt-meter-fill-z: 2` (`.pt-meter-fill`), and `--pt-meter-mark-z: 3` (`.pt-meter-mark`, `.pt-meter-label`, `.pt-gauge-marker`, `.pt-meter-pin`).
+- **Tokenized Stacking Layers**: Sub-primitives stack predictably via tokenized z-index layers: `--pt-meter-range-z: 1` (`.pt-meter-range`), `--pt-meter-fill-z: 2` (`.pt-meter-fill`), and `--pt-meter-mark-z: 3` (`.pt-meter-mark`, `.pt-meter-label`, `.pt-gauge-marker`).
 
 ```html
 <div class="pt-meter">
@@ -663,7 +664,7 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
   <div class="pt-progress" role="progressbar" aria-valuenow="78" style="--pt-progress-value: 78%;">
     <div class="pt-progress-fill pt-meter-fill"></div>
     <div class="pt-meter-mark pt-meter-mark--start" data-placement="top" data-align="start" style="--pt-marker-pos: 0%;"><span class="pt-meter-label">0% Min</span></div>
-    <div class="pt-meter-pin pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
+    <div class="pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
     <div class="pt-meter-mark pt-meter-mark--end critical bottom" data-placement="bottom" data-align="end" style="--pt-marker-pos: 100%;"><span class="pt-meter-label" data-label>100% Max</span></div>
   </div>
 </div>
