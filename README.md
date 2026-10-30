@@ -210,6 +210,8 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
    Because CSS `::before { content: attr(data-tooltip) }` is not announced consistently across all screen readers and Braille displays, pair non-decorative tooltips with `aria-label` or `aria-describedby` and add `tabindex="0"` when attached to non-interactive inline elements.
 4. **Native Table Semantics Preservation**:
    Wrap wide tables in `<div class="overflow-auto table-container"><table>...</table></div>` or semantic `<figure><table>...</table></figure>`. Unlike frameworks that apply `display: block` to `<table>` (which strips table coordinate semantics in WebKit/VoiceOver and Chromium), `@kidthales/picotol` preserves native `display: table` while providing touch-momentum horizontal scrolling.
+5. **Theme-Reactive Selection Contrast (`::selection`)**:
+   `::selection` binds dynamically to `background-color: var(--pt-primary-bg); color: var(--pt-color);`. This guarantees WCAG AA/AAA text contrast ($\ge 4.5:1$ across all four accent palettes) in both light mode and dark mode without translucent washout, preserving crisp text legibility during copy-paste and text inspection.
 
 ---
 
@@ -677,6 +679,7 @@ For data-dense applications, dashboards, and narrow IDE corridors, apply `[data-
 - **Form Controls**: Reduces vertical and horizontal padding on `input`, `select`, `textarea`, and buttons via `--pt-form-element-spacing-vertical: 0.25rem;` and `--pt-form-element-spacing-horizontal: 0.5rem;`.
 - **Tables**: Tightens cell padding (`th, td`) via `--pt-table-cell-padding-block: 0.25rem;` and `--pt-table-cell-padding-inline: 0.5rem;`.
 - **Layout & Cards**: Tightens grid and flex gaps via `--pt-gap-compact: 0.5rem;`, zeroes outer card bottom margins, and tightens card padding.
+- **Margin Auto-Collapsing**: Auto-collapses outer block margins (`margin-block: 0;`) on `section`, `article`, `.card`, and `hr` elements (as well as flex/grid child containers), allowing dense grid and flex layouts to space strictly via `--pt-gap-compact: 0.5rem;` without double-margin bloat.
 - **Pills & Chips**: Decreases vertical padding on `.pt-copy-pill` and `.pt-chip` (`--pt-btn-padding-block: 0.25rem;`).
 - **320px Reflow**: Retains full WCAG 2.2 SC 1.4.10 mobile reflow with zero horizontal scrolling.
 
