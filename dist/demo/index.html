@@ -599,7 +599,7 @@
             <p><span class="badge invalid"><span class="status-dot danger"></span> Node Offline</span></p>
             <p><span class="badge primary"><span class="status-dot info"></span> Job Running</span></p>
             <p><span class="badge"><span class="status-dot idle" data-status="idle"></span> Service Idle</span></p>
-            <p style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;"><span class="status-dot success no-margin"></span><small>Flex gap layout (<code>.no-margin</code> / <code>.m-0</code>)</small></p>
+            <p style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;"><span class="status-dot success no-margin" style="flex-shrink: 0;"></span><small style="white-space: nowrap;">Flex gap layout (<code>.no-margin</code> / <code>.m-0</code>)</small></p>
           </main>
           <footer><small>Contextual inline spacing without margin compounding</small></footer>
         </article>
@@ -811,7 +811,7 @@
             <p><span class="pt-badge pt-badge--numeric warning"><span class="pt-status-dot warning"></span> 1,420 ms</span> P99 Latency</p>
             <p><span class="pt-badge pt-badge--numeric critical"><span class="pt-status-dot critical"></span> 0.042%</span> Drop Rate</p>
             <p><span class="pt-indicator pt-indicator--numeric info" id="live-indicator-count">Turn #042</span> <span class="pt-badge pt-badge--numeric info" id="live-badge-count">1,842 tok/s</span></p>
-            <p><span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span> <code>.pt-tabular--align-end</code></p>
+            <p style="display: flex; justify-content: space-between; align-items: center;"><code>.pt-tabular--align-end</code> <span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span></p>
           </main>
           <footer><small><code>font-variant-numeric: tabular-nums lining-nums</code> and <code>font-feature-settings: "tnum" 1</code> eliminate layout jitter</small></footer>
         </article>
