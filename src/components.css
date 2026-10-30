@@ -825,7 +825,7 @@
       color: var(--pt-valid);
     }
 
-    & > :where(svg, .status-dot, .pt-status-dot) {
+    & > :where(svg, .status-dot, .pt-status-dot, .pt-dot) {
       margin: 0;
     }
   }
@@ -865,7 +865,56 @@
     border-color: var(--pt-status-info-border);
   }
 
-  /* 11b. Status Indicator Dots */
+  /* 11b. Status Indicator Dots (.pt-dot, .status-dot, .pt-status-dot) */
+  :where(.pt-dot) {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    vertical-align: middle;
+    flex-shrink: 0;
+    background-color: var(--pt-color);
+
+    &:where(:not(:only-child, :last-child)) {
+      margin-inline-end: 0.35rem;
+    }
+
+    :where(.grid, .flex, [style*="gap"], [role="group"]) > & {
+      margin-inline-end: 0;
+    }
+
+    &:is(.no-margin, .m-0) {
+      margin: 0;
+    }
+
+    &:is(.pt-dot--ok, .pt-dot--success) {
+      background-color: var(--pt-status-ok-fg);
+      box-shadow: 0 0 0 2px var(--pt-status-ok-bg);
+    }
+    &:is(.pt-dot--warning) {
+      background-color: var(--pt-status-warning-fg);
+    }
+    &:is(.pt-dot--critical, .pt-dot--danger) {
+      background-color: var(--pt-status-critical-fg);
+    }
+    &:is(.pt-dot--info) {
+      background-color: var(--pt-status-info-fg);
+    }
+    &:is(.pt-dot--pulse) {
+      animation: pt-pulse 1.5s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &:is(.pt-dot--pulse) {
+        animation: none;
+      }
+    }
+
+    @media (forced-colors: active) {
+      border: 1px solid CanvasText;
+    }
+  }
+
   :where(.status-dot, .pt-status-dot) {
     display: inline-block;
     width: 0.5rem;
@@ -950,7 +999,7 @@
       transform: translateY(1px);
     }
 
-    & > :where(svg, .status-dot, .pt-status-dot) {
+    & > :where(svg, .status-dot, .pt-status-dot, .pt-dot) {
       margin: 0;
     }
   }

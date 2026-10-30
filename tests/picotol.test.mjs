@@ -2929,3 +2929,140 @@ test("Meter Boundary Marker Pin Clamping and Container Overflow Invariants (Issu
     "README.md must document overflow: visible on :where(.pt-meter, .pt-progress)"
   );
 });
+
+test("Tokenized Status Dot Primitive (.pt-dot) Dimensions, Semantic Variants, Pulse, and High-Contrast Invariants (Issue #173)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Base .pt-dot Dimensions and Default Token Invariants
+  assert.ok(
+    compCss.includes(":where(.pt-dot)") &&
+      compCss.includes("width: 0.5rem") &&
+      compCss.includes("height: 0.5rem") &&
+      compCss.includes("border-radius: 50%") &&
+      compCss.includes("background-color: var(--pt-color)"),
+    "src/components.css must define base .pt-dot with 0.5rem square dimensions, 50% radius, and --pt-color default background"
+  );
+
+  assert.ok(
+    fullCss.includes(".pt-dot") &&
+      (fullCss.includes("width: 0.5rem") || fullCss.includes("width: .5rem")) &&
+      (fullCss.includes("height: 0.5rem") || fullCss.includes("height: .5rem")) &&
+      fullCss.includes("background-color: var(--pt-color)"),
+    "dist/picotol.css must compile .pt-dot base properties"
+  );
+
+  assert.ok(
+    fullMin.includes(".pt-dot") &&
+      (fullMin.includes("width:.5rem") || fullMin.includes("width:0.5rem") || fullMin.includes("width: .5rem")),
+    "dist/picotol.min.css must compile minified .pt-dot"
+  );
+
+  assert.ok(
+    layerMin.includes(".pt-dot") &&
+      (layerMin.includes("width:.5rem") || layerMin.includes("width:0.5rem") || layerMin.includes("width: .5rem")),
+    "dist/picotol.layer.min.css must compile minified layered .pt-dot"
+  );
+
+  // 2. Semantic Status Variants & Wash Invariants
+  assert.ok(
+    compCss.includes(".pt-dot--ok") &&
+      compCss.includes(".pt-dot--success") &&
+      compCss.includes("var(--pt-status-ok-fg)") &&
+      compCss.includes("var(--pt-status-ok-bg)"),
+    "src/components.css must map .pt-dot--ok and .pt-dot--success to --pt-status-ok-fg with --pt-status-ok-bg wash box-shadow"
+  );
+
+  assert.ok(
+    compCss.includes(".pt-dot--warning") && compCss.includes("var(--pt-status-warning-fg)"),
+    "src/components.css must map .pt-dot--warning to --pt-status-warning-fg"
+  );
+
+  assert.ok(
+    compCss.includes(".pt-dot--critical") &&
+      compCss.includes(".pt-dot--danger") &&
+      compCss.includes("var(--pt-status-critical-fg)"),
+    "src/components.css must map .pt-dot--critical and .pt-dot--danger to --pt-status-critical-fg"
+  );
+
+  assert.ok(
+    compCss.includes(".pt-dot--info") && compCss.includes("var(--pt-status-info-fg)"),
+    "src/components.css must map .pt-dot--info to --pt-status-info-fg"
+  );
+
+  assert.ok(
+    fullMin.includes("pt-dot--ok") &&
+      fullMin.includes("pt-dot--warning") &&
+      fullMin.includes("pt-dot--critical") &&
+      fullMin.includes("pt-dot--info"),
+    "dist/picotol.min.css must compile all semantic .pt-dot modifier variants"
+  );
+
+  // 3. Pulse Animation and prefers-reduced-motion Overrides
+  assert.ok(
+    compCss.includes(".pt-dot--pulse") && compCss.includes("animation: pt-pulse"),
+    "src/components.css must wire .pt-dot--pulse to pt-pulse keyframes"
+  );
+
+  assert.ok(
+    fullCss.includes(".pt-dot--pulse") && fullCss.includes("pt-pulse"),
+    "dist/picotol.css must compile .pt-dot--pulse animation rule"
+  );
+
+  assert.ok(
+    compCss.includes("@media (prefers-reduced-motion: reduce)") &&
+      compCss.includes("animation: none"),
+    "src/components.css must cancel pulse animation under prefers-reduced-motion: reduce"
+  );
+
+  // 4. Windows High Contrast Mode (forced-colors: active) Border
+  assert.ok(
+    compCss.includes("@media (forced-colors: active)") &&
+      compCss.includes("border: 1px solid CanvasText"),
+    "src/components.css must declare 1px solid CanvasText border in forced-colors: active"
+  );
+
+  assert.ok(
+    fullMin.includes("forced-colors:active") && /canvastext/i.test(fullMin),
+    "dist/picotol.min.css must compile forced-colors high contrast border for .pt-dot"
+  );
+
+  // 5. Two-Tier Bundle Isolation
+  assert.ok(!coreCss.includes(".pt-dot"), "Core bundle must not contain .pt-dot");
+  assert.ok(!coreCss.includes("pt-dot--ok"), "Core bundle must not contain .pt-dot--ok");
+
+  // 6. Negative / Edge-Case Tests: Margin Isolation & Container Gap Containment
+  assert.ok(
+    compCss.includes(":where(:not(:only-child, :last-child))") &&
+      compCss.includes("margin-inline-end: 0.35rem"),
+    "Status dot default margin selector must maintain (0,0,0) specificity"
+  );
+  assert.ok(
+    compCss.includes(":is(.no-margin, .m-0)") && compCss.includes("margin: 0"),
+    ".no-margin and .m-0 must reset dot margins to 0"
+  );
+  assert.ok(
+    compCss.includes(':where(.grid, .flex, [style*="gap"], [role="group"]) > &') &&
+      compCss.includes("margin-inline-end: 0"),
+    "Dot must reset inline margin to 0 when placed in flex/grid gap layouts"
+  );
+  assert.ok(
+    compCss.includes("& > :where(svg, .status-dot, .pt-status-dot, .pt-dot)"),
+    "Badge and indicator containers must reset child .pt-dot margin to 0"
+  );
+
+  // 7. Cross-Surface Parity: Demo & README Documentation
+  assert.ok(demoHtml.includes("pt-dot"), "dist/demo/index.html must showcase .pt-dot component");
+  assert.ok(demoHtml.includes("pt-dot--ok"), "dist/demo/index.html must showcase .pt-dot--ok variant");
+  assert.ok(demoHtml.includes("pt-dot--warning"), "dist/demo/index.html must showcase .pt-dot--warning variant");
+  assert.ok(demoHtml.includes("pt-dot--critical"), "dist/demo/index.html must showcase .pt-dot--critical variant");
+  assert.ok(demoHtml.includes("pt-dot--info"), "dist/demo/index.html must showcase .pt-dot--info variant");
+  assert.ok(demoHtml.includes("pt-dot--pulse"), "dist/demo/index.html must showcase .pt-dot--pulse variant");
+  assert.ok(readme.includes(".pt-dot"), "README.md must document .pt-dot component primitive");
+  assert.ok(readme.includes(".pt-dot--ok"), "README.md must document .pt-dot--ok variant");
+});

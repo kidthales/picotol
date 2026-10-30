@@ -720,6 +720,18 @@ ${rowsHtml}
       <h3>Status Dots &amp; Narrow-Corridor Reflow</h3>
       <div class="grid">
         <article>
+          <header><strong>Tokenized Status Dots (<code>.pt-dot</code>)</strong></header>
+          <main>
+            <p><span class="pt-dot pt-dot--ok"></span><strong>Operational</strong> <code>.pt-dot.pt-dot--ok</code></p>
+            <p><span class="pt-dot pt-dot--warning"></span><strong>Warning</strong> <code>.pt-dot.pt-dot--warning</code></p>
+            <p><span class="pt-dot pt-dot--critical"></span><strong>Critical</strong> <code>.pt-dot.pt-dot--critical</code></p>
+            <p><span class="pt-dot pt-dot--info"></span><strong>Informational</strong> <code>.pt-dot.pt-dot--info</code></p>
+            <p><span class="pt-dot pt-dot--critical pt-dot--pulse"></span><strong>Pulsing Alert</strong> <code>.pt-dot--pulse</code></p>
+            <p><span class="pt-dot"></span><strong>Neutral Default</strong> <code>.pt-dot</code></p>
+          </main>
+          <footer><small>Tokenized 0.5rem primitive with wash halo and forced-colors border</small></footer>
+        </article>
+        <article>
           <header><strong>Paul Tol Status Dots (<code>.status-dot</code>)</strong></header>
           <main>
             <p><span class="status-dot success"></span><strong>Operational</strong> <code>.status-dot.success</code></p>
