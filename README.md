@@ -594,15 +594,24 @@ Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature sm
   </details>
 </article>
 
-<!-- Native Popover Menu (Zero-JS Click-Away Backdrop) -->
-<details class="pt-popover">
+<!-- Native Popover Menu (Zero-JS Click-Away Backdrop & Alignment Modifiers) -->
+<details class="pt-popover pt-popover--start">
   <summary role="button">Actions</summary>
-  <div class="pt-popover-menu">
+  <div class="pt-popover-content pt-popover-menu">
     <a href="#view">View Details</a>
     <a href="#export">Export Data</a>
     <hr>
     <button type="button" class="pt-menu-item">Disconnect</button>
   </div>
+</details>
+
+<!-- End-Aligned Dropdown / Popover -->
+<details class="pt-dropdown pt-popover--end" role="menu">
+  <summary role="button" class="secondary">Options</summary>
+  <ul class="pt-popover-content">
+    <li><a href="#profile">Profile</a></li>
+    <li><a href="#settings">Settings</a></li>
+  </ul>
 </details>
 ```
 

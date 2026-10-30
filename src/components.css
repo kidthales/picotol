@@ -93,8 +93,8 @@
     }
   }
 
-  /* 3. Dropdown & Native Popover (details.dropdown, .pt-popover, details[role="menu"]) */
-  :where(details.dropdown, .pt-popover, details[role="menu"]) {
+  /* 3. Dropdown & Native Popover (details.dropdown, .pt-popover, .pt-dropdown, details[role="menu"]) */
+  :where(details.dropdown, .pt-popover, .pt-dropdown, details[role="menu"]) {
     position: relative;
     border: 0;
     padding: 0;
@@ -122,17 +122,25 @@
     }
   }
 
-  :where(details.dropdown > ul, .pt-popover-menu, .pt-popover > :not(summary)) {
+  :where(
+    details.dropdown > ul,
+    .pt-popover-menu,
+    .pt-popover-content,
+    .pt-popover > :not(summary),
+    .pt-dropdown > :not(summary)
+  ) {
     position: absolute;
-    top: calc(100% + 0.25rem);
+    top: calc(100% + 4px);
     inset-inline-start: 0;
-    z-index: 99;
+    z-index: var(--pt-z-dropdown, 100);
     min-width: 100%;
+    max-width: min(20rem, 90vw);
+    box-sizing: border-box;
     margin: 0;
     padding: 0.25rem 0;
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
-    background-color: var(--pt-card-bg);
+    background-color: var(--pt-surface);
     box-shadow: var(--pt-box-shadow);
     list-style: none;
 
@@ -163,6 +171,25 @@
       border: 0;
       border-top: var(--pt-border);
     }
+  }
+
+  /* Alignment modifiers for .pt-popover & .pt-dropdown containers */
+  :where(
+    .pt-popover--start > :not(summary),
+    .pt-dropdown--start > :not(summary),
+    :where(.pt-popover, .pt-dropdown) > :is(.pt-popover--start, .pt-dropdown--start)
+  ) {
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+  }
+
+  :where(
+    .pt-popover--end > :not(summary),
+    .pt-dropdown--end > :not(summary),
+    :where(.pt-popover, .pt-dropdown) > :is(.pt-popover--end, .pt-dropdown--end)
+  ) {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
   }
 
   /* Accordion Cards & Card Disclosures */

@@ -3195,3 +3195,133 @@ test("Tabular Numerics Badge Modifier, Right-Alignment Utility, and Cascade Pari
     "README.md must document src/utilities.css in layer architecture"
   );
 });
+
+test("Native Floating Popover Primitive, Alignment Modifiers, and Viewport Safety (Issue #175)", () => {
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Token declaration: --pt-z-dropdown
+  assert.ok(
+    tokensCss.includes("--pt-z-dropdown: 100;") || tokensCss.includes("--pt-z-dropdown: 100"),
+    "src/tokens.css must declare --pt-z-dropdown with default 100"
+  );
+
+  // 2. Popover & dropdown container rules in src/components.css
+  assert.ok(
+    compCss.includes(".pt-popover") && compCss.includes(".pt-dropdown"),
+    "src/components.css must define .pt-popover and .pt-dropdown containers"
+  );
+  assert.ok(
+    compCss.includes("top: calc(100% + 4px);") || compCss.includes("top: calc(100% + 4px)"),
+    "Popover content must position floating at top: calc(100% + 4px)"
+  );
+  assert.ok(
+    compCss.includes("z-index: var(--pt-z-dropdown, 100);"),
+    "Popover content must declare z-index: var(--pt-z-dropdown, 100)"
+  );
+  assert.ok(
+    compCss.includes("background-color: var(--pt-surface);"),
+    "Popover content must use elevated background-color: var(--pt-surface)"
+  );
+  assert.ok(
+    compCss.includes("border: var(--pt-border);"),
+    "Popover content must use border: var(--pt-border)"
+  );
+  assert.ok(
+    compCss.includes("border-radius: var(--pt-border-radius);"),
+    "Popover content must use border-radius: var(--pt-border-radius)"
+  );
+  assert.ok(
+    compCss.includes("box-shadow: var(--pt-box-shadow);"),
+    "Popover content must use box-shadow: var(--pt-box-shadow)"
+  );
+
+  // 3. Mobile viewport safety clamping
+  assert.ok(
+    compCss.includes("max-width: min(20rem, 90vw);"),
+    "Popover content must enforce mobile viewport safety via max-width: min(20rem, 90vw)"
+  );
+
+  // 4. Alignment modifiers: .pt-popover--start and .pt-popover--end
+  assert.ok(
+    compCss.includes(".pt-popover--start") && compCss.includes(".pt-popover--end"),
+    "src/components.css must support .pt-popover--start and .pt-popover--end alignment modifiers"
+  );
+  assert.ok(
+    compCss.includes("inset-inline-start: 0;"),
+    "Alignment start modifier must anchor inset-inline-start: 0"
+  );
+  assert.ok(
+    compCss.includes("inset-inline-end: 0;"),
+    "Alignment end modifier must anchor inset-inline-end: 0"
+  );
+
+  // 5. Multi-bundle compilation parity
+  for (const [name, css] of [
+    ["fullCss", fullCss],
+    ["fullMin", fullMin],
+    ["layerCss", layerCss],
+    ["layerMin", layerMin],
+  ]) {
+    assert.ok(
+      css.includes("pt-popover--start"),
+      `${name} must compile .pt-popover--start`
+    );
+    assert.ok(
+      css.includes("pt-popover--end"),
+      `${name} must compile .pt-popover--end`
+    );
+    assert.ok(
+      css.includes("pt-dropdown"),
+      `${name} must compile .pt-dropdown`
+    );
+  }
+
+  // 6. Two-Tier Isolation: Core excludes extended component classes
+  assert.ok(
+    !coreCss.includes(".pt-popover"),
+    "dist/picotol.core.css must strictly exclude .pt-popover"
+  );
+  assert.ok(
+    !coreCss.includes(".pt-dropdown"),
+    "dist/picotol.core.css must strictly exclude .pt-dropdown"
+  );
+  assert.ok(
+    !coreMin.includes("pt-popover"),
+    "dist/picotol.core.min.css must strictly exclude .pt-popover"
+  );
+  assert.ok(
+    !coreMin.includes("pt-dropdown"),
+    "dist/picotol.core.min.css must strictly exclude .pt-dropdown"
+  );
+
+  // 7. Cross-Surface Parity: Demo & README
+  assert.ok(
+    demoHtml.includes("pt-popover--start"),
+    "dist/demo/index.html must showcase .pt-popover--start"
+  );
+  assert.ok(
+    demoHtml.includes("pt-popover--end"),
+    "dist/demo/index.html must showcase .pt-popover--end"
+  );
+  assert.ok(
+    readme.includes(".pt-popover--start") || readme.includes("pt-popover--start"),
+    "README.md must document .pt-popover--start"
+  );
+  assert.ok(
+    readme.includes(".pt-popover--end") || readme.includes("pt-popover--end"),
+    "README.md must document .pt-popover--end"
+  );
+  assert.ok(
+    readme.includes(".pt-dropdown") || readme.includes("pt-dropdown"),
+    "README.md must document .pt-dropdown"
+  );
+});

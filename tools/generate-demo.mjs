@@ -991,18 +991,18 @@ ${rowsHtml}
             <p>Self-contained disclosure card with integrated surface styling, elevated header transition, and flush content padding.</p>
           </details>
           <div class="grid" style="margin-top: 1rem;">
-            <details class="pt-popover">
+            <details class="pt-popover pt-popover--start">
               <summary role="button">Action Popover (Start)</summary>
-              <div class="pt-popover-menu">
+              <div class="pt-popover-content pt-popover-menu">
                 <a href="#components">View Telemetry</a>
                 <a href="#components">Download SRI Hash</a>
                 <hr>
                 <button type="button" class="pt-menu-item">Trigger Sync</button>
               </div>
             </details>
-            <details class="pt-popover" role="menu">
+            <details class="pt-popover pt-popover--end" role="menu">
               <summary role="button" class="secondary">Options (End)</summary>
-              <div class="pt-popover-menu end">
+              <div class="pt-popover-content pt-popover-menu end">
                 <a href="#components">Export Config</a>
                 <a href="#components">Verify Contrast</a>
               </div>

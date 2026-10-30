@@ -48,6 +48,7 @@
     --pt-cyan: #6ce;
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
+    --pt-z-dropdown: 100;
     --pt-status-ok-fg: light-dark(#283, #4a9);
     --pt-status-ok-border: var(--pt-status-ok-fg);
     --pt-status-ok-bg: color-mix(in srgb, var(--pt-status-ok-border) 8%, transparent);
