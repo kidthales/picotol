@@ -2797,7 +2797,7 @@ test("Automated Bundle Size, Compression Budgets, CI Gate Parity & README Synchr
   const ciLocalPs1 = fs.readFileSync(path.join(ROOT, "scripts/ci-local.ps1"), "utf8");
   assert.ok(
     ciLocalPs1.includes("$MaxGate = 4") &&
-      ciLocalPs1.includes("Gate 3: Composite Test Suite & Packaging Verification") &&
+      ciLocalPs1.includes("Gate 4: Composite Test Suite & Packaging Verification") &&
       ciLocalPs1.includes("& npm test"),
     "scripts/ci-local.ps1 must execute the composite npm test suite (which runs check:budgets)"
   );

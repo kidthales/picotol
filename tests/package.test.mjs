@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { packageAssets } from "../tools/package-assets.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -145,6 +146,9 @@ test("package.json is configured for public npm release", () => {
 
 test("tools/package-assets.mjs produces compliant PKZip offline bundle containing all 11 required assets", () => {
   const zipPath = path.join(ROOT, "dist", "assets", `picotol-v${pkg.version}.zip`);
+  if (!fs.existsSync(zipPath)) {
+    packageAssets();
+  }
   assert.ok(fs.existsSync(zipPath), `Asset bundle ${zipPath} must exist`);
 
   const stat = fs.statSync(zipPath);
