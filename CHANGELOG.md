@@ -5,6 +5,19 @@ All notable changes to `@kidthales/picotol` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-10-29
+
+Fifth public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.4.1](docs/RELEASE_NOTES_V0_4_1.md).
+
+### Added
+- Automated bundle size and compression budget auditor (`tools/check-budgets.mjs` / `npm run check:budgets`) enforcing raw, minified, gzip (level 9), and brotli (quality 11) byte ceilings across all 6 CSS distribution bundles (#167).
+- Automated `README.md` budget synchronization checks and `$GITHUB_STEP_SUMMARY` Markdown table reporting in CI (#167).
+- Gate 5 (`npm run check:budgets`) in `scripts/ci-local.ps1` and `.github/workflows/ci.yml` for 5-gate local and remote CI parity (#167).
+- Standalone offline bundle packaging producing `dist/assets/picotol-v0.4.1.zip`.
+
+### Changed
+- Updated `README.md` bundle size badge (`<= 38 KB min | <= 9 KB gzip`), Two-Tier Bundle Architecture size ceilings, and v0.4.1 release vendoring/CDN documentation (#167, #169).
+
 ## [0.4.0] - 2026-10-29
 
 Fourth public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.4.0](docs/RELEASE_NOTES_V0_4_0.md).

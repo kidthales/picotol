@@ -372,10 +372,29 @@ test("v0.4.0 pre-release artifacts and documentation adhere to open-source relea
   const changelog = fs.readFileSync(changelogPath, "utf8");
   assert.ok(changelog.includes("## [0.4.0] - 2026-10-29"), "CHANGELOG.md must document [0.4.0] - 2026-10-29");
   assert.ok(changelog.includes("docs/RELEASE_NOTES_V0_4_0.md"), "CHANGELOG.md must reference RELEASE_NOTES_V0_4_0.md");
+});
 
-  // 3. package.json and CITATION.cff align on version 0.4.0
-  assert.equal(pkg.version, "0.4.0", "package.json version must be 0.4.0");
+test("v0.4.1 pre-release artifacts and documentation adhere to open-source release standards", () => {
+  // 1. Release notes exist and contain required sections
+  const releaseNotesPath = path.join(ROOT, "docs", "RELEASE_NOTES_V0_4_1.md");
+  assert.ok(fs.existsSync(releaseNotesPath), "docs/RELEASE_NOTES_V0_4_1.md must exist");
+  const releaseNotes = fs.readFileSync(releaseNotesPath, "utf8");
+  assert.ok(releaseNotes.includes("v0.4.1 (Pre-release)"), "Release notes must identify v0.4.1 Pre-release");
+  assert.ok(releaseNotes.includes("SemVer 2.0.0 Pre-release"), "Release notes must note SemVer 2.0.0 §4");
+  assert.ok(releaseNotes.includes("## Highlights"), "Release notes must have Highlights");
+  assert.ok(releaseNotes.includes("## Installation"), "Release notes must have Installation");
+  assert.ok(releaseNotes.includes("## Attribution & Acknowledgements"), "Release notes must have Attribution");
+
+  // 2. CHANGELOG.md contains current date and links to release notes
+  const changelogPath = path.join(ROOT, "CHANGELOG.md");
+  assert.ok(fs.existsSync(changelogPath), "CHANGELOG.md must exist");
+  const changelog = fs.readFileSync(changelogPath, "utf8");
+  assert.ok(changelog.includes("## [0.4.1] - 2026-10-29"), "CHANGELOG.md must document [0.4.1] - 2026-10-29");
+  assert.ok(changelog.includes("docs/RELEASE_NOTES_V0_4_1.md"), "CHANGELOG.md must reference RELEASE_NOTES_V0_4_1.md");
+
+  // 3. package.json and CITATION.cff align on version 0.4.1
+  assert.equal(pkg.version, "0.4.1", "package.json version must be 0.4.1");
   const cffPath = path.join(ROOT, "CITATION.cff");
   const cff = fs.readFileSync(cffPath, "utf8");
-  assert.ok(cff.includes("version: 0.4.0"), "CITATION.cff version must be 0.4.0");
+  assert.ok(cff.includes("version: 0.4.1"), "CITATION.cff version must be 0.4.1");
 });
