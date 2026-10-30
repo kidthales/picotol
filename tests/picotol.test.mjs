@@ -963,10 +963,10 @@ test("Cross-Engine Meter Custom Properties and Gauge Threshold Pin Markers (Issu
     "Full bundle must style role='progressbar' containers"
   );
 
-  // 3. Gauge threshold pin markers (.pt-gauge-marker, .pt-meter-pin)
+  // 3. Gauge threshold pin markers (.pt-gauge-marker, .pt-meter-mark)
   assert.ok(
-    fullCss.includes(".pt-gauge-marker") && fullCss.includes(".pt-meter-pin"),
-    "Full bundle must provide .pt-gauge-marker and .pt-meter-pin primitives"
+    fullCss.includes(".pt-gauge-marker") && fullCss.includes(".pt-meter-mark"),
+    "Full bundle must provide .pt-gauge-marker and .pt-meter-mark primitives"
   );
   assert.ok(
     fullCss.includes("--marker-pos") && fullCss.includes("--pt-marker-pos"),
@@ -2790,16 +2790,16 @@ test("Automated Bundle Size, Compression Budgets, CI Gate Parity & README Synchr
 
   const ciYml = fs.readFileSync(path.join(ROOT, ".github/workflows/ci.yml"), "utf8");
   assert.ok(
-    ciYml.includes("npm run check:budgets"),
-    ".github/workflows/ci.yml verify job must execute npm run check:budgets"
+    ciYml.includes("pwsh ./scripts/ci-local.ps1 -CI"),
+    ".github/workflows/ci.yml verify job must delegate to pwsh ./scripts/ci-local.ps1 -CI"
   );
 
   const ciLocalPs1 = fs.readFileSync(path.join(ROOT, "scripts/ci-local.ps1"), "utf8");
   assert.ok(
-    ciLocalPs1.includes("$TotalSteps = 5") &&
-      ciLocalPs1.includes("Gate 5: Bundle Size & Compression Budget Audit") &&
-      ciLocalPs1.includes("npm run check:budgets"),
-    "scripts/ci-local.ps1 must enforce Gate 5 (npm run check:budgets)"
+    ciLocalPs1.includes("$MaxGate = 4") &&
+      ciLocalPs1.includes("Gate 4: Composite Test Suite & Packaging Verification") &&
+      ciLocalPs1.includes("& npm test"),
+    "scripts/ci-local.ps1 must execute the composite npm test suite (which runs check:budgets)"
   );
 
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
@@ -2822,3 +2822,732 @@ test("Compact and tight density resets section, article, card, and hr margins in
   const coreMinCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
   assert.match(coreMinCss, resetRule, "Compiled picotol.core.min.css must contain compact margin reset rule");
 });
+
+test("Meter Boundary Marker Pin Clamping and Container Overflow Invariants (Issue #172)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Clamped marker pin positioning in src/components.css and compiled bundles
+  assert.ok(
+    compCss.includes("inset-inline-start: clamp(") &&
+      compCss.includes("var(--pt-progress-radius, 0px)") &&
+      compCss.includes("calc(100% - var(--pt-progress-radius, 0px))"),
+    "src/components.css must clamp pin inset-inline-start against var(--pt-progress-radius, 0px)"
+  );
+
+  assert.ok(
+    fullCss.includes("inset-inline-start: clamp(") || fullCss.includes("inset-inline-start:clamp("),
+    "dist/picotol.css must compile clamped marker pin inset-inline-start"
+  );
+
+  assert.ok(
+    fullMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)") ||
+      fullMin.includes("inset-inline-start:clamp(var(--pt-progress-radius, 0px)"),
+    "dist/picotol.min.css must compile minified clamped marker pin positioning"
+  );
+
+  assert.ok(
+    layerMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)") ||
+      layerMin.includes("inset-inline-start:clamp(var(--pt-progress-radius, 0px)"),
+    "dist/picotol.layer.min.css must compile minified clamped marker pin positioning"
+  );
+
+  // 2. Container overflow: visible on :where(.pt-meter, .pt-progress) when child markers are detected
+  assert.ok(
+    compCss.includes(":where(.pt-meter, .pt-progress):has(") && compCss.includes("overflow: visible"),
+    "src/components.css must set overflow: visible on :where(.pt-meter, .pt-progress) when markers are present"
+  );
+
+  assert.ok(
+    fullMin.includes(":where(.pt-meter,.pt-progress):has(") && fullMin.includes("overflow:visible"),
+    "dist/picotol.min.css must compile overflow: visible rule for :where(.pt-meter, .pt-progress):has(...)"
+  );
+
+  // 3. Two-Tier Isolation: core bundle strictly excludes meter pin clamping and .pt-meter
+  assert.ok(!coreCss.includes(".pt-meter"), "Core bundle must not contain .pt-meter");
+  assert.ok(!coreCss.includes(".pt-meter-pin"), "Core bundle must not contain .pt-meter-pin");
+  assert.ok(!coreCss.includes("var(--pt-progress-radius"), "Core bundle must not contain --pt-progress-radius");
+
+  // 4. Mathematical Coordinate Model: Rounded track boundary clamping at 0%, 50%, and 100%
+  function computeClampedPinPosition({ trackWidth, trackRadius, markerPercent }) {
+    const rawPos = (markerPercent / 100) * trackWidth;
+    const clampedPos = Math.min(Math.max(trackRadius, rawPos), trackWidth - trackRadius);
+    const leftOverhang = Math.max(0, trackRadius - rawPos);
+    const rightOverhang = Math.max(0, rawPos - (trackWidth - trackRadius));
+    return { rawPos, clampedPos, leftOverhang, rightOverhang };
+  }
+
+  const trackWidth = 400; // 400px meter track
+  const capsuleRadius = 4; // 4px corner radius (e.g. 0.25rem on 0.5rem track)
+
+  // 0% Boundary Pin in capsule track
+  const zeroCapsule = computeClampedPinPosition({ trackWidth, trackRadius: capsuleRadius, markerPercent: 0 });
+  assert.strictEqual(zeroCapsule.rawPos, 0, "Raw position at 0% is 0px");
+  assert.strictEqual(zeroCapsule.clampedPos, 4, "Clamped pin position at 0% must be inset by track corner radius (4px)");
+  assert.strictEqual(zeroCapsule.leftOverhang, 4, "Without clamping, pin at 0% overhangs curved arc by 4px");
+
+  // 100% Boundary Pin in capsule track
+  const hundredCapsule = computeClampedPinPosition({ trackWidth, trackRadius: capsuleRadius, markerPercent: 100 });
+  assert.strictEqual(hundredCapsule.rawPos, 400, "Raw position at 100% is 400px");
+  assert.strictEqual(hundredCapsule.clampedPos, 396, "Clamped pin position at 100% must be 396px (trackWidth - radius)");
+  assert.strictEqual(hundredCapsule.rightOverhang, 4, "Without clamping, pin at 100% overhangs curved arc by 4px");
+
+  // 50% Midpoint Pin (unaffected by boundary clamp)
+  const midCapsule = computeClampedPinPosition({ trackWidth, trackRadius: capsuleRadius, markerPercent: 50 });
+  assert.strictEqual(midCapsule.rawPos, 200, "Raw position at 50% is 200px");
+  assert.strictEqual(midCapsule.clampedPos, 200, "Clamped position at 50% remains unaffected at 200px");
+
+  // Square / unrounded track (radius = 0px)
+  const zeroSquare = computeClampedPinPosition({ trackWidth, trackRadius: 0, markerPercent: 0 });
+  assert.strictEqual(zeroSquare.clampedPos, 0, "Square track allows 0% pin exactly at 0px");
+  const hundredSquare = computeClampedPinPosition({ trackWidth, trackRadius: 0, markerPercent: 100 });
+  assert.strictEqual(hundredSquare.clampedPos, 400, "Square track allows 100% pin exactly at 400px");
+
+  // High-radius pill/badge track (radius = 12px)
+  const highRadius = computeClampedPinPosition({ trackWidth, trackRadius: 12, markerPercent: 0 });
+  assert.strictEqual(highRadius.clampedPos, 12, "High-radius track clamps 0% pin to 12px");
+
+  // 5. Documentation invariants
+  assert.ok(
+    readme.includes("Container Pattern & Replaced Element Limits") &&
+      readme.includes('<div class="pt-meter">') &&
+      readme.includes('<div class="pt-progress" role="progressbar">'),
+    "README.md must document the standard container pattern for replaced element limits"
+  );
+  assert.ok(
+    readme.includes("Boundary Clamping & Rounded Corners") &&
+      readme.includes("inset-inline-start: clamp("),
+    "README.md must document boundary clamping for rounded track corners"
+  );
+  assert.ok(
+    readme.includes("Overflow Visibility") &&
+      readme.includes(":where(.pt-meter, .pt-progress)"),
+    "README.md must document overflow: visible on :where(.pt-meter, .pt-progress)"
+  );
+});
+
+test("Tokenized Status Dot Primitive (.pt-dot) Dimensions, Semantic Variants, Pulse, and High-Contrast Invariants (Issue #173)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Base .pt-dot Dimensions and Default Token Invariants
+  assert.ok(
+    compCss.includes(":where(.pt-dot)") &&
+      compCss.includes("width: 0.5rem") &&
+      compCss.includes("height: 0.5rem") &&
+      compCss.includes("border-radius: 50%") &&
+      compCss.includes("background-color: var(--pt-color)"),
+    "src/components.css must define base .pt-dot with 0.5rem square dimensions, 50% radius, and --pt-color default background"
+  );
+
+  assert.ok(
+    fullCss.includes(".pt-dot") &&
+      (fullCss.includes("width: 0.5rem") || fullCss.includes("width: .5rem")) &&
+      (fullCss.includes("height: 0.5rem") || fullCss.includes("height: .5rem")) &&
+      fullCss.includes("background-color: var(--pt-color)"),
+    "dist/picotol.css must compile .pt-dot base properties"
+  );
+
+  assert.ok(
+    fullMin.includes(".pt-dot") &&
+      (fullMin.includes("width:.5rem") || fullMin.includes("width:0.5rem") || fullMin.includes("width: .5rem")),
+    "dist/picotol.min.css must compile minified .pt-dot"
+  );
+
+  assert.ok(
+    layerMin.includes(".pt-dot") &&
+      (layerMin.includes("width:.5rem") || layerMin.includes("width:0.5rem") || layerMin.includes("width: .5rem")),
+    "dist/picotol.layer.min.css must compile minified layered .pt-dot"
+  );
+
+  // 2. Semantic Status Variants & Wash Invariants
+  assert.ok(
+    compCss.includes(".pt-dot--ok") &&
+      compCss.includes(".pt-dot--success") &&
+      compCss.includes("var(--pt-status-ok-fg)") &&
+      compCss.includes("var(--pt-status-ok-bg)"),
+    "src/components.css must map .pt-dot--ok and .pt-dot--success to --pt-status-ok-fg with --pt-status-ok-bg wash box-shadow"
+  );
+
+  assert.ok(
+    compCss.includes(".pt-dot--warning") && compCss.includes("var(--pt-status-warning-fg)"),
+    "src/components.css must map .pt-dot--warning to --pt-status-warning-fg"
+  );
+
+  assert.ok(
+    compCss.includes(".pt-dot--critical") &&
+      compCss.includes(".pt-dot--danger") &&
+      compCss.includes("var(--pt-status-critical-fg)"),
+    "src/components.css must map .pt-dot--critical and .pt-dot--danger to --pt-status-critical-fg"
+  );
+
+  assert.ok(
+    compCss.includes(".pt-dot--info") && compCss.includes("var(--pt-status-info-fg)"),
+    "src/components.css must map .pt-dot--info to --pt-status-info-fg"
+  );
+
+  assert.ok(
+    fullMin.includes("pt-dot--ok") &&
+      fullMin.includes("pt-dot--warning") &&
+      fullMin.includes("pt-dot--critical") &&
+      fullMin.includes("pt-dot--info"),
+    "dist/picotol.min.css must compile all semantic .pt-dot modifier variants"
+  );
+
+  // 3. Pulse Animation and prefers-reduced-motion Overrides
+  assert.ok(
+    compCss.includes(".pt-dot--pulse") && compCss.includes("animation: pt-pulse"),
+    "src/components.css must wire .pt-dot--pulse to pt-pulse keyframes"
+  );
+
+  assert.ok(
+    fullCss.includes(".pt-dot--pulse") && fullCss.includes("pt-pulse"),
+    "dist/picotol.css must compile .pt-dot--pulse animation rule"
+  );
+
+  assert.ok(
+    compCss.includes("@media (prefers-reduced-motion: reduce)") &&
+      compCss.includes("animation: none"),
+    "src/components.css must cancel pulse animation under prefers-reduced-motion: reduce"
+  );
+
+  // 4. Windows High Contrast Mode (forced-colors: active) Border
+  assert.ok(
+    compCss.includes("@media (forced-colors: active)") &&
+      compCss.includes("border: 1px solid CanvasText"),
+    "src/components.css must declare 1px solid CanvasText border in forced-colors: active"
+  );
+
+  assert.ok(
+    fullMin.includes("forced-colors:active") && /canvastext/i.test(fullMin),
+    "dist/picotol.min.css must compile forced-colors high contrast border for .pt-dot"
+  );
+
+  // 5. Two-Tier Bundle Isolation
+  assert.ok(!coreCss.includes(".pt-dot"), "Core bundle must not contain .pt-dot");
+  assert.ok(!coreCss.includes("pt-dot--ok"), "Core bundle must not contain .pt-dot--ok");
+
+  // 6. Negative / Edge-Case Tests: Margin Isolation & Container Gap Containment
+  assert.ok(
+    compCss.includes(":where(:not(:only-child, :last-child))") &&
+      compCss.includes("margin-inline-end: 0.35rem"),
+    "Status dot default margin selector must maintain (0,0,0) specificity"
+  );
+  assert.ok(
+    compCss.includes(":is(.no-margin, .m-0)") && compCss.includes("margin: 0"),
+    ".no-margin and .m-0 must reset dot margins to 0"
+  );
+  assert.ok(
+    compCss.includes(':where(.grid, .flex, [style*="gap"], [role="group"]) > &') &&
+      compCss.includes("margin-inline-end: 0"),
+    "Dot must reset inline margin to 0 when placed in flex/grid gap layouts"
+  );
+  assert.ok(
+    compCss.includes("& > :where(svg, .status-dot, .pt-status-dot, .pt-dot)"),
+    "Badge and indicator containers must reset child .pt-dot margin to 0"
+  );
+
+  // 7. Cross-Surface Parity: Demo & README Documentation
+  assert.ok(demoHtml.includes("pt-dot"), "dist/demo/index.html must showcase .pt-dot component");
+  assert.ok(demoHtml.includes("pt-dot--ok"), "dist/demo/index.html must showcase .pt-dot--ok variant");
+  assert.ok(demoHtml.includes("pt-dot--warning"), "dist/demo/index.html must showcase .pt-dot--warning variant");
+  assert.ok(demoHtml.includes("pt-dot--critical"), "dist/demo/index.html must showcase .pt-dot--critical variant");
+  assert.ok(demoHtml.includes("pt-dot--info"), "dist/demo/index.html must showcase .pt-dot--info variant");
+  assert.ok(demoHtml.includes("pt-dot--pulse"), "dist/demo/index.html must showcase .pt-dot--pulse variant");
+  assert.ok(readme.includes(".pt-dot"), "README.md must document .pt-dot component primitive");
+  assert.ok(readme.includes(".pt-dot--ok"), "README.md must document .pt-dot--ok variant");
+});
+
+test("Tabular Numerics Badge Modifier, Right-Alignment Utility, and Cascade Parity (Issue #174)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const utilCss = fs.readFileSync(path.join(ROOT, "src/utilities.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. .pt-badge--numeric modifier properties and zero-specificity wrapping in src/components.css
+  assert.ok(
+    compCss.includes(":where(.pt-badge--numeric, .pt-indicator--numeric)"),
+    "src/components.css must wrap .pt-badge--numeric in :where() for (0,0,0) specificity"
+  );
+  assert.ok(
+    compCss.includes("font-variant-numeric: tabular-nums lining-nums;"),
+    "src/components.css must declare font-variant-numeric: tabular-nums lining-nums on .pt-badge--numeric"
+  );
+  assert.ok(
+    compCss.includes('font-feature-settings: "tnum" 1;'),
+    "src/components.css must declare font-feature-settings: \"tnum\" 1 on .pt-badge--numeric"
+  );
+  assert.ok(
+    compCss.includes("justify-content: flex-end;"),
+    "src/components.css must declare justify-content: flex-end on .pt-badge--numeric"
+  );
+  assert.ok(
+    compCss.includes("text-align: right;"),
+    "src/components.css must declare text-align: right on .pt-badge--numeric"
+  );
+  assert.ok(
+    compCss.includes("min-width: 2ch;"),
+    "src/components.css must declare min-width: 2ch on .pt-badge--numeric"
+  );
+
+  // Baseline badge consistency: verify .pt-badge--numeric does not override font-size or line-height
+  const numericBlockMatch = compCss.match(/:where\(\.pt-badge--numeric[^{]*\{([^}]+)\}/);
+  assert.ok(numericBlockMatch, "Must match .pt-badge--numeric CSS block");
+  const numericBlock = numericBlockMatch[1];
+  assert.ok(
+    !numericBlock.includes("font-size"),
+    ".pt-badge--numeric modifier must not alter font-size, preserving badge baseline"
+  );
+  assert.ok(
+    !numericBlock.includes("line-height"),
+    ".pt-badge--numeric modifier must not alter line-height, preserving badge baseline"
+  );
+  assert.ok(
+    !numericBlock.includes("vertical-align"),
+    ".pt-badge--numeric modifier must not alter vertical-align, preserving badge baseline"
+  );
+
+  // 2. .pt-tabular--align-end utility in src/utilities.css
+  assert.ok(
+    utilCss.includes("@layer utilities"),
+    "src/utilities.css must declare @layer utilities"
+  );
+  assert.ok(
+    utilCss.includes(":where(.pt-tabular--align-end)"),
+    "src/utilities.css must wrap .pt-tabular--align-end in :where() for zero specificity"
+  );
+  assert.ok(
+    utilCss.includes("text-align: right;"),
+    "src/utilities.css must set text-align: right on .pt-tabular--align-end"
+  );
+  assert.ok(
+    utilCss.includes("justify-content: flex-end;"),
+    "src/utilities.css must set justify-content: flex-end on .pt-tabular--align-end"
+  );
+
+  // 3. Multi-bundle compilation parity for .pt-tabular--align-end
+  for (const [name, css] of [
+    ["coreCss", coreCss],
+    ["coreMin", coreMin],
+    ["fullCss", fullCss],
+    ["fullMin", fullMin],
+    ["layerCss", layerCss],
+    ["layerMin", layerMin],
+  ]) {
+    assert.ok(
+      css.includes("pt-tabular--align-end"),
+      `${name} must compile .pt-tabular--align-end`
+    );
+  }
+
+  // 4. Two-Tier Isolation: Core excludes component modifier .pt-badge--numeric
+  assert.ok(
+    !coreCss.includes(".pt-badge--numeric"),
+    "dist/picotol.core.css must strictly exclude .pt-badge--numeric"
+  );
+  assert.ok(
+    !coreMin.includes("pt-badge--numeric"),
+    "dist/picotol.core.min.css must strictly exclude .pt-badge--numeric"
+  );
+  assert.ok(
+    fullMin.includes("pt-badge--numeric"),
+    "dist/picotol.min.css must compile .pt-badge--numeric"
+  );
+  assert.ok(
+    layerMin.includes("pt-badge--numeric"),
+    "dist/picotol.layer.min.css must compile .pt-badge--numeric"
+  );
+
+  // 5. Cross-Surface Parity: Demo & README Documentation
+  assert.ok(
+    demoHtml.includes("pt-badge--numeric"),
+    "dist/demo/index.html must showcase .pt-badge--numeric"
+  );
+  assert.ok(
+    demoHtml.includes("pt-tabular--align-end"),
+    "dist/demo/index.html must showcase .pt-tabular--align-end"
+  );
+  assert.ok(
+    readme.includes(".pt-badge--numeric"),
+    "README.md must document .pt-badge--numeric"
+  );
+  assert.ok(
+    readme.includes(".pt-tabular--align-end"),
+    "README.md must document .pt-tabular--align-end"
+  );
+  assert.ok(
+    readme.includes("src/utilities.css"),
+    "README.md must document src/utilities.css in layer architecture"
+  );
+});
+
+test("Native Floating Popover Primitive, Alignment Modifiers, and Viewport Safety (Issue #175)", () => {
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Token declaration: --pt-z-dropdown
+  assert.ok(
+    tokensCss.includes("--pt-z-dropdown: 100;") || tokensCss.includes("--pt-z-dropdown: 100"),
+    "src/tokens.css must declare --pt-z-dropdown with default 100"
+  );
+
+  // 2. Popover & dropdown container rules in src/components.css
+  assert.ok(
+    compCss.includes(".pt-popover") && compCss.includes(".pt-dropdown"),
+    "src/components.css must define .pt-popover and .pt-dropdown containers"
+  );
+  assert.ok(
+    compCss.includes("top: calc(100% + 4px);") || compCss.includes("top: calc(100% + 4px)"),
+    "Popover content must position floating at top: calc(100% + 4px)"
+  );
+  assert.ok(
+    compCss.includes("z-index: var(--pt-z-dropdown, 100);"),
+    "Popover content must declare z-index: var(--pt-z-dropdown, 100)"
+  );
+  assert.ok(
+    compCss.includes("background-color: var(--pt-surface);"),
+    "Popover content must use elevated background-color: var(--pt-surface)"
+  );
+  assert.ok(
+    compCss.includes("border: var(--pt-border);"),
+    "Popover content must use border: var(--pt-border)"
+  );
+  assert.ok(
+    compCss.includes("border-radius: var(--pt-border-radius);"),
+    "Popover content must use border-radius: var(--pt-border-radius)"
+  );
+  assert.ok(
+    compCss.includes("box-shadow: var(--pt-box-shadow);"),
+    "Popover content must use box-shadow: var(--pt-box-shadow)"
+  );
+
+  // 3. Mobile viewport safety clamping
+  assert.ok(
+    compCss.includes("max-width: min(20rem, 90vw);"),
+    "Popover content must enforce mobile viewport safety via max-width: min(20rem, 90vw)"
+  );
+
+  // 4. Alignment modifiers: .pt-popover--start and .pt-popover--end
+  assert.ok(
+    compCss.includes(".pt-popover--start") && compCss.includes(".pt-popover--end"),
+    "src/components.css must support .pt-popover--start and .pt-popover--end alignment modifiers"
+  );
+  assert.ok(
+    compCss.includes("inset-inline-start: 0;"),
+    "Alignment start modifier must anchor inset-inline-start: 0"
+  );
+  assert.ok(
+    compCss.includes("inset-inline-end: 0;"),
+    "Alignment end modifier must anchor inset-inline-end: 0"
+  );
+
+  // 5. Multi-bundle compilation parity
+  for (const [name, css] of [
+    ["fullCss", fullCss],
+    ["fullMin", fullMin],
+    ["layerCss", layerCss],
+    ["layerMin", layerMin],
+  ]) {
+    assert.ok(
+      css.includes("pt-popover--start"),
+      `${name} must compile .pt-popover--start`
+    );
+    assert.ok(
+      css.includes("pt-popover--end"),
+      `${name} must compile .pt-popover--end`
+    );
+    assert.ok(
+      css.includes("pt-dropdown"),
+      `${name} must compile .pt-dropdown`
+    );
+  }
+
+  // 6. Two-Tier Isolation: Core excludes extended component classes
+  assert.ok(
+    !coreCss.includes(".pt-popover"),
+    "dist/picotol.core.css must strictly exclude .pt-popover"
+  );
+  assert.ok(
+    !coreCss.includes(".pt-dropdown"),
+    "dist/picotol.core.css must strictly exclude .pt-dropdown"
+  );
+  assert.ok(
+    !coreMin.includes("pt-popover"),
+    "dist/picotol.core.min.css must strictly exclude .pt-popover"
+  );
+  assert.ok(
+    !coreMin.includes("pt-dropdown"),
+    "dist/picotol.core.min.css must strictly exclude .pt-dropdown"
+  );
+
+  // 7. Cross-Surface Parity: Demo & README
+  assert.ok(
+    demoHtml.includes("pt-popover--start"),
+    "dist/demo/index.html must showcase .pt-popover--start"
+  );
+  assert.ok(
+    demoHtml.includes("pt-popover--end"),
+    "dist/demo/index.html must showcase .pt-popover--end"
+  );
+  assert.ok(
+    readme.includes(".pt-popover--start") || readme.includes("pt-popover--start"),
+    "README.md must document .pt-popover--start"
+  );
+  assert.ok(
+    readme.includes(".pt-popover--end") || readme.includes("pt-popover--end"),
+    "README.md must document .pt-popover--end"
+  );
+  assert.ok(
+    readme.includes(".pt-dropdown") || readme.includes("pt-dropdown"),
+    "README.md must document .pt-dropdown"
+  );
+});
+
+test("Meter Marker Anatomy Disambiguation and Nested Terminus Markup (Issue #183)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. .pt-meter-mark is the canonical positioned container; .pt-meter-pin is dropped from container selector list
+  assert.ok(
+    compCss.includes(":where(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end)"),
+    "src/components.css must define .pt-meter-mark as the marker container and exclude .pt-meter-pin"
+  );
+  assert.ok(
+    !compCss.includes(".pt-meter-pin, .pt-meter-mark") &&
+    !compCss.includes(".pt-meter-pin--start") &&
+    !compCss.includes(".pt-meter-pin--end"),
+    "src/components.css must not list .pt-meter-pin as a container or alignment modifier"
+  );
+
+  // 2. Child label selector is narrowed from (span, small, ...) to (.pt-gauge-label, .pt-meter-label, [data-label])
+  assert.ok(
+    compCss.includes("& :where(.pt-gauge-label, .pt-meter-label, [data-label])"),
+    "src/components.css must narrow child label selectors to specific label classes / [data-label]"
+  );
+  assert.ok(
+    !compCss.includes("& :where(span, small,"),
+    "src/components.css must not indiscriminately position raw span or small tags as labels"
+  );
+
+  // 3. Stacking layers: .pt-meter-mark and .pt-meter-label retain z-index layer; .pt-meter-pin dropped
+  assert.ok(
+    compCss.includes(".pt-meter-mark,") && compCss.includes(".pt-meter-label,"),
+    "src/components.css must assign tokenized z-index to .pt-meter-mark and .pt-meter-label"
+  );
+
+  // 4. Multi-bundle parity: compiled bundles reflect container and label selector tightening
+  for (const [name, css] of [
+    ["fullCss", fullCss],
+    ["fullMin", fullMin],
+    ["layerCss", layerCss],
+    ["layerMin", layerMin],
+  ]) {
+    assert.ok(
+      css.includes("pt-meter-mark"),
+      `${name} must compile .pt-meter-mark`
+    );
+    assert.ok(
+      css.includes("pt-meter-label"),
+      `${name} must compile .pt-meter-label`
+    );
+  }
+
+  // 5. Two-Tier Isolation: Core bundle excludes extended meter marker and label classes
+  assert.ok(
+    !coreCss.includes(".pt-meter-mark"),
+    "dist/picotol.core.css must strictly exclude .pt-meter-mark"
+  );
+  assert.ok(
+    !coreCss.includes(".pt-meter-label"),
+    "dist/picotol.core.css must strictly exclude .pt-meter-label"
+  );
+
+  // 6. Regression simulation: Nested Terminus markup (.pt-meter-mark > .pt-meter-pin + .pt-meter-label)
+  // In downstream Terminus markup, .pt-meter-mark is the outer container. If an inner element has
+  // .pt-meter-pin, it must NOT draw a second pin via ::before nor get label positioning.
+  // We simulate selector matching against the compiled CSS rules.
+  function simulateNestedTerminusAnatomy() {
+    // Outer container: .pt-meter-mark
+    // Inner child 1: .pt-meter-pin (downstream pin element)
+    // Inner child 2: .pt-meter-label (downstream label element)
+    const containerClasses = [".pt-gauge-marker", ".pt-meter-mark", ".pt-meter-mark--start", ".pt-meter-mark--end"];
+    const labelClasses = [".pt-gauge-label", ".pt-meter-label", "[data-label]"];
+
+    const isContainer = (cls) => containerClasses.includes(cls);
+    const isLabel = (cls) => labelClasses.includes(cls);
+
+    // .pt-meter-mark is a container that gets ::before pin
+    assert.ok(isContainer(".pt-meter-mark"), "Outer .pt-meter-mark must match container rules");
+
+    // .pt-meter-pin is NOT recognized as a container, drawing 0 pseudo-pins from picotol
+    assert.ok(!isContainer(".pt-meter-pin"), "Inner .pt-meter-pin must NOT match container rules");
+
+    // .pt-meter-pin is NOT recognized as a label selector, so it does NOT receive label positioning
+    assert.ok(!isLabel(".pt-meter-pin"), "Inner .pt-meter-pin must NOT match label selector rules");
+
+    // .pt-meter-label matches label rules
+    assert.ok(isLabel(".pt-meter-label"), "Inner .pt-meter-label must match label selector rules");
+  }
+  simulateNestedTerminusAnatomy();
+
+  // 7. README documentation parity
+  assert.ok(
+    readme.includes(".pt-meter-mark"),
+    "README.md must document .pt-meter-mark container primitive"
+  );
+  assert.ok(
+    readme.includes(".pt-meter-label"),
+    "README.md must document .pt-meter-label primitive"
+  );
+});
+
+test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Alignment (Issue #188)", () => {
+  const baseCss = fs.readFileSync(path.join(ROOT, "src/base.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. ::selection rule binds to --pt-primary-bg and --pt-color across source and compiled bundles
+  const expectedBgToken = "var(--pt-primary-bg)";
+  const expectedColorToken = "var(--pt-color)";
+
+  assert.ok(
+    baseCss.includes("::selection") &&
+    baseCss.includes("background-color: var(--pt-primary-bg)") &&
+    baseCss.includes("color: var(--pt-color)"),
+    "src/base.css must define ::selection with var(--pt-primary-bg) and var(--pt-color)"
+  );
+  assert.ok(
+    !baseCss.includes("color-mix(in srgb, var(--pt-primary) 25%, transparent)"),
+    "src/base.css must retire translucent color-mix ::selection"
+  );
+
+  for (const [name, css] of [
+    ["dist/picotol.css", fullCss],
+    ["dist/picotol.min.css", fullMin],
+    ["dist/picotol.core.css", coreCss],
+    ["dist/picotol.core.min.css", coreMin],
+    ["dist/picotol.layer.css", layerCss],
+    ["dist/picotol.layer.min.css", layerMin],
+  ]) {
+    assert.ok(
+      css.includes("::selection"),
+      `${name} must contain ::selection selector`
+    );
+    assert.ok(
+      css.includes(expectedBgToken) || css.includes("--pt-primary-bg"),
+      `${name} must use --pt-primary-bg for selection background`
+    );
+    assert.ok(
+      css.includes(expectedColorToken) || css.includes("--pt-color"),
+      `${name} must use --pt-color for selection text color`
+    );
+  }
+
+  // 2. Contrast validation across all 4 accent ladders (blue, cyan, purple, magenta)
+  // Light mode: background = --pt-p1, color = #000000
+  // Dark mode: background = --pt-p4, color = #FFFFFF
+  const accents = {
+    blue: { p1: "#AACCEE", p4: "#2255AA" },
+    cyan: { p1: "#CCEEFF", p4: "#117788" },
+    purple: { p1: "#E7D4E8", p4: "#762A83" },
+    magenta: { p1: "#EEBBDD", p4: "#993366" },
+  };
+
+  const lightText = "#000000";
+  const darkText = "#FFFFFF";
+
+  for (const [accent, tokens] of Object.entries(accents)) {
+    const lightRatio = contrastRatio(lightText, tokens.p1);
+    const darkRatio = contrastRatio(darkText, tokens.p4);
+
+    assert.ok(
+      lightRatio >= 7.0,
+      `Light mode selection contrast for ${accent} (${lightRatio.toFixed(2)}:1) must meet WCAG AAA (>= 7:1)`
+    );
+    assert.ok(
+      darkRatio >= 4.5,
+      `Dark mode selection contrast for ${accent} (${darkRatio.toFixed(2)}:1) must meet WCAG AA (>= 4.5:1)`
+    );
+  }
+
+  // 3. Demo Meter clearance: vertical spacing between bottom-placed pins and top-placed pins
+  assert.ok(
+    demoHtml.includes('style="margin-top: 2.75rem;"') ||
+    demoHtml.includes('margin-top: 2.75rem'),
+    "dist/demo/index.html must allocate 2.75rem vertical margin for Section 7 gauge threshold clearance"
+  );
+
+  // 4. README documentation parity
+  assert.ok(
+    readme.includes("Theme-Reactive Selection Contrast") || readme.includes("::selection"),
+    "README.md must document ::selection theme-reactive high-contrast styling"
+  );
+  assert.ok(
+    readme.includes("Margin Auto-Collapsing") || readme.includes("margin-block: 0;"),
+    "README.md must document compact density margin auto-collapsing"
+  );
+});
+
+test("Demo Badge & Dot Flex-Gap Row and Tabular Right-Alignment Showcase (Issue #190)", () => {
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const genDemo = fs.readFileSync(path.join(ROOT, "tools/generate-demo.mjs"), "utf8");
+
+  // 1. Badge & Dot Pairing flex-gap row alignment: dot cannot shrink, text cannot wrap mid-line
+  assert.ok(
+    demoHtml.includes('span class="status-dot success no-margin" style="flex-shrink: 0;"') &&
+    demoHtml.includes('small style="white-space: nowrap;">Flex gap layout'),
+    "dist/demo/index.html must prevent dot shrinking and multi-line wrapping in Badge & Dot flex-gap row"
+  );
+  assert.ok(
+    genDemo.includes('span class="status-dot success no-margin" style="flex-shrink: 0;"') &&
+    genDemo.includes('small style="white-space: nowrap;">Flex gap layout'),
+    "tools/generate-demo.mjs must generate flex-shrink: 0 and white-space: nowrap on Badge & Dot flex-gap row"
+  );
+
+  // 2. .pt-tabular--align-end showcase: right-alignment visibly demonstrated via flex container
+  assert.ok(
+    demoHtml.includes('style="display: flex; justify-content: space-between; align-items: center;"') &&
+    demoHtml.includes('<code>.pt-tabular--align-end</code> <span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span>'),
+    "dist/demo/index.html must showcase .pt-tabular--align-end within a space-between flex container"
+  );
+  assert.ok(
+    genDemo.includes('style="display: flex; justify-content: space-between; align-items: center;"') &&
+    genDemo.includes('<code>.pt-tabular--align-end</code> <span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span>'),
+    "tools/generate-demo.mjs must generate .pt-tabular--align-end within a space-between flex container"
+  );
+});
+

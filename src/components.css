@@ -93,8 +93,8 @@
     }
   }
 
-  /* 3. Dropdown & Native Popover (details.dropdown, .pt-popover, details[role="menu"]) */
-  :where(details.dropdown, .pt-popover, details[role="menu"]) {
+  /* 3. Dropdown & Native Popover (details.dropdown, .pt-popover, .pt-dropdown, details[role="menu"]) */
+  :where(details.dropdown, .pt-popover, .pt-dropdown, details[role="menu"]) {
     position: relative;
     border: 0;
     padding: 0;
@@ -122,17 +122,25 @@
     }
   }
 
-  :where(details.dropdown > ul, .pt-popover-menu, .pt-popover > :not(summary)) {
+  :where(
+    details.dropdown > ul,
+    .pt-popover-menu,
+    .pt-popover-content,
+    .pt-popover > :not(summary),
+    .pt-dropdown > :not(summary)
+  ) {
     position: absolute;
-    top: calc(100% + 0.25rem);
+    top: calc(100% + 4px);
     inset-inline-start: 0;
-    z-index: 99;
+    z-index: var(--pt-z-dropdown, 100);
     min-width: 100%;
+    max-width: min(20rem, 90vw);
+    box-sizing: border-box;
     margin: 0;
     padding: 0.25rem 0;
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
-    background-color: var(--pt-card-bg);
+    background-color: var(--pt-surface);
     box-shadow: var(--pt-box-shadow);
     list-style: none;
 
@@ -163,6 +171,25 @@
       border: 0;
       border-top: var(--pt-border);
     }
+  }
+
+  /* Alignment modifiers for .pt-popover & .pt-dropdown containers */
+  :where(
+    .pt-popover--start > :not(summary),
+    .pt-dropdown--start > :not(summary),
+    :where(.pt-popover, .pt-dropdown) > :is(.pt-popover--start, .pt-dropdown--start)
+  ) {
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+  }
+
+  :where(
+    .pt-popover--end > :not(summary),
+    .pt-dropdown--end > :not(summary),
+    :where(.pt-popover, .pt-dropdown) > :is(.pt-popover--end, .pt-dropdown--end)
+  ) {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
   }
 
   /* Accordion Cards & Card Disclosures */
@@ -448,7 +475,11 @@
     }
   }
 
-  /* 6. Progress (<progress>, .pt-progress) & Gauge Meter Pins */
+  /* 6. Progress (<progress>, .pt-progress) & Gauge Meter Pins
+   * Replaced element limit: Native <progress> elements cannot render child DOM elements.
+   * For rich meters with pins and labels, use standard container pattern:
+   * <div class="pt-meter"> wrapping <div class="pt-progress" role="progressbar">.
+   */
   :where(progress, .pt-progress, [role="progressbar"], .pt-meter) {
     --pt-progress-height: 0.5rem;
     --pt-progress-radius: var(--pt-border-radius);
@@ -512,7 +543,7 @@
     background-color: var(--pt-progress-bg);
     vertical-align: middle;
 
-    &:has(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
       overflow: visible;
     }
   }
@@ -536,6 +567,14 @@
     & > :where(progress, .pt-progress) {
       margin-bottom: 0;
     }
+
+    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+      overflow: visible;
+    }
+  }
+
+  :where(.pt-meter, .pt-progress):has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+    overflow: visible;
   }
 
   :where(.pt-meter-range) {
@@ -556,13 +595,17 @@
     &.info { --pt-range-color: var(--pt-status-info-bg); }
   }
 
-  :where(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end, .pt-meter-pin--start, .pt-meter-pin--end) {
+  :where(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end) {
     --pt-marker-pos: 0%;
     --pt-marker-color: var(--pt-color);
     position: absolute;
     top: 0;
     height: var(--pt-progress-height);
-    inset-inline-start: var(--marker-pos, var(--pt-marker-pos));
+    inset-inline-start: clamp(
+      var(--pt-progress-radius, 0px),
+      var(--marker-pos, var(--pt-marker-pos, 0%)),
+      calc(100% - var(--pt-progress-radius, 0px))
+    );
     display: inline-flex;
     flex-direction: column;
     align-items: center;
@@ -585,7 +628,7 @@
       transform: translateX(-50%);
     }
 
-    & :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]) {
+    & :where(.pt-gauge-label, .pt-meter-label, [data-label]) {
       position: absolute;
       bottom: calc(100% + 4px);
       left: 0;
@@ -598,18 +641,18 @@
       top: calc(100% + 4px);
     }
 
-    &:is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start, .pt-meter-pin--start) :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]),
-    & > :is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start, .pt-meter-pin--start, .pt-meter-label--start, .pt-gauge-label--start) {
+    &:is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start) :where(.pt-gauge-label, .pt-meter-label, [data-label]),
+    & > :is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start, .pt-meter-label--start, .pt-gauge-label--start) {
       transform: translateX(0);
     }
 
-    &:is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end, .pt-meter-pin--end) :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]),
-    & > :is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end, .pt-meter-pin--end, .pt-meter-label--end, .pt-gauge-label--end) {
+    &:is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end) :where(.pt-gauge-label, .pt-meter-label, [data-label]),
+    & > :is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end, .pt-meter-label--end, .pt-gauge-label--end) {
       transform: translateX(-100%);
     }
 
-    &:is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center, .pt-meter-pin--center) :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]),
-    & > :is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center, .pt-meter-pin--center, .pt-meter-label--center, .pt-gauge-label--center) {
+    &:is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center) :where(.pt-gauge-label, .pt-meter-label, [data-label]),
+    & > :is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center, .pt-meter-label--center, .pt-gauge-label--center) {
       transform: translateX(-50%);
     }
 
@@ -633,13 +676,10 @@
   .pt-meter-mark,
   .pt-meter-label,
   .pt-gauge-marker,
-  .pt-meter-pin,
   .pt-meter-mark--start,
   .pt-meter-mark--end,
   .pt-gauge-marker--start,
-  .pt-gauge-marker--end,
-  .pt-meter-pin--start,
-  .pt-meter-pin--end {
+  .pt-gauge-marker--end {
     z-index: var(--pt-meter-mark-z, 3);
   }
 
@@ -685,7 +725,7 @@
     :where(.pt-progress-fill) {
       background-color: Highlight;
     }
-    :where(.pt-gauge-marker, .pt-meter-pin)::before {
+    :where(.pt-gauge-marker, .pt-meter-mark)::before {
       background-color: CanvasText;
     }
   }
@@ -809,14 +849,18 @@
       color: var(--pt-valid);
     }
 
-    & > :where(svg, .status-dot, .pt-status-dot) {
+    & > :where(svg, .status-dot, .pt-status-dot, .pt-dot) {
       margin: 0;
     }
   }
 
   /* 11a. Tabular Numbers Modifier for Badges & Indicators */
   :where(.pt-badge--numeric, .pt-indicator--numeric) {
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "tnum" 1;
+    justify-content: flex-end;
+    text-align: right;
+    min-width: 2ch;
   }
 
   /* Status Triad Bindings for .pt-badge, .pt-indicator, and .pt-chip */
@@ -849,7 +893,56 @@
     border-color: var(--pt-status-info-border);
   }
 
-  /* 11b. Status Indicator Dots */
+  /* 11b. Status Indicator Dots (.pt-dot, .status-dot, .pt-status-dot) */
+  :where(.pt-dot) {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    vertical-align: middle;
+    flex-shrink: 0;
+    background-color: var(--pt-color);
+
+    &:where(:not(:only-child, :last-child)) {
+      margin-inline-end: 0.35rem;
+    }
+
+    :where(.grid, .flex, [style*="gap"], [role="group"]) > & {
+      margin-inline-end: 0;
+    }
+
+    &:is(.no-margin, .m-0) {
+      margin: 0;
+    }
+
+    &:is(.pt-dot--ok, .pt-dot--success) {
+      background-color: var(--pt-status-ok-fg);
+      box-shadow: 0 0 0 2px var(--pt-status-ok-bg);
+    }
+    &:is(.pt-dot--warning) {
+      background-color: var(--pt-status-warning-fg);
+    }
+    &:is(.pt-dot--critical, .pt-dot--danger) {
+      background-color: var(--pt-status-critical-fg);
+    }
+    &:is(.pt-dot--info) {
+      background-color: var(--pt-status-info-fg);
+    }
+    &:is(.pt-dot--pulse) {
+      animation: pt-pulse 1.5s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &:is(.pt-dot--pulse) {
+        animation: none;
+      }
+    }
+
+    @media (forced-colors: active) {
+      border: 1px solid CanvasText;
+    }
+  }
+
   :where(.status-dot, .pt-status-dot) {
     display: inline-block;
     width: 0.5rem;
@@ -934,7 +1027,7 @@
       transform: translateY(1px);
     }
 
-    & > :where(svg, .status-dot, .pt-status-dot) {
+    & > :where(svg, .status-dot, .pt-status-dot, .pt-dot) {
       margin: 0;
     }
   }

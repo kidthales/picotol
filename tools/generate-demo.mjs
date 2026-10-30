@@ -720,6 +720,18 @@ ${rowsHtml}
       <h3>Status Dots &amp; Narrow-Corridor Reflow</h3>
       <div class="grid">
         <article>
+          <header><strong>Tokenized Status Dots (<code>.pt-dot</code>)</strong></header>
+          <main>
+            <p><span class="pt-dot pt-dot--ok"></span><strong>Operational</strong> <code>.pt-dot.pt-dot--ok</code></p>
+            <p><span class="pt-dot pt-dot--warning"></span><strong>Warning</strong> <code>.pt-dot.pt-dot--warning</code></p>
+            <p><span class="pt-dot pt-dot--critical"></span><strong>Critical</strong> <code>.pt-dot.pt-dot--critical</code></p>
+            <p><span class="pt-dot pt-dot--info"></span><strong>Informational</strong> <code>.pt-dot.pt-dot--info</code></p>
+            <p><span class="pt-dot pt-dot--critical pt-dot--pulse"></span><strong>Pulsing Alert</strong> <code>.pt-dot--pulse</code></p>
+            <p><span class="pt-dot"></span><strong>Neutral Default</strong> <code>.pt-dot</code></p>
+          </main>
+          <footer><small>Tokenized 0.5rem primitive with wash halo and forced-colors border</small></footer>
+        </article>
+        <article>
           <header><strong>Paul Tol Status Dots (<code>.status-dot</code>)</strong></header>
           <main>
             <p><span class="status-dot success"></span><strong>Operational</strong> <code>.status-dot.success</code></p>
@@ -739,7 +751,7 @@ ${rowsHtml}
             <p><span class="badge invalid"><span class="status-dot danger"></span> Node Offline</span></p>
             <p><span class="badge primary"><span class="status-dot info"></span> Job Running</span></p>
             <p><span class="badge"><span class="status-dot idle" data-status="idle"></span> Service Idle</span></p>
-            <p style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;"><span class="status-dot success no-margin"></span><small>Flex gap layout (<code>.no-margin</code> / <code>.m-0</code>)</small></p>
+            <p style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;"><span class="status-dot success no-margin" style="flex-shrink: 0;"></span><small style="white-space: nowrap;">Flex gap layout (<code>.no-margin</code> / <code>.m-0</code>)</small></p>
           </main>
           <footer><small>Contextual inline spacing without margin compounding</small></footer>
         </article>
@@ -881,17 +893,17 @@ ${rowsHtml}
               <div class="pt-meter-range critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
               <div class="pt-progress" role="progressbar" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 78%;">
                 <div class="pt-progress-fill pt-meter-fill"></div>
-                <div class="pt-meter-pin pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
+                <div class="pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
               </div>
             </div>
             <div class="pt-meter" style="margin-top: 1.5rem;">
               <div class="pt-progress pt-progress-danger" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 92%;">
                 <div class="pt-progress-fill pt-meter-fill"></div>
-                <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><small>70% Warn</small></div>
-                <div class="pt-meter-pin pt-meter-mark critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
+                <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><span class="pt-gauge-label">70% Warn</span></div>
+                <div class="pt-meter-mark critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
               </div>
             </div>
-            <div class="pt-meter" style="margin-top: 1.5rem;">
+            <div class="pt-meter" style="margin-top: 2.75rem;">
               <div class="pt-progress" role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 65%;">
                 <div class="pt-progress-fill pt-meter-fill"></div>
                 <div class="pt-meter-mark pt-meter-mark--start" data-placement="top" data-align="start" style="--pt-marker-pos: 0%;"><span class="pt-meter-label">0% Min</span></div>
@@ -951,8 +963,9 @@ ${rowsHtml}
             <p><span class="pt-badge pt-badge--numeric warning"><span class="pt-status-dot warning"></span> 1,420 ms</span> P99 Latency</p>
             <p><span class="pt-badge pt-badge--numeric critical"><span class="pt-status-dot critical"></span> 0.042%</span> Drop Rate</p>
             <p><span class="pt-indicator pt-indicator--numeric info" id="live-indicator-count">Turn #042</span> <span class="pt-badge pt-badge--numeric info" id="live-badge-count">1,842 tok/s</span></p>
+            <p style="display: flex; justify-content: space-between; align-items: center;"><code>.pt-tabular--align-end</code> <span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span></p>
           </main>
-          <footer><small><code>font-variant-numeric: tabular-nums</code> eliminates dynamic layout jitter</small></footer>
+          <footer><small><code>font-variant-numeric: tabular-nums lining-nums</code> and <code>font-feature-settings: "tnum" 1</code> eliminate layout jitter</small></footer>
         </article>
       </div>
 
@@ -978,18 +991,18 @@ ${rowsHtml}
             <p>Self-contained disclosure card with integrated surface styling, elevated header transition, and flush content padding.</p>
           </details>
           <div class="grid" style="margin-top: 1rem;">
-            <details class="pt-popover">
+            <details class="pt-popover pt-popover--start">
               <summary role="button">Action Popover (Start)</summary>
-              <div class="pt-popover-menu">
+              <div class="pt-popover-content pt-popover-menu">
                 <a href="#components">View Telemetry</a>
                 <a href="#components">Download SRI Hash</a>
                 <hr>
                 <button type="button" class="pt-menu-item">Trigger Sync</button>
               </div>
             </details>
-            <details class="pt-popover" role="menu">
+            <details class="pt-popover pt-popover--end" role="menu">
               <summary role="button" class="secondary">Options (End)</summary>
-              <div class="pt-popover-menu end">
+              <div class="pt-popover-content pt-popover-menu end">
                 <a href="#components">Export Config</a>
                 <a href="#components">Verify Contrast</a>
               </div>

@@ -48,6 +48,7 @@
     --pt-cyan: #6ce;
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
+    --pt-z-dropdown: 100;
     --pt-status-ok-fg: light-dark(#283, #4a9);
     --pt-status-ok-border: var(--pt-status-ok-fg);
     --pt-status-ok-bg: color-mix(in srgb, var(--pt-status-ok-border) 8%, transparent);
@@ -168,7 +169,8 @@
   }
 
   ::selection {
-    background-color: color-mix(in srgb, var(--pt-primary) 25%, transparent);
+    background-color: var(--pt-primary-bg);
+    color: var(--pt-color);
   }
 
   :focus-visible {
@@ -803,7 +805,7 @@
     }
   }
 
-  :where(details.dropdown, .pt-popover, details[role="menu"]) {
+  :where(details.dropdown, .pt-popover, .pt-dropdown, details[role="menu"]) {
     border: 0;
     padding: 0;
     position: relative;
@@ -834,13 +836,15 @@
     }
   }
 
-  :where(details.dropdown > ul, .pt-popover-menu, .pt-popover > :not(summary)) {
-    top: calc(100% + .25rem);
-    z-index: 99;
+  :where(details.dropdown > ul, .pt-popover-menu, .pt-popover-content, .pt-popover > :not(summary), .pt-dropdown > :not(summary)) {
+    top: calc(100% + 4px);
+    z-index: var(--pt-z-dropdown, 100);
+    box-sizing: border-box;
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
-    background-color: var(--pt-card-bg);
+    background-color: var(--pt-surface);
     min-width: 100%;
+    max-width: min(20rem, 90vw);
     box-shadow: var(--pt-box-shadow);
     margin: 0;
     padding: .25rem 0;
@@ -874,6 +878,14 @@
       border-top: var(--pt-border);
       margin: .25rem 0;
     }
+  }
+
+  :where(.pt-popover--start > :not(summary), .pt-dropdown--start > :not(summary), :where(.pt-popover, .pt-dropdown) > :is(.pt-popover--start, .pt-dropdown--start)) {
+    inset-inline: 0 auto;
+  }
+
+  :where(.pt-popover--end > :not(summary), .pt-dropdown--end > :not(summary), :where(.pt-popover, .pt-dropdown) > :is(.pt-popover--end, .pt-dropdown--end)) {
+    inset-inline: auto 0;
   }
 
   :where(.accordion-card) {
@@ -1254,7 +1266,7 @@
     position: relative;
     overflow: hidden;
 
-    &:has(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
       overflow: visible;
     }
   }
@@ -1278,6 +1290,14 @@
     & > :where(progress, .pt-progress) {
       margin-bottom: 0;
     }
+
+    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+      overflow: visible;
+    }
+  }
+
+  :where(.pt-meter, .pt-progress):has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+    overflow: visible;
   }
 
   :where(.pt-meter-range) {
@@ -1309,7 +1329,7 @@
     }
   }
 
-  :where(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end, .pt-meter-pin--start, .pt-meter-pin--end) {
+  :where(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end) {
     --pt-marker-pos: 0%;
     --pt-marker-color: var(--pt-color);
     height: var(--pt-progress-height);
@@ -1325,7 +1345,9 @@
     line-height: 1;
     display: inline-flex;
     position: absolute;
-    inset-inline-start: var(--marker-pos, var(--pt-marker-pos));
+    inset-inline-start: clamp(var(--pt-progress-radius, 0px),
+      var(--marker-pos, var(--pt-marker-pos, 0%)),
+      calc(100% - var(--pt-progress-radius, 0px)));
 
     &:before {
       content: "";
@@ -1338,7 +1360,7 @@
       transform: translateX(-50%);
     }
 
-    & :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]) {
+    & :where(.pt-gauge-label, .pt-meter-label, [data-label]) {
       position: absolute;
       bottom: calc(100% + 4px);
       left: 0;
@@ -1350,15 +1372,15 @@
       bottom: auto;
     }
 
-    &:is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start, .pt-meter-pin--start) :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start, .pt-meter-pin--start, .pt-meter-label--start, .pt-gauge-label--start) {
+    &:is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start) :where(.pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="start"], .pt-meter-mark--start, .pt-gauge-marker--start, .pt-meter-label--start, .pt-gauge-label--start) {
       transform: translateX(0);
     }
 
-    &:is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end, .pt-meter-pin--end) :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end, .pt-meter-pin--end, .pt-meter-label--end, .pt-gauge-label--end) {
+    &:is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end) :where(.pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="end"], .pt-meter-mark--end, .pt-gauge-marker--end, .pt-meter-label--end, .pt-gauge-label--end) {
       transform: translateX(-100%);
     }
 
-    &:is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center, .pt-meter-pin--center) :where(span, small, .pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center, .pt-meter-pin--center, .pt-meter-label--center, .pt-gauge-label--center) {
+    &:is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center) :where(.pt-gauge-label, .pt-meter-label, [data-label]), & > :is([data-align="center"], .pt-meter-mark--center, .pt-gauge-marker--center, .pt-meter-label--center, .pt-gauge-label--center) {
       transform: translateX(-50%);
     }
 
@@ -1388,7 +1410,7 @@
     z-index: var(--pt-meter-fill-z, 2);
   }
 
-  .pt-meter-mark, .pt-meter-label, .pt-gauge-marker, .pt-meter-pin, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end, .pt-meter-pin--start, .pt-meter-pin--end {
+  .pt-meter-mark, .pt-meter-label, .pt-gauge-marker, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end {
     z-index: var(--pt-meter-mark-z, 3);
   }
 
@@ -1448,7 +1470,7 @@
       background-color: highlight;
     }
 
-    :where(.pt-gauge-marker, .pt-meter-pin):before {
+    :where(.pt-gauge-marker, .pt-meter-mark):before {
       background-color: canvastext;
     }
   }
@@ -1583,13 +1605,17 @@
       color: var(--pt-valid);
     }
 
-    & > :where(svg, .status-dot, .pt-status-dot) {
+    & > :where(svg, .status-dot, .pt-status-dot, .pt-dot) {
       margin: 0;
     }
   }
 
   :where(.pt-badge--numeric, .pt-indicator--numeric) {
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "tnum" 1;
+    text-align: right;
+    justify-content: flex-end;
+    min-width: 2ch;
   }
 
   .pt-badge[data-status="ok"], .pt-badge.ok, .pt-badge.success, .pt-indicator[data-status="ok"], .pt-indicator.ok, .pt-indicator.success, .pt-chip[data-status="ok"], .pt-chip.ok, .pt-chip.success {
@@ -1614,6 +1640,59 @@
     color: var(--pt-status-info-fg);
     background-color: var(--pt-status-info-bg);
     border-color: var(--pt-status-info-border);
+  }
+
+  :where(.pt-dot) {
+    vertical-align: middle;
+    background-color: var(--pt-color);
+    border-radius: 50%;
+    flex-shrink: 0;
+    width: .5rem;
+    height: .5rem;
+    display: inline-block;
+
+    &:where(:not(:only-child, :last-child)) {
+      margin-inline-end: .35rem;
+    }
+
+    :where(.grid, .flex, [style*="gap"], [role="group"]) > & {
+      margin-inline-end: 0;
+    }
+
+    &:is(.no-margin, .m-0) {
+      margin: 0;
+    }
+
+    &:is(.pt-dot--ok, .pt-dot--success) {
+      background-color: var(--pt-status-ok-fg);
+      box-shadow: 0 0 0 2px var(--pt-status-ok-bg);
+    }
+
+    &.pt-dot--warning {
+      background-color: var(--pt-status-warning-fg);
+    }
+
+    &:is(.pt-dot--critical, .pt-dot--danger) {
+      background-color: var(--pt-status-critical-fg);
+    }
+
+    &.pt-dot--info {
+      background-color: var(--pt-status-info-fg);
+    }
+
+    &.pt-dot--pulse {
+      animation: 1.5s ease-in-out infinite pt-pulse;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &.pt-dot--pulse {
+        animation: none;
+      }
+    }
+
+    @media (forced-colors: active) {
+      border: 1px solid canvastext;
+    }
   }
 
   :where(.status-dot, .pt-status-dot) {
@@ -1703,7 +1782,7 @@
       transform: translateY(1px);
     }
 
-    & > :where(svg, .status-dot, .pt-status-dot) {
+    & > :where(svg, .status-dot, .pt-status-dot, .pt-dot) {
       margin: 0;
     }
   }
@@ -2019,5 +2098,10 @@
 
   :where(.tabular-nums, .pt-tabular) {
     font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  :where(.pt-tabular--align-end) {
+    text-align: right;
+    justify-content: flex-end;
   }
 }

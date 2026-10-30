@@ -27,7 +27,7 @@
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
   - **`dist/picotol.core.min.css`** (<= 14.0 KB minified, <= 4.5 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 38.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.min.css`** (<= 38.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.pt-dot`, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-meter` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
   - **`dist/picotol.layer.min.css`** (<= 38.0 KB minified, <= 9.0 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
@@ -195,7 +195,7 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 | `reset` | [`src/base.css`](src/base.css) | Modern box-sizing reset, `body` zero-margin and flex column root, button font normalization, `[hidden]` display reset |
 | `base` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/forms.css`](src/forms.css), [`src/nav.css`](src/nav.css) | Document defaults, `:focus-visible`, `[tabindex="-1"]` guard, `@media print`, typography/content hierarchy, form controls, semantic landmarks, `.container` |
 | `components` | [`src/components.css`](src/components.css) | Extended semantic components (`<article>` card, `<details>` accordion/dropdown, `<dialog>` modal, `.pt-badge`, `.pt-callout`, `progress`, `.pt-meter`, segmented controls, tooltips) |
-| `utilities` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css) | Standalone utility classes and layout helpers (`.skip-to-content`, `.sr-only`, `.visually-hidden`, `.grid`, `.flex`, `.overflow-auto`, `.table-container`, `.mb-0`, `.pt-tabular`, `.tabular-nums`) |
+| `utilities` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/utilities.css`](src/utilities.css) | Standalone utility classes and layout helpers (`.skip-to-content`, `.sr-only`, `.visually-hidden`, `.grid`, `.flex`, `.overflow-auto`, `.table-container`, `.mb-0`, `.pt-tabular`, `.pt-tabular--align-end`, `.tabular-nums`) |
 
 ---
 
@@ -210,6 +210,8 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
    Because CSS `::before { content: attr(data-tooltip) }` is not announced consistently across all screen readers and Braille displays, pair non-decorative tooltips with `aria-label` or `aria-describedby` and add `tabindex="0"` when attached to non-interactive inline elements.
 4. **Native Table Semantics Preservation**:
    Wrap wide tables in `<div class="overflow-auto table-container"><table>...</table></div>` or semantic `<figure><table>...</table></figure>`. Unlike frameworks that apply `display: block` to `<table>` (which strips table coordinate semantics in WebKit/VoiceOver and Chromium), `@kidthales/picotol` preserves native `display: table` while providing touch-momentum horizontal scrolling.
+5. **Theme-Reactive Selection Contrast (`::selection`)**:
+   `::selection` binds dynamically to `background-color: var(--pt-primary-bg); color: var(--pt-color);`. This guarantees WCAG AA/AAA text contrast ($\ge 4.5:1$ across all four accent palettes) in both light mode and dark mode without translucent washout, preserving crisp text legibility during copy-paste and text inspection.
 
 ---
 
@@ -538,7 +540,7 @@ Ready-to-use component primitives (`.pt-badge` and `.pt-indicator`) map natively
 ```
 
 #### Tabular Numerics for Streaming Telemetry
-All status badges and indicators default to `font-variant-numeric: tabular-nums` (with explicit modifier parity via `.pt-badge--numeric`, `.pt-indicator--numeric`, and the `.pt-tabular` utility). This eliminates horizontal jitter and dynamic layout flutter when rendering streaming metrics (token throughput, latency timers, SLA percentages, turn counts) while maintaining proportional font letterforms:
+All status badges and indicators default to `font-variant-numeric: tabular-nums` (with explicit modifier parity via `.pt-badge--numeric`, `.pt-indicator--numeric`, and the `.pt-tabular` / `.pt-tabular--align-end` utilities). This eliminates horizontal jitter and dynamic layout flutter when rendering streaming metrics (token throughput, latency timers, SLA percentages, turn counts) while maintaining proportional font letterforms:
 
 ```html
 <!-- Tabular Numbers on Numeric Badges and Telemetry Indicators -->
@@ -546,22 +548,22 @@ All status badges and indicators default to `font-variant-numeric: tabular-nums`
 <span class="pt-badge pt-badge--numeric warning"><span class="pt-status-dot warning"></span> 1,420 ms P99</span>
 <span class="pt-indicator pt-indicator--numeric info">Turn #042</span>
 <span class="pt-indicator pt-tabular ok">1,842 tok/s</span>
+<span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span>
 ```
 
-High-density status dots (`.status-dot`, `.pt-status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
+High-density status dots (`.pt-dot`, `.pt-dot--ok`, `.status-dot`, `.pt-status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
 
 ```html
-<!-- Standalone Status Dots -->
-<span class="status-dot success"></span> Operational
-<span class="status-dot warning"></span> Degraded
-<span class="status-dot danger"></span> Critical
-<span class="status-dot info"></span> In Flight
-<span class="status-dot neutral"></span> Neutral
-<span class="status-dot idle"></span> Idle
+<!-- Standalone Status Dots (.pt-dot primitive) -->
+<span class="pt-dot pt-dot--ok"></span> Operational
+<span class="pt-dot pt-dot--warning"></span> Degraded
+<span class="pt-dot pt-dot--critical"></span> Critical
+<span class="pt-dot pt-dot--info"></span> In Flight
+<span class="pt-dot"></span> Neutral Default
 
 <!-- Pulse Animation & Badges -->
-<span class="pt-status-dot pt-status-dot-danger pulse"></span> Live Alert
-<span class="badge"><span class="status-dot success"></span> Active</span>
+<span class="pt-dot pt-dot--critical pt-dot--pulse"></span> Live Alert
+<span class="badge"><span class="pt-dot pt-dot--ok"></span> Active</span>
 ```
 
 ### 4c. Callout Banners, Copy Pills & Chips
@@ -594,15 +596,24 @@ Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature sm
   </details>
 </article>
 
-<!-- Native Popover Menu (Zero-JS Click-Away Backdrop) -->
-<details class="pt-popover">
+<!-- Native Popover Menu (Zero-JS Click-Away Backdrop & Alignment Modifiers) -->
+<details class="pt-popover pt-popover--start">
   <summary role="button">Actions</summary>
-  <div class="pt-popover-menu">
+  <div class="pt-popover-content pt-popover-menu">
     <a href="#view">View Details</a>
     <a href="#export">Export Data</a>
     <hr>
     <button type="button" class="pt-menu-item">Disconnect</button>
   </div>
+</details>
+
+<!-- End-Aligned Dropdown / Popover -->
+<details class="pt-dropdown pt-popover--end" role="menu">
+  <summary role="button" class="secondary">Options</summary>
+  <ul class="pt-popover-content">
+    <li><a href="#profile">Profile</a></li>
+    <li><a href="#settings">Settings</a></li>
+  </ul>
 </details>
 ```
 
@@ -629,17 +640,23 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
 
 ### 4f. Gauge Threshold Pins, Range Bands & Progress Bars
 
-`@kidthales/picotol` provides pure-CSS gauge and progress bar primitives (`.pt-meter`, `.pt-progress`, `.pt-meter-range`, `.pt-meter-pin`):
+`@kidthales/picotol` provides pure-CSS gauge and progress bar primitives (`.pt-meter`, `.pt-progress`, `.pt-meter-range`, `.pt-meter-mark`):
 
+> [!NOTE]
+> **Container Pattern & Replaced Element Limits**: Native `<progress>` elements in HTML/browsers (Chromium, Firefox, WebKit) are replaced/void-like elements that cannot render child DOM elements (`.pt-gauge-marker`, `.pt-meter-mark`, `.pt-meter-label`). For rich meters with threshold pins, markers, and range bands, use the standard container pattern: `<div class="pt-meter">` wrapping `<div class="pt-progress" role="progressbar">`. Basic `<progress>` without child pins remains fully supported for simple indeterminate and determinate progress bars.
+
+- **Marker Containers & Pin Drawing**: `.pt-meter-mark` (or `.pt-gauge-marker`) serves as the positioned container and automatically draws the indicator pin via its `::before` pseudo-element. Children elements are strictly labels (`.pt-meter-label`, `[data-label]`, or `.pt-gauge-label`). Note: `.pt-meter-pin` was previously used interchangeably for both container and child pins; as of v0.5.0, `.pt-meter-mark` is the canonical container and child elements are labels only.
 - **Canonical Placement (`data-placement`)**: `data-placement="top"` (default) or `data-placement="bottom"`. Compatibility classes `.top` and `.bottom` are also supported.
 - **Positioning**: Pin position configured via `--pt-marker-pos` (`0%` to `100%`); range band span configured via `--pt-range-start` and `--pt-range-end`.
+- **Boundary Clamping & Rounded Corners**: Pin positioning automatically clamps to track corner radius (`inset-inline-start: clamp(var(--pt-progress-radius, 0px), var(--marker-pos, var(--pt-marker-pos, 0%)), calc(100% - var(--pt-progress-radius, 0px)))`), ensuring pins align cleanly within rounded and capsule tracks without overhanging curved ends at 0% or 100%.
+- **Overflow Visibility**: Both `:where(.pt-meter, .pt-progress)` automatically apply `overflow: visible` when child markers or pins are present, preventing pins and labels from being clipped by the track container.
 - **Labels**: `.pt-meter-label` or `[data-label]` child elements aligned to the marker with `tabular-nums`.
 - **Boundary-Aligned Modifiers (`data-align` / `.pt-meter-mark--*`)**: Prevent label clipping and container overflow at track extremes (0% and 100%) without shifting the indicator pin:
   - `data-align="start"` or `.pt-meter-mark--start`: Applies `transform: translateX(0)` for 0% / low-end markers.
   - `data-align="end"` or `.pt-meter-mark--end`: Applies `transform: translateX(-100%)` for 100% / high-end markers.
   - `data-align="center"` or `.pt-meter-mark--center`: Explicitly resets to centered default (`transform: translateX(-50%)`).
   - **Pin Centering Invariant**: The marker pin (`&::before`) remains strictly centered (`transform: translateX(-50%)`) at the target percentage tick.
-- **Tokenized Stacking Layers**: Sub-primitives stack predictably via tokenized z-index layers: `--pt-meter-range-z: 1` (`.pt-meter-range`), `--pt-meter-fill-z: 2` (`.pt-meter-fill`), and `--pt-meter-mark-z: 3` (`.pt-meter-mark`, `.pt-meter-label`, `.pt-gauge-marker`, `.pt-meter-pin`).
+- **Tokenized Stacking Layers**: Sub-primitives stack predictably via tokenized z-index layers: `--pt-meter-range-z: 1` (`.pt-meter-range`), `--pt-meter-fill-z: 2` (`.pt-meter-fill`), and `--pt-meter-mark-z: 3` (`.pt-meter-mark`, `.pt-meter-label`, `.pt-gauge-marker`).
 
 ```html
 <div class="pt-meter">
@@ -649,7 +666,7 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
   <div class="pt-progress" role="progressbar" aria-valuenow="78" style="--pt-progress-value: 78%;">
     <div class="pt-progress-fill pt-meter-fill"></div>
     <div class="pt-meter-mark pt-meter-mark--start" data-placement="top" data-align="start" style="--pt-marker-pos: 0%;"><span class="pt-meter-label">0% Min</span></div>
-    <div class="pt-meter-pin pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
+    <div class="pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
     <div class="pt-meter-mark pt-meter-mark--end critical bottom" data-placement="bottom" data-align="end" style="--pt-marker-pos: 100%;"><span class="pt-meter-label" data-label>100% Max</span></div>
   </div>
 </div>
@@ -662,6 +679,7 @@ For data-dense applications, dashboards, and narrow IDE corridors, apply `[data-
 - **Form Controls**: Reduces vertical and horizontal padding on `input`, `select`, `textarea`, and buttons via `--pt-form-element-spacing-vertical: 0.25rem;` and `--pt-form-element-spacing-horizontal: 0.5rem;`.
 - **Tables**: Tightens cell padding (`th, td`) via `--pt-table-cell-padding-block: 0.25rem;` and `--pt-table-cell-padding-inline: 0.5rem;`.
 - **Layout & Cards**: Tightens grid and flex gaps via `--pt-gap-compact: 0.5rem;`, zeroes outer card bottom margins, and tightens card padding.
+- **Margin Auto-Collapsing**: Auto-collapses outer block margins (`margin-block: 0;`) on `section`, `article`, `.card`, and `hr` elements (as well as flex/grid child containers), allowing dense grid and flex layouts to space strictly via `--pt-gap-compact: 0.5rem;` without double-margin bloat.
 - **Pills & Chips**: Decreases vertical padding on `.pt-copy-pill` and `.pt-chip` (`--pt-btn-padding-block: 0.25rem;`).
 - **320px Reflow**: Retains full WCAG 2.2 SC 1.4.10 mobile reflow with zero horizontal scrolling.
 
