@@ -3428,3 +3428,96 @@ test("Meter Marker Anatomy Disambiguation and Nested Terminus Markup (Issue #183
     "README.md must document .pt-meter-label primitive"
   );
 });
+
+test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Alignment (Issue #188)", () => {
+  const baseCss = fs.readFileSync(path.join(ROOT, "src/base.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. ::selection rule binds to --pt-primary-bg and --pt-color across source and compiled bundles
+  const expectedBgToken = "var(--pt-primary-bg)";
+  const expectedColorToken = "var(--pt-color)";
+
+  assert.ok(
+    baseCss.includes("::selection") &&
+    baseCss.includes("background-color: var(--pt-primary-bg)") &&
+    baseCss.includes("color: var(--pt-color)"),
+    "src/base.css must define ::selection with var(--pt-primary-bg) and var(--pt-color)"
+  );
+  assert.ok(
+    !baseCss.includes("color-mix(in srgb, var(--pt-primary) 25%, transparent)"),
+    "src/base.css must retire translucent color-mix ::selection"
+  );
+
+  for (const [name, css] of [
+    ["dist/picotol.css", fullCss],
+    ["dist/picotol.min.css", fullMin],
+    ["dist/picotol.core.css", coreCss],
+    ["dist/picotol.core.min.css", coreMin],
+    ["dist/picotol.layer.css", layerCss],
+    ["dist/picotol.layer.min.css", layerMin],
+  ]) {
+    assert.ok(
+      css.includes("::selection"),
+      `${name} must contain ::selection selector`
+    );
+    assert.ok(
+      css.includes(expectedBgToken) || css.includes("--pt-primary-bg"),
+      `${name} must use --pt-primary-bg for selection background`
+    );
+    assert.ok(
+      css.includes(expectedColorToken) || css.includes("--pt-color"),
+      `${name} must use --pt-color for selection text color`
+    );
+  }
+
+  // 2. Contrast validation across all 4 accent ladders (blue, cyan, purple, magenta)
+  // Light mode: background = --pt-p1, color = #000000
+  // Dark mode: background = --pt-p4, color = #FFFFFF
+  const accents = {
+    blue: { p1: "#AACCEE", p4: "#2255AA" },
+    cyan: { p1: "#CCEEFF", p4: "#117788" },
+    purple: { p1: "#E7D4E8", p4: "#762A83" },
+    magenta: { p1: "#EEBBDD", p4: "#993366" },
+  };
+
+  const lightText = "#000000";
+  const darkText = "#FFFFFF";
+
+  for (const [accent, tokens] of Object.entries(accents)) {
+    const lightRatio = contrastRatio(lightText, tokens.p1);
+    const darkRatio = contrastRatio(darkText, tokens.p4);
+
+    assert.ok(
+      lightRatio >= 7.0,
+      `Light mode selection contrast for ${accent} (${lightRatio.toFixed(2)}:1) must meet WCAG AAA (>= 7:1)`
+    );
+    assert.ok(
+      darkRatio >= 4.5,
+      `Dark mode selection contrast for ${accent} (${darkRatio.toFixed(2)}:1) must meet WCAG AA (>= 4.5:1)`
+    );
+  }
+
+  // 3. Demo Meter clearance: vertical spacing between bottom-placed pins and top-placed pins
+  assert.ok(
+    demoHtml.includes('style="margin-top: 2.75rem;"') ||
+    demoHtml.includes('margin-top: 2.75rem'),
+    "dist/demo/index.html must allocate 2.75rem vertical margin for Section 7 gauge threshold clearance"
+  );
+
+  // 4. README documentation parity
+  assert.ok(
+    readme.includes("Theme-Reactive Selection Contrast") || readme.includes("::selection"),
+    "README.md must document ::selection theme-reactive high-contrast styling"
+  );
+  assert.ok(
+    readme.includes("Margin Auto-Collapsing") || readme.includes("margin-block: 0;"),
+    "README.md must document compact density margin auto-collapsing"
+  );
+});

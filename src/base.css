@@ -26,7 +26,10 @@
     tab-size: 4;
   }
 
-  ::selection { background-color: color-mix(in srgb, var(--pt-primary) 25%, transparent); }
+  ::selection {
+    background-color: var(--pt-primary-bg);
+    color: var(--pt-color);
+  }
 
   :focus-visible {
     outline: 2px solid var(--pt-primary);
