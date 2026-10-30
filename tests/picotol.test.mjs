@@ -2822,3 +2822,110 @@ test("Compact and tight density resets section, article, card, and hr margins in
   const coreMinCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
   assert.match(coreMinCss, resetRule, "Compiled picotol.core.min.css must contain compact margin reset rule");
 });
+
+test("Meter Boundary Marker Pin Clamping and Container Overflow Invariants (Issue #172)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. Clamped marker pin positioning in src/components.css and compiled bundles
+  assert.ok(
+    compCss.includes("inset-inline-start: clamp(") &&
+      compCss.includes("var(--pt-progress-radius, 0px)") &&
+      compCss.includes("calc(100% - var(--pt-progress-radius, 0px))"),
+    "src/components.css must clamp pin inset-inline-start against var(--pt-progress-radius, 0px)"
+  );
+
+  assert.ok(
+    fullCss.includes("inset-inline-start: clamp(") || fullCss.includes("inset-inline-start:clamp("),
+    "dist/picotol.css must compile clamped marker pin inset-inline-start"
+  );
+
+  assert.ok(
+    fullMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)") ||
+      fullMin.includes("inset-inline-start:clamp(var(--pt-progress-radius, 0px)"),
+    "dist/picotol.min.css must compile minified clamped marker pin positioning"
+  );
+
+  assert.ok(
+    layerMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)") ||
+      layerMin.includes("inset-inline-start:clamp(var(--pt-progress-radius, 0px)"),
+    "dist/picotol.layer.min.css must compile minified clamped marker pin positioning"
+  );
+
+  // 2. Container overflow: visible on :where(.pt-meter, .pt-progress) when child markers are detected
+  assert.ok(
+    compCss.includes(":where(.pt-meter, .pt-progress):has(") && compCss.includes("overflow: visible"),
+    "src/components.css must set overflow: visible on :where(.pt-meter, .pt-progress) when markers are present"
+  );
+
+  assert.ok(
+    fullMin.includes(":where(.pt-meter,.pt-progress):has(") && fullMin.includes("overflow:visible"),
+    "dist/picotol.min.css must compile overflow: visible rule for :where(.pt-meter, .pt-progress):has(...)"
+  );
+
+  // 3. Two-Tier Isolation: core bundle strictly excludes meter pin clamping and .pt-meter
+  assert.ok(!coreCss.includes(".pt-meter"), "Core bundle must not contain .pt-meter");
+  assert.ok(!coreCss.includes(".pt-meter-pin"), "Core bundle must not contain .pt-meter-pin");
+  assert.ok(!coreCss.includes("var(--pt-progress-radius"), "Core bundle must not contain --pt-progress-radius");
+
+  // 4. Mathematical Coordinate Model: Rounded track boundary clamping at 0%, 50%, and 100%
+  function computeClampedPinPosition({ trackWidth, trackRadius, markerPercent }) {
+    const rawPos = (markerPercent / 100) * trackWidth;
+    const clampedPos = Math.min(Math.max(trackRadius, rawPos), trackWidth - trackRadius);
+    const leftOverhang = Math.max(0, trackRadius - rawPos);
+    const rightOverhang = Math.max(0, rawPos - (trackWidth - trackRadius));
+    return { rawPos, clampedPos, leftOverhang, rightOverhang };
+  }
+
+  const trackWidth = 400; // 400px meter track
+  const capsuleRadius = 4; // 4px corner radius (e.g. 0.25rem on 0.5rem track)
+
+  // 0% Boundary Pin in capsule track
+  const zeroCapsule = computeClampedPinPosition({ trackWidth, trackRadius: capsuleRadius, markerPercent: 0 });
+  assert.strictEqual(zeroCapsule.rawPos, 0, "Raw position at 0% is 0px");
+  assert.strictEqual(zeroCapsule.clampedPos, 4, "Clamped pin position at 0% must be inset by track corner radius (4px)");
+  assert.strictEqual(zeroCapsule.leftOverhang, 4, "Without clamping, pin at 0% overhangs curved arc by 4px");
+
+  // 100% Boundary Pin in capsule track
+  const hundredCapsule = computeClampedPinPosition({ trackWidth, trackRadius: capsuleRadius, markerPercent: 100 });
+  assert.strictEqual(hundredCapsule.rawPos, 400, "Raw position at 100% is 400px");
+  assert.strictEqual(hundredCapsule.clampedPos, 396, "Clamped pin position at 100% must be 396px (trackWidth - radius)");
+  assert.strictEqual(hundredCapsule.rightOverhang, 4, "Without clamping, pin at 100% overhangs curved arc by 4px");
+
+  // 50% Midpoint Pin (unaffected by boundary clamp)
+  const midCapsule = computeClampedPinPosition({ trackWidth, trackRadius: capsuleRadius, markerPercent: 50 });
+  assert.strictEqual(midCapsule.rawPos, 200, "Raw position at 50% is 200px");
+  assert.strictEqual(midCapsule.clampedPos, 200, "Clamped position at 50% remains unaffected at 200px");
+
+  // Square / unrounded track (radius = 0px)
+  const zeroSquare = computeClampedPinPosition({ trackWidth, trackRadius: 0, markerPercent: 0 });
+  assert.strictEqual(zeroSquare.clampedPos, 0, "Square track allows 0% pin exactly at 0px");
+  const hundredSquare = computeClampedPinPosition({ trackWidth, trackRadius: 0, markerPercent: 100 });
+  assert.strictEqual(hundredSquare.clampedPos, 400, "Square track allows 100% pin exactly at 400px");
+
+  // High-radius pill/badge track (radius = 12px)
+  const highRadius = computeClampedPinPosition({ trackWidth, trackRadius: 12, markerPercent: 0 });
+  assert.strictEqual(highRadius.clampedPos, 12, "High-radius track clamps 0% pin to 12px");
+
+  // 5. Documentation invariants
+  assert.ok(
+    readme.includes("Container Pattern & Replaced Element Limits") &&
+      readme.includes('<div class="pt-meter">') &&
+      readme.includes('<div class="pt-progress" role="progressbar">'),
+    "README.md must document the standard container pattern for replaced element limits"
+  );
+  assert.ok(
+    readme.includes("Boundary Clamping & Rounded Corners") &&
+      readme.includes("inset-inline-start: clamp("),
+    "README.md must document boundary clamping for rounded track corners"
+  );
+  assert.ok(
+    readme.includes("Overflow Visibility") &&
+      readme.includes(":where(.pt-meter, .pt-progress)"),
+    "README.md must document overflow: visible on :where(.pt-meter, .pt-progress)"
+  );
+});
