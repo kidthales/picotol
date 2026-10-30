@@ -631,8 +631,13 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
 
 `@kidthales/picotol` provides pure-CSS gauge and progress bar primitives (`.pt-meter`, `.pt-progress`, `.pt-meter-range`, `.pt-meter-pin`):
 
+> [!NOTE]
+> **Container Pattern & Replaced Element Limits**: Native `<progress>` elements in HTML/browsers (Chromium, Firefox, WebKit) are replaced/void-like elements that cannot render child DOM elements (`.pt-gauge-marker`, `.pt-meter-pin`, `.pt-meter-label`). For rich meters with threshold pins, markers, and range bands, use the standard container pattern: `<div class="pt-meter">` wrapping `<div class="pt-progress" role="progressbar">`. Basic `<progress>` without child pins remains fully supported for simple indeterminate and determinate progress bars.
+
 - **Canonical Placement (`data-placement`)**: `data-placement="top"` (default) or `data-placement="bottom"`. Compatibility classes `.top` and `.bottom` are also supported.
 - **Positioning**: Pin position configured via `--pt-marker-pos` (`0%` to `100%`); range band span configured via `--pt-range-start` and `--pt-range-end`.
+- **Boundary Clamping & Rounded Corners**: Pin positioning automatically clamps to track corner radius (`inset-inline-start: clamp(var(--pt-progress-radius, 0px), var(--marker-pos, var(--pt-marker-pos, 0%)), calc(100% - var(--pt-progress-radius, 0px)))`), ensuring pins align cleanly within rounded and capsule tracks without overhanging curved ends at 0% or 100%.
+- **Overflow Visibility**: Both `:where(.pt-meter, .pt-progress)` automatically apply `overflow: visible` when child markers or pins are present, preventing pins and labels from being clipped by the track container.
 - **Labels**: `.pt-meter-label` or `[data-label]` child elements aligned to the marker with `tabular-nums`.
 - **Boundary-Aligned Modifiers (`data-align` / `.pt-meter-mark--*`)**: Prevent label clipping and container overflow at track extremes (0% and 100%) without shifting the indicator pin:
   - `data-align="start"` or `.pt-meter-mark--start`: Applies `transform: translateX(0)` for 0% / low-end markers.

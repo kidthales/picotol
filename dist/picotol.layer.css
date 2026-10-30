@@ -1281,6 +1281,14 @@
       & > :where(progress, .pt-progress) {
         margin-bottom: 0;
       }
+
+      &:has(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+        overflow: visible;
+      }
+    }
+
+    :where(.pt-meter, .pt-progress):has(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+      overflow: visible;
     }
 
     :where(.pt-meter-range) {
@@ -1328,7 +1336,9 @@
       line-height: 1;
       display: inline-flex;
       position: absolute;
-      inset-inline-start: var(--marker-pos, var(--pt-marker-pos));
+      inset-inline-start: clamp(var(--pt-progress-radius, 0px),
+      var(--marker-pos, var(--pt-marker-pos, 0%)),
+      calc(100% - var(--pt-progress-radius, 0px)));
 
       &:before {
         content: "";

@@ -448,7 +448,11 @@
     }
   }
 
-  /* 6. Progress (<progress>, .pt-progress) & Gauge Meter Pins */
+  /* 6. Progress (<progress>, .pt-progress) & Gauge Meter Pins
+   * Replaced element limit: Native <progress> elements cannot render child DOM elements.
+   * For rich meters with pins and labels, use standard container pattern:
+   * <div class="pt-meter"> wrapping <div class="pt-progress" role="progressbar">.
+   */
   :where(progress, .pt-progress, [role="progressbar"], .pt-meter) {
     --pt-progress-height: 0.5rem;
     --pt-progress-radius: var(--pt-border-radius);
@@ -536,6 +540,14 @@
     & > :where(progress, .pt-progress) {
       margin-bottom: 0;
     }
+
+    &:has(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+      overflow: visible;
+    }
+  }
+
+  :where(.pt-meter, .pt-progress):has(.pt-gauge-marker, .pt-meter-pin, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+    overflow: visible;
   }
 
   :where(.pt-meter-range) {
@@ -562,7 +574,11 @@
     position: absolute;
     top: 0;
     height: var(--pt-progress-height);
-    inset-inline-start: var(--marker-pos, var(--pt-marker-pos));
+    inset-inline-start: clamp(
+      var(--pt-progress-radius, 0px),
+      var(--marker-pos, var(--pt-marker-pos, 0%)),
+      calc(100% - var(--pt-progress-radius, 0px))
+    );
     display: inline-flex;
     flex-direction: column;
     align-items: center;
