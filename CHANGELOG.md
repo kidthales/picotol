@@ -5,6 +5,24 @@ All notable changes to `@kidthales/picotol` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-10-30
+
+Sixth public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.5.0](docs/RELEASE_NOTES_V0_5_0.md).
+
+### Added
+- Native zero-JS floating popover primitive (`<details class="pt-popover">` and `.pt-popover__surface`) with alignment modifiers (`--align-end`, `--align-center`, `--top`) and elevation styling (#175).
+- Tokenized status dot primitive (`.pt-dot`, `.pt-dot--sm`) with 8px and 6px dimensions, Paul Tol semantic state bindings, and pulsing modifier (`.pt-dot--pulse`) (#173).
+- Meter boundary marker pin clamping (`--pin-left`, `--pin-right`) to track `border-radius`, preventing corner overhang at extreme values (#172).
+- Dual-mode meter marker markup compatibility supporting both flat `.pt-meter > .pt-meter__marker` and nested `.pt-meter__track > .pt-meter__marker` anatomy (#183).
+- Tabular numerics badge modifier (`.pt-badge--numeric`) with jitter-free alignment and right-alignment utility (`.pt-tabular--align-end`) (#174, #190).
+- Compact density margin resets cascading `[data-density="compact"]` and `[data-density="tight"]` into block margins of sections, articles, and rules in flex/grid layouts (#176).
+- Single-source-of-truth CI verification pipeline (`scripts/ci-local.ps1 -CI`) (#185).
+- Standalone offline bundle packaging producing `dist/assets/picotol-v0.5.0.zip`.
+
+### Changed
+- Calibrated dark mode selection contrast and adjusted demo meter label clearances (#188).
+- Updated `README.md` documentation, CDN and vendoring URLs, and APA citation version (`0.5.0`) (#192).
+
 ## [0.4.1] - 2026-10-29
 
 Fifth public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.4.1](docs/RELEASE_NOTES_V0_4_1.md).
