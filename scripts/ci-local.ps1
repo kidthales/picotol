@@ -1,60 +1,185 @@
 <#
 .SYNOPSIS
-    Runs local continuous integration suite for @kidthales/picotol.
+    Runs the single-source-of-truth continuous integration suite for @kidthales/picotol.
 .DESCRIPTION
-    Executes the full test and verification pipeline locally with 1:1 remote CI parity:
+    Executes the full test and verification pipeline locally and in GitHub Actions with 1:1 parity:
+    0. Workflow single-source-of-truth drift audit (.github/workflows/*.yml)
     1. Agent & scratch file leak audit (tracked & untracked)
-    2. PowerShell AST parse validation & CSS AST linter (npm run lint)
-    3. Test suite & packaging dry-run (npm test, npm pack --dry-run)
-    4. Generated distribution drift audit (npm run generate -> git status dist)
-    5. Bundle size & compression budget audit (npm run check:budgets)
+    2. PowerShell AST parse validation (*.ps1)
+    3. Composite test suite (npm test: lint + budgets + node --test) & packaging dry-run (npm pack --dry-run)
+    4. Generated distribution drift audit (npm run generate -> git status --porcelain dist)
 .PARAMETER Quick
-    Runs lint and tests only; skips distribution regeneration and packaging dry-run.
+    Runs Gates 0-3 (skipping npm pack --dry-run and Gate 4 distribution regeneration). Forbidden in -CI mode.
 .PARAMETER SkipGenerate
-    Skips the distribution regeneration and drift verification step.
+    Skips Gate 4 distribution regeneration and drift verification. Forbidden in -CI mode.
+.PARAMETER CI
+    Enables strict CI mode (auto-enabled when $env:GITHUB_ACTIONS is set): rejects -Quick and -SkipGenerate,
+    emits GitHub Actions ::group::/::endgroup:: and ::error:: annotations, and guarantees non-zero exit on failure.
 .EXAMPLE
     pwsh ./scripts/ci-local.ps1
     pwsh ./scripts/ci-local.ps1 -Quick
+    pwsh ./scripts/ci-local.ps1 -CI
 #>
 [CmdletBinding()]
 param(
     [switch]$Quick,
-    [switch]$SkipGenerate
+    [switch]$SkipGenerate,
+    [switch]$CI
 )
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir = Split-Path -Parent $ScriptDir
+$IsCI = $CI.IsPresent -or (-not [string]::IsNullOrWhiteSpace($env:GITHUB_ACTIONS))
+$script:InGroup = $false
 
 $TotalTimer = [System.Diagnostics.Stopwatch]::StartNew()
 
-function Write-StepHeader([int]$Step, [int]$TotalSteps, [string]$Title) {
-    Write-Host "`n[$Step/$TotalSteps] $Title..." -ForegroundColor Yellow
+function Enter-Gate([int]$Gate, [int]$MaxGate, [string]$Title) {
+    $Header = "[Gate $Gate/$MaxGate] $Title"
+    if ($IsCI) {
+        Write-Host "::group::$Header"
+        $script:InGroup = $true
+    } else {
+        Write-Host "`n$Header..." -ForegroundColor Yellow
+    }
 }
 
-function Write-Pass([string]$Message, [System.Diagnostics.Stopwatch]$Timer) {
+function Exit-GatePass([string]$Message, [System.Diagnostics.Stopwatch]$Timer) {
     $elapsed = [math]::Round($Timer.Elapsed.TotalSeconds, 2)
     Write-Host "  -> [OK] $Message (${elapsed}s)" -ForegroundColor Green
+    if ($IsCI -and $script:InGroup) {
+        Write-Host "::endgroup::"
+        $script:InGroup = $false
+    }
 }
 
 function Write-Fail([string]$Message) {
+    if ($IsCI) {
+        Write-Host "::error::$Message"
+    }
     Write-Host "  -> [FAIL] $Message" -ForegroundColor Red
 }
 
 Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host " picotol Local CI Pipeline" -ForegroundColor Cyan
+Write-Host " picotol Single-Source-of-Truth CI Pipeline$(if ($IsCI) { ' [CI Mode]' } else { '' })" -ForegroundColor Cyan
 Write-Host " Root: $RootDir" -ForegroundColor Gray
 Write-Host "====================================================" -ForegroundColor Cyan
 
-$TotalSteps = 5
+if ($IsCI -and ($Quick -or $SkipGenerate)) {
+    Write-Fail "CI mode forbids -Quick and -SkipGenerate flags; the full verification pipeline must execute."
+    exit 1
+}
+
+$MaxGate = 4
 
 Push-Location $RootDir
 try {
     # -------------------------------------------------------------
+    # Gate 0: Workflow Single-Source-of-Truth Drift Audit
+    # -------------------------------------------------------------
+    $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
+    Enter-Gate 0 $MaxGate "Auditing GitHub Actions workflows for CI drift"
+
+    $WorkflowDir = Join-Path $RootDir ".github/workflows"
+    $WorkflowFiles = @()
+    if (Test-Path $WorkflowDir) {
+        $WorkflowFiles = @(Get-ChildItem -Path $WorkflowDir -File | Where-Object { $_.Extension -in @('.yml', '.yaml') })
+    }
+
+    $DriftErrors = [System.Collections.Generic.List[string]]::new()
+    if ($WorkflowFiles.Count -eq 0) {
+        $DriftErrors.Add("No workflow files found in .github/workflows/.")
+    }
+
+    $ForbiddenRunPattern = '\b(npm\s+(test|t|tst|run\s+test|run\s+lint|run\s+check:budgets|pack)|node\s+--test)\b'
+    $CiInvokesScript = $false
+    $ReleaseUsesCiWorkflow = $false
+
+    foreach ($wf in $WorkflowFiles) {
+        $lines = Get-Content -Path $wf.FullName
+        $inRunBlock = $false
+        $runBaseIndent = 0
+
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            $line = $lines[$i]
+            $lineNum = $i + 1
+
+            if ($wf.Name -eq 'release.yml' -and $line -match '^\s*uses\s*:\s*\./\.github/workflows/ci\.yml\s*$') {
+                $ReleaseUsesCiWorkflow = $true
+            }
+
+            if ($inRunBlock) {
+                if ($line -match '^\s*$') {
+                    continue
+                }
+                $line -match '^(?<sp>\s*)' | Out-Null
+                $currentIndent = $Matches['sp'].Length
+                if ($currentIndent -le $runBaseIndent) {
+                    $inRunBlock = $false
+                } else {
+                    if ($line -notmatch '^\s*#') {
+                        if ($line -match $ForbiddenRunPattern) {
+                            $DriftErrors.Add("$($wf.Name):$lineNum invokes forbidden verification command in 'run:': '$($line.Trim())'")
+                        }
+                        if ($line -match '\bnpm\s+run\s+(?<script>[a-zA-Z0-9:_-]+)') {
+                            $npmScript = $Matches['script']
+                            if (-not ($npmScript -eq 'build' -and $wf.Name -in @('pages.yml', 'release.yml'))) {
+                                $DriftErrors.Add("$($wf.Name):$lineNum invokes unapproved 'npm run $npmScript' in 'run:' (only artifact 'npm run build' in pages.yml/release.yml is allowed)")
+                            }
+                        }
+                        if ($wf.Name -eq 'ci.yml' -and $line -match 'pwsh\b.*scripts/ci-local\.ps1') {
+                            $CiInvokesScript = $true
+                        }
+                    }
+                    continue
+                }
+            }
+
+            if ($line -match '^(?<indent>\s*)(?:-\s*)?run\s*:\s*(?<val>.*)$') {
+                $runBaseIndent = $Matches['indent'].Length
+                $val = $Matches['val'].Trim()
+                if ($val -match '^[|>][-+]?\s*(#.*)?$') {
+                    $inRunBlock = $true
+                } elseif ($val -ne '' -and $val -notmatch '^#') {
+                    if ($val -match $ForbiddenRunPattern) {
+                        $DriftErrors.Add("$($wf.Name):$lineNum invokes forbidden verification command in 'run:': '$val'")
+                    }
+                    if ($val -match '\bnpm\s+run\s+(?<script>[a-zA-Z0-9:_-]+)') {
+                        $npmScript = $Matches['script']
+                        if (-not ($npmScript -eq 'build' -and $wf.Name -in @('pages.yml', 'release.yml'))) {
+                            $DriftErrors.Add("$($wf.Name):$lineNum invokes unapproved 'npm run $npmScript' in 'run:' (only artifact 'npm run build' in pages.yml/release.yml is allowed)")
+                        }
+                    }
+                    if ($wf.Name -eq 'ci.yml' -and $val -match 'pwsh\b.*scripts/ci-local\.ps1') {
+                        $CiInvokesScript = $true
+                    }
+                }
+            }
+        }
+    }
+
+    if (-not $CiInvokesScript) {
+        $DriftErrors.Add("ci.yml must invoke 'pwsh ./scripts/ci-local.ps1 -CI' in a 'run:' step.")
+    }
+    if (-not $ReleaseUsesCiWorkflow) {
+        $DriftErrors.Add("release.yml must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
+    }
+
+    if ($DriftErrors.Count -gt 0) {
+        foreach ($err in $DriftErrors) {
+            Write-Fail $err
+        }
+        throw "Gate 0 Failed: Workflow drift detected ($($DriftErrors.Count) violation(s)). scripts/ci-local.ps1 must remain the sole source of CI test truth."
+    }
+
+    Exit-GatePass "All workflows delegate verification to scripts/ci-local.ps1 with zero drift." $StepTimer
+
+    # -------------------------------------------------------------
     # Gate 1: Agent & Scratch File Leak Audit
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    Write-StepHeader 1 $TotalSteps "Auditing for agent & scratch file leaks"
+    Enter-Gate 1 $MaxGate "Auditing for agent & scratch file leaks"
 
     $AgentFilePattern = '^(\.agents?/|\.gemini/|\.ai/|\.cursor/|\.claude/|scratch/|docs/learnings/|AGENTS\.md$|GEMINI\.md$|CLAUDE\.md$)'
 
@@ -87,15 +212,14 @@ try {
         throw "Gate 1 Failed: Agent or scratch files must not exist or be tracked in the repository."
     }
 
-    Write-Pass "No tracked or untracked agent files detected." $StepTimer
+    Exit-GatePass "No tracked or untracked agent files detected." $StepTimer
 
     # -------------------------------------------------------------
-    # Gate 2: PowerShell AST Parse & Linter Validation
+    # Gate 2: PowerShell AST Parse Validation
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    Write-StepHeader 2 $TotalSteps "Running PowerShell AST validation and CSS AST linter (npm run lint)"
+    Enter-Gate 2 $MaxGate "Running PowerShell AST parse validation (*.ps1)"
 
-    # PowerShell AST parse validation for scripts
     $Ps1Files = Get-ChildItem -Path $RootDir -Recurse -Filter "*.ps1" | Where-Object { $_.FullName -notmatch '[\\/](\.git|node_modules)[\\/]' }
     $ParseErrors = 0
     foreach ($ps in $Ps1Files) {
@@ -111,26 +235,19 @@ try {
         throw "Gate 2 Failed: $ParseErrors PowerShell script(s) failed AST parse validation."
     }
 
-    Write-Host "  -> Running npm run lint..." -ForegroundColor DarkGray
-    & npm run lint
-    if ($LASTEXITCODE -ne 0) {
-        Write-Fail "npm run lint failed with exit code $LASTEXITCODE."
-        throw "Gate 2 Failed: Linter errors detected."
-    }
-
-    Write-Pass "PowerShell AST and CSS AST linter validations passed." $StepTimer
+    Exit-GatePass "PowerShell AST validation passed ($($Ps1Files.Count) script(s))." $StepTimer
 
     # -------------------------------------------------------------
-    # Gate 3: Test Suite & Packaging Verification
+    # Gate 3: Composite Test Suite & Packaging Verification
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    Write-StepHeader 3 $TotalSteps "Running test suite and packaging verification (npm test, npm pack --dry-run)"
+    Enter-Gate 3 $MaxGate "Running composite test suite (npm test) and packaging verification (npm pack --dry-run)"
 
-    Write-Host "  -> Running npm test..." -ForegroundColor DarkGray
+    Write-Host "  -> Running npm test (lint + check:budgets + node --test)..." -ForegroundColor DarkGray
     & npm test
     if ($LASTEXITCODE -ne 0) {
         Write-Fail "npm test failed with exit code $LASTEXITCODE."
-        throw "Gate 3 Failed: Unit tests failed."
+        throw "Gate 3 Failed: Composite test suite (npm test) failed."
     }
 
     if (-not $Quick) {
@@ -144,13 +261,13 @@ try {
         Write-Host "  -> Skipping npm pack --dry-run (-Quick)." -ForegroundColor Gray
     }
 
-    Write-Pass "Test suite and packaging verification passed." $StepTimer
+    Exit-GatePass "Composite test suite and packaging verification passed." $StepTimer
 
     # -------------------------------------------------------------
     # Gate 4: Generated Distribution Drift Audit
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    Write-StepHeader 4 $TotalSteps "Verifying generated distribution outputs are up to date"
+    Enter-Gate 4 $MaxGate "Verifying generated distribution outputs are up to date"
 
     if (-not $SkipGenerate -and -not $Quick) {
         Write-Host "  -> Running npm run generate..." -ForegroundColor DarkGray
@@ -169,33 +286,29 @@ try {
             throw "Gate 4 Failed: Generated distribution drift detected."
         }
 
-        Write-Pass "Generated outputs are up to date and clean." $StepTimer
+        Exit-GatePass "Generated outputs are up to date and clean." $StepTimer
     } else {
         Write-Host "  -> Skipping distribution regeneration (-SkipGenerate or -Quick)." -ForegroundColor Gray
+        if ($IsCI -and $script:InGroup) {
+            Write-Host "::endgroup::"
+            $script:InGroup = $false
+        }
     }
-
-    # -------------------------------------------------------------
-    # Gate 5: Bundle Size & Compression Budget Audit
-    # -------------------------------------------------------------
-    $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    Write-StepHeader 5 $TotalSteps "Auditing bundle size & compression budgets (npm run check:budgets)"
-
-    Write-Host "  -> Running npm run check:budgets..." -ForegroundColor DarkGray
-    & npm run check:budgets
-    if ($LASTEXITCODE -ne 0) {
-        Write-Fail "npm run check:budgets failed with exit code $LASTEXITCODE."
-        throw "Gate 5 Failed: Bundle size or compression budget violation detected."
-    }
-
-    Write-Pass "Bundle size, compression budgets, and README sync verified." $StepTimer
 
     # -------------------------------------------------------------
     # Summary
     # -------------------------------------------------------------
     $TotalElapsed = [math]::Round($TotalTimer.Elapsed.TotalSeconds, 2)
     Write-Host "`n====================================================" -ForegroundColor Green
-    Write-Host " All Local CI Verification Checks PASSED (${TotalElapsed}s)" -ForegroundColor Green
+    Write-Host " All CI Verification Checks PASSED (${TotalElapsed}s)" -ForegroundColor Green
     Write-Host "====================================================" -ForegroundColor Cyan
+} catch {
+    if ($IsCI -and $script:InGroup) {
+        Write-Host "::endgroup::"
+        $script:InGroup = $false
+    }
+    Write-Fail $_.Exception.Message
+    exit 1
 } finally {
     Pop-Location
 }

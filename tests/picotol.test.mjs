@@ -2790,16 +2790,16 @@ test("Automated Bundle Size, Compression Budgets, CI Gate Parity & README Synchr
 
   const ciYml = fs.readFileSync(path.join(ROOT, ".github/workflows/ci.yml"), "utf8");
   assert.ok(
-    ciYml.includes("npm run check:budgets"),
-    ".github/workflows/ci.yml verify job must execute npm run check:budgets"
+    ciYml.includes("pwsh ./scripts/ci-local.ps1 -CI"),
+    ".github/workflows/ci.yml verify job must delegate to pwsh ./scripts/ci-local.ps1 -CI"
   );
 
   const ciLocalPs1 = fs.readFileSync(path.join(ROOT, "scripts/ci-local.ps1"), "utf8");
   assert.ok(
-    ciLocalPs1.includes("$TotalSteps = 5") &&
-      ciLocalPs1.includes("Gate 5: Bundle Size & Compression Budget Audit") &&
-      ciLocalPs1.includes("npm run check:budgets"),
-    "scripts/ci-local.ps1 must enforce Gate 5 (npm run check:budgets)"
+    ciLocalPs1.includes("$MaxGate = 4") &&
+      ciLocalPs1.includes("Gate 3: Composite Test Suite & Packaging Verification") &&
+      ciLocalPs1.includes("& npm test"),
+    "scripts/ci-local.ps1 must execute the composite npm test suite (which runs check:budgets)"
   );
 
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
