@@ -754,4 +754,9 @@
   :where(.tabular-nums, .pt-tabular) {
     font-variant-numeric: tabular-nums lining-nums;
   }
+
+  :where(.pt-tabular--align-end) {
+    text-align: right;
+    justify-content: flex-end;
+  }
 }

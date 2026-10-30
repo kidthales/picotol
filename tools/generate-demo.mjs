@@ -963,8 +963,9 @@ ${rowsHtml}
             <p><span class="pt-badge pt-badge--numeric warning"><span class="pt-status-dot warning"></span> 1,420 ms</span> P99 Latency</p>
             <p><span class="pt-badge pt-badge--numeric critical"><span class="pt-status-dot critical"></span> 0.042%</span> Drop Rate</p>
             <p><span class="pt-indicator pt-indicator--numeric info" id="live-indicator-count">Turn #042</span> <span class="pt-badge pt-badge--numeric info" id="live-badge-count">1,842 tok/s</span></p>
+            <p><span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span> <code>.pt-tabular--align-end</code></p>
           </main>
-          <footer><small><code>font-variant-numeric: tabular-nums</code> eliminates dynamic layout jitter</small></footer>
+          <footer><small><code>font-variant-numeric: tabular-nums lining-nums</code> and <code>font-feature-settings: "tnum" 1</code> eliminate layout jitter</small></footer>
         </article>
       </div>
 
