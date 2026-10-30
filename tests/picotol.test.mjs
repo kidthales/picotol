@@ -2806,3 +2806,12 @@ test("Automated Bundle Size, Compression Budgets, CI Gate Parity & README Synchr
   assert.ok(readme.includes(EXPECTED_README_BADGE), "README.md must include updated <= 38 KB min | <= 9 KB gzip badge");
 });
 
+
+test("Compact density resets section, article, card, and hr margins in flex and grid layouts (Issue #176)", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const { code } = transform({ code: Buffer.from(css), minify: true });
+  const rules = code.toString("utf8");
+  const resetRule = /:where\(\[data-density=compact\],\.pt-compact\) :where\(section,article,\.card,hr\),:where\(\[data-density=compact\],\.pt-compact\) :where\(\.flex,\.grid,\[style\*="display: flex"\],\[style\*="display: grid"\]\)>:where\(section,article,\.card\)\{margin-block:0\}/;
+
+  assert.match(rules, resetRule, "Compact layouts must reset margins on content and flex/grid children");
+});
