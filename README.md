@@ -5,7 +5,7 @@
 [![CI](https://github.com/kidthales/picotol/actions/workflows/ci.yml/badge.svg)](https://github.com/kidthales/picotol/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@kidthales/picotol.svg?style=flat&color=332288)](https://www.npmjs.com/package/@kidthales/picotol)
 [![License: MIT](https://img.shields.io/badge/License-MIT-44AA99.svg)](LICENSE)
-[![Bundle Size](https://img.shields.io/badge/bundle%20size-%E2%89%A4%2032%20KB%20min%20%7C%20%E2%89%A4%208%20KB%20gzip-117733.svg)](dist/sri.json)
+[![Bundle Size](https://img.shields.io/badge/bundle%20size-%E2%89%A4%2038%20KB%20min%20%7C%20%E2%89%A4%209%20KB%20gzip-117733.svg)](dist/sri.json)
 [![WCAG 2.2 AA / AAA](https://img.shields.io/badge/WCAG%202.2-AA%20%2F%20AAA-88CCEE.svg)](tests/picotol.test.mjs)
 [![Interactive Demo](https://img.shields.io/badge/demo-interactive%20showcase-AA4499.svg)](https://kidthales.github.io/picotol/)
 
@@ -26,9 +26,9 @@
   - Non-color validation cues (`2px` border + `✓` / `✗` prefix icons on `[aria-invalid] + small`) and $\ge 24\times24\text{px}$ target sizes (WCAG 2.2 SC 2.5.8).
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
-  - **`dist/picotol.core.min.css`** (<= 13.0 KB minified, ~4.0 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 36.0 KB minified, ~8.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
-  - **`dist/picotol.layer.min.css`** (<= 36.0 KB minified, ~8.0 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
+  - **`dist/picotol.core.min.css`** (<= 14.0 KB minified, <= 4.5 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
+  - **`dist/picotol.min.css`** (<= 38.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.layer.min.css`** (<= 38.0 KB minified, <= 9.0 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
 

@@ -59,6 +59,9 @@ jobs:
       - name: Run CSS AST & Accessibility HTML Linter
         run: npm run lint
 
+      - name: Audit bundle size and compression budgets
+        run: npm run check:budgets
+
       - name: Run Paul Tol hex-purity, WCAG contrast, reflow, and packaging test suite
         run: npm test
 
