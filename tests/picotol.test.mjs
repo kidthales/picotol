@@ -3066,3 +3066,132 @@ test("Tokenized Status Dot Primitive (.pt-dot) Dimensions, Semantic Variants, Pu
   assert.ok(readme.includes(".pt-dot"), "README.md must document .pt-dot component primitive");
   assert.ok(readme.includes(".pt-dot--ok"), "README.md must document .pt-dot--ok variant");
 });
+
+test("Tabular Numerics Badge Modifier, Right-Alignment Utility, and Cascade Parity (Issue #174)", () => {
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const utilCss = fs.readFileSync(path.join(ROOT, "src/utilities.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // 1. .pt-badge--numeric modifier properties and zero-specificity wrapping in src/components.css
+  assert.ok(
+    compCss.includes(":where(.pt-badge--numeric, .pt-indicator--numeric)"),
+    "src/components.css must wrap .pt-badge--numeric in :where() for (0,0,0) specificity"
+  );
+  assert.ok(
+    compCss.includes("font-variant-numeric: tabular-nums lining-nums;"),
+    "src/components.css must declare font-variant-numeric: tabular-nums lining-nums on .pt-badge--numeric"
+  );
+  assert.ok(
+    compCss.includes('font-feature-settings: "tnum" 1;'),
+    "src/components.css must declare font-feature-settings: \"tnum\" 1 on .pt-badge--numeric"
+  );
+  assert.ok(
+    compCss.includes("justify-content: flex-end;"),
+    "src/components.css must declare justify-content: flex-end on .pt-badge--numeric"
+  );
+  assert.ok(
+    compCss.includes("text-align: right;"),
+    "src/components.css must declare text-align: right on .pt-badge--numeric"
+  );
+  assert.ok(
+    compCss.includes("min-width: 2ch;"),
+    "src/components.css must declare min-width: 2ch on .pt-badge--numeric"
+  );
+
+  // Baseline badge consistency: verify .pt-badge--numeric does not override font-size or line-height
+  const numericBlockMatch = compCss.match(/:where\(\.pt-badge--numeric[^{]*\{([^}]+)\}/);
+  assert.ok(numericBlockMatch, "Must match .pt-badge--numeric CSS block");
+  const numericBlock = numericBlockMatch[1];
+  assert.ok(
+    !numericBlock.includes("font-size"),
+    ".pt-badge--numeric modifier must not alter font-size, preserving badge baseline"
+  );
+  assert.ok(
+    !numericBlock.includes("line-height"),
+    ".pt-badge--numeric modifier must not alter line-height, preserving badge baseline"
+  );
+  assert.ok(
+    !numericBlock.includes("vertical-align"),
+    ".pt-badge--numeric modifier must not alter vertical-align, preserving badge baseline"
+  );
+
+  // 2. .pt-tabular--align-end utility in src/utilities.css
+  assert.ok(
+    utilCss.includes("@layer utilities"),
+    "src/utilities.css must declare @layer utilities"
+  );
+  assert.ok(
+    utilCss.includes(":where(.pt-tabular--align-end)"),
+    "src/utilities.css must wrap .pt-tabular--align-end in :where() for zero specificity"
+  );
+  assert.ok(
+    utilCss.includes("text-align: right;"),
+    "src/utilities.css must set text-align: right on .pt-tabular--align-end"
+  );
+  assert.ok(
+    utilCss.includes("justify-content: flex-end;"),
+    "src/utilities.css must set justify-content: flex-end on .pt-tabular--align-end"
+  );
+
+  // 3. Multi-bundle compilation parity for .pt-tabular--align-end
+  for (const [name, css] of [
+    ["coreCss", coreCss],
+    ["coreMin", coreMin],
+    ["fullCss", fullCss],
+    ["fullMin", fullMin],
+    ["layerCss", layerCss],
+    ["layerMin", layerMin],
+  ]) {
+    assert.ok(
+      css.includes("pt-tabular--align-end"),
+      `${name} must compile .pt-tabular--align-end`
+    );
+  }
+
+  // 4. Two-Tier Isolation: Core excludes component modifier .pt-badge--numeric
+  assert.ok(
+    !coreCss.includes(".pt-badge--numeric"),
+    "dist/picotol.core.css must strictly exclude .pt-badge--numeric"
+  );
+  assert.ok(
+    !coreMin.includes("pt-badge--numeric"),
+    "dist/picotol.core.min.css must strictly exclude .pt-badge--numeric"
+  );
+  assert.ok(
+    fullMin.includes("pt-badge--numeric"),
+    "dist/picotol.min.css must compile .pt-badge--numeric"
+  );
+  assert.ok(
+    layerMin.includes("pt-badge--numeric"),
+    "dist/picotol.layer.min.css must compile .pt-badge--numeric"
+  );
+
+  // 5. Cross-Surface Parity: Demo & README Documentation
+  assert.ok(
+    demoHtml.includes("pt-badge--numeric"),
+    "dist/demo/index.html must showcase .pt-badge--numeric"
+  );
+  assert.ok(
+    demoHtml.includes("pt-tabular--align-end"),
+    "dist/demo/index.html must showcase .pt-tabular--align-end"
+  );
+  assert.ok(
+    readme.includes(".pt-badge--numeric"),
+    "README.md must document .pt-badge--numeric"
+  );
+  assert.ok(
+    readme.includes(".pt-tabular--align-end"),
+    "README.md must document .pt-tabular--align-end"
+  );
+  assert.ok(
+    readme.includes("src/utilities.css"),
+    "README.md must document src/utilities.css in layer architecture"
+  );
+});

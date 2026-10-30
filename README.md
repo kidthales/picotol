@@ -195,7 +195,7 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 | `reset` | [`src/base.css`](src/base.css) | Modern box-sizing reset, `body` zero-margin and flex column root, button font normalization, `[hidden]` display reset |
 | `base` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/forms.css`](src/forms.css), [`src/nav.css`](src/nav.css) | Document defaults, `:focus-visible`, `[tabindex="-1"]` guard, `@media print`, typography/content hierarchy, form controls, semantic landmarks, `.container` |
 | `components` | [`src/components.css`](src/components.css) | Extended semantic components (`<article>` card, `<details>` accordion/dropdown, `<dialog>` modal, `.pt-badge`, `.pt-callout`, `progress`, `.pt-meter`, segmented controls, tooltips) |
-| `utilities` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css) | Standalone utility classes and layout helpers (`.skip-to-content`, `.sr-only`, `.visually-hidden`, `.grid`, `.flex`, `.overflow-auto`, `.table-container`, `.mb-0`, `.pt-tabular`, `.tabular-nums`) |
+| `utilities` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/utilities.css`](src/utilities.css) | Standalone utility classes and layout helpers (`.skip-to-content`, `.sr-only`, `.visually-hidden`, `.grid`, `.flex`, `.overflow-auto`, `.table-container`, `.mb-0`, `.pt-tabular`, `.pt-tabular--align-end`, `.tabular-nums`) |
 
 ---
 
@@ -538,7 +538,7 @@ Ready-to-use component primitives (`.pt-badge` and `.pt-indicator`) map natively
 ```
 
 #### Tabular Numerics for Streaming Telemetry
-All status badges and indicators default to `font-variant-numeric: tabular-nums` (with explicit modifier parity via `.pt-badge--numeric`, `.pt-indicator--numeric`, and the `.pt-tabular` utility). This eliminates horizontal jitter and dynamic layout flutter when rendering streaming metrics (token throughput, latency timers, SLA percentages, turn counts) while maintaining proportional font letterforms:
+All status badges and indicators default to `font-variant-numeric: tabular-nums` (with explicit modifier parity via `.pt-badge--numeric`, `.pt-indicator--numeric`, and the `.pt-tabular` / `.pt-tabular--align-end` utilities). This eliminates horizontal jitter and dynamic layout flutter when rendering streaming metrics (token throughput, latency timers, SLA percentages, turn counts) while maintaining proportional font letterforms:
 
 ```html
 <!-- Tabular Numbers on Numeric Badges and Telemetry Indicators -->
@@ -546,6 +546,7 @@ All status badges and indicators default to `font-variant-numeric: tabular-nums`
 <span class="pt-badge pt-badge--numeric warning"><span class="pt-status-dot warning"></span> 1,420 ms P99</span>
 <span class="pt-indicator pt-indicator--numeric info">Turn #042</span>
 <span class="pt-indicator pt-tabular ok">1,842 tok/s</span>
+<span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span>
 ```
 
 High-density status dots (`.pt-dot`, `.pt-dot--ok`, `.status-dot`, `.pt-status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):

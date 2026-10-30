@@ -1599,7 +1599,11 @@
   }
 
   :where(.pt-badge--numeric, .pt-indicator--numeric) {
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "tnum" 1;
+    text-align: right;
+    justify-content: flex-end;
+    min-width: 2ch;
   }
 
   .pt-badge[data-status="ok"], .pt-badge.ok, .pt-badge.success, .pt-indicator[data-status="ok"], .pt-indicator.ok, .pt-indicator.success, .pt-chip[data-status="ok"], .pt-chip.ok, .pt-chip.success {
@@ -2082,5 +2086,10 @@
 
   :where(.tabular-nums, .pt-tabular) {
     font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  :where(.pt-tabular--align-end) {
+    text-align: right;
+    justify-content: flex-end;
   }
 }

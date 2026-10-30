@@ -832,7 +832,11 @@
 
   /* 11a. Tabular Numbers Modifier for Badges & Indicators */
   :where(.pt-badge--numeric, .pt-indicator--numeric) {
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "tnum" 1;
+    justify-content: flex-end;
+    text-align: right;
+    min-width: 2ch;
   }
 
   /* Status Triad Bindings for .pt-badge, .pt-indicator, and .pt-chip */
