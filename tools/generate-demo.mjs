@@ -949,7 +949,7 @@ ${rowsHtml}
         <article class="card">
           <header><strong>Status Indicators &amp; Semantic Chips (<code>.pt-indicator</code> / <code>.pt-chip</code>)</strong></header>
           <main>
-            <p><span class="pt-indicator ok">Online</span> <span class="pt-chip ok">v0.4.1</span> <code>.ok</code></p>
+            <p><span class="pt-indicator ok">Online</span> <span class="pt-chip ok">v0.5.0</span> <code>.ok</code></p>
             <p><span class="pt-indicator warning">Pressure</span> <span class="pt-chip warning">high-load</span> <code>.warning</code></p>
             <p><span class="pt-indicator critical">Failing</span> <span class="pt-chip critical">p0-crit</span> <code>.critical</code></p>
             <p><span class="pt-indicator info">Syncing</span> <span class="pt-chip info">telemetry</span> <code>.info</code></p>

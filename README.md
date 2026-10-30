@@ -74,14 +74,14 @@ Downstream consumers (e.g. Terminus in `kidthales/foundation`) vendor `@kidthale
 
 ```bash
 # Bash: download bundle and verify with sha256sum
-curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.4.1/picotol.layer.min.css
-curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.4.1/SHA256SUMS.txt
+curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.5.0/picotol.layer.min.css
+curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.5.0/SHA256SUMS.txt
 sha256sum --check --ignore-missing SHA256SUMS.txt
 ```
 
 ```powershell
 # PowerShell (structured manifest): download and verify directly via dist/manifest.json
-$u = "https://github.com/kidthales/picotol/releases/download/v0.4.1"
+$u = "https://github.com/kidthales/picotol/releases/download/v0.5.0"
 $manifest = Invoke-RestMethod "$u/manifest.json"
 Invoke-WebRequest "$u/picotol.layer.min.css" -OutFile "./picotol.layer.min.css"
 $hash = (Get-FileHash ./picotol.layer.min.css -Algorithm SHA256).Hash.ToLower()
@@ -91,7 +91,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch: expected $exp, got $hash" }
 
 ```powershell
 # PowerShell (text checksums): download and assert Get-FileHash integrity against SHA256SUMS.txt
-$u = "https://github.com/kidthales/picotol/releases/download/v0.4.1"
+$u = "https://github.com/kidthales/picotol/releases/download/v0.5.0"
 Invoke-WebRequest "$u/picotol.layer.min.css" -OutFile "./picotol.layer.min.css"
 $hash = (Get-FileHash ./picotol.layer.min.css -Algorithm SHA256).Hash.ToLower()
 $exp = ((Invoke-RestMethod "$u/SHA256SUMS.txt") -split "`n" | Where-Object { $_ -match "picotol\.layer\.min\.css" } | ForEach-Object { (-split $_)[0] }).Trim().ToLower()
@@ -103,7 +103,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.4.1/dist/picotol.min.css" integrity="sha384-R6qe4NTVEPRez53Vi3xRLckMFgQRe++ssj7lvgh1YhGyAluAXjq2nNQcuflioi3T" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.0/dist/picotol.min.css" integrity="sha384-hBULhyGQD4QkhixJ7n4U2w4h/hRjip//OEaG8qx1JLifZuXfUxOAo2K9zSgkVNAi" crossorigin="anonymous" />
 ```
 
 ---
@@ -797,7 +797,7 @@ Machine-readable metadata is provided in [`CITATION.cff`](CITATION.cff) (v1.2.0)
 ```
 
 ### APA
-- kidthales. (2026). *@kidthales/picotol: Pure-CSS Semantic HTML Framework Powered Strictly by Paul Tol Colour Schemes* (Version 0.4.1) [Computer software]. https://github.com/kidthales/picotol
+- kidthales. (2026). *@kidthales/picotol: Pure-CSS Semantic HTML Framework Powered Strictly by Paul Tol Colour Schemes* (Version 0.5.0) [Computer software]. https://github.com/kidthales/picotol
 - Tol, P. (2021). *Colour schemes and templates* (SRON Technical Report SRON/EPS/TN/09-002, Issue 3.2). SRON Netherlands Institute for Space Research.
 
 ---
