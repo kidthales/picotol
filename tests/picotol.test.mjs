@@ -3521,3 +3521,33 @@ test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Al
     "README.md must document compact density margin auto-collapsing"
   );
 });
+
+test("Demo Badge & Dot Flex-Gap Row and Tabular Right-Alignment Showcase (Issue #190)", () => {
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const genDemo = fs.readFileSync(path.join(ROOT, "tools/generate-demo.mjs"), "utf8");
+
+  // 1. Badge & Dot Pairing flex-gap row alignment: dot cannot shrink, text cannot wrap mid-line
+  assert.ok(
+    demoHtml.includes('span class="status-dot success no-margin" style="flex-shrink: 0;"') &&
+    demoHtml.includes('small style="white-space: nowrap;">Flex gap layout'),
+    "dist/demo/index.html must prevent dot shrinking and multi-line wrapping in Badge & Dot flex-gap row"
+  );
+  assert.ok(
+    genDemo.includes('span class="status-dot success no-margin" style="flex-shrink: 0;"') &&
+    genDemo.includes('small style="white-space: nowrap;">Flex gap layout'),
+    "tools/generate-demo.mjs must generate flex-shrink: 0 and white-space: nowrap on Badge & Dot flex-gap row"
+  );
+
+  // 2. .pt-tabular--align-end showcase: right-alignment visibly demonstrated via flex container
+  assert.ok(
+    demoHtml.includes('style="display: flex; justify-content: space-between; align-items: center;"') &&
+    demoHtml.includes('<code>.pt-tabular--align-end</code> <span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span>'),
+    "dist/demo/index.html must showcase .pt-tabular--align-end within a space-between flex container"
+  );
+  assert.ok(
+    genDemo.includes('style="display: flex; justify-content: space-between; align-items: center;"') &&
+    genDemo.includes('<code>.pt-tabular--align-end</code> <span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span>'),
+    "tools/generate-demo.mjs must generate .pt-tabular--align-end within a space-between flex container"
+  );
+});
+
