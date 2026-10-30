@@ -163,6 +163,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     '    --pt-cyan: #66CCEE;',
     `    --pt-mark-bg: light-dark(${colorByName('pale', 3)}, ${colorByName('dark', 9)});`,
     '    --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);',
+    '    --pt-z-dropdown: 100;',
     `    --pt-status-ok-fg: light-dark(${colorByName('bright', 'green')}, ${colorByName('muted', 'teal')});`,
     '    --pt-status-ok-border: var(--pt-status-ok-fg);',
     '    --pt-status-ok-bg: color-mix(in srgb, var(--pt-status-ok-border) 8%, transparent);',
