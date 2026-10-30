@@ -6,12 +6,12 @@
     0. Workflow single-source-of-truth drift audit (.github/workflows/*.yml)
     1. Agent & scratch file leak audit (tracked & untracked)
     2. PowerShell AST parse validation (*.ps1)
-    3. Composite test suite (npm test: lint + budgets + node --test) & packaging dry-run (npm pack --dry-run)
-    4. Generated distribution drift audit (npm run generate -> git status --porcelain dist)
+    3. Generated distribution drift audit (npm run generate -> git status --porcelain dist)
+    4. Composite test suite (npm test: lint + budgets + node --test) & packaging dry-run (npm pack --dry-run)
 .PARAMETER Quick
-    Runs Gates 0-3 (skipping npm pack --dry-run and Gate 4 distribution regeneration). Forbidden in -CI mode.
+    Runs without Gate 3 distribution regeneration and Gate 4 npm pack --dry-run. Forbidden in -CI mode.
 .PARAMETER SkipGenerate
-    Skips Gate 4 distribution regeneration and drift verification. Forbidden in -CI mode.
+    Skips Gate 3 distribution regeneration and drift verification. Forbidden in -CI mode.
 .PARAMETER CI
     Enables strict CI mode (auto-enabled when $env:GITHUB_ACTIONS is set): rejects -Quick and -SkipGenerate,
     emits GitHub Actions ::group::/::endgroup:: and ::error:: annotations, and guarantees non-zero exit on failure.
@@ -238,43 +238,17 @@ try {
     Exit-GatePass "PowerShell AST validation passed ($($Ps1Files.Count) script(s))." $StepTimer
 
     # -------------------------------------------------------------
-    # Gate 3: Composite Test Suite & Packaging Verification
+    # Gate 3: Generated Distribution Drift Audit
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    Enter-Gate 3 $MaxGate "Running composite test suite (npm test) and packaging verification (npm pack --dry-run)"
-
-    Write-Host "  -> Running npm test (lint + check:budgets + node --test)..." -ForegroundColor DarkGray
-    & npm test
-    if ($LASTEXITCODE -ne 0) {
-        Write-Fail "npm test failed with exit code $LASTEXITCODE."
-        throw "Gate 3 Failed: Composite test suite (npm test) failed."
-    }
-
-    if (-not $Quick) {
-        Write-Host "  -> Running npm pack --dry-run..." -ForegroundColor DarkGray
-        & npm pack --dry-run
-        if ($LASTEXITCODE -ne 0) {
-            Write-Fail "npm pack --dry-run failed with exit code $LASTEXITCODE."
-            throw "Gate 3 Failed: Package packaging dry-run failed."
-        }
-    } else {
-        Write-Host "  -> Skipping npm pack --dry-run (-Quick)." -ForegroundColor Gray
-    }
-
-    Exit-GatePass "Composite test suite and packaging verification passed." $StepTimer
-
-    # -------------------------------------------------------------
-    # Gate 4: Generated Distribution Drift Audit
-    # -------------------------------------------------------------
-    $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    Enter-Gate 4 $MaxGate "Verifying generated distribution outputs are up to date"
+    Enter-Gate 3 $MaxGate "Verifying generated distribution outputs are up to date"
 
     if (-not $SkipGenerate -and -not $Quick) {
         Write-Host "  -> Running npm run generate..." -ForegroundColor DarkGray
         & npm run generate
         if ($LASTEXITCODE -ne 0) {
             Write-Fail "npm run generate failed with exit code $LASTEXITCODE."
-            throw "Gate 4 Failed: Distribution generation failed."
+            throw "Gate 3 Failed: Distribution generation failed."
         }
 
         $DistStatus = & git status --porcelain dist
@@ -283,7 +257,7 @@ try {
             Write-Host "Drift details:" -ForegroundColor Red
             & git status --porcelain dist
             & git diff --stat dist
-            throw "Gate 4 Failed: Generated distribution drift detected."
+            throw "Gate 3 Failed: Generated distribution drift detected."
         }
 
         Exit-GatePass "Generated outputs are up to date and clean." $StepTimer
@@ -294,6 +268,32 @@ try {
             $script:InGroup = $false
         }
     }
+
+    # -------------------------------------------------------------
+    # Gate 4: Composite Test Suite & Packaging Verification
+    # -------------------------------------------------------------
+    $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
+    Enter-Gate 4 $MaxGate "Running composite test suite (npm test) and packaging verification (npm pack --dry-run)"
+
+    Write-Host "  -> Running npm test (lint + check:budgets + node --test)..." -ForegroundColor DarkGray
+    & npm test
+    if ($LASTEXITCODE -ne 0) {
+        Write-Fail "npm test failed with exit code $LASTEXITCODE."
+        throw "Gate 4 Failed: Composite test suite (npm test) failed."
+    }
+
+    if (-not $Quick) {
+        Write-Host "  -> Running npm pack --dry-run..." -ForegroundColor DarkGray
+        & npm pack --dry-run
+        if ($LASTEXITCODE -ne 0) {
+            Write-Fail "npm pack --dry-run failed with exit code $LASTEXITCODE."
+            throw "Gate 4 Failed: Package packaging dry-run failed."
+        }
+    } else {
+        Write-Host "  -> Skipping npm pack --dry-run (-Quick)." -ForegroundColor Gray
+    }
+
+    Exit-GatePass "Composite test suite and packaging verification passed." $StepTimer
 
     # -------------------------------------------------------------
     # Summary
