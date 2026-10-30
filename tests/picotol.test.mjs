@@ -2807,11 +2807,18 @@ test("Automated Bundle Size, Compression Budgets, CI Gate Parity & README Synchr
 });
 
 
-test("Compact density resets section, article, card, and hr margins in flex and grid layouts (Issue #176)", () => {
-  const css = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+test("Compact and tight density resets section, article, card, and hr margins in flex and grid layouts (Issue #176)", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/layout.css"), "utf8");
   const { code } = transform({ code: Buffer.from(css), minify: true });
   const rules = code.toString("utf8");
-  const resetRule = /:where\(\[data-density=compact\],\.pt-compact\) :where\(section,article,\.card,hr\),:where\(\[data-density=compact\],\.pt-compact\) :where\(\.flex,\.grid,\[style\*="display: flex"\],\[style\*="display: grid"\]\)>:where\(section,article,\.card\)\{margin-block:0\}/;
+  const resetRule = /:where\(\[data-density=compact\],\.pt-compact,\[data-density=tight\],\.pt-tight\) :where\(section,article,\.card,hr\),:where\(\[data-density=compact\],\.pt-compact,\[data-density=tight\],\.pt-tight\) :where\(\.flex,\.grid,\[style\*="display: flex"\],\[style\*="display: grid"\]\)>:where\(section,article,\.card\)\{margin-block:0\}/;
 
-  assert.match(rules, resetRule, "Compact layouts must reset margins on content and flex/grid children");
+  assert.match(rules, resetRule, "Compact and tight layouts must reset margins on content and flex/grid children in src/layout.css");
+
+  // Also assert presence in compiled distribution bundles
+  const minCss = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  assert.match(minCss, resetRule, "Compiled picotol.min.css must contain compact margin reset rule");
+
+  const coreMinCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  assert.match(coreMinCss, resetRule, "Compiled picotol.core.min.css must contain compact margin reset rule");
 });

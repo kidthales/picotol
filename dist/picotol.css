@@ -229,6 +229,10 @@
     }
   }
 
+  :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) :where(section, article, .card, hr), :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) :where(.flex, .grid, [style*="display: flex"], [style*="display: grid"]) > :where(section, article, .card) {
+    margin-block: 0;
+  }
+
   :where(p, ul, ol, dl, blockquote, pre, figure, table, hr, h1, h2, h3, h4, h5, h6) {
     margin: 0 0 var(--pt-spacing);
   }
