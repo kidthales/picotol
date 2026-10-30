@@ -27,7 +27,7 @@
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
   - **`dist/picotol.core.min.css`** (<= 14.0 KB minified, <= 4.5 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 38.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-progress` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.min.css`** (<= 38.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.pt-dot`, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-meter` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
   - **`dist/picotol.layer.min.css`** (<= 38.0 KB minified, <= 9.0 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
 
 ---
@@ -548,20 +548,19 @@ All status badges and indicators default to `font-variant-numeric: tabular-nums`
 <span class="pt-indicator pt-tabular ok">1,842 tok/s</span>
 ```
 
-High-density status dots (`.status-dot`, `.pt-status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
+High-density status dots (`.pt-dot`, `.pt-dot--ok`, `.status-dot`, `.pt-status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
 
 ```html
-<!-- Standalone Status Dots -->
-<span class="status-dot success"></span> Operational
-<span class="status-dot warning"></span> Degraded
-<span class="status-dot danger"></span> Critical
-<span class="status-dot info"></span> In Flight
-<span class="status-dot neutral"></span> Neutral
-<span class="status-dot idle"></span> Idle
+<!-- Standalone Status Dots (.pt-dot primitive) -->
+<span class="pt-dot pt-dot--ok"></span> Operational
+<span class="pt-dot pt-dot--warning"></span> Degraded
+<span class="pt-dot pt-dot--critical"></span> Critical
+<span class="pt-dot pt-dot--info"></span> In Flight
+<span class="pt-dot"></span> Neutral Default
 
 <!-- Pulse Animation & Badges -->
-<span class="pt-status-dot pt-status-dot-danger pulse"></span> Live Alert
-<span class="badge"><span class="status-dot success"></span> Active</span>
+<span class="pt-dot pt-dot--critical pt-dot--pulse"></span> Live Alert
+<span class="badge"><span class="pt-dot pt-dot--ok"></span> Active</span>
 ```
 
 ### 4c. Callout Banners, Copy Pills & Chips
