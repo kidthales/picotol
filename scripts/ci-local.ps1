@@ -302,6 +302,44 @@ try {
     Write-Host "`n====================================================" -ForegroundColor Green
     Write-Host " All CI Verification Checks PASSED (${TotalElapsed}s)" -ForegroundColor Green
     Write-Host "====================================================" -ForegroundColor Cyan
+
+    # -------------------------------------------------------------
+    # Write Verifiable Local CI Receipt (.ci-local/receipt.json)
+    # -------------------------------------------------------------
+    # Skipped under -CI mode or when seldon is absent.
+    if ($IsCI) {
+        Write-Host "`n  -> Skipping local CI receipt generation under -CI mode." -ForegroundColor Gray
+    } else {
+        $SeldonBin = $null
+        if ($env:SELDON_BIN) {
+            if ($env:SELDON_BIN -ne "none" -and (Test-Path $env:SELDON_BIN)) {
+                $SeldonBin = $env:SELDON_BIN
+            }
+        } else {
+            $PathCmd = Get-Command "seldon" -ErrorAction SilentlyContinue
+            if ($PathCmd) {
+                $SeldonBin = $PathCmd.Source
+            }
+        }
+
+        if (-not $SeldonBin) {
+            Write-Host "`n  -> Skipping local CI receipt generation (seldon binary not found)." -ForegroundColor Gray
+        } else {
+            Write-Host "`n[Receipt] Recording local CI receipt via seldon ci receipt..." -ForegroundColor Yellow
+            $ReceiptArgs = @("ci", "receipt", "--dir", $RootDir, "--script-path", "scripts/ci-local.ps1")
+            $ActiveFlags = @()
+            if ($Quick) { $ActiveFlags += "-Quick" }
+            if ($SkipGenerate) { $ActiveFlags += "-SkipGenerate" }
+            if ($ActiveFlags.Count -gt 0) {
+                $ReceiptArgs += @("--flags", ($ActiveFlags -join ","))
+            }
+            & $SeldonBin @ReceiptArgs
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to write local CI receipt via seldon ci receipt."
+            }
+            Write-Host "  -> Local CI receipt written to .ci-local/receipt.json." -ForegroundColor Green
+        }
+    }
 } catch {
     if ($IsCI -and $script:InGroup) {
         Write-Host "::endgroup::"
