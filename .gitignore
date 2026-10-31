@@ -16,3 +16,6 @@ CLAUDE.md
 .env.*
 dist/assets/
 
+# Local CI Receipts (NEVER COMMIT)
+.ci-local/
+
