@@ -171,7 +171,7 @@ export function buildAll(opts = {}) {
   writeFileSync(join(targetDemo, 'index.html'), demoHtml, 'utf8');
   writeFileSync(join(targetDemo, 'CNAME'), 'picotol.kidthales.com\n', 'utf8');
 
-  const assetStats = packageAssets({ outDir: targetDist });
+  const assetStats = packageAssets({ outDir: targetDist, mtime: opts.mtime });
   stats.assetStats = assetStats;
 
   return stats;

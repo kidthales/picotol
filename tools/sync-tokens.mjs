@@ -258,10 +258,26 @@ export function buildPalettesCss(snapshot = loadSnapshot()) {
   return lines.join('\n');
 }
 
+export function syncTokens(opts = {}) {
+  const targetTokensPath = opts.tokensCssPath || (opts.outSrcDir ? join(opts.outSrcDir, 'tokens.css') : tokensCssPath);
+  const targetPalettesPath = opts.palettesCssPath || (opts.outSrcDir ? join(opts.outSrcDir, 'palettes.css') : palettesCssPath);
+  const snapshot = opts.snapshot || loadSnapshot();
+  const tokensCss = buildTokensCss(snapshot);
+  const palettesCss = buildPalettesCss(snapshot);
+  mkdirSync(dirname(targetTokensPath), { recursive: true });
+  mkdirSync(dirname(targetPalettesPath), { recursive: true });
+  writeFileSync(targetTokensPath, tokensCss, 'utf8');
+  writeFileSync(targetPalettesPath, palettesCss, 'utf8');
+  return {
+    snapshot,
+    tokensCss,
+    palettesCss,
+    tokensCssPath: targetTokensPath,
+    palettesCssPath: targetPalettesPath,
+  };
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const snapshot = loadSnapshot();
-  mkdirSync(dirname(tokensCssPath), { recursive: true });
-  writeFileSync(tokensCssPath, buildTokensCss(snapshot), 'utf8');
-  writeFileSync(palettesCssPath, buildPalettesCss(snapshot), 'utf8');
+  const { snapshot } = syncTokens();
   console.log(`Synced ${Object.keys(snapshot.schemes).length} Paul Tol qualitative schemes -> src/tokens.css & src/palettes.css`);
 }

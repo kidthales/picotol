@@ -119,7 +119,7 @@ export function packageAssets(opts = {}) {
     return {
       name: archivePath,
       data: readFileSync(sourcePath),
-      mtime: stat.mtime,
+      mtime: opts.mtime || stat.mtime,
     };
   });
 

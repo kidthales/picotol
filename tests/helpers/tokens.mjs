@@ -113,78 +113,285 @@ export function parseVarCall(str) {
   };
 }
 
+export function splitSelectors(rawSelector) {
+  const result = [];
+  let depth = 0;
+  let quote = null;
+  let start = 0;
+  for (let i = 0; i < rawSelector.length; i++) {
+    const ch = rawSelector[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === '(' || ch === '[') {
+      depth++;
+    } else if (ch === ')' || ch === ']') {
+      depth = Math.max(0, depth - 1);
+    } else if (ch === ',' && depth === 0) {
+      const part = rawSelector.slice(start, i).trim();
+      if (part) result.push(part);
+      start = i + 1;
+    }
+  }
+  const tail = rawSelector.slice(start).trim();
+  if (tail) result.push(tail);
+  return result;
+}
+
+export function extractLayerBlock(cleanCss, layerName) {
+  const re = new RegExp(`@layer\\s+${layerName}\\s*\\{`);
+  const match = re.exec(cleanCss);
+  if (!match) return null;
+  const openBraceIdx = match.index + match[0].length - 1;
+  let depth = 0;
+  let quote = null;
+  for (let i = openBraceIdx; i < cleanCss.length; i++) {
+    const ch = cleanCss[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === '{') {
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        return cleanCss.slice(openBraceIdx + 1, i);
+      }
+    }
+  }
+  throw new Error(`Unclosed @layer ${layerName} block in CSS content`);
+}
+
+export function parseCssBlock(blockText) {
+  const declarations = {};
+  const rules = [];
+  let depth = 0;
+  let quote = null;
+  let tokenStart = 0;
+  let blockOpenIdx = -1;
+  let currentSelector = '';
+
+  function addDeclaration(rawDecl) {
+    const trimmed = rawDecl.trim();
+    if (!trimmed || trimmed.startsWith('@')) return;
+    const colonIdx = trimmed.indexOf(':');
+    if (colonIdx !== -1) {
+      const prop = trimmed.slice(0, colonIdx).trim();
+      const val = trimmed.slice(colonIdx + 1).trim();
+      if (prop) {
+        declarations[prop] = val;
+      }
+    }
+  }
+
+  for (let i = 0; i < blockText.length; i++) {
+    const ch = blockText[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (depth === 0) {
+      if (ch === ';') {
+        addDeclaration(blockText.slice(tokenStart, i));
+        tokenStart = i + 1;
+      } else if (ch === '{') {
+        currentSelector = blockText.slice(tokenStart, i).trim();
+        blockOpenIdx = i + 1;
+        depth = 1;
+      } else if (ch === '}') {
+        throw new Error('Unexpected closing brace in CSS block');
+      }
+    } else {
+      if (ch === '{') {
+        depth++;
+      } else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          const childBody = blockText.slice(blockOpenIdx, i);
+          const childParsed = parseCssBlock(childBody);
+          rules.push({
+            selector: currentSelector,
+            declarations: childParsed.declarations,
+            rules: childParsed.rules,
+          });
+          tokenStart = i + 1;
+        }
+      }
+    }
+  }
+
+  if (depth !== 0) {
+    throw new Error('Unbalanced braces in CSS block');
+  }
+
+  if (tokenStart < blockText.length) {
+    addDeclaration(blockText.slice(tokenStart));
+  }
+
+  return { declarations, rules };
+}
+
+function hasCustomProperties(parsedNode) {
+  if (Object.keys(parsedNode.declarations).some((k) => k.startsWith('--'))) {
+    return true;
+  }
+  return parsedNode.rules.some((r) => hasCustomProperties(r));
+}
+
+function isSecondaryButtonRuleSelector(rawSelector) {
+  const unwrapped = rawSelector
+    .trim()
+    .replace(/^:where\(([\s\S]*)\)$/, '$1')
+    .trim();
+  const parts = splitSelectors(unwrapped);
+  if (parts.length === 0) return false;
+  return (
+    parts.some((p) => p === '.secondary') &&
+    parts.every(
+      (p) => p === '.secondary' || p === '[type="reset"]' || p === '[type=reset]'
+    )
+  );
+}
+
 export function parseTokens(cssContent) {
   // Strip CSS comments before parsing rules
   const cleanCss = cssContent.replace(/\/\*[\s\S]*?\*\//g, '');
 
-  const startTokens = cleanCss.indexOf('@layer tokens {');
-  if (startTokens === -1) {
+  const tokensBlock = extractLayerBlock(cleanCss, 'tokens');
+  if (tokensBlock === null) {
     throw new Error('Missing @layer tokens in CSS content');
   }
-  const endTokens = cleanCss.indexOf('@layer reset {', startTokens);
-  if (endTokens === -1) {
+  if (!/@layer\s+reset\s*\{/.test(cleanCss)) {
     throw new Error('Missing @layer reset delimiter after tokens in CSS content');
   }
-  const tokensBlock = cleanCss.slice(startTokens, endTokens);
 
   const rootDecls = {};
   const accentDecls = { blue: {}, cyan: {}, purple: {}, magenta: {} };
   const secondaryDecls = {};
+  const calloutDecls = {
+    default: {},
+    ok: {},
+    critical: {},
+    warning: {},
+    info: {},
+  };
 
-  const ruleRe = /([^{}]+)\{([^{}]+)\}/g;
-  let m;
-  while ((m = ruleRe.exec(tokensBlock)) !== null) {
-    const rawSel = m[1].trim();
-    const body = m[2];
-    const decls = {};
-    for (const decl of body.split(';')) {
-      const parts = decl.split(':');
-      if (parts.length >= 2) {
-        const prop = parts[0].trim();
-        const val = parts.slice(1).join(':').trim();
-        if (prop.startsWith('--')) {
-          decls[prop] = val;
+  const tokensParsed = parseCssBlock(tokensBlock);
+
+  function processTokensRule(rule, parentSelectors = null) {
+    if (rule.selector.startsWith('@')) {
+      if (hasCustomProperties(rule)) {
+        throw new Error(
+          `Conditional at-rule wrapper not allowed for custom properties in @layer tokens: ${rule.selector}`
+        );
+      }
+      return;
+    }
+
+    const rawSelectors = splitSelectors(rule.selector);
+    const effectiveSelectors = parentSelectors
+      ? parentSelectors.flatMap((parent) =>
+          rawSelectors.map((sel) =>
+            sel.includes('&') ? sel.replaceAll('&', parent) : `${parent} ${sel}`
+          )
+        )
+      : rawSelectors;
+
+    const customDecls = {};
+    for (const [prop, val] of Object.entries(rule.declarations)) {
+      if (prop.startsWith('--')) {
+        customDecls[prop] = val;
+      }
+    }
+    const hasCustomDecls = Object.keys(customDecls).length > 0;
+
+    for (const sel of effectiveSelectors) {
+      if (hasCustomDecls) {
+        if (/\[data-theme\b/.test(sel)) {
+          throw new Error(
+            `Explicit [data-theme] token override not allowed in @layer tokens (use light-dark()): ${sel}`
+          );
         }
+        if (/^:(?:root|host):/.test(sel)) {
+          throw new Error(
+            `Pseudo-class state override on :root/:host not allowed in @layer tokens: ${sel}`
+          );
+        }
+      }
+
+      const accentMatch = sel.match(/\[data-accent=(?:"([a-zA-Z0-9_-]+)"|([a-zA-Z0-9_-]+))\]/);
+      if (accentMatch) {
+        const acc = accentMatch[1] || accentMatch[2];
+        if (!accentDecls[acc]) accentDecls[acc] = {};
+        Object.assign(accentDecls[acc], customDecls);
+      }
+
+      const isPlainRoot = sel === ':root' || sel === ':host';
+      if (isPlainRoot && !accentMatch) {
+        Object.assign(rootDecls, customDecls);
       }
     }
 
-    // Split selector list into individual selectors
-    const selectors = rawSel.split(',').map((s) => s.trim());
-    for (const sel of selectors) {
-      const accentMatch = sel.match(/\[data-accent="?([a-zA-Z0-9_-]+)"?\]/);
-      if (accentMatch) {
-        const acc = accentMatch[1];
-        if (!accentDecls[acc]) accentDecls[acc] = {};
-        Object.assign(accentDecls[acc], decls);
-      }
+    for (const childRule of rule.rules) {
+      processTokensRule(childRule, effectiveSelectors);
+    }
+  }
 
-      // Only assign to rootDecls if selector targets root/host WITHOUT an accent filter
-      const isPlainRoot =
-        sel === ':root' ||
-        sel === ':host' ||
-        sel.startsWith(':root:') ||
-        sel.startsWith(':host:') ||
-        sel.startsWith(':where(:root') ||
-        sel.startsWith(':where([data-theme]');
-      if (isPlainRoot && !accentMatch) {
-        Object.assign(rootDecls, decls);
+  for (const rule of tokensParsed.rules) {
+    processTokensRule(rule, null);
+  }
+
+  // Parse secondary button rules scoped to @layer base (with brace-depth awareness for nested rules)
+  const baseBlock = extractLayerBlock(cleanCss, 'base') ?? cleanCss;
+  const baseParsed = parseCssBlock(baseBlock);
+  for (const rule of baseParsed.rules) {
+    if (isSecondaryButtonRuleSelector(rule.selector)) {
+      for (const [prop, val] of Object.entries(rule.declarations)) {
+        if (prop.startsWith('--')) {
+          secondaryDecls[prop] = val;
+        }
       }
     }
   }
 
-  // Parse secondary button rules from the full clean CSS
-  let m2;
-  while ((m2 = ruleRe.exec(cleanCss)) !== null) {
-    const sel = m2[1].trim();
-    const body = m2[2];
-    if (sel.includes('.secondary') || sel.includes('[type="reset"]') || sel.includes('[type=reset]')) {
-      for (const decl of body.split(';')) {
-        const parts = decl.split(':');
-        if (parts.length >= 2) {
-          const prop = parts[0].trim();
-          const val = parts.slice(1).join(':').trim();
+  // Parse .pt-callout rules scoped to @layer components (including nested variant rules)
+  const componentsBlock = extractLayerBlock(cleanCss, 'components');
+  if (componentsBlock !== null) {
+    const componentsParsed = parseCssBlock(componentsBlock);
+    for (const rule of componentsParsed.rules) {
+      if (rule.selector === ':where(.pt-callout)' || rule.selector === '.pt-callout') {
+        for (const [prop, val] of Object.entries(rule.declarations)) {
           if (prop.startsWith('--')) {
-            secondaryDecls[prop] = val;
+            calloutDecls.default[prop] = val;
+          }
+        }
+        for (const child of rule.rules) {
+          for (const [variant, marker] of [
+            ['ok', '.pt-callout-ok'],
+            ['critical', '.pt-callout-critical'],
+            ['warning', '.pt-callout-warning'],
+            ['info', '.pt-callout-info'],
+          ]) {
+            if (child.selector.includes(marker)) {
+              for (const [prop, val] of Object.entries(child.declarations)) {
+                if (prop.startsWith('--')) {
+                  calloutDecls[variant][prop] = val;
+                }
+              }
+            }
           }
         }
       }
@@ -209,17 +416,23 @@ export function parseTokens(cssContent) {
       nextSeen.add(varName);
 
       const targetVal = accentDecls[accent]?.[varName] || rootDecls[varName] || fallback;
-      if (targetVal) {
-        return resolveValue(targetVal, mode, accent, nextSeen);
+      if (!targetVal) {
+        throw new Error(`Token ${varName} not found`);
       }
+      return resolveValue(targetVal, mode, accent, nextSeen);
     }
     return current;
   }
 
   function getToken(propName, mode = 'light', accent = 'blue') {
-    const raw = accentDecls[accent]?.[propName] || rootDecls[propName];
+    const raw = accentDecls[accent]?.[propName] ?? rootDecls[propName];
+    if (raw === undefined) {
+      throw new Error(`Token ${propName} not found`);
+    }
     const val = resolveValue(raw, mode, accent);
-    if (!val) return null;
+    if (!val) {
+      throw new Error(`Token ${propName} not found`);
+    }
     const norm = expandHex(val);
     if (!/^#[0-9A-F]{6}$/i.test(norm)) {
       throw new Error(`Token "${propName}" resolved to non-hex value: "${val}" (normalized: "${norm}")`);
@@ -228,9 +441,14 @@ export function parseTokens(cssContent) {
   }
 
   function getSecondaryToken(propName, mode = 'light') {
-    const raw = secondaryDecls[propName] || rootDecls[propName];
+    if (!Object.hasOwn(secondaryDecls, propName)) {
+      throw new Error(`Token ${propName} not found in secondaryDecls`);
+    }
+    const raw = secondaryDecls[propName];
     const val = resolveValue(raw, mode, 'blue');
-    if (!val) return null;
+    if (!val) {
+      throw new Error(`Token ${propName} not found`);
+    }
     const norm = expandHex(val);
     if (!/^#[0-9A-F]{6}$/i.test(norm)) {
       throw new Error(`Secondary token "${propName}" resolved to non-hex value: "${val}" (normalized: "${norm}")`);
@@ -238,7 +456,34 @@ export function parseTokens(cssContent) {
     return norm;
   }
 
-  return { rootDecls, accentDecls, secondaryDecls, getToken, getSecondaryToken, resolveValue };
+  function getCalloutToken(propName = '--pt-callout-border', mode = 'light', variant = 'default') {
+    const raw =
+      calloutDecls[variant]?.[propName] ??
+      (variant === 'default' ? undefined : calloutDecls.default?.[propName]);
+    if (raw === undefined) {
+      throw new Error(`Token ${propName} (callout variant: ${variant}) not found`);
+    }
+    const val = resolveValue(raw, mode, 'blue');
+    if (!val) {
+      throw new Error(`Token ${propName} not found`);
+    }
+    const norm = expandHex(val);
+    if (!/^#[0-9A-F]{6}$/i.test(norm)) {
+      throw new Error(`Callout token "${propName}" resolved to non-hex value: "${val}" (normalized: "${norm}")`);
+    }
+    return norm;
+  }
+
+  return {
+    rootDecls,
+    accentDecls,
+    secondaryDecls,
+    calloutDecls,
+    getToken,
+    getSecondaryToken,
+    getCalloutToken,
+    resolveValue,
+  };
 }
 
 let cachedPicotolTokens = null;

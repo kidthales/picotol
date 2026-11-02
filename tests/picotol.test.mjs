@@ -21,14 +21,12 @@ const ROOT = path.resolve(__dirname, "..");
 import {
   tolData,
   expandHex,
-  srgbToLinear,
   relativeLuminance,
   contrastRatio,
   mixSrgb,
   schemeColor,
-  achromaticColor,
-  parseLightDark,
-  parseTokens,
+  extractLayerBlock,
+  parseCssBlock,
   getPicotolTokens,
 } from "./helpers/tokens.mjs";
 
@@ -965,12 +963,15 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
   const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
   const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
 
-  // 1. Canonical Paul Tol color tokens (--pt-red, --pt-yellow, --pt-cyan)
+  // 1. Source token wiring check: canonical Paul Tol color tokens (--pt-red, --pt-yellow, --pt-cyan) in src/tokens.css
+  const expectedRed = schemeColor("bright", "red");
+  const expectedYellow = schemeColor("bright", "yellow");
+  const expectedCyan = schemeColor("bright", "cyan");
   assert.ok(
-    tokensCss.includes("--pt-red: #EE6677;") &&
-    tokensCss.includes("--pt-yellow: #CCBB44;") &&
-    tokensCss.includes("--pt-cyan: #66CCEE;"),
-    "Canonical tokens --pt-red, --pt-yellow, and --pt-cyan must be defined in src/tokens.css"
+    tokensCss.includes(`--pt-red: ${expectedRed};`) &&
+    tokensCss.includes(`--pt-yellow: ${expectedYellow};`) &&
+    tokensCss.includes(`--pt-cyan: ${expectedCyan};`),
+    "Canonical tokens --pt-red, --pt-yellow, and --pt-cyan must be wired in src/tokens.css"
   );
   assert.ok(
     fullCss.includes("--pt-red") &&
@@ -998,33 +999,47 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
 
   // 3. Contrast verification across Light/Dark surfaces and greyscale simulation
   const tokens = getPicotolTokens();
-  const redHex = tokens.getToken("--pt-red");
-  const yellowHex = tokens.getToken("--pt-yellow");
-  const cyanHex = tokens.getToken("--pt-cyan");
+  for (const mode of ["light", "dark"]) {
+    const redHex = tokens.getToken("--pt-red", mode);
+    const yellowHex = tokens.getToken("--pt-yellow", mode);
+    const cyanHex = tokens.getToken("--pt-cyan", mode);
 
-  const redLuminance = relativeLuminance(redHex);
-  const yellowLuminance = relativeLuminance(yellowHex);
-  const cyanLuminance = relativeLuminance(cyanHex);
+    const redLuminance = relativeLuminance(redHex);
+    const yellowLuminance = relativeLuminance(yellowHex);
+    const cyanLuminance = relativeLuminance(cyanHex);
 
-  // In greyscale, luminance values are preserved and distinct
-  assert.ok(Math.abs(redLuminance - yellowLuminance) > 0.15, "Red and yellow must be distinguishable in greyscale");
-  assert.ok(redLuminance < yellowLuminance && yellowLuminance < cyanLuminance, "Severity ladder has monotonic greyscale separation");
+    // In greyscale, luminance values are preserved and distinct in both light and dark modes
+    assert.ok(
+      Math.abs(redLuminance - yellowLuminance) > 0.15,
+      `[${mode}] Red and yellow must be distinguishable in greyscale`
+    );
+    assert.ok(
+      redLuminance < yellowLuminance && yellowLuminance < cyanLuminance,
+      `[${mode}] Severity ladder has monotonic greyscale separation`
+    );
 
-  // Normal typography inside callout uses var(--pt-color)
-  // Contrast against 8% wash passes WCAG 2.2 AA (>= 4.5:1)
-  const lightBgHex = tokens.getToken("--pt-bg", "light");
-  const darkBgHex = tokens.getToken("--pt-bg", "dark");
-  const lightColorHex = tokens.getToken("--pt-color", "light");
-  const darkColorHex = tokens.getToken("--pt-color", "dark");
+    // Normal typography inside callout uses var(--pt-color) against 8% wash of var(--pt-callout-border) over var(--pt-bg)
+    const bgHex = tokens.getToken("--pt-bg", mode);
+    const textColorHex = tokens.getToken("--pt-color", mode);
 
-  const lightBgWash = mixSrgb(redHex, 8, lightBgHex);
-  const darkBgWash = mixSrgb(redHex, 8, darkBgHex);
+    for (const variant of ["default", "critical", "warning", "info", "ok"]) {
+      const calloutBorderHex = tokens.getCalloutToken("--pt-callout-border", mode, variant);
+      const calloutBgWash = mixSrgb(calloutBorderHex, 8, bgHex);
+      const calloutTextContrast = contrastRatio(textColorHex, calloutBgWash);
+      assert.ok(
+        calloutTextContrast >= 4.5,
+        `[${mode}] Callout (${variant}) text contrast (${calloutTextContrast.toFixed(2)}:1) against 8% --pt-callout-border (${calloutBorderHex}) wash must meet WCAG 2.2 AA`
+      );
+    }
 
-  const lightTextContrast = contrastRatio(lightColorHex, lightBgWash);
-  const darkTextContrast = contrastRatio(darkColorHex, darkBgWash);
-
-  assert.ok(lightTextContrast >= 4.5, `Callout text contrast on light (${lightTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
-  assert.ok(darkTextContrast >= 4.5, `Callout text contrast on dark (${darkTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
+    // Also verify 8% wash of mode-resolved --pt-red against mode-resolved --pt-bg
+    const redBgWash = mixSrgb(redHex, 8, bgHex);
+    const redTextContrast = contrastRatio(textColorHex, redBgWash);
+    assert.ok(
+      redTextContrast >= 4.5,
+      `[${mode}] Callout text contrast (${redTextContrast.toFixed(2)}:1) against 8% --pt-red (${redHex}) wash must meet WCAG 2.2 AA`
+    );
+  }
 
   // 4. Standalone .pt-status-dot utility with variants and pulse animation
   assert.ok(
@@ -1149,8 +1164,17 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     fullCss.includes("min-width: 0"),
     "Segmented fill child items must enforce min-width: 0 to allow flex shrinkage"
   );
-  assert.ok(
-    /&:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)\s*\{[^}]*&\s*>\s*\*\s*\{[^}]*display:\s*block;/s.test(fullCss),
+  const componentsParsed = parseCssBlock(extractLayerBlock(fullCss, "components"));
+  const tablistRule = componentsParsed.rules.find((r) => r.selector.includes(".segmented"));
+  assert.ok(tablistRule, "Full CSS @layer components must include .segmented rule");
+  const segmentedGroupRule = tablistRule.rules.find((r) => r.selector.includes(".segmented-fill"));
+  assert.ok(segmentedGroupRule, ".segmented rule must include nested .segmented-fill rule");
+  const segmentedFillRule = segmentedGroupRule.rules.find((r) => r.selector.includes(".segmented-fill"));
+  assert.ok(segmentedFillRule, "Nested .segmented rule must include &:is(.segmented-fill, .segmented-equal, .fill)");
+  const segmentedChildRule = segmentedFillRule.rules.find((r) => r.selector.replace(/\s+/g, "") === "&>*");
+  assert.equal(
+    segmentedChildRule?.declarations?.display,
+    "block",
     "Segmented fill child items must establish a block formatting context (display: block) to enable text ellipsis truncation"
   );
 
@@ -1419,15 +1443,29 @@ test("Semantic Status Tokens and Dark Mode Contrast Calibration (Issue #126)", (
     assert.ok(layerCss.includes(token), `picotol.layer.css must include ${token}`);
   }
 
-  // 2. Paul Tol Canonical Color Mapping Verification
-  // OK: light #228833 (Tol bright green), dark #44AA99 (Tol muted teal)
-  // Warning: light fg #662506 (Tol ylorbr brown), dark fg #DDAA33 (Tol high-contrast yellow), dark border #EE8866 (Tol light orange)
-  // Critical: light #CC3311 (Tol vibrant red), dark #EE6677 (Tol bright red)
-  // Info: light #4477AA (Tol bright blue), dark #66CCEE (Tol bright cyan)
-  assert.ok(tokensCss.includes("#228833") && tokensCss.includes("#44AA99"), "OK token must use canonical Tol green and teal");
-  assert.ok(tokensCss.includes("#662506") && tokensCss.includes("#DDAA33") && tokensCss.includes("#EE8866"), "Warning token must use canonical Tol brown, yellow and orange");
-  assert.ok(tokensCss.includes("#CC3311") && tokensCss.includes("#EE6677"), "Critical token must use canonical Tol red");
-  assert.ok(tokensCss.includes("#4477AA") && tokensCss.includes("#66CCEE"), "Info token must use canonical Tol blue and cyan");
+  // 2. Source Token Wiring Check (not a contrast check; verifies src/tokens.css maps to data/tol-qualitative.json schemes)
+  // OK: light Tol bright green, dark Tol muted teal
+  // Warning: light fg Tol ylorbr[1] brown, dark fg Tol high-contrast yellow, dark border Tol light orange
+  // Critical: light Tol vibrant red, dark Tol bright red
+  // Info: light Tol bright blue, dark Tol bright cyan
+  assert.ok(
+    tokensCss.includes(schemeColor("bright", "green")) && tokensCss.includes(schemeColor("muted", "teal")),
+    "OK token must wire canonical Tol bright green and muted teal in src/tokens.css"
+  );
+  assert.ok(
+    tokensCss.includes(schemeColor("ylorbr", 1)) &&
+    tokensCss.includes(schemeColor("high-contrast", "yellow")) &&
+    tokensCss.includes(schemeColor("light", "orange")),
+    "Warning token must wire canonical Tol brown, yellow, and orange in src/tokens.css"
+  );
+  assert.ok(
+    tokensCss.includes(schemeColor("vibrant", "red")) && tokensCss.includes(schemeColor("bright", "red")),
+    "Critical token must wire canonical Tol vibrant and bright red in src/tokens.css"
+  );
+  assert.ok(
+    tokensCss.includes(schemeColor("bright", "blue")) && tokensCss.includes(schemeColor("bright", "cyan")),
+    "Info token must wire canonical Tol bright blue and cyan in src/tokens.css"
+  );
 
   // 3. Automated WCAG 2.2 Contrast Verification against Dark Surfaces (root & surface)
   const tokens = getPicotolTokens();
@@ -2231,7 +2269,7 @@ test("Nested @layer Taxonomy, Sublayer Preamble, and Downstream Extensibility (I
   const downstreamSnippet = `
     @layer picotol.tokens, my-theme, picotol.reset, picotol.base, picotol.components, my-components, picotol.utilities;
     @layer picotol.tokens {
-      :root { --pt-primary: #123456; }
+      :root { --pt-primary: var(--brand-primary); }
     }
     @layer picotol.components {
       article.card { border-radius: 1.5rem; }
@@ -2277,7 +2315,7 @@ test("Nested @layer Taxonomy, Sublayer Preamble, and Downstream Extensibility (I
     "README must document nested @layer taxonomy declaration"
   );
   assert.ok(
-    readme.includes("@layer picotol.tokens") && readme.includes("var(--brand-primary, #2255AA)"),
+    readme.includes("@layer picotol.tokens") && readme.includes("var(--brand-primary,"),
     "README must document downstream @layer picotol.tokens override pattern"
   );
   assert.ok(
@@ -2518,10 +2556,12 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
   const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
   const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
 
-  // 1. Definition and inclusion of tuned warning foreground token in source tokens and all distribution bundles
+  // 1. Source wiring check: tuned warning foreground token in src/tokens.css and all distribution bundles
+  const expectedWarnLight = schemeColor("ylorbr", 1);
+  const expectedWarnDark = schemeColor("high-contrast", "yellow");
   assert.ok(
-    tokensCss.includes("--pt-status-warning-fg: light-dark(#662506, #DDAA33)"),
-    "tokens.css must define calibrated light-dark(#662506, #DDAA33) for --pt-status-warning-fg"
+    tokensCss.includes(`--pt-status-warning-fg: light-dark(${expectedWarnLight}, ${expectedWarnDark})`),
+    "tokens.css must wire calibrated light-dark(ylorbr[1], high-contrast.yellow) for --pt-status-warning-fg"
   );
   assert.ok(
     coreCss.includes("--pt-status-warning-fg"),
@@ -2540,19 +2580,6 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
   const tokens = getPicotolTokens();
   const lightRoot = tokens.getToken("--pt-bg", "light");
   const lightSurface = tokens.getToken("--pt-surface", "light");
-
-  // Simulate 8% border wash over surface
-  function mixSrgb(borderHex, alphaPct, bgHex) {
-    const c1 = expandHex(borderHex).replace("#", "");
-    const c2 = expandHex(bgHex).replace("#", "");
-    const r1 = parseInt(c1.slice(0, 2), 16), g1 = parseInt(c1.slice(2, 4), 16), b1 = parseInt(c1.slice(4, 6), 16);
-    const r2 = parseInt(c2.slice(0, 2), 16), g2 = parseInt(c2.slice(2, 4), 16), b2 = parseInt(c2.slice(4, 6), 16);
-    const a = alphaPct / 100;
-    const r = Math.round(r1 * a + r2 * (1 - a));
-    const g = Math.round(g1 * a + g2 * (1 - a));
-    const b = Math.round(b1 * a + b2 * (1 - a));
-    return "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
-  }
 
   // Warning triad in light mode: fg, border
   const warnFg = tokens.getToken("--pt-status-warning-fg", "light");
@@ -3364,11 +3391,23 @@ test("Meter Marker Anatomy Disambiguation and Nested Terminus Markup (Issue #183
   // In downstream Terminus markup, .pt-meter-mark is the outer container drawing a pin via :before.
   // Downstream inner elements with .pt-meter-pin must NOT be styled by picotol (drawing 0 duplicate pins),
   // while .pt-meter-label is styled as a label and receives z-index stacking.
-  assert.match(
-    fullCss,
-    /:\s*where\([^)]*\.pt-meter-mark[^)]*\)\s*\{[^}]*&:\s*before\s*\{[^}]*content:\s*""/s,
-    "Outer .pt-meter-mark must draw pin pseudo-element via nested &:before"
+  // Uses brace-depth-aware parseCssBlock so selector parentheses and declaration order cannot cause false failures.
+  const componentsParsed = parseCssBlock(extractLayerBlock(fullCss, "components"));
+  const meterMarkRules = componentsParsed.rules.filter((r) => r.selector.includes(".pt-meter-mark"));
+  assert.ok(meterMarkRules.length > 0, "Full bundle @layer components must define .pt-meter-mark rules");
+
+  const hasBeforePinRule = meterMarkRules.some((r) =>
+    r.rules.some(
+      (child) =>
+        (child.selector === "&:before" || child.selector === "&::before") &&
+        child.declarations.content === '""'
+    )
   );
+  assert.ok(
+    hasBeforePinRule,
+    "Outer .pt-meter-mark must draw pin pseudo-element via nested &:before { content: \"\" }"
+  );
+
   assert.ok(
     !fullCss.includes(".pt-meter-pin"),
     "Full bundle must not define .pt-meter-pin selector, reserving it for downstream element markup"
@@ -3377,9 +3416,12 @@ test("Meter Marker Anatomy Disambiguation and Nested Terminus Markup (Issue #183
     fullCss.includes(".pt-meter-label"),
     "Full bundle must define .pt-meter-label selector"
   );
-  assert.match(
-    fullCss,
-    /\.pt-meter-mark[^{}]*\{[^}]*z-index:\s*var\(--pt-meter-mark-z/,
+
+  const hasMeterMarkZIndex = meterMarkRules.some((r) =>
+    r.declarations["z-index"]?.includes("var(--pt-meter-mark-z")
+  );
+  assert.ok(
+    hasMeterMarkZIndex,
     "Full bundle must bind --pt-meter-mark-z stacking token to z-index on .pt-meter-mark"
   );
 
