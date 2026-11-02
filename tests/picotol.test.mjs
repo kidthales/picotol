@@ -2692,7 +2692,7 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
   );
 });
 
-test("Automated Bundle Size, Compression Budgets, CI Gate Parity & README Synchronization (Issue #167)", () => {
+test("Automated Bundle Size, Compression Budgets, CI Gate Parity & README Synchronization (Issue #167)", (t) => {
   // 1. Verify calculateBundleMetrics returns all 6 CSS distribution bundles with raw, minified, gzip, and brotli sizes
   const metrics = calculateBundleMetrics(ROOT, BUNDLE_BUDGETS);
   assert.equal(metrics.length, 6, "Must audit all 6 CSS distribution bundles");
@@ -2712,6 +2712,14 @@ test("Automated Bundle Size, Compression Budgets, CI Gate Parity & README Synchr
     os.tmpdir(),
     `picotol-step-summary-${process.pid}-${Date.now()}.md`
   );
+  t.after(() => {
+    try {
+      if (fs.existsSync(tmpSummaryFile)) {
+        fs.unlinkSync(tmpSummaryFile);
+      }
+    } catch {}
+  });
+
   try {
     const audit = runBudgetAudit({ stepSummaryPath: tmpSummaryFile });
     assert.equal(audit.ok, true, `Expected budget audit to pass, got errors: ${audit.errors.join("; ")}`);
@@ -2822,9 +2830,26 @@ test("Automated Bundle Size, Compression Budgets, CI Gate Parity & README Synchr
       ciLocalPs1.includes("& npm test"),
     "scripts/ci-local.ps1 must execute the composite npm test suite (which runs check:budgets)"
   );
+  assert.ok(
+    ciLocalPs1.includes("git status --porcelain"),
+    "scripts/ci-local.ps1 must assert a clean working tree after tests and distribution generation"
+  );
 
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
-  assert.ok(readme.includes(EXPECTED_README_BADGE), "README.md must include updated <= 38 KB min | <= 9 KB gzip badge");
+  const badgeRegex = /\[!\[(?<alt>[^\]]*)\]\((?<src>[^)]+)\)\]\((?<href>[^)]+)\)/g;
+  const badges = [...readme.matchAll(badgeRegex)].map((m) => m.groups);
+  const bundleBadge = badges.find((b) => b.alt.toLowerCase().includes("bundle size"));
+  assert.ok(bundleBadge, "README.md must include a Bundle Size badge image link");
+  assert.equal(
+    bundleBadge.src,
+    EXPECTED_README_BADGE,
+    "README.md bundle size badge src must match EXPECTED_README_BADGE"
+  );
+  assert.equal(
+    bundleBadge.href,
+    "dist/sri.json",
+    "README.md bundle size badge href must link to dist/sri.json"
+  );
 });
 
 
@@ -3528,21 +3553,33 @@ test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Al
     );
   }
 
-  // 3. Demo Meter clearance: vertical spacing between bottom-placed pins and top-placed pins
+  // 3. Demo Meter clearance: vertical spacing between bottom-placed pins and top-placed pins (parser-based)
+  const meterElements = [
+    ...demoHtml.matchAll(/<([a-zA-Z0-9]+)\b(?=[^>]*\bclass=["'][^"']*\bpt-meter\b[^"']*["'])(?=[^>]*\bstyle=["']([^"']*)["'])[^>]*>/gi)
+  ];
+  const hasClearedMeter = meterElements.some(([, , style]) =>
+    /(?:^|;)\s*margin-top\s*:\s*2\.75rem\b/i.test(style)
+  );
   assert.ok(
-    demoHtml.includes('style="margin-top: 2.75rem;"'),
-    "dist/demo/index.html must allocate 2.75rem vertical margin for Section 7 gauge threshold clearance"
+    hasClearedMeter,
+    "dist/demo/index.html must allocate 2.75rem vertical margin for Section 7 gauge threshold clearance on .pt-meter"
   );
 
-  // 4. README documentation parity
-  assert.ok(
-    readme.includes("Theme-Reactive Selection Contrast (`::selection`)") &&
-      readme.includes("background-color: var(--pt-primary-bg); color: var(--pt-color);"),
-    "README.md must document ::selection theme-reactive high-contrast styling"
+  // 4. README documentation parity (parser-based section matching)
+  const selectionDocMatch = readme.match(/\*\*[^*]*Theme-Reactive Selection Contrast[^*]*\*\*:\s*([\s\S]*?)(?=\n\s*\d+\.|\n\s*---|\n\s*#|$)/);
+  assert.ok(selectionDocMatch, "README.md must document Theme-Reactive Selection Contrast");
+  assert.match(
+    selectionDocMatch[1],
+    /background-color:\s*var\(--pt-primary-bg\);\s*color:\s*var\(--pt-color\);/,
+    "README.md must document ::selection theme-reactive high-contrast styling properties"
   );
-  assert.ok(
-    readme.includes("Margin Auto-Collapsing") && readme.includes("margin-block: 0;"),
-    "README.md must document compact density margin auto-collapsing"
+
+  const marginCollapseMatch = readme.match(/\*\*[^*]*Margin Auto-Collapsing[^*]*\*\*:\s*([\s\S]*?)(?=\n\s*-\s+\*\*|\n\s*#|$)/);
+  assert.ok(marginCollapseMatch, "README.md must document Margin Auto-Collapsing");
+  assert.match(
+    marginCollapseMatch[1],
+    /margin-block:\s*0;?/,
+    "README.md must document compact density margin-block: 0; auto-collapsing"
   );
 });
 
@@ -3550,16 +3587,29 @@ test("Demo Badge & Dot Flex-Gap Row and Tabular Right-Alignment Showcase (Issue 
   const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
   const genDemo = fs.readFileSync(path.join(ROOT, "tools/generate-demo.mjs"), "utf8");
 
-  // 1. Badge & Dot Pairing flex-gap row alignment: dot cannot shrink, text cannot wrap mid-line
-  assert.ok(
-    demoHtml.includes('span class="status-dot success no-margin" style="flex-shrink: 0;"') &&
-    demoHtml.includes('small style="white-space: nowrap;">Flex gap layout'),
-    "dist/demo/index.html must prevent dot shrinking and multi-line wrapping in Badge & Dot flex-gap row"
+  // 1. Badge & Dot Pairing flex-gap row alignment: dot cannot shrink, text cannot wrap mid-line (parser-based)
+  const flexGapDotPattern = /<span\b(?=[^>]*\bclass=["'][^"']*\bstatus-dot\b[^"']*["'])(?=[^>]*\bstyle=["'][^"']*flex-shrink\s*:\s*0[^"']*["'])[^>]*>/i;
+  const flexGapTextPattern = /<small\b(?=[^>]*\bstyle=["'][^"']*white-space\s*:\s*nowrap[^"']*["'])[^>]*>\s*Flex gap layout/i;
+
+  assert.match(
+    demoHtml,
+    flexGapDotPattern,
+    "dist/demo/index.html must prevent dot shrinking with flex-shrink: 0"
   );
-  assert.ok(
-    genDemo.includes('span class="status-dot success no-margin" style="flex-shrink: 0;"') &&
-    genDemo.includes('small style="white-space: nowrap;">Flex gap layout'),
-    "tools/generate-demo.mjs must generate flex-shrink: 0 and white-space: nowrap on Badge & Dot flex-gap row"
+  assert.match(
+    demoHtml,
+    flexGapTextPattern,
+    "dist/demo/index.html must prevent multi-line wrapping with white-space: nowrap"
+  );
+  assert.match(
+    genDemo,
+    flexGapDotPattern,
+    "tools/generate-demo.mjs must generate flex-shrink: 0 on Badge & Dot status-dot"
+  );
+  assert.match(
+    genDemo,
+    flexGapTextPattern,
+    "tools/generate-demo.mjs must generate white-space: nowrap on Badge & Dot text"
   );
 
   // 2. .pt-tabular--align-end showcase: right-alignment visibly demonstrated via flex container

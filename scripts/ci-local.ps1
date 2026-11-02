@@ -291,11 +291,27 @@ try {
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
     Enter-Gate 4 $MaxGate "Running composite test suite (npm test) and packaging verification (npm pack --dry-run)"
 
+    $PreTestStatus = (& git status --porcelain | Out-String)
     Write-Host "  -> Running npm test (lint + check:budgets + node --test)..." -ForegroundColor DarkGray
     & npm test
     if ($LASTEXITCODE -ne 0) {
         Write-Fail "npm test failed with exit code $LASTEXITCODE."
         throw "Gate 4 Failed: Composite test suite (npm test) failed."
+    }
+
+    # Verify working tree remains 100% clean and side-effect-free after npm test
+    $PostTestStatus = (& git status --porcelain | Out-String)
+    if ($PostTestStatus -ne $PreTestStatus) {
+        Write-Fail "Working tree was mutated by 'npm test'. Tests must be strictly read-only and side-effect-free."
+        Write-Host "Dirty files produced by tests:" -ForegroundColor Red
+        & git status --porcelain
+        throw "Gate 4 Failed: Tests produced working tree side effects."
+    }
+    if ($IsCI -and $PostTestStatus.Trim() -ne "") {
+        Write-Fail "Working tree is dirty in CI after 'npm test'."
+        Write-Host "Dirty files:" -ForegroundColor Red
+        & git status --porcelain
+        throw "Gate 4 Failed: Working tree must be clean in CI."
     }
 
     if (-not $Quick) {

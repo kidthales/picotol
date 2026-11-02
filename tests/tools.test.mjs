@@ -447,6 +447,52 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
   let tempLinkHolder = null;
   let linkToSrc = null;
   let danglingLinkToRepoFile = null;
+
+  const cleanupSyncTest = () => {
+    // Unlink / rmdir junctions and symlinks explicitly in their own try blocks before removing holder
+    if (danglingLinkToRepoFile) {
+      try {
+        if (fs.lstatSync(danglingLinkToRepoFile)) {
+          fs.unlinkSync(danglingLinkToRepoFile);
+        }
+      } catch (err) {
+        if (err.code !== 'ENOENT') t.diagnostic(`Cleanup diagnostic (danglingLinkToRepoFile): ${err.message}`);
+      }
+      danglingLinkToRepoFile = null;
+    }
+    if (tempLinkHolder) {
+      try {
+        const danglingDirLink = path.join(tempLinkHolder, 'dangling-dir-link');
+        if (fs.lstatSync(danglingDirLink)) {
+          if (process.platform === 'win32') fs.rmdirSync(danglingDirLink);
+          else fs.unlinkSync(danglingDirLink);
+        }
+      } catch (err) {
+        if (err.code !== 'ENOENT') t.diagnostic(`Cleanup diagnostic (danglingDirLink): ${err.message}`);
+      }
+      try {
+        const linkToSrcPath = path.join(tempLinkHolder, 'src-junction');
+        if (fs.lstatSync(linkToSrcPath)) {
+          if (process.platform === 'win32') fs.rmdirSync(linkToSrcPath);
+          else fs.unlinkSync(linkToSrcPath);
+        }
+      } catch (err) {
+        if (err.code !== 'ENOENT') t.diagnostic(`Cleanup diagnostic (linkToSrc): ${err.message}`);
+      }
+      try {
+        fs.rmSync(tempLinkHolder, { recursive: true, force: true });
+      } catch {}
+      tempLinkHolder = null;
+    }
+    if (tempSrcDir) {
+      try {
+        fs.rmSync(tempSrcDir, { recursive: true, force: true });
+      } catch {}
+      tempSrcDir = null;
+    }
+  };
+  t.after(cleanupSyncTest);
+
   try {
     tempSrcDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-sync-'));
     tempLinkHolder = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-link-'));
@@ -552,39 +598,7 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
     assert.equal(fs.readFileSync(res.tokensCssPath, 'utf8'), committedTokens, 'Written tokens.css must match committed src/tokens.css byte-for-byte');
     assert.equal(fs.readFileSync(res.palettesCssPath, 'utf8'), committedPalettes, 'Written palettes.css must match committed src/palettes.css byte-for-byte');
   } finally {
-    // Unlink / rmdir junctions and symlinks explicitly in their own try blocks before removing holder
-    if (danglingLinkToRepoFile) {
-      try {
-        if (fs.lstatSync(danglingLinkToRepoFile)) {
-          fs.unlinkSync(danglingLinkToRepoFile);
-        }
-      } catch (err) {
-        if (err.code !== 'ENOENT') t.diagnostic(`Cleanup diagnostic (danglingLinkToRepoFile): ${err.message}`);
-      }
-    }
-    if (tempLinkHolder) {
-      try {
-        const danglingDirLink = path.join(tempLinkHolder, 'dangling-dir-link');
-        if (fs.lstatSync(danglingDirLink)) {
-          if (process.platform === 'win32') fs.rmdirSync(danglingDirLink);
-          else fs.unlinkSync(danglingDirLink);
-        }
-      } catch (err) {
-        if (err.code !== 'ENOENT') t.diagnostic(`Cleanup diagnostic (danglingDirLink): ${err.message}`);
-      }
-    }
-    if (linkToSrc) {
-      try {
-        if (fs.lstatSync(linkToSrc)) {
-          if (process.platform === 'win32') fs.rmdirSync(linkToSrc);
-          else fs.unlinkSync(linkToSrc);
-        }
-      } catch (err) {
-        if (err.code !== 'ENOENT') t.diagnostic(`Cleanup diagnostic (linkToSrc): ${err.message}`);
-      }
-    }
-    if (tempLinkHolder) fs.rmSync(tempLinkHolder, { recursive: true, force: true });
-    if (tempSrcDir) fs.rmSync(tempSrcDir, { recursive: true, force: true });
+    cleanupSyncTest();
   }
   assert.ok(
     fs.existsSync(path.join(ROOT, 'src/tokens.css')),
@@ -600,7 +614,7 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
 // Concurrency note: No other test file in tests/*.test.mjs imports or calls buildAll(),
 // packageAssets(), or syncTokens() (all other test files only read dist/, and this test writes
 // exclusively to os.tmpdir() via fs.mkdtempSync), so parallel `node --test` execution is race-free.
-test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime validation, isolated buildAll, PKZip hash parity, dist/ freshness, and full-tree idempotence', () => {
+test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime validation, isolated buildAll, PKZip hash parity, dist/ freshness, and full-tree idempotence', (t) => {
   // Pure validator tests (resolveOutDir & assertValidMtimeOption): zero filesystem writes even if a guard regressed
   assert.throws(() => resolveOutDir(null), /Invalid outDir/);
   assert.throws(() => resolveOutDir({ outDir: '' }), /Invalid outDir/);
@@ -632,6 +646,24 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
   let tempDir2 = null;
   const fixedMtime = new Date('2026-01-01T00:00:00Z');
   const outerSourceDateEpoch = process.env.SOURCE_DATE_EPOCH;
+
+  const cleanupBuildTest = () => {
+    if (outerSourceDateEpoch === undefined) delete process.env.SOURCE_DATE_EPOCH;
+    else process.env.SOURCE_DATE_EPOCH = outerSourceDateEpoch;
+    if (tempDir1) {
+      try {
+        fs.rmSync(tempDir1, { recursive: true, force: true });
+      } catch {}
+      tempDir1 = null;
+    }
+    if (tempDir2) {
+      try {
+        fs.rmSync(tempDir2, { recursive: true, force: true });
+      } catch {}
+      tempDir2 = null;
+    }
+  };
+  t.after(cleanupBuildTest);
 
   try {
     // Ensure build test is hermetic against any outer SOURCE_DATE_EPOCH environment variable
@@ -867,9 +899,6 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
       /Uncompressed size mismatch for hello\.txt: expected 50, got 11/
     );
   } finally {
-    if (outerSourceDateEpoch === undefined) delete process.env.SOURCE_DATE_EPOCH;
-    else process.env.SOURCE_DATE_EPOCH = outerSourceDateEpoch;
-    if (tempDir1) fs.rmSync(tempDir1, { recursive: true, force: true });
-    if (tempDir2) fs.rmSync(tempDir2, { recursive: true, force: true });
+    cleanupBuildTest();
   }
 });
