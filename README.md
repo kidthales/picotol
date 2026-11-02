@@ -61,8 +61,10 @@ npm install @kidthales/picotol
 #### Standalone Asset Bundles & Release Artifacts
 
 Each GitHub Release attaches:
-- **`picotol-v<version>.zip`**: Offline bundle with all 6 CSS builds, tokens, palette JSON, SRI manifest, and demo.
-- **`dist/SHA256SUMS.txt`**: Cryptographic SHA-256 checksum manifest covering all 6 CSS distribution bundles.
+- **`picotol.core.css`, `picotol.core.min.css`, `picotol.css`, `picotol.min.css`, `picotol.layer.css`, `picotol.layer.min.css`**: All 6 standalone CSS distribution bundles for direct download and vendoring.
+- **`LICENSE` & `NOTICE`**: MIT license and third-party BSD-3 / MIT attribution notices.
+- **`picotol-v<version>.zip`**: Offline bundle with all 6 CSS builds, tokens, palette JSON, SRI manifest, demo, `LICENSE`, and `NOTICE`.
+- **`dist/SHA256SUMS.txt`**: Cryptographic SHA-256 checksum manifest covering every uploaded release asset.
 - **`dist/manifest.json`**: Structured machine-readable release artifact manifest (`sha256`, `size_bytes`) for automated vendoring and CI pipelines.
 - **`dist/sri.json`**: W3C Subresource Integrity metadata (`sha384-...`).
 

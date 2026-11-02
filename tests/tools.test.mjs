@@ -741,7 +741,7 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
     assert.ok(zipBuf.length <= 100 * 1024, `Asset bundle size ${zipBuf.length} B exceeds 100 KB budget`);
 
     const freshZipEntries = parsePkZipEntries(zipBuf);
-    assert.equal(freshZipEntries.length, 11, 'Zip bundle must contain exactly 11 entries');
+    assert.equal(freshZipEntries.length, 13, 'Zip bundle must contain exactly 13 entries');
     const foundFiles = freshZipEntries.map((e) => e.name);
 
     for (const expected of [
@@ -756,6 +756,8 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
       'tokens/tol-qualitative.json',
       'sri.json',
       'index.html',
+      'LICENSE',
+      'NOTICE',
     ]) {
       assert.ok(foundFiles.includes(expected), `Asset bundle missing expected entry: "${expected}"`);
     }
