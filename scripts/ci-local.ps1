@@ -308,10 +308,10 @@ try {
         throw "Gate 4 Failed: Tests produced working tree side effects."
     }
     if ($IsCI -and $PostTestStatus.Trim() -ne "") {
-        Write-Fail "Working tree is dirty in CI after 'npm test'."
+        Write-Fail "Working tree is dirty in CI after 'npm test' (git status must be clean)."
         Write-Host "Dirty files:" -ForegroundColor Red
         & git status --porcelain
-        throw "Gate 4 Failed: Working tree must be clean in CI."
+        throw "Gate 4 Failed: Working tree must be clean after npm test."
     }
 
     if (-not $Quick) {
