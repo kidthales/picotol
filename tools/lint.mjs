@@ -26,13 +26,75 @@ const OPTS = {
   errorRecovery: false,
 };
 
-function expandHex(raw) {
+export function expandHex(raw) {
   const upper = raw.toUpperCase();
   if (upper === '#0000' || upper === '#00000000') return '#000000';
   if (/^#[0-9A-F]{3}$/.test(upper)) {
     return `#${upper[1]}${upper[1]}${upper[2]}${upper[2]}${upper[3]}${upper[3]}`;
   }
   return upper;
+}
+
+let cachedAllowedHexSet = null;
+function getAllowedHexSet() {
+  if (!cachedAllowedHexSet) {
+    const tolData = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/tol-qualitative.json'), 'utf8'));
+    cachedAllowedHexSet = new Set(tolData.allowedHexes.map((h) => h.toUpperCase()));
+  }
+  return cachedAllowedHexSet;
+}
+
+export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
+  const errors = [];
+  const allowedHexSet = opts.allowedHexSet || getAllowedHexSet();
+
+  // 1. Strict LightningCSS parse & warning gate
+  try {
+    const res = transform({
+      filename,
+      code: Buffer.from(content, 'utf8'),
+      minify: false,
+      ...OPTS,
+      ...opts.transformOpts,
+    });
+    if (res.warnings && res.warnings.length > 0) {
+      for (const w of res.warnings) {
+        errors.push(`[${filename}:${w.loc?.line || 0}] LightningCSS warning: ${w.message}`);
+      }
+    }
+  } catch (err) {
+    errors.push(`[${filename}] CSS syntax error: ${err.message}`);
+  }
+
+  // 2. Custom property naming convention (--pt-* or --tol-*)
+  for (const match of content.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)) {
+    const propName = match[1];
+    if (!/^--(pt|tol)-[a-z0-9_-]+$/.test(propName)) {
+      errors.push(`[${filename}] Invalid custom property name "${propName}" (must match --pt-* or --tol-*)`);
+    }
+  }
+
+  // 3. Forbidden color functions & non-Paul-Tol hex codes
+  if (/\b(?:rgb|rgba|hsl|hsla|oklch|lab|lch)\s*\(/i.test(content)) {
+    errors.push(`[${filename}] Forbidden color function (rgb/hsl/oklch/lab/lch) found`);
+  }
+  const withoutDataUris = content.replace(/url\("data:[^"]*"\)/g, '');
+  for (const match of withoutDataUris.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
+    const norm = expandHex(match[0]);
+    if (!allowedHexSet.has(norm)) {
+      errors.push(`[${filename}] Non-Paul-Tol hex color ${match[0]} (${norm})`);
+    }
+  }
+
+  // 4. Accessibility CSS anti-patterns: no outline: none/0, no fixed px font-size
+  if (/\boutline\s*:\s*(?:none|0)\b/i.test(content)) {
+    errors.push(`[${filename}] Accessible focus violation: "outline: none" or "outline: 0" strips forced-colors focus rings`);
+  }
+  if (/\bfont-size\s*:\s*[0-9.]+px\b/i.test(content)) {
+    errors.push(`[${filename}] Scalable typography violation: fixed "px" font-size found (use rem, em, %, or clamp)`);
+  }
+
+  return errors;
 }
 
 export function runLint() {
@@ -91,50 +153,7 @@ export function runLint() {
     const relPath = `src/${file}`;
     const content = fs.readFileSync(fullPath, 'utf8');
 
-    // 1. Strict LightningCSS parse & warning gate
-    try {
-      const res = transform({
-        filename: fullPath,
-        code: Buffer.from(content, 'utf8'),
-        minify: false,
-        ...OPTS,
-      });
-      if (res.warnings && res.warnings.length > 0) {
-        for (const w of res.warnings) {
-          errors.push(`[${relPath}:${w.loc?.line || 0}] LightningCSS warning: ${w.message}`);
-        }
-      }
-    } catch (err) {
-      errors.push(`[${relPath}] CSS syntax error: ${err.message}`);
-    }
-
-    // 2. Custom property naming convention (--pt-* or --tol-*)
-    for (const match of content.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)) {
-      const propName = match[1];
-      if (!/^--(pt|tol)-[a-z0-9_-]+$/.test(propName)) {
-        errors.push(`[${relPath}] Invalid custom property name "${propName}" (must match --pt-* or --tol-*)`);
-      }
-    }
-
-    // 3. Forbidden color functions & non-Paul-Tol hex codes
-    if (/\b(?:rgb|rgba|hsl|hsla|oklch|lab|lch)\s*\(/i.test(content)) {
-      errors.push(`[${relPath}] Forbidden color function (rgb/hsl/oklch/lab/lch) found`);
-    }
-    const withoutDataUris = content.replace(/url\("data:[^"]*"\)/g, '');
-    for (const match of withoutDataUris.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
-      const norm = expandHex(match[0]);
-      if (!allowedHexSet.has(norm)) {
-        errors.push(`[${relPath}] Non-Paul-Tol hex color ${match[0]} (${norm})`);
-      }
-    }
-
-    // 4. Accessibility CSS anti-patterns: no outline: none/0, no fixed px font-size
-    if (/\boutline\s*:\s*(?:none|0)\b/i.test(content)) {
-      errors.push(`[${relPath}] Accessible focus violation: "outline: none" or "outline: 0" strips forced-colors focus rings`);
-    }
-    if (/\bfont-size\s*:\s*[0-9.]+px\b/i.test(content)) {
-      errors.push(`[${relPath}] Scalable typography violation: fixed "px" font-size found (use rem, em, %, or clamp)`);
-    }
+    errors.push(...lintCssSnippet(content, relPath, { allowedHexSet }));
   }
 
   // 5. Bundle-level undefined custom property & accessibility feature verification

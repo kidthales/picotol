@@ -66,6 +66,127 @@ function achromaticColor(name) {
   return tolData.achromatic.find((a) => a.name === name).hex;
 }
 
+function parseLightDark(str) {
+  const match = str.trim().match(/^light-dark\s*\((.*)\)$/s);
+  if (!match) return null;
+  const inner = match[1].trim();
+  let depth = 0;
+  let splitIndex = -1;
+  for (let i = 0; i < inner.length; i++) {
+    if (inner[i] === "(") depth++;
+    else if (inner[i] === ")") depth--;
+    else if (inner[i] === "," && depth === 0) {
+      splitIndex = i;
+      break;
+    }
+  }
+  if (splitIndex === -1) return null;
+  return {
+    light: inner.slice(0, splitIndex).trim(),
+    dark: inner.slice(splitIndex + 1).trim(),
+  };
+}
+
+export function parseTokens(cssContent) {
+  const rootDecls = {};
+  const accentDecls = { blue: {}, cyan: {}, purple: {}, magenta: {} };
+  const secondaryDecls = {};
+
+  const startTokens = cssContent.indexOf("@layer tokens {");
+  const endTokens = cssContent.indexOf("@layer reset {", startTokens);
+  const tokensBlock = startTokens !== -1 && endTokens !== -1
+    ? cssContent.slice(startTokens, endTokens)
+    : cssContent;
+
+  const ruleRe = /([^{}]+)\{([^{}]+)\}/g;
+  let m;
+  while ((m = ruleRe.exec(tokensBlock)) !== null) {
+    const sel = m[1].trim();
+    const body = m[2];
+    const decls = {};
+    for (const decl of body.split(";")) {
+      const parts = decl.split(":");
+      if (parts.length >= 2) {
+        const prop = parts[0].trim();
+        const val = parts.slice(1).join(":").trim();
+        if (prop.startsWith("--")) {
+          decls[prop] = val;
+        }
+      }
+    }
+    if (sel.includes(":root") || sel.includes(":host")) {
+      Object.assign(rootDecls, decls);
+      if (sel.includes('[data-accent="blue"]')) {
+        Object.assign(accentDecls.blue, decls);
+      }
+    }
+    for (const acc of ["cyan", "purple", "magenta"]) {
+      if (sel.includes(`[data-accent="${acc}"]`)) {
+        Object.assign(accentDecls[acc], decls);
+      }
+    }
+  }
+
+  // Also parse secondary button from rest of css
+  let m2;
+  while ((m2 = ruleRe.exec(cssContent)) !== null) {
+    const sel = m2[1].trim();
+    const body = m2[2];
+    if (sel.includes(".secondary") || sel.includes('[type="reset"]')) {
+      for (const decl of body.split(";")) {
+        const parts = decl.split(":");
+        if (parts.length >= 2) {
+          const prop = parts[0].trim();
+          const val = parts.slice(1).join(":").trim();
+          if (prop.startsWith("--")) {
+            secondaryDecls[prop] = val;
+          }
+        }
+      }
+    }
+  }
+
+  function resolveValue(val, mode, accent = "blue") {
+    if (!val) return null;
+    let current = val.trim();
+    const ld = parseLightDark(current);
+    if (ld) {
+      current = mode === "dark" ? ld.dark : ld.light;
+    }
+    const varMatch = current.match(/^var\(\s*(--[a-zA-Z0-9_-]+)(?:\s*,\s*([^)]+))?\s*\)$/);
+    if (varMatch) {
+      const varName = varMatch[1];
+      const fallback = varMatch[2];
+      const targetVal = accentDecls[accent]?.[varName] || rootDecls[varName] || fallback;
+      if (targetVal) {
+        return resolveValue(targetVal, mode, accent);
+      }
+    }
+    return current;
+  }
+
+  function getToken(propName, mode = "light", accent = "blue") {
+    const raw = accentDecls[accent]?.[propName] || rootDecls[propName];
+    return resolveValue(raw, mode, accent);
+  }
+
+  function getSecondaryToken(propName, mode = "light") {
+    const raw = secondaryDecls[propName] || rootDecls[propName];
+    return resolveValue(raw, mode, "blue");
+  }
+
+  return { rootDecls, accentDecls, secondaryDecls, getToken, getSecondaryToken, resolveValue };
+}
+
+let cachedPicotolTokens = null;
+export function getPicotolTokens() {
+  if (!cachedPicotolTokens) {
+    const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+    cachedPicotolTokens = parseTokens(fullCss);
+  }
+  return cachedPicotolTokens;
+}
+
 test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canonical Paul Tol schemes", () => {
   const allowedHexSet = new Set(tolData.allowedHexes.map((h) => h.toUpperCase()));
 
@@ -120,15 +241,16 @@ test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 14.0 KB, picotol.min
 });
 
 test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 4 Paul Tol Accent Ladders (Normal + Hover), and SC 1.4.11 Borders", () => {
-  const lightBg = achromaticColor("white"); // #FFFFFF
-  const lightText = achromaticColor("black"); // #000000
-  const lightMuted = achromaticColor("grey-800"); // #444444
-  const lightBorder = achromaticColor("grey-500"); // #888888
+  const tokens = getPicotolTokens();
+  const lightBg = tokens.getToken("--pt-bg", "light");
+  const lightText = tokens.getToken("--pt-color", "light");
+  const lightMuted = tokens.getToken("--pt-muted-color", "light");
+  const lightBorder = tokens.getToken("--pt-muted-border", "light");
 
-  const darkBg = achromaticColor("black"); // #000000
-  const darkText = achromaticColor("white"); // #FFFFFF
-  const darkMuted = achromaticColor("grey-200"); // #DDDDDD
-  const darkBorder = achromaticColor("grey-700"); // #666666
+  const darkBg = tokens.getToken("--pt-bg", "dark");
+  const darkText = tokens.getToken("--pt-color", "dark");
+  const darkMuted = tokens.getToken("--pt-muted-color", "dark");
+  const darkBorder = tokens.getToken("--pt-muted-border", "dark");
 
   assert.ok(contrastRatio(lightText, lightBg) >= 7.0, "Light mode primary text AAA contrast");
   assert.ok(contrastRatio(lightMuted, lightBg) >= 7.0, "Light mode muted text AAA contrast");
@@ -145,41 +267,15 @@ test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 4 Paul 
     `Dark mode border (${darkBorder}) vs black bg must be >= 3.0:1 (SC 1.4.11)`
   );
 
-  // 4 Accent Ladders matching tools/sync-tokens.mjs (--pt-p1..--pt-p5)
-  const accents = [
-    {
-      name: "blue",
-      p1: schemeColor("pale", 0), // #AACCEE
-      p2: schemeColor("light", "light_blue"), // #77AADD
-      p3: schemeColor("bright", "blue"), // #4477AA
-      p4: schemeColor("dark", 3), // #2255AA
-      p5: schemeColor("high-contrast", "blue"), // #004488
-    },
-    {
-      name: "cyan",
-      p1: schemeColor("pale", 1), // #CCEEFF
-      p2: schemeColor("light", "light_cyan"), // #99DDFF
-      p3: schemeColor("vibrant", "blue"), // #0077BB
-      p4: schemeColor("dark", 6), // #117788
-      p5: schemeColor("high-contrast", "blue"), // #004488
-    },
-    {
-      name: "purple",
-      p1: schemeColor("prgn", 3), // #E7D4E8
-      p2: schemeColor("prgn", 2), // #C2A5CF
-      p3: schemeColor("muted", "purple"), // #AA4499
-      p4: schemeColor("prgn", 0), // #762A83
-      p5: schemeColor("muted", "indigo"), // #332288
-    },
-    {
-      name: "magenta",
-      p1: schemeColor("pale", 5), // #EEBBDD
-      p2: schemeColor("light", "pink"), // #FFAABB
-      p3: schemeColor("dark", 8), // #BB4488
-      p4: schemeColor("dark", 4), // #993366
-      p5: schemeColor("muted", "wine"), // #882255
-    },
-  ];
+  // 4 Accent Ladders dynamically extracted from dist/picotol.css (--pt-p1..--pt-p5)
+  const accents = ["blue", "cyan", "purple", "magenta"].map((name) => ({
+    name,
+    p1: tokens.getToken("--pt-p1", "light", name),
+    p2: tokens.getToken("--pt-p2", "light", name),
+    p3: tokens.getToken("--pt-p3", "light", name),
+    p4: tokens.getToken("--pt-p4", "light", name),
+    p5: tokens.getToken("--pt-p5", "light", name),
+  }));
 
   for (const acc of accents) {
     assert.notEqual(
@@ -289,15 +385,16 @@ test("Secondary Button Decoupling: neutral slate ladder prevents collision with 
   assert.ok(fullCss.includes(secondarySelector), "Secondary selector present in dist/picotol.css");
   assert.ok(coreCss.includes(secondarySelector), "Secondary selector present in dist/picotol.core.css");
 
+  const tokens = getPicotolTokens();
   const secondaryLadder = {
-    p1: achromaticColor("grey-200"), // #DDDDDD (surface in light mode)
-    p2: achromaticColor("grey-500"), // #888888 (hover in light mode)
-    p3: achromaticColor("grey-700"), // #666666 (hover in dark mode)
-    p4: achromaticColor("grey-800"), // #444444 (surface in dark mode)
+    p1: tokens.getSecondaryToken("--pt-primary-bg", "light"),       // resolves to --pt-surface light (#DDDDDD)
+    p2: tokens.getSecondaryToken("--pt-primary-hover-bg", "light"), // resolves to --pt-muted-border light (#888888)
+    p3: tokens.getSecondaryToken("--pt-primary-hover-bg", "dark"),  // resolves to --pt-muted-border dark (#666666)
+    p4: tokens.getSecondaryToken("--pt-primary-bg", "dark"),        // resolves to --pt-surface dark (#444444)
   };
 
-  const lightText = achromaticColor("black"); // #000000
-  const darkText = achromaticColor("white");  // #FFFFFF
+  const lightText = tokens.getToken("--pt-color", "light");
+  const darkText = tokens.getToken("--pt-color", "dark");
 
   const lightCR = contrastRatio(secondaryLadder.p1, lightText);
   const lightHoverCR = contrastRatio(secondaryLadder.p2, lightText);
@@ -481,27 +578,28 @@ test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, sele
 });
 
 test("Semantic State Token Contrast: --pt-valid, --pt-warning, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA", () => {
-  const lightBg = achromaticColor("white"); // #FFFFFF
-  const darkBg = achromaticColor("black");  // #000000
+  const tokens = getPicotolTokens();
+  const lightBg = tokens.getToken("--pt-bg", "light");
+  const darkBg = tokens.getToken("--pt-bg", "dark");
 
-  // Light Mode States
-  const lightValid = schemeColor("dark", 5);          // #006644
-  const lightWarning = schemeColor("dark", 9);        // #775500
-  const lightInvalid = schemeColor("vibrant", "red"); // #CC3311
-  const lightMarkBg = schemeColor("pale", 3);         // #EEEEBB
-  const lightMarkText = achromaticColor("black");     // #000000
+  // Light Mode States dynamically resolved from dist/picotol.css tokens
+  const lightValid = tokens.getToken("--pt-valid", "light");
+  const lightWarning = tokens.getToken("--pt-warning", "light");
+  const lightInvalid = tokens.getToken("--pt-invalid", "light");
+  const lightMarkBg = tokens.getToken("--pt-mark-bg", "light");
+  const lightMarkText = tokens.getToken("--pt-color", "light");
 
   assert.ok(contrastRatio(lightValid, lightBg) >= 4.5, "Light valid >= 4.5:1 AA");
   assert.ok(contrastRatio(lightWarning, lightBg) >= 4.5, "Light warning >= 4.5:1 AA");
   assert.ok(contrastRatio(lightInvalid, lightBg) >= 4.5, "Light invalid >= 4.5:1 AA");
   assert.ok(contrastRatio(lightMarkText, lightMarkBg) >= 4.5, "Light mark text >= 4.5:1 AA");
 
-  // Dark Mode States
-  const darkValid = schemeColor("light", "mint");         // #44BB99
-  const darkWarning = schemeColor("light", "light_yellow"); // #EEDD88
-  const darkInvalid = schemeColor("bright", "red");       // #EE6677
-  const darkMarkBg = schemeColor("dark", 9);              // #775500
-  const darkMarkText = achromaticColor("white");          // #FFFFFF
+  // Dark Mode States dynamically resolved from dist/picotol.css tokens
+  const darkValid = tokens.getToken("--pt-valid", "dark");
+  const darkWarning = tokens.getToken("--pt-warning", "dark");
+  const darkInvalid = tokens.getToken("--pt-invalid", "dark");
+  const darkMarkBg = tokens.getToken("--pt-mark-bg", "dark");
+  const darkMarkText = tokens.getToken("--pt-color", "dark");
 
   assert.ok(contrastRatio(darkValid, darkBg) >= 4.5, "Dark valid >= 4.5:1 AA");
   assert.ok(contrastRatio(darkWarning, darkBg) >= 4.5, "Dark warning >= 4.5:1 AA");
@@ -576,9 +674,10 @@ test("Color Scheme Scoping & Data-Accent Isolation: [data-accent] must not overr
     );
   }
 
-  // Verify purple light mode contrast: p4 (#762A83) on white (#FFFFFF) >= 7.0 (AAA)
-  const purpleP4 = schemeColor("prgn", 0); // #762A83
-  const lightBg = achromaticColor("white"); // #FFFFFF
+  // Verify purple light mode contrast: p4 on white >= 7.0 (AAA)
+  const tokens = getPicotolTokens();
+  const purpleP4 = tokens.getToken("--pt-p4", "light", "purple");
+  const lightBg = tokens.getToken("--pt-bg", "light");
   const purpleLightCR = contrastRatio(purpleP4, lightBg);
   assert.ok(
     purpleLightCR >= 7.0,
@@ -621,7 +720,7 @@ test("High-Density Layout Containment: scope section, article, and hr margins wi
       "Must scope margins for direct children of containers with inline gap"
     );
     assert.ok(
-      css.includes('style*="display: flex"') || css.includes("style*=\"display: flex\"") || css.includes("display: flex"),
+      css.includes('[style*="display: flex"]') || css.includes('[style*="display:flex"]') || css.includes('[style*=display]'),
       "Must scope margins for direct children of flex containers"
     );
     assert.ok(
@@ -633,7 +732,10 @@ test("High-Density Layout Containment: scope section, article, and hr margins wi
   // Verify minified bundles compile scoping rules without syntax loss
   for (const min of [fullMin, coreMin]) {
     assert.ok(min.includes("margin-bottom:0"), "Minified bundles must compile margin-bottom: 0 reset");
-    assert.ok(min.includes("gap"), "Minified bundles must retain gap-based container selectors");
+    assert.ok(
+      min.includes('[style*="gap"]') || min.includes('[style*=gap]'),
+      "Minified bundles must retain gap-based container selectors"
+    );
   }
 
   // Full CSS specific checks for article and .card containment
@@ -766,18 +868,19 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
   );
 
   // WCAG 2.2 SC 1.4.11 Non-text contrast verification (>= 3.0:1)
-  const lightBg = achromaticColor("white"); // #FFFFFF
-  const darkBg = achromaticColor("black");  // #000000
+  const tokens = getPicotolTokens();
+  const lightBg = tokens.getToken("--pt-bg", "light");
+  const darkBg = tokens.getToken("--pt-bg", "dark");
 
-  const lightValid = schemeColor("dark", 5);          // #006644
-  const lightWarning = schemeColor("dark", 9);        // #775500
-  const lightInvalid = schemeColor("vibrant", "red"); // #CC3311
-  const lightMuted = achromaticColor("grey-500");     // #888888
+  const lightValid = tokens.getToken("--pt-valid", "light");
+  const lightWarning = tokens.getToken("--pt-warning", "light");
+  const lightInvalid = tokens.getToken("--pt-invalid", "light");
+  const lightMuted = tokens.getToken("--pt-muted-border", "light");
 
-  const darkValid = schemeColor("light", "mint");           // #44BB99
-  const darkWarning = schemeColor("light", "light_yellow"); // #EEDD88
-  const darkInvalid = schemeColor("bright", "red");         // #EE6677
-  const darkMuted = achromaticColor("grey-700");           // #666666
+  const darkValid = tokens.getToken("--pt-valid", "dark");
+  const darkWarning = tokens.getToken("--pt-warning", "dark");
+  const darkInvalid = tokens.getToken("--pt-invalid", "dark");
+  const darkMuted = tokens.getToken("--pt-muted-border", "dark");
 
   // Verify Light Mode dots vs White Surface >= 3.0:1
   assert.ok(contrastRatio(lightValid, lightBg) >= 3.0, "Status dot success >= 3:1 in light mode");
@@ -1040,26 +1143,38 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
     "Callouts must use 4px solid start border"
   );
   assert.ok(
-    fullCss.includes("color-mix(in srgb, var(--pt-callout-border) 8%, var(--pt-bg))") ||
-    fullCss.includes("8%"),
+    fullCss.includes("color-mix(in srgb, var(--pt-callout-border) 8%, var(--pt-bg))"),
     "Callouts must use 8% alpha washes"
   );
 
   // 3. Contrast verification across Light/Dark surfaces and greyscale simulation
-  const redLuminance = relativeLuminance("#EE6677");
-  const yellowLuminance = relativeLuminance("#CCBB44");
-  const cyanLuminance = relativeLuminance("#66CCEE");
+  const tokens = getPicotolTokens();
+  const redHex = tokens.getToken("--pt-red");
+  const yellowHex = tokens.getToken("--pt-yellow");
+  const cyanHex = tokens.getToken("--pt-cyan");
+
+  const redLuminance = relativeLuminance(redHex);
+  const yellowLuminance = relativeLuminance(yellowHex);
+  const cyanLuminance = relativeLuminance(cyanHex);
 
   // In greyscale, luminance values are preserved and distinct
   assert.ok(Math.abs(redLuminance - yellowLuminance) > 0.15, "Red and yellow must be distinguishable in greyscale");
   assert.ok(redLuminance < yellowLuminance && yellowLuminance < cyanLuminance, "Severity ladder has monotonic greyscale separation");
 
-  // Normal typography inside callout uses var(--pt-color) (light: #000000, dark: #FFFFFF)
+  // Normal typography inside callout uses var(--pt-color)
   // Contrast against 8% wash passes WCAG 2.2 AA (>= 4.5:1)
-  const lightBgLuminance = 0.08 * redLuminance + 0.92 * 1.0;
-  const darkBgLuminance = 0.08 * redLuminance + 0.92 * 0.0;
-  const lightTextContrast = (lightBgLuminance + 0.05) / (0.0 + 0.05);
-  const darkTextContrast = (1.0 + 0.05) / (darkBgLuminance + 0.05);
+  const lightBgHex = tokens.getToken("--pt-bg", "light");
+  const darkBgHex = tokens.getToken("--pt-bg", "dark");
+  const lightColorHex = tokens.getToken("--pt-color", "light");
+  const darkColorHex = tokens.getToken("--pt-color", "dark");
+
+  const lightBgLuminance = 0.08 * redLuminance + 0.92 * relativeLuminance(lightBgHex);
+  const darkBgLuminance = 0.08 * redLuminance + 0.92 * relativeLuminance(darkBgHex);
+  const lightTextLum = relativeLuminance(lightColorHex);
+  const darkTextLum = relativeLuminance(darkColorHex);
+
+  const lightTextContrast = (lightBgLuminance + 0.05) / (lightTextLum + 0.05);
+  const darkTextContrast = (darkTextLum + 0.05) / (darkBgLuminance + 0.05);
 
   assert.ok(lightTextContrast >= 4.5, `Callout text contrast on light (${lightTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
   assert.ok(darkTextContrast >= 4.5, `Callout text contrast on dark (${darkTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
@@ -1188,9 +1303,7 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     "Segmented fill child items must enforce min-width: 0 to allow flex shrinkage"
   );
   assert.ok(
-    /&:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)\s*\{[^}]*& > \*\s*\{[^}]*display:\s*block;/s.test(fullCss) ||
-    /\.segmented:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)\s*>\s*\*\s*\{[^}]*display:\s*block/s.test(fullCss) ||
-    (fullCss.includes(".segmented-fill") && fullCss.includes("display: block")),
+    /&:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)[\s\S]*?&\s*>\s*\*[\s\S]*?display:\s*block;/.test(fullCss),
     "Segmented fill child items must establish a block formatting context (display: block) to enable text ellipsis truncation"
   );
 
@@ -1469,65 +1582,75 @@ test("Semantic Status Tokens and Dark Mode Contrast Calibration (Issue #126)", (
   assert.ok(tokensCss.includes("#CC3311") && tokensCss.includes("#EE6677"), "Critical token must use canonical Tol red");
   assert.ok(tokensCss.includes("#4477AA") && tokensCss.includes("#66CCEE"), "Info token must use canonical Tol blue and cyan");
 
-  // 3. Automated WCAG 2.2 Contrast Verification against Dark Surfaces (#000000 root, #444444 surface)
-  const darkRoot = "#000000";
-  const darkSurface = "#444444";
-  const lightRoot = "#FFFFFF";
+  // 3. Automated WCAG 2.2 Contrast Verification against Dark Surfaces (root & surface)
+  const tokens = getPicotolTokens();
+  const darkRoot = tokens.getToken("--pt-bg", "dark");
+  const darkSurface = tokens.getToken("--pt-surface", "dark");
+  const lightRoot = tokens.getToken("--pt-bg", "light");
+
+  const warnFgDark = tokens.getToken("--pt-status-warning-fg", "dark");
+  const warnBorderDark = tokens.getToken("--pt-status-warning-border", "dark");
+  const okFgLight = tokens.getToken("--pt-status-ok-fg", "light");
+  const okFgDark = tokens.getToken("--pt-status-ok-fg", "dark");
+  const critFgLight = tokens.getToken("--pt-status-critical-fg", "light");
+  const critFgDark = tokens.getToken("--pt-status-critical-fg", "dark");
+  const infoFgLight = tokens.getToken("--pt-status-info-fg", "light");
+  const infoFgDark = tokens.getToken("--pt-status-info-fg", "dark");
 
   // Warning Dark Mode Calibration:
-  // Text: #DDAA33 must strictly achieve >= 4.5:1 on both root (#000000) and surface (#444444)
-  const crWarnFgDarkRoot = contrastRatio("#DDAA33", darkRoot);
-  const crWarnFgDarkSurface = contrastRatio("#DDAA33", darkSurface);
+  // Text: must strictly achieve >= 4.5:1 on both root and surface
+  const crWarnFgDarkRoot = contrastRatio(warnFgDark, darkRoot);
+  const crWarnFgDarkSurface = contrastRatio(warnFgDark, darkSurface);
   assert.ok(
     crWarnFgDarkRoot >= 4.5,
-    `Warning text #DDAA33 on dark root #000000 must be >= 4.5:1 (got ${crWarnFgDarkRoot.toFixed(2)}:1)`
+    `Warning text ${warnFgDark} on dark root ${darkRoot} must be >= 4.5:1 (got ${crWarnFgDarkRoot.toFixed(2)}:1)`
   );
   assert.ok(
     crWarnFgDarkSurface >= 4.5,
-    `Warning text #DDAA33 on dark surface #444444 must be >= 4.5:1 (got ${crWarnFgDarkSurface.toFixed(2)}:1)`
+    `Warning text ${warnFgDark} on dark surface ${darkSurface} must be >= 4.5:1 (got ${crWarnFgDarkSurface.toFixed(2)}:1)`
   );
 
-  // Non-Text / Border: #EE8866 must strictly achieve >= 3.0:1 on both root (#000000) and surface (#444444)
-  const crWarnBorderDarkRoot = contrastRatio("#EE8866", darkRoot);
-  const crWarnBorderDarkSurface = contrastRatio("#EE8866", darkSurface);
+  // Non-Text / Border: must strictly achieve >= 3.0:1 on both root and surface
+  const crWarnBorderDarkRoot = contrastRatio(warnBorderDark, darkRoot);
+  const crWarnBorderDarkSurface = contrastRatio(warnBorderDark, darkSurface);
   assert.ok(
     crWarnBorderDarkRoot >= 3.0,
-    `Warning border #EE8866 on dark root #000000 must be >= 3.0:1 (got ${crWarnBorderDarkRoot.toFixed(2)}:1)`
+    `Warning border ${warnBorderDark} on dark root ${darkRoot} must be >= 3.0:1 (got ${crWarnBorderDarkRoot.toFixed(2)}:1)`
   );
   assert.ok(
     crWarnBorderDarkSurface >= 3.0,
-    `Warning border #EE8866 on dark surface #444444 must be >= 3.0:1 (got ${crWarnBorderDarkSurface.toFixed(2)}:1)`
+    `Warning border ${warnBorderDark} on dark surface ${darkSurface} must be >= 3.0:1 (got ${crWarnBorderDarkSurface.toFixed(2)}:1)`
   );
 
   // OK Contrast Verification:
-  // Light text #228833 on white >= 4.5:1
-  const crOkLight = contrastRatio("#228833", lightRoot);
-  assert.ok(crOkLight >= 4.5, `OK text #228833 on white must be >= 4.5:1 (got ${crOkLight.toFixed(2)}:1)`);
-  // Dark border/text #44AA99 on dark root >= 4.5:1, on dark surface >= 3.0:1
-  const crOkDarkRoot = contrastRatio("#44AA99", darkRoot);
-  const crOkDarkSurface = contrastRatio("#44AA99", darkSurface);
-  assert.ok(crOkDarkRoot >= 4.5, `OK text/border #44AA99 on dark root must be >= 4.5:1 (got ${crOkDarkRoot.toFixed(2)}:1)`);
-  assert.ok(crOkDarkSurface >= 3.0, `OK border #44AA99 on dark surface must be >= 3.0:1 (got ${crOkDarkSurface.toFixed(2)}:1)`);
+  // Light text on white >= 4.5:1
+  const crOkLight = contrastRatio(okFgLight, lightRoot);
+  assert.ok(crOkLight >= 4.5, `OK text ${okFgLight} on white must be >= 4.5:1 (got ${crOkLight.toFixed(2)}:1)`);
+  // Dark border/text on dark root >= 4.5:1, on dark surface >= 3.0:1
+  const crOkDarkRoot = contrastRatio(okFgDark, darkRoot);
+  const crOkDarkSurface = contrastRatio(okFgDark, darkSurface);
+  assert.ok(crOkDarkRoot >= 4.5, `OK text/border ${okFgDark} on dark root must be >= 4.5:1 (got ${crOkDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crOkDarkSurface >= 3.0, `OK border ${okFgDark} on dark surface must be >= 3.0:1 (got ${crOkDarkSurface.toFixed(2)}:1)`);
 
   // Critical Contrast Verification:
-  // Light text #CC3311 on white >= 4.5:1
-  const crCritLight = contrastRatio("#CC3311", lightRoot);
-  assert.ok(crCritLight >= 4.5, `Critical text #CC3311 on white must be >= 4.5:1 (got ${crCritLight.toFixed(2)}:1)`);
-  // Dark border/text #EE6677 on dark root >= 4.5:1, on dark surface >= 3.0:1
-  const crCritDarkRoot = contrastRatio("#EE6677", darkRoot);
-  const crCritDarkSurface = contrastRatio("#EE6677", darkSurface);
-  assert.ok(crCritDarkRoot >= 4.5, `Critical text/border #EE6677 on dark root must be >= 4.5:1 (got ${crCritDarkRoot.toFixed(2)}:1)`);
-  assert.ok(crCritDarkSurface >= 3.0, `Critical border #EE6677 on dark surface must be >= 3.0:1 (got ${crCritDarkSurface.toFixed(2)}:1)`);
+  // Light text on white >= 4.5:1
+  const crCritLight = contrastRatio(critFgLight, lightRoot);
+  assert.ok(crCritLight >= 4.5, `Critical text ${critFgLight} on white must be >= 4.5:1 (got ${crCritLight.toFixed(2)}:1)`);
+  // Dark border/text on dark root >= 4.5:1, on dark surface >= 3.0:1
+  const crCritDarkRoot = contrastRatio(critFgDark, darkRoot);
+  const crCritDarkSurface = contrastRatio(critFgDark, darkSurface);
+  assert.ok(crCritDarkRoot >= 4.5, `Critical text/border ${critFgDark} on dark root must be >= 4.5:1 (got ${crCritDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crCritDarkSurface >= 3.0, `Critical border ${critFgDark} on dark surface must be >= 3.0:1 (got ${crCritDarkSurface.toFixed(2)}:1)`);
 
   // Info Contrast Verification:
-  // Light text #4477AA on white >= 4.5:1
-  const crInfoLight = contrastRatio("#4477AA", lightRoot);
-  assert.ok(crInfoLight >= 4.5, `Info text #4477AA on white must be >= 4.5:1 (got ${crInfoLight.toFixed(2)}:1)`);
-  // Dark border/text #66CCEE on dark root >= 4.5:1, on dark surface >= 4.5:1
-  const crInfoDarkRoot = contrastRatio("#66CCEE", darkRoot);
-  const crInfoDarkSurface = contrastRatio("#66CCEE", darkSurface);
-  assert.ok(crInfoDarkRoot >= 4.5, `Info text/border #66CCEE on dark root must be >= 4.5:1 (got ${crInfoDarkRoot.toFixed(2)}:1)`);
-  assert.ok(crInfoDarkSurface >= 4.5, `Info border #66CCEE on dark surface must be >= 4.5:1 (got ${crInfoDarkSurface.toFixed(2)}:1)`);
+  // Light text on white >= 4.5:1
+  const crInfoLight = contrastRatio(infoFgLight, lightRoot);
+  assert.ok(crInfoLight >= 4.5, `Info text ${infoFgLight} on white must be >= 4.5:1 (got ${crInfoLight.toFixed(2)}:1)`);
+  // Dark border/text on dark root >= 4.5:1, on dark surface >= 4.5:1
+  const crInfoDarkRoot = contrastRatio(infoFgDark, darkRoot);
+  const crInfoDarkSurface = contrastRatio(infoFgDark, darkSurface);
+  assert.ok(crInfoDarkRoot >= 4.5, `Info text/border ${infoFgDark} on dark root must be >= 4.5:1 (got ${crInfoDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crInfoDarkSurface >= 4.5, `Info border ${infoFgDark} on dark surface must be >= 4.5:1 (got ${crInfoDarkSurface.toFixed(2)}:1)`);
 
   // 4. Component Wiring Assertions
   // Status Dots (.status-dot, .pt-status-dot)
@@ -2567,9 +2690,9 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
   );
 
   // 2. Light Theme Status Triads Contrast Audit against WCAG 2.2 Standards
-  // Light root background: #FFFFFF; Light card/surface background: #DDDDDD
-  const lightRoot = "#FFFFFF";
-  const lightSurface = "#DDDDDD";
+  const tokens = getPicotolTokens();
+  const lightRoot = tokens.getToken("--pt-bg", "light");
+  const lightSurface = tokens.getToken("--pt-surface", "light");
 
   // Simulate 8% border wash over surface
   function mixSrgb(borderHex, alphaPct, bgHex) {
@@ -2584,9 +2707,9 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
     return "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
   }
 
-  // Warning triad in light mode: fg #662506 (Tol ylorbr brown), border #DDAA33 (Tol high-contrast yellow)
-  const warnFg = "#662506";
-  const warnBorder = "#DDAA33";
+  // Warning triad in light mode: fg, border
+  const warnFg = tokens.getToken("--pt-status-warning-fg", "light");
+  const warnBorder = tokens.getToken("--pt-status-warning-border", "light");
   const warnBgOnRoot = mixSrgb(warnBorder, 8, lightRoot);
   const warnBgOnSurface = mixSrgb(warnBorder, 8, lightSurface);
 
@@ -2598,25 +2721,25 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
 
   assert.ok(
     crWarnRoot >= 7.0,
-    `Warning fg #662506 on white root must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnRoot.toFixed(2)}:1)`
+    `Warning fg ${warnFg} on white root must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnRoot.toFixed(2)}:1)`
   );
   assert.ok(
     crWarnSurface >= 7.0,
-    `Warning fg #662506 on light surface must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnSurface.toFixed(2)}:1)`
+    `Warning fg ${warnFg} on light surface must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnSurface.toFixed(2)}:1)`
   );
   assert.ok(
     crWarnBadgeRoot >= 7.0,
-    `Warning fg #662506 on 8% badge wash (root) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeRoot.toFixed(2)}:1)`
+    `Warning fg ${warnFg} on 8% badge wash (root) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeRoot.toFixed(2)}:1)`
   );
   assert.ok(
     crWarnBadgeSurface >= 7.0,
-    `Warning fg #662506 on 8% badge wash (surface) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeSurface.toFixed(2)}:1)`
+    `Warning fg ${warnFg} on 8% badge wash (surface) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeSurface.toFixed(2)}:1)`
   );
 
   // 3. Status Triads Audit for OK, Critical, and Info (WCAG 2.2 AA text >= 4.5:1 on root)
-  const okFg = "#228833";
-  const critFg = "#CC3311";
-  const infoFg = "#4477AA";
+  const okFg = tokens.getToken("--pt-status-ok-fg", "light");
+  const critFg = tokens.getToken("--pt-status-critical-fg", "light");
+  const infoFg = tokens.getToken("--pt-status-info-fg", "light");
 
   const crOkRoot = contrastRatio(okFg, lightRoot);
   const crCritRoot = contrastRatio(critFg, lightRoot);
@@ -3390,33 +3513,26 @@ test("Meter Marker Anatomy Disambiguation and Nested Terminus Markup (Issue #183
     "dist/picotol.core.css must strictly exclude .pt-meter-label"
   );
 
-  // 6. Regression simulation: Nested Terminus markup (.pt-meter-mark > .pt-meter-pin + .pt-meter-label)
-  // In downstream Terminus markup, .pt-meter-mark is the outer container. If an inner element has
-  // .pt-meter-pin, it must NOT draw a second pin via ::before nor get label positioning.
-  // We simulate selector matching against the compiled CSS rules.
-  function simulateNestedTerminusAnatomy() {
-    // Outer container: .pt-meter-mark
-    // Inner child 1: .pt-meter-pin (downstream pin element)
-    // Inner child 2: .pt-meter-label (downstream label element)
-    const containerClasses = [".pt-gauge-marker", ".pt-meter-mark", ".pt-meter-mark--start", ".pt-meter-mark--end"];
-    const labelClasses = [".pt-gauge-label", ".pt-meter-label", "[data-label]"];
-
-    const isContainer = (cls) => containerClasses.includes(cls);
-    const isLabel = (cls) => labelClasses.includes(cls);
-
-    // .pt-meter-mark is a container that gets ::before pin
-    assert.ok(isContainer(".pt-meter-mark"), "Outer .pt-meter-mark must match container rules");
-
-    // .pt-meter-pin is NOT recognized as a container, drawing 0 pseudo-pins from picotol
-    assert.ok(!isContainer(".pt-meter-pin"), "Inner .pt-meter-pin must NOT match container rules");
-
-    // .pt-meter-pin is NOT recognized as a label selector, so it does NOT receive label positioning
-    assert.ok(!isLabel(".pt-meter-pin"), "Inner .pt-meter-pin must NOT match label selector rules");
-
-    // .pt-meter-label matches label rules
-    assert.ok(isLabel(".pt-meter-label"), "Inner .pt-meter-label must match label selector rules");
-  }
-  simulateNestedTerminusAnatomy();
+  // 6. Regression verification: Nested Terminus markup (.pt-meter-mark > .pt-meter-pin + .pt-meter-label)
+  // In downstream Terminus markup, .pt-meter-mark is the outer container drawing a pin via :before.
+  // Downstream inner elements with .pt-meter-pin must NOT be styled by picotol (drawing 0 duplicate pins),
+  // while .pt-meter-label is styled as a label and receives z-index stacking.
+  assert.ok(
+    fullCss.includes(":where(.pt-gauge-marker, .pt-meter-mark):before") || fullCss.includes(".pt-meter-mark:before"),
+    "Outer .pt-meter-mark must draw pin pseudo-element via :before"
+  );
+  assert.ok(
+    !fullCss.includes(".pt-meter-pin"),
+    "Full bundle must not define .pt-meter-pin selector, reserving it for downstream element markup"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter-label"),
+    "Full bundle must define .pt-meter-label selector"
+  );
+  assert.ok(
+    fullCss.includes("--pt-meter-mark-z"),
+    "Full bundle must define --pt-meter-mark-z stacking token"
+  );
 
   // 7. README documentation parity
   assert.ok(
@@ -3468,31 +3584,44 @@ test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Al
       `${name} must contain ::selection selector`
     );
     assert.ok(
-      css.includes(expectedBgToken) || css.includes("--pt-primary-bg"),
-      `${name} must use --pt-primary-bg for selection background`
+      css.includes(expectedBgToken),
+      `${name} must use ${expectedBgToken} for selection background`
     );
     assert.ok(
-      css.includes(expectedColorToken) || css.includes("--pt-color"),
-      `${name} must use --pt-color for selection text color`
+      css.includes(expectedColorToken),
+      `${name} must use ${expectedColorToken} for selection text color`
     );
   }
 
   // 2. Contrast validation across all 4 accent ladders (blue, cyan, purple, magenta)
-  // Light mode: background = --pt-p1, color = #000000
-  // Dark mode: background = --pt-p4, color = #FFFFFF
+  // Light mode: background = --pt-p1, color = var(--pt-color) (light)
+  // Dark mode: background = --pt-p4, color = var(--pt-color) (dark)
+  const tokens = getPicotolTokens();
+  const lightText = tokens.getToken("--pt-color", "light");
+  const darkText = tokens.getToken("--pt-color", "dark");
+
   const accents = {
-    blue: { p1: "#AACCEE", p4: "#2255AA" },
-    cyan: { p1: "#CCEEFF", p4: "#117788" },
-    purple: { p1: "#E7D4E8", p4: "#762A83" },
-    magenta: { p1: "#EEBBDD", p4: "#993366" },
+    blue: {
+      p1: tokens.getToken("--pt-p1", "light", "blue"),
+      p4: tokens.getToken("--pt-p4", "light", "blue"),
+    },
+    cyan: {
+      p1: tokens.getToken("--pt-p1", "light", "cyan"),
+      p4: tokens.getToken("--pt-p4", "light", "cyan"),
+    },
+    purple: {
+      p1: tokens.getToken("--pt-p1", "light", "purple"),
+      p4: tokens.getToken("--pt-p4", "light", "purple"),
+    },
+    magenta: {
+      p1: tokens.getToken("--pt-p1", "light", "magenta"),
+      p4: tokens.getToken("--pt-p4", "light", "magenta"),
+    },
   };
 
-  const lightText = "#000000";
-  const darkText = "#FFFFFF";
-
-  for (const [accent, tokens] of Object.entries(accents)) {
-    const lightRatio = contrastRatio(lightText, tokens.p1);
-    const darkRatio = contrastRatio(darkText, tokens.p4);
+  for (const [accent, accentTokens] of Object.entries(accents)) {
+    const lightRatio = contrastRatio(lightText, accentTokens.p1);
+    const darkRatio = contrastRatio(darkText, accentTokens.p4);
 
     assert.ok(
       lightRatio >= 7.0,
