@@ -152,7 +152,8 @@ export function splitSelectors(rawSelector) {
   return result;
 }
 
-export function extractLayerBlock(cleanCss, layerName) {
+export function extractLayerBlock(rawCss, layerName) {
+  const cleanCss = rawCss.replace(/\/\*[\s\S]*?\*\//g, '');
   const re = new RegExp(`@layer\\s+${layerName}\\s*\\{`, 'g');
   const matches = [...cleanCss.matchAll(re)];
   if (matches.length === 0) return null;
@@ -184,7 +185,8 @@ export function extractLayerBlock(cleanCss, layerName) {
   throw new Error(`Unclosed @layer ${layerName} block in CSS content`);
 }
 
-export function parseCssBlock(blockText) {
+export function parseCssBlock(rawBlockText) {
+  const blockText = rawBlockText.replace(/\/\*[\s\S]*?\*\//g, '');
   const declarations = {};
   const rules = [];
   let depth = 0;

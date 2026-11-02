@@ -94,11 +94,11 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
   }
 
   // 4. Accessibility CSS anti-patterns: no outline: none/0/0px/0.0, outline-style: none, or outline-width: 0
-  // (except programmatic skip-link target [tabindex="-1"]:focus:not(:focus-visible)); no fixed px font-size
-  const withoutProgrammaticFocusTarget = cleanContent.replace(
-    /\[tabindex="-1"\]:focus:not\(:focus-visible\)\s*\{[^}]*\}/g,
-    ''
-  );
+  // (except the programmatic skip-link target [tabindex="-1"]:focus:not(:focus-visible) in src/base.css); no fixed px font-size
+  const isBaseCss = filename.replaceAll('\\', '/') === 'src/base.css';
+  const withoutProgrammaticFocusTarget = isBaseCss
+    ? cleanContent.replace(/\[tabindex="-1"\]:focus:not\(:focus-visible\)\s*\{[^}]*\}/g, '')
+    : cleanContent;
   if (
     /\b(?:outline\s*:\s*(?:none\b|0(?:\.0+)?(?:px|rem|em|%|vh|vw|ch|ex|pt)?(?![0-9.]))|outline-style\s*:\s*none\b|outline-width\s*:\s*0(?:\.0+)?(?:px|rem|em|%|vh|vw|ch|ex|pt)?(?![0-9.]))[^;}]*(?:[;}]|$)/i.test(
       withoutProgrammaticFocusTarget
@@ -119,14 +119,24 @@ export function lintBundledCss(bundledCss, entry = 'bundle.css') {
   const definedVars = new Set([...cleanCss.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]));
   const usedVars = new Set([...cleanCss.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map((m) => m[1]));
 
-  // Allow --pt-btn-color and --marker-pos as optional override hooks with fallback
-  definedVars.add('--pt-btn-color');
-  definedVars.add('--marker-pos');
+  // Allow --pt-btn-color and --marker-pos only when every var(...) reference includes a fallback
+  const optionalHookVars = new Set(['--pt-btn-color', '--marker-pos']);
+  const varWithFallbackRe = /var\(\s*(--[a-zA-Z0-9_-]+)\s*,/g;
+  const fallbackCount = new Map();
+  const totalUseCount = new Map();
+  for (const m of cleanCss.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)) {
+    totalUseCount.set(m[1], (totalUseCount.get(m[1]) || 0) + 1);
+  }
+  for (const m of cleanCss.matchAll(varWithFallbackRe)) {
+    fallbackCount.set(m[1], (fallbackCount.get(m[1]) || 0) + 1);
+  }
 
   for (const used of usedVars) {
-    if (!definedVars.has(used)) {
-      errors.push(`[${entry}] Undefined CSS custom property referenced: ${used}`);
+    if (definedVars.has(used)) continue;
+    if (optionalHookVars.has(used) && fallbackCount.get(used) === totalUseCount.get(used)) {
+      continue;
     }
+    errors.push(`[${entry}] Undefined CSS custom property referenced: ${used}`);
   }
   return errors;
 }
@@ -155,9 +165,14 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
   const demoClasses = new Set(
     [...demoHtml.matchAll(/\bclass="([^"]+)"/g)].flatMap((m) => m[1].trim().split(/\s+/)).filter(Boolean)
   );
+  const cleanDistCss = fullDistCss
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '""');
 
   for (const cls of demoClasses) {
-    if (!fullDistCss.includes(`.${cls}`)) {
+    const escapedCls = cls.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const classSelRe = new RegExp(`\\.${escapedCls}(?![\\w-])`);
+    if (!classSelRe.test(cleanDistCss)) {
       errors.push(`[${filename}] Unstyled class ".${cls}" used in demo HTML but missing from dist/picotol.css`);
     }
   }

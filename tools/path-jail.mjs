@@ -1,9 +1,10 @@
 // Shared path-jail and option validation utilities for build, asset packaging, and token sync tools.
-// Resolves nearest existing ancestors via fs.realpathSync to defeat symlink/junction escapes and uses
-// segment-aware relative path checks (rel === '..' || rel.startsWith('..' + sep)) so dot-prefixed
-// directory names like "..foo" inside the repository cannot bypass the jail.
-import { existsSync, realpathSync } from 'node:fs';
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+// Walks path segments with fs.lstatSync / fs.readlinkSync (bounded depth) and resolves existing targets
+// via fs.realpathSync.native to defeat dangling-symlink escapes, junction escapes, and Windows 8.3
+// short names, while using segment-aware relative path checks (rel === '..' || rel.startsWith('..' + sep))
+// so dot-prefixed directory names like "..foo" inside the repository cannot bypass the jail.
+import { lstatSync, readlinkSync, realpathSync } from 'node:fs';
+import { dirname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -11,18 +12,55 @@ export const distDir = join(root, 'dist');
 export const srcDir = join(root, 'src');
 export const dataDir = join(root, 'data');
 
-export function resolveRealPath(targetPath) {
-  const abs = resolve(targetPath);
-  const tail = [];
-  let current = abs;
-  while (!existsSync(current)) {
-    const parent = dirname(current);
-    if (parent === current) break;
-    tail.unshift(basename(current));
-    current = parent;
+const MAX_SYMLINK_DEPTH = 32;
+
+function nativeRealpath(targetPath) {
+  return typeof realpathSync.native === 'function'
+    ? realpathSync.native(targetPath)
+    : realpathSync(targetPath);
+}
+
+export function resolveRealPath(targetPath, symlinkDepth = 0) {
+  if (symlinkDepth > MAX_SYMLINK_DEPTH) {
+    throw new Error(`Too many levels of symbolic links while resolving ${targetPath}`);
   }
-  const realBase = existsSync(current) ? realpathSync(current) : current;
-  return tail.length > 0 ? join(realBase, ...tail) : realBase;
+  const abs = resolve(targetPath);
+  const parsed = parse(abs);
+  const relFromRoot = abs.slice(parsed.root.length);
+  const segments = relFromRoot.split(sep).filter(Boolean);
+
+  let current = parsed.root;
+  try {
+    current = nativeRealpath(current);
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+  }
+
+  for (let i = 0; i < segments.length; i++) {
+    const candidate = join(current, segments[i]);
+    let st;
+    try {
+      st = lstatSync(candidate);
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        return join(current, ...segments.slice(i));
+      }
+      throw err;
+    }
+
+    if (st.isSymbolicLink()) {
+      const linkTarget = readlinkSync(candidate);
+      const resolvedLinkTarget = resolve(dirname(candidate), linkTarget);
+      const remaining = segments.slice(i + 1);
+      const nextTarget =
+        remaining.length > 0 ? join(resolvedLinkTarget, ...remaining) : resolvedLinkTarget;
+      return resolveRealPath(nextTarget, symlinkDepth + 1);
+    }
+
+    current = nativeRealpath(candidate);
+  }
+
+  return current;
 }
 
 export function isSameOrSubpath(targetPath, basePath) {

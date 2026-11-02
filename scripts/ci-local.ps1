@@ -326,7 +326,19 @@ try {
             Write-Host "`n  -> Skipping local CI receipt generation (seldon binary not found)." -ForegroundColor Gray
         } else {
             Write-Host "`n[Receipt] Recording local CI receipt via seldon ci receipt..." -ForegroundColor Yellow
-            $ReceiptArgs = @("ci", "receipt", "--dir", $RootDir, "--script-path", "scripts/ci-local.ps1")
+            $GateResults = @(
+                "gate0_workflow_contract=pass",
+                "gate1_agent_leaks=pass",
+                "gate2_pwsh_ast=pass",
+                "gate3_dist_drift=$(if ($SkipGenerate -or $Quick) { 'not-applicable' } else { 'pass' })",
+                "gate4_npm_test_and_pack=pass"
+            )
+            $ReceiptArgs = @(
+                "ci", "receipt",
+                "--dir", $RootDir,
+                "--script-path", "scripts/ci-local.ps1",
+                "--gates", ($GateResults -join ",")
+            )
             $ActiveFlags = @()
             if ($Quick) { $ActiveFlags += "-Quick" }
             if ($SkipGenerate) { $ActiveFlags += "-SkipGenerate" }

@@ -601,7 +601,7 @@ test("Ergonomic Class Parity, Compact Control Sizing, and Component Primitives",
   for (const css of [fullCss, coreCss]) {
     assert.ok(css.includes(".btn"), "Must support .btn button alias");
     assert.ok(css.includes(".button"), "Must support .button button alias");
-    assert.ok(css.includes(".small") || css.includes(".sm"), "Must support compact .small / .sm modifier");
+    assert.ok(css.includes(".small") && /\.sm(?![\w-])/.test(css), "Must support both compact .small and .sm modifiers");
     assert.ok(css.includes(".nowrap"), "Must support .nowrap");
     assert.ok(css.includes(".swatch"), "Must support .swatch chip primitive");
     assert.ok(css.includes(".form-row"), "Must support .form-row flex container");
@@ -1152,8 +1152,9 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     fullCss.includes(".segmented-fill") && fullCss.includes(".segmented-equal"),
     "Full bundle must compile .segmented-fill and .segmented-equal modifiers"
   );
-  assert.ok(
-    fullCss.includes("flex: 1 1 0") || fullCss.includes("flex: 1 1") || fullCss.includes("flex: 1"),
+  assert.match(
+    fullCss,
+    /flex:\s*1(?:\s+1(?:\s+0(?:%|px)?)?)?\s*[;}]/,
     "Segmented fill child items must distribute equally across available width"
   );
   assert.ok(
@@ -1181,6 +1182,11 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     r.rules.filter((child) => child.selector.replace(/\s+/g, "") === "&>*")
   );
   assert.equal(segmentedChildRules.length, 1, "Segmented fill modifier must define a single & > * child item rule");
+  assert.match(
+    segmentedChildRules[0].declarations.flex,
+    /^1(?:\s+1(?:\s+0(?:%|px)?)?)?$/,
+    "Segmented fill child items must declare flex: 1 / 1 1 0 equal-fill shorthand"
+  );
   assert.equal(
     segmentedChildRules[0].declarations.display,
     "block",
@@ -3228,7 +3234,7 @@ test("Native Floating Popover Primitive, Alignment Modifiers, and Viewport Safet
 
   // 1. Token declaration: --pt-z-dropdown
   assert.ok(
-    tokensCss.includes("--pt-z-dropdown: 100;") || tokensCss.includes("--pt-z-dropdown: 100"),
+    tokensCss.includes("--pt-z-dropdown: 100;"),
     "src/tokens.css must declare --pt-z-dropdown with default 100"
   );
 
@@ -3238,7 +3244,7 @@ test("Native Floating Popover Primitive, Alignment Modifiers, and Viewport Safet
     "src/components.css must define .pt-popover and .pt-dropdown containers"
   );
   assert.ok(
-    compCss.includes("top: calc(100% + 4px);") || compCss.includes("top: calc(100% + 4px)"),
+    compCss.includes("top: calc(100% + 4px);"),
     "Popover content must position floating at top: calc(100% + 4px)"
   );
   assert.ok(
@@ -3331,15 +3337,15 @@ test("Native Floating Popover Primitive, Alignment Modifiers, and Viewport Safet
     "dist/demo/index.html must showcase .pt-popover--end"
   );
   assert.ok(
-    readme.includes(".pt-popover--start") || readme.includes("pt-popover--start"),
+    readme.includes("pt-popover--start"),
     "README.md must document .pt-popover--start"
   );
   assert.ok(
-    readme.includes(".pt-popover--end") || readme.includes("pt-popover--end"),
+    readme.includes("pt-popover--end"),
     "README.md must document .pt-popover--end"
   );
   assert.ok(
-    readme.includes(".pt-dropdown") || readme.includes("pt-dropdown"),
+    readme.includes("pt-dropdown"),
     "README.md must document .pt-dropdown"
   );
 });
@@ -3529,18 +3535,18 @@ test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Al
 
   // 3. Demo Meter clearance: vertical spacing between bottom-placed pins and top-placed pins
   assert.ok(
-    demoHtml.includes('style="margin-top: 2.75rem;"') ||
-    demoHtml.includes('margin-top: 2.75rem'),
+    demoHtml.includes('style="margin-top: 2.75rem;"'),
     "dist/demo/index.html must allocate 2.75rem vertical margin for Section 7 gauge threshold clearance"
   );
 
   // 4. README documentation parity
   assert.ok(
-    readme.includes("Theme-Reactive Selection Contrast") || readme.includes("::selection"),
+    readme.includes("Theme-Reactive Selection Contrast (`::selection`)") &&
+      readme.includes("background-color: var(--pt-primary-bg); color: var(--pt-color);"),
     "README.md must document ::selection theme-reactive high-contrast styling"
   );
   assert.ok(
-    readme.includes("Margin Auto-Collapsing") || readme.includes("margin-block: 0;"),
+    readme.includes("Margin Auto-Collapsing") && readme.includes("margin-block: 0;"),
     "README.md must document compact density margin auto-collapsing"
   );
 });

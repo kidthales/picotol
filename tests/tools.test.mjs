@@ -155,13 +155,15 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   );
 
   // 7. Accessible focus violation: outline: none/0/0px/0.0, outline-style: none, outline-width: 0, and !important rejected,
-  // while outline: 0.5px, outline-offset: 0, and commented-out rules are permitted
+  // while outline: 0.5px, outline: 0.125rem, outline-offset: 0, and commented-out rules are permitted
   for (const badOutline of [
     'button:focus { outline: none; }',
     'button:focus { outline: none !important; }',
+    'button:focus { outline: none solid #4477AA; }',
     'button:focus { outline: 0; }',
     'button:focus { outline:0; }',
     'button:focus { outline: 0px; }',
+    'button:focus { outline: 0px}',
     'button:focus { outline: 0.0; }',
     'button:focus { outline: 0.0px solid #000000; }',
     'button:focus { outline: 0rem; }',
@@ -178,11 +180,32 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
       `Should flag accessible focus violation for: ${badOutline}`
     );
   }
-  const outline05Snippet = `button:focus { /* outline: none; */ outline: 0.5px solid var(--pt-brand); outline-offset: 0; }`;
+  const outline05Snippet = `button:focus { /* outline: none; */ outline: 0.5px solid var(--pt-brand); outline-offset: 0; } a:focus { outline: 0.125rem solid var(--pt-brand); }`;
   assert.equal(
     lintCssSnippet(outline05Snippet, 'fixtures/outline-05.css').length,
     0,
-    'outline: 0.5px, outline-offset: 0, and commented outline: none must not be flagged'
+    'outline: 0.5px, outline: 0.125rem, outline-offset: 0, and commented outline: none must not be flagged'
+  );
+
+  // Scoped programmatic focus exemption: [tabindex="-1"]:focus:not(:focus-visible) is exempt ONLY in src/base.css,
+  // and even in src/base.css it removes only that single rule (any other outline: 0/none rule in src/base.css is still flagged).
+  const programmaticFocusRule = `[tabindex="-1"]:focus:not(:focus-visible) { outline-width: 0; }`;
+  assert.equal(
+    lintCssSnippet(programmaticFocusRule, 'src/base.css').length,
+    0,
+    'Programmatic skip-link target rule must be exempt in src/base.css'
+  );
+  assert.ok(
+    lintCssSnippet(programmaticFocusRule, 'fixtures/not-base.css').some((e) =>
+      e.includes('Accessible focus violation')
+    ),
+    'Programmatic skip-link target exemption must NOT apply outside src/base.css'
+  );
+  assert.ok(
+    lintCssSnippet(`${programmaticFocusRule} button:focus { outline: none; }`, 'src/base.css').some((e) =>
+      e.includes('Accessible focus violation')
+    ),
+    'Exemption in src/base.css must remove only the [tabindex="-1"]:focus:not(:focus-visible) rule and still flag other outline violations'
   );
 
   // 8. Scalable typography violation: fixed px font-size rejected
@@ -202,6 +225,11 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   assert.deepEqual(bundleErrors, [
     '[fixtures/bundle.css] Undefined CSS custom property referenced: --pt-undefined-var',
   ]);
+  const noFallbackHookCss = `.btn { color: var(--pt-btn-color); left: var(--marker-pos); }`;
+  assert.deepEqual(lintBundledCss(noFallbackHookCss, 'fixtures/no-fallback.css'), [
+    '[fixtures/no-fallback.css] Undefined CSS custom property referenced: --pt-btn-color',
+    '[fixtures/no-fallback.css] Undefined CSS custom property referenced: --marker-pos',
+  ]);
 
   const incompleteDistCss = `:focus-visible { outline: 2px solid #4477AA; } .skip-to-content {} .sr-only {}`;
   const distRuleErrors = lintDistAccessibilityRules(incompleteDistCss, 'fixtures/dist.css');
@@ -211,20 +239,21 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   assert.ok(distRuleErrors.some((e) => e.includes('"@media print"')));
 
   const badDemoHtml = `
-    <div id="existing-id" class="styled-class unstyled-phantom-class">
+    <div id="existing-id" class="styled-class unstyled-phantom-class card">
       <a href="#missing-anchor">Link</a>
       <input aria-describedby="missing-desc" aria-labelledby="existing-id missing-label">
       <span data-tooltip="Missing tabindex">Hover</span>
       <span data-tooltip="Has tabindex" tabindex="0">OK</span>
     </div>
   `;
-  const demoErrors = lintDemoHtml(badDemoHtml, '.styled-class { color: #000000; }', 'fixtures/demo.html');
+  const demoErrors = lintDemoHtml(badDemoHtml, '.styled-class { color: #000000; } .card-foo { color: #000000; }', 'fixtures/demo.html');
   assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".unstyled-phantom-class"')));
+  assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".card"')), '.card must not false-pass against .card-foo');
   assert.ok(demoErrors.some((e) => e.includes('Broken internal anchor link href="#missing-anchor"')));
   assert.ok(demoErrors.some((e) => e.includes('Broken ARIA reference aria-describedby="missing-desc"')));
   assert.ok(demoErrors.some((e) => e.includes('Broken ARIA reference aria-labelledby="missing-label"')));
   assert.ok(demoErrors.some((e) => e.includes('Non-interactive <span data-tooltip> is missing tabindex="0"')));
-  assert.equal(demoErrors.length, 5);
+  assert.equal(demoErrors.length, 6);
 
   // 11. Full runLint() verification
   const projectErrors = runLint();
@@ -293,12 +322,14 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
 
   let tempSrcDir = null;
   let tempLinkHolder = null;
+  let linkToSrc = null;
+  let danglingLinkToRepoFile = null;
   try {
     tempSrcDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-sync-'));
     tempLinkHolder = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-link-'));
 
-    // Symlink / junction escape test: a junction in os.tmpdir() pointing into ROOT/src is blocked via realpathSync
-    const linkToSrc = path.join(tempLinkHolder, 'src-junction');
+    // Symlink / junction escape test: a junction in os.tmpdir() pointing into ROOT/src is blocked via realpathSync.native
+    linkToSrc = path.join(tempLinkHolder, 'src-junction');
     fs.symlinkSync(path.join(ROOT, 'src'), linkToSrc, process.platform === 'win32' ? 'junction' : 'dir');
     assert.throws(
       () => assertSafeCustomSyncTarget(linkToSrc, 'outSrcDir'),
@@ -317,6 +348,57 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
       /refusing to write to protected path/
     );
 
+    // Dangling-symlink jail-bypass regression test:
+    // A symlink in os.tmpdir() pointing to a non-existent file or directory inside ROOT/src
+    // must still be resolved via lstatSync + readlinkSync and rejected by the repository jail.
+    // On Windows without Developer Mode / SeCreateSymbolicLinkPrivilege, 'junction' is always
+    // permitted for directories (including non-existent targets), and we also test 'file' symlink
+    // guarded on EPERM.
+    const danglingDirLink = path.join(tempLinkHolder, 'dangling-dir-link');
+    fs.symlinkSync(
+      path.join(ROOT, 'src', 'nonexistent-dangling-subdir'),
+      danglingDirLink,
+      process.platform === 'win32' ? 'junction' : 'dir'
+    );
+    assert.equal(fs.existsSync(danglingDirLink), false, 'Dangling link target must not exist on disk');
+    assert.throws(
+      () => assertSafeCustomSyncTarget(danglingDirLink, 'outSrcDir'),
+      /refusing to write custom sync target inside repository/,
+      'Dangling directory/junction link pointing into ROOT/src must be rejected'
+    );
+    assert.throws(
+      () => assertSafeCustomSyncTarget(path.join(danglingDirLink, 'tokens.css'), 'tokensCssPath'),
+      /refusing to write custom sync target inside repository/,
+      'Child of dangling directory/junction link pointing into ROOT/src must be rejected'
+    );
+    assert.throws(
+      () => resolveOutDir({ outDir: danglingDirLink }),
+      /refusing to write to protected path/,
+      'resolveOutDir must reject dangling link pointing into ROOT/src'
+    );
+
+    danglingLinkToRepoFile = path.join(tempLinkHolder, 'dangling-file-link.css');
+    let fileSymlinkCreated = false;
+    try {
+      fs.symlinkSync(path.join(ROOT, 'src', 'nonexistent-planted.css'), danglingLinkToRepoFile, 'file');
+      fileSymlinkCreated = true;
+    } catch (err) {
+      if (err.code !== 'EPERM' && err.code !== 'ENOSYS') throw err;
+    }
+    if (fileSymlinkCreated) {
+      assert.equal(fs.existsSync(danglingLinkToRepoFile), false, 'Dangling file symlink target must not exist');
+      assert.throws(
+        () => assertSafeCustomSyncTarget(danglingLinkToRepoFile, 'tokensCssPath'),
+        /refusing to write custom sync target inside repository/,
+        'Dangling file symlink pointing into ROOT/src must be rejected'
+      );
+      assert.equal(
+        fs.existsSync(path.join(ROOT, 'src', 'nonexistent-planted.css')),
+        false,
+        'No file may be created in ROOT/src'
+      );
+    }
+
     // Fail-closed snapshot validation on syncTokens (using isolated tempSrcDir)
     assert.throws(() => syncTokens({ outSrcDir: tempSrcDir, snapshot: null }), /Invalid snapshot/);
     assert.throws(() => syncTokens({ outSrcDir: tempSrcDir, snapshot: undefined }), /Invalid snapshot/);
@@ -329,9 +411,37 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
     assert.equal(fs.readFileSync(res.tokensCssPath, 'utf8'), committedTokens, 'Written tokens.css must match committed src/tokens.css byte-for-byte');
     assert.equal(fs.readFileSync(res.palettesCssPath, 'utf8'), committedPalettes, 'Written palettes.css must match committed src/palettes.css byte-for-byte');
   } finally {
+    // Unlink / rmdir junctions and symlinks explicitly in their own try blocks before removing holder
+    if (danglingLinkToRepoFile) {
+      try {
+        fs.unlinkSync(danglingLinkToRepoFile);
+      } catch {}
+    }
+    if (tempLinkHolder) {
+      try {
+        const danglingDirLink = path.join(tempLinkHolder, 'dangling-dir-link');
+        if (process.platform === 'win32') fs.rmdirSync(danglingDirLink);
+        else fs.unlinkSync(danglingDirLink);
+      } catch {}
+    }
+    if (linkToSrc) {
+      try {
+        if (process.platform === 'win32') fs.rmdirSync(linkToSrc);
+        else fs.unlinkSync(linkToSrc);
+      } catch {}
+    }
     if (tempLinkHolder) fs.rmSync(tempLinkHolder, { recursive: true, force: true });
     if (tempSrcDir) fs.rmSync(tempSrcDir, { recursive: true, force: true });
   }
+  assert.ok(
+    fs.existsSync(path.join(ROOT, 'src/tokens.css')),
+    'ROOT/src/tokens.css must still exist untouched after junction cleanup'
+  );
+  assert.equal(
+    fs.readFileSync(path.join(ROOT, 'src/tokens.css'), 'utf8'),
+    committedTokens,
+    'ROOT/src/tokens.css content must remain byte-identical after junction cleanup'
+  );
 });
 
 // Concurrency note: No other test file in tests/*.test.mjs imports or calls buildAll(),
