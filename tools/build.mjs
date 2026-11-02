@@ -7,16 +7,15 @@
 //   - dist/demo/index.html
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { bundle, transform, Features } from 'lightningcss';
 import { generateDemoHtml } from './generate-demo.mjs';
 import { packageAssets } from './package-assets.mjs';
+import { assertValidMtimeOption, resolveOutDir } from './path-jail.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const distDir = join(root, 'dist');
-const demoDir = join(distDir, 'demo');
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
 const HEADER = `/*! ${pkg.name} v${pkg.version} | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */\n`;
@@ -64,8 +63,11 @@ function sha256Hex(content) {
   return createHash('sha256').update(content, 'utf8').digest('hex');
 }
 
-export function buildAll() {
-  mkdirSync(demoDir, { recursive: true });
+export function buildAll(opts = {}) {
+  const targetDist = resolveOutDir(opts);
+  const validatedMtime = assertValidMtimeOption(opts);
+  const targetDemo = join(targetDist, 'demo');
+  mkdirSync(targetDemo, { recursive: true });
 
   const coreEntry = join(root, 'src', 'picotol.core.css');
   const fullEntry = join(root, 'src', 'picotol.css');
@@ -89,12 +91,12 @@ export function buildAll() {
   const layerExpanded = HEADER + layerExpandedRaw;
   const layerMin = HEADER + layerMinRaw;
 
-  writeFileSync(join(distDir, 'picotol.core.css'), coreExpanded, 'utf8');
-  writeFileSync(join(distDir, 'picotol.core.min.css'), coreMin, 'utf8');
-  writeFileSync(join(distDir, 'picotol.css'), fullExpanded, 'utf8');
-  writeFileSync(join(distDir, 'picotol.min.css'), fullMin, 'utf8');
-  writeFileSync(join(distDir, 'picotol.layer.css'), layerExpanded, 'utf8');
-  writeFileSync(join(distDir, 'picotol.layer.min.css'), layerMin, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.core.css'), coreExpanded, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.core.min.css'), coreMin, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.css'), fullExpanded, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.min.css'), fullMin, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.layer.css'), layerExpanded, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.layer.min.css'), layerMin, 'utf8');
 
   const stats = {
     coreBytes: Buffer.byteLength(coreExpanded, 'utf8'),
@@ -133,7 +135,7 @@ export function buildAll() {
     },
   };
 
-  writeFileSync(join(distDir, 'sri.json'), JSON.stringify(sriManifest, null, 2) + '\n', 'utf8');
+  writeFileSync(join(targetDist, 'sri.json'), JSON.stringify(sriManifest, null, 2) + '\n', 'utf8');
 
   const cssFiles = [
     { name: 'picotol.core.css', content: coreExpanded },
@@ -143,9 +145,9 @@ export function buildAll() {
     { name: 'picotol.layer.min.css', content: layerMin },
     { name: 'picotol.min.css', content: fullMin },
   ];
-  cssFiles.sort((a, b) => a.name.localeCompare(b.name));
+  cssFiles.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   const sha256Sums = cssFiles.map((f) => `${sha256Hex(f.content)}  ${f.name}`).join('\n') + '\n';
-  writeFileSync(join(distDir, 'SHA256SUMS.txt'), sha256Sums, 'utf8');
+  writeFileSync(join(targetDist, 'SHA256SUMS.txt'), sha256Sums, 'utf8');
   stats.sha256Sums = sha256Sums;
 
   const artifacts = {};
@@ -162,14 +164,15 @@ export function buildAll() {
     artifacts,
   };
 
-  writeFileSync(join(distDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  writeFileSync(join(targetDist, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   stats.manifest = manifest;
 
   const demoHtml = generateDemoHtml(fullMin, stats);
-  writeFileSync(join(demoDir, 'index.html'), demoHtml, 'utf8');
-  writeFileSync(join(demoDir, 'CNAME'), 'picotol.kidthales.com\n', 'utf8');
+  writeFileSync(join(targetDemo, 'index.html'), demoHtml, 'utf8');
+  writeFileSync(join(targetDemo, 'CNAME'), 'picotol.kidthales.com\n', 'utf8');
 
-  const assetStats = packageAssets();
+  const assetOpts = { outDir: targetDist, ...(validatedMtime !== undefined ? { mtime: validatedMtime } : {}) };
+  const assetStats = packageAssets(assetOpts);
   stats.assetStats = assetStats;
 
   return stats;

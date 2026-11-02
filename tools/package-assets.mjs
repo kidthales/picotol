@@ -4,20 +4,48 @@
 //   - tokens/ (tokens.css, palettes.css, tol-qualitative.json)
 //   - sri.json
 //   - index.html (self-contained offline kitchen-sink showcase)
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
+import { assertValidMtimeOption, resolveOutDir } from './path-jail.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const distDir = join(root, 'dist');
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
-function toDosDateTime(date) {
-  const d = date instanceof Date ? date : new Date(date || Date.now());
-  const year = Math.max(1980, d.getFullYear());
-  const dosDate = (((year - 1980) & 0x7f) << 9) | (((d.getMonth() + 1) & 0xf) << 5) | (d.getDate() & 0x1f);
-  const dosTime = ((d.getHours() & 0x1f) << 11) | ((d.getMinutes() & 0x3f) << 5) | (Math.floor(d.getSeconds() / 2) & 0x1f);
+export const DEFAULT_ZIP_MTIME = new Date('2026-01-01T00:00:00Z');
+export const MAX_ZIP_ENTRIES = 128;
+export const MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES = 10 * 1024 * 1024;
+export const MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES = 25 * 1024 * 1024;
+
+export function resolveDefaultZipMtime() {
+  const rawEpoch = process.env.SOURCE_DATE_EPOCH;
+  if (rawEpoch !== undefined && rawEpoch.trim() !== '') {
+    const seconds = Number(rawEpoch);
+    if (!Number.isInteger(seconds) || seconds < 0) {
+      throw new Error(`Invalid SOURCE_DATE_EPOCH: "${rawEpoch}" must be a non-negative integer`);
+    }
+    return new Date(seconds * 1000);
+  }
+  return DEFAULT_ZIP_MTIME;
+}
+
+export function toDosDateTime(date) {
+  const d = date === undefined ? resolveDefaultZipMtime() : date;
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) {
+    throw new Error('Invalid mtime: must be a valid Date instance');
+  }
+  const year = d.getUTCFullYear();
+  if (year < 1980 || year > 2107) {
+    throw new Error(`Invalid mtime year ${year}: MS-DOS timestamps only support UTC years 1980–2107`);
+  }
+  const dosDate =
+    (((year - 1980) & 0x7f) << 9) | (((d.getUTCMonth() + 1) & 0xf) << 5) | (d.getUTCDate() & 0x1f);
+  const dosTime =
+    ((d.getUTCHours() & 0x1f) << 11) |
+    ((d.getUTCMinutes() & 0x3f) << 5) |
+    (Math.floor(d.getUTCSeconds() / 2) & 0x1f);
   return { dosDate: dosDate >>> 0, dosTime: dosTime >>> 0 };
 }
 
@@ -92,33 +120,161 @@ export function createPkZip(entries) {
   return Buffer.concat([...localHeaders, ...centralHeaders, eocd]);
 }
 
-export function packageAssets() {
-  const assetsDir = join(distDir, 'assets');
+export function parsePkZipEntries(zipBuf) {
+  if (!Buffer.isBuffer(zipBuf) || zipBuf.length < 22) {
+    throw new Error('Invalid PKZip buffer: must be a Buffer of at least 22 bytes');
+  }
+  let eocdOffset = -1;
+  for (let i = zipBuf.length - 22; i >= Math.max(0, zipBuf.length - 65557); i--) {
+    if (zipBuf.readUInt32LE(i) === 0x06054b50) {
+      eocdOffset = i;
+      break;
+    }
+  }
+  if (eocdOffset === -1) {
+    throw new Error('Valid PKZip End of Central Directory signature (0x06054b50) not found');
+  }
+
+  const totalEntries = zipBuf.readUInt16LE(eocdOffset + 10);
+  const cdSize = zipBuf.readUInt32LE(eocdOffset + 12);
+  const cdOffset = zipBuf.readUInt32LE(eocdOffset + 16);
+  if (totalEntries === 0xffff || cdSize === 0xffffffff || cdOffset === 0xffffffff) {
+    throw new Error('ZIP64 archives are not supported');
+  }
+  if (totalEntries > MAX_ZIP_ENTRIES) {
+    throw new Error(`Archive entry count ${totalEntries} exceeds max allowed ${MAX_ZIP_ENTRIES} entries`);
+  }
+  if (cdOffset + cdSize > eocdOffset) {
+    throw new Error('Central Directory bounds exceed End of Central Directory offset');
+  }
+
+  const entries = [];
+  let pos = cdOffset;
+  let totalUncompressedBytes = 0;
+
+  for (let i = 0; i < totalEntries; i++) {
+    if (pos + 46 > eocdOffset) {
+      throw new Error(`Central Directory header at offset ${pos} exceeds EOCD bounds`);
+    }
+    if (zipBuf.readUInt32LE(pos) !== 0x02014b50) {
+      throw new Error(`Invalid Central Directory signature at offset ${pos}`);
+    }
+    const cdMethod = zipBuf.readUInt16LE(pos + 10);
+    if (cdMethod !== 8) {
+      throw new Error(`Unsupported compression method ${cdMethod} in Central Directory (expected 8 / deflate)`);
+    }
+    const dosTime = zipBuf.readUInt16LE(pos + 12);
+    const dosDate = zipBuf.readUInt16LE(pos + 14);
+    const crc = zipBuf.readUInt32LE(pos + 16);
+    const compressedSize = zipBuf.readUInt32LE(pos + 20);
+    const uncompressedSize = zipBuf.readUInt32LE(pos + 24);
+    const nameLen = zipBuf.readUInt16LE(pos + 28);
+    const extraLen = zipBuf.readUInt16LE(pos + 30);
+    const commentLen = zipBuf.readUInt16LE(pos + 32);
+    const lfhOffset = zipBuf.readUInt32LE(pos + 42);
+    if (compressedSize === 0xffffffff || uncompressedSize === 0xffffffff || lfhOffset === 0xffffffff) {
+      throw new Error('ZIP64 entry fields are not supported');
+    }
+    if (pos + 46 + nameLen + extraLen + commentLen > eocdOffset) {
+      throw new Error(`Central Directory variable fields at offset ${pos} exceed EOCD bounds`);
+    }
+    const name = zipBuf.toString('utf8', pos + 46, pos + 46 + nameLen);
+    if (uncompressedSize > MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES) {
+      throw new Error(
+        `Entry ${name} uncompressed size ${uncompressedSize} exceeds max allowed ${MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES} bytes`
+      );
+    }
+    if (totalUncompressedBytes + uncompressedSize > MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES) {
+      throw new Error(
+        `Aggregate uncompressed size ${totalUncompressedBytes + uncompressedSize} exceeds max allowed ${MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES} bytes`
+      );
+    }
+
+    if (lfhOffset + 30 > cdOffset) {
+      throw new Error(`Local File Header offset ${lfhOffset} for ${name} exceeds Central Directory start`);
+    }
+    if (zipBuf.readUInt32LE(lfhOffset) !== 0x04034b50) {
+      throw new Error(`Invalid Local File Header signature at offset ${lfhOffset} for ${name}`);
+    }
+    const lfhMethod = zipBuf.readUInt16LE(lfhOffset + 8);
+    if (lfhMethod !== 8) {
+      throw new Error(`Unsupported compression method ${lfhMethod} in Local File Header for ${name} (expected 8 / deflate)`);
+    }
+    const lfhDosTime = zipBuf.readUInt16LE(lfhOffset + 10);
+    const lfhDosDate = zipBuf.readUInt16LE(lfhOffset + 12);
+    if (lfhDosTime !== dosTime || lfhDosDate !== dosDate) {
+      throw new Error(`MS-DOS timestamp mismatch between Local File Header and Central Directory for ${name}`);
+    }
+    const lfhNameLen = zipBuf.readUInt16LE(lfhOffset + 26);
+    const lfhExtraLen = zipBuf.readUInt16LE(lfhOffset + 28);
+    const dataStart = lfhOffset + 30 + lfhNameLen + lfhExtraLen;
+    if (dataStart + compressedSize > cdOffset) {
+      throw new Error(`Compressed data slice for ${name} exceeds Central Directory start`);
+    }
+    const compressedSlice = zipBuf.subarray(dataStart, dataStart + compressedSize);
+    const remainingBudget = MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES - totalUncompressedBytes;
+    const decompressed = zlib.inflateRawSync(compressedSlice, {
+      maxOutputLength: Math.min(
+        MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES,
+        remainingBudget,
+        Math.max(1, uncompressedSize)
+      ),
+    });
+
+    if (decompressed.length !== uncompressedSize) {
+      throw new Error(`Uncompressed size mismatch for ${name}: expected ${uncompressedSize}, got ${decompressed.length}`);
+    }
+    if ((zlib.crc32(decompressed) >>> 0) !== (crc >>> 0)) {
+      throw new Error(`CRC-32 mismatch for ${name}`);
+    }
+    totalUncompressedBytes += decompressed.length;
+
+    const sha256 = createHash('sha256').update(decompressed).digest('hex');
+    entries.push({
+      name,
+      crc,
+      dosDate,
+      dosTime,
+      compressedSize,
+      uncompressedSize,
+      sha256,
+    });
+
+    pos += 46 + nameLen + extraLen + commentLen;
+  }
+
+  return entries;
+}
+
+export function packageAssets(opts = {}) {
+  const targetDist = resolveOutDir(opts);
+  const validatedMtime = assertValidMtimeOption(opts);
+  const effectiveMtime = validatedMtime !== undefined ? validatedMtime : resolveDefaultZipMtime();
+  const assetsDir = join(targetDist, 'assets');
   mkdirSync(assetsDir, { recursive: true });
 
   const manifest = [
-    { archivePath: 'css/picotol.css', sourcePath: join(distDir, 'picotol.css') },
-    { archivePath: 'css/picotol.min.css', sourcePath: join(distDir, 'picotol.min.css') },
-    { archivePath: 'css/picotol.core.css', sourcePath: join(distDir, 'picotol.core.css') },
-    { archivePath: 'css/picotol.core.min.css', sourcePath: join(distDir, 'picotol.core.min.css') },
-    { archivePath: 'css/picotol.layer.css', sourcePath: join(distDir, 'picotol.layer.css') },
-    { archivePath: 'css/picotol.layer.min.css', sourcePath: join(distDir, 'picotol.layer.min.css') },
+    { archivePath: 'css/picotol.css', sourcePath: join(targetDist, 'picotol.css') },
+    { archivePath: 'css/picotol.min.css', sourcePath: join(targetDist, 'picotol.min.css') },
+    { archivePath: 'css/picotol.core.css', sourcePath: join(targetDist, 'picotol.core.css') },
+    { archivePath: 'css/picotol.core.min.css', sourcePath: join(targetDist, 'picotol.core.min.css') },
+    { archivePath: 'css/picotol.layer.css', sourcePath: join(targetDist, 'picotol.layer.css') },
+    { archivePath: 'css/picotol.layer.min.css', sourcePath: join(targetDist, 'picotol.layer.min.css') },
     { archivePath: 'tokens/tokens.css', sourcePath: join(root, 'src', 'tokens.css') },
     { archivePath: 'tokens/palettes.css', sourcePath: join(root, 'src', 'palettes.css') },
     { archivePath: 'tokens/tol-qualitative.json', sourcePath: join(root, 'data', 'tol-qualitative.json') },
-    { archivePath: 'sri.json', sourcePath: join(distDir, 'sri.json') },
-    { archivePath: 'index.html', sourcePath: join(distDir, 'demo', 'index.html') },
+    { archivePath: 'sri.json', sourcePath: join(targetDist, 'sri.json') },
+    { archivePath: 'index.html', sourcePath: join(targetDist, 'demo', 'index.html') },
   ];
 
   const entries = manifest.map(({ archivePath, sourcePath }) => {
     if (!existsSync(sourcePath)) {
       throw new Error(`Cannot package assets: source file missing: ${sourcePath}. Run build first.`);
     }
-    const stat = statSync(sourcePath);
     return {
       name: archivePath,
       data: readFileSync(sourcePath),
-      mtime: stat.mtime,
+      mtime: effectiveMtime,
     };
   });
 

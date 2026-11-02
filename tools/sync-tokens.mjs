@@ -2,14 +2,14 @@
 // from ../tol-palettes/data/schemes/*.json (when available locally) into
 // data/tol-qualitative.json and generates src/tokens.css + src/palettes.css.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveSyncOptions } from './path-jail.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const dataDir = join(root, 'data');
 const upstreamDir = join(root, '..', 'tol-palettes', 'data', 'schemes');
-const snapshotPath = join(root, 'data', 'tol-qualitative.json');
-const tokensCssPath = join(root, 'src', 'tokens.css');
-const palettesCssPath = join(root, 'src', 'palettes.css');
+const snapshotPath = join(dataDir, 'tol-qualitative.json');
 
 const QUALITATIVE_IDS = [
   'bright',
@@ -158,9 +158,9 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     `    --pt-valid: light-dark(${colorByName('dark', 5)}, ${colorByName('light', 'mint')});`,
     `    --pt-warning: light-dark(${colorByName('dark', 9)}, ${colorByName('light', 'light_yellow')});`,
     `    --pt-invalid: light-dark(${colorByName('vibrant', 'red')}, ${colorByName('bright', 'red')});`,
-    '    --pt-red: #EE6677;',
-    '    --pt-yellow: #CCBB44;',
-    '    --pt-cyan: #66CCEE;',
+    `    --pt-red: ${colorByName('bright', 'red')};`,
+    `    --pt-yellow: ${colorByName('bright', 'yellow')};`,
+    `    --pt-cyan: ${colorByName('bright', 'cyan')};`,
     `    --pt-mark-bg: light-dark(${colorByName('pale', 3)}, ${colorByName('dark', 9)});`,
     '    --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);',
     '    --pt-z-dropdown: 100;',
@@ -258,10 +258,25 @@ export function buildPalettesCss(snapshot = loadSnapshot()) {
   return lines.join('\n');
 }
 
+export function syncTokens(opts = {}) {
+  const { targetTokensPath, targetPalettesPath, hasSnapshot } = resolveSyncOptions(opts);
+  const snapshot = hasSnapshot ? opts.snapshot : loadSnapshot();
+  const tokensCss = buildTokensCss(snapshot);
+  const palettesCss = buildPalettesCss(snapshot);
+  mkdirSync(dirname(targetTokensPath), { recursive: true });
+  mkdirSync(dirname(targetPalettesPath), { recursive: true });
+  writeFileSync(targetTokensPath, tokensCss, 'utf8');
+  writeFileSync(targetPalettesPath, palettesCss, 'utf8');
+  return {
+    snapshot,
+    tokensCss,
+    palettesCss,
+    tokensCssPath: targetTokensPath,
+    palettesCssPath: targetPalettesPath,
+  };
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const snapshot = loadSnapshot();
-  mkdirSync(dirname(tokensCssPath), { recursive: true });
-  writeFileSync(tokensCssPath, buildTokensCss(snapshot), 'utf8');
-  writeFileSync(palettesCssPath, buildPalettesCss(snapshot), 'utf8');
+  const { snapshot } = syncTokens();
   console.log(`Synced ${Object.keys(snapshot.schemes).length} Paul Tol qualitative schemes -> src/tokens.css & src/palettes.css`);
 }

@@ -26,13 +26,279 @@ const OPTS = {
   errorRecovery: false,
 };
 
-function expandHex(raw) {
+export function expandHex(raw) {
   const upper = raw.toUpperCase();
-  if (upper === '#0000' || upper === '#00000000') return '#000000';
   if (/^#[0-9A-F]{3}$/.test(upper)) {
     return `#${upper[1]}${upper[1]}${upper[2]}${upper[2]}${upper[3]}${upper[3]}`;
   }
   return upper;
+}
+
+export function isTransparentHex(normHex) {
+  const upper = normHex.toUpperCase();
+  return upper === '#0000' || upper === '#00000000';
+}
+
+function scanCssCommentsAndLiterals(css, { replaceStrings = false } = {}) {
+  // Single-pass CSS lexer that strips /* ... */ comments while tracking quoted strings
+  // ("...", '...') and unquoted url(...) tokens in one unified state machine so quotes
+  // inside unquoted url(...) can never mispair with string quotes outside url(...).
+  let out = '';
+  let quote = null;
+  let inUnquotedUrl = false;
+  for (let i = 0; i < css.length; i++) {
+    const ch = css[i];
+    if (quote) {
+      if (ch === '\\' && i + 1 < css.length) {
+        if (!replaceStrings) out += ch + css[i + 1];
+        i++;
+      } else if (ch === quote) {
+        if (!replaceStrings) out += ch;
+        quote = null;
+      } else if (!replaceStrings) {
+        out += ch;
+      }
+      continue;
+    }
+    if (inUnquotedUrl) {
+      if (ch === '\\' && i + 1 < css.length) {
+        if (!replaceStrings) out += ch + css[i + 1];
+        i++;
+      } else if (ch === ')') {
+        out += ')';
+        inUnquotedUrl = false;
+      } else if (!replaceStrings) {
+        out += ch;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      out += replaceStrings ? '""' : ch;
+      continue;
+    }
+    if (ch === '/' && css[i + 1] === '*') {
+      const closeIdx = css.indexOf('*/', i + 2);
+      if (closeIdx === -1) break;
+      i = closeIdx + 1;
+      continue;
+    }
+    if (
+      (ch === 'u' || ch === 'U') &&
+      /^url\(\s*(?!['"])/i.test(css.slice(i)) &&
+      (i === 0 || !/[\w-]/.test(css[i - 1]))
+    ) {
+      const openParen = css.indexOf('(', i);
+      out += css.slice(i, openParen + 1);
+      i = openParen;
+      inUnquotedUrl = true;
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
+export function stripCssComments(css) {
+  return scanCssCommentsAndLiterals(css, { replaceStrings: false });
+}
+
+export function stripCssCommentsAndStrings(css) {
+  return scanCssCommentsAndLiterals(css, { replaceStrings: true });
+}
+
+export function stripNotPseudoClasses(css) {
+  // Removes :not(...) segments so negated classes like .foo:not(.phantom) never count as defining .phantom
+  let prev = css;
+  while (true) {
+    const next = prev.replace(/:not\([^()]*\)/gi, '');
+    if (next === prev) return next;
+    prev = next;
+  }
+}
+
+let cachedAllowedHexSet = null;
+function getAllowedHexSet() {
+  if (!cachedAllowedHexSet) {
+    const tolData = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/tol-qualitative.json'), 'utf8'));
+    cachedAllowedHexSet = new Set(tolData.allowedHexes.map((h) => h.toUpperCase()));
+  }
+  return cachedAllowedHexSet;
+}
+
+export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
+  const errors = [];
+  const allowedHexSet = opts.allowedHexSet || getAllowedHexSet();
+
+  // 1. Strict LightningCSS parse & warning gate
+  try {
+    const res = transform({
+      filename,
+      code: Buffer.from(content, 'utf8'),
+      minify: false,
+      ...OPTS,
+      ...opts.transformOpts,
+      errorRecovery: false,
+    });
+    if (res.warnings && res.warnings.length > 0) {
+      for (const w of res.warnings) {
+        errors.push(`[${filename}:${w.loc?.line || 0}] LightningCSS warning: ${w.message}`);
+      }
+    }
+  } catch (err) {
+    errors.push(`[${filename}] CSS syntax error: ${err.message}`);
+  }
+
+  const cleanContent = stripCssComments(content);
+
+  // 2. Custom property naming convention (--pt-* or --tol-*)
+  for (const match of cleanContent.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)) {
+    const propName = match[1];
+    if (!/^--(pt|tol)-[a-z0-9_-]+$/.test(propName)) {
+      errors.push(`[${filename}] Invalid custom property name "${propName}" (must match --pt-* or --tol-*)`);
+    }
+  }
+
+  // 3. Forbidden color functions & non-Paul-Tol hex codes
+  if (/\b(?:rgb|rgba|hsl|hsla|oklch|lab|lch)\s*\(/i.test(cleanContent)) {
+    errors.push(`[${filename}] Forbidden color function (rgb/hsl/oklch/lab/lch) found`);
+  }
+  const withoutDataUris = cleanContent.replace(/url\("data:[^"]*"\)/g, '');
+  for (const match of withoutDataUris.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
+    const norm = expandHex(match[0]);
+    if (!isTransparentHex(norm) && !allowedHexSet.has(norm)) {
+      errors.push(`[${filename}] Non-Paul-Tol hex color ${match[0]} (${norm})`);
+    }
+  }
+
+  // 4. Accessibility CSS anti-patterns: no outline: none/0/0px/0.0, outline-style: none, or outline-width: 0
+  // (except the programmatic skip-link target [tabindex="-1"]:focus:not(:focus-visible) in src/base.css); no fixed px font-size
+  const isBaseCss = filename.replaceAll('\\', '/') === 'src/base.css';
+  const withoutProgrammaticFocusTarget = isBaseCss
+    ? cleanContent.replace(/\[tabindex="-1"\]:focus:not\(:focus-visible\)\s*\{[^}]*\}/g, '')
+    : cleanContent;
+  if (
+    /\b(?:outline\s*:\s*(?:none\b|0(?:\.0+)?(?:px|rem|em|%|vh|vw|ch|ex|pt)?(?![0-9.]))|outline-style\s*:\s*none\b|outline-width\s*:\s*0(?:\.0+)?(?:px|rem|em|%|vh|vw|ch|ex|pt)?(?![0-9.]))[^;}]*(?:[;}]|$)/i.test(
+      withoutProgrammaticFocusTarget
+    )
+  ) {
+    errors.push(`[${filename}] Accessible focus violation: "outline: none" or "outline: 0" strips forced-colors focus rings`);
+  }
+  if (/\bfont-size\s*:\s*[0-9.]+px\b/i.test(cleanContent)) {
+    errors.push(`[${filename}] Scalable typography violation: fixed "px" font-size found (use rem, em, %, or clamp)`);
+  }
+
+  return errors;
+}
+
+export function lintBundledCss(bundledCss, entry = 'bundle.css') {
+  const errors = [];
+  const cleanCss = stripCssComments(bundledCss);
+  const definedVars = new Set([...cleanCss.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]));
+  const usedVars = new Set([...cleanCss.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map((m) => m[1]));
+
+  // Allow --pt-btn-color and --marker-pos only when every var(...) reference includes a fallback
+  const optionalHookVars = new Set(['--pt-btn-color', '--marker-pos']);
+  const varWithFallbackRe = /var\(\s*(--[a-zA-Z0-9_-]+)\s*,/g;
+  const fallbackCount = new Map();
+  const totalUseCount = new Map();
+  for (const m of cleanCss.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)) {
+    totalUseCount.set(m[1], (totalUseCount.get(m[1]) || 0) + 1);
+  }
+  for (const m of cleanCss.matchAll(varWithFallbackRe)) {
+    fallbackCount.set(m[1], (fallbackCount.get(m[1]) || 0) + 1);
+  }
+
+  for (const used of usedVars) {
+    if (definedVars.has(used)) continue;
+    if (optionalHookVars.has(used) && fallbackCount.get(used) === totalUseCount.get(used)) {
+      continue;
+    }
+    errors.push(`[${entry}] Undefined CSS custom property referenced: ${used}`);
+  }
+  return errors;
+}
+
+export function lintDistAccessibilityRules(fullDistCss, filename = 'dist/picotol.css') {
+  const errors = [];
+  for (const requiredRule of [
+    ':focus-visible',
+    '.skip-to-content',
+    '.sr-only',
+    '.overflow-auto',
+    'prefers-reduced-motion: reduce',
+    'forced-colors: active',
+    '@media print',
+  ]) {
+    if (!fullDistCss.includes(requiredRule)) {
+      errors.push(`[${filename}] Missing required accessibility/responsive rule: "${requiredRule}"`);
+    }
+  }
+  return errors;
+}
+
+export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.html') {
+  const errors = [];
+  const cleanHtml = demoHtml
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+  const openTags = [...cleanHtml.matchAll(/<([a-zA-Z][a-zA-Z0-9:-]*)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/g)];
+
+  const demoIds = new Set();
+  const demoClasses = new Set();
+  for (const [, , attrs] of openTags) {
+    for (const m of attrs.matchAll(/\bid\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/g)) {
+      demoIds.add(m[1] ?? m[2] ?? m[3]);
+    }
+    for (const m of attrs.matchAll(/\bclass\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/g)) {
+      for (const cls of (m[1] ?? m[2] ?? m[3]).trim().split(/\s+/)) {
+        if (cls) demoClasses.add(cls);
+      }
+    }
+  }
+
+  const positiveDistCss = stripNotPseudoClasses(stripCssCommentsAndStrings(fullDistCss));
+
+  for (const cls of demoClasses) {
+    const escapedCls = cls.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const classSelRe = new RegExp(`\\.${escapedCls}(?![\\w-])(?=[^;{}]*\\{)`);
+    if (!classSelRe.test(positiveDistCss)) {
+      errors.push(`[${filename}] Unstyled class ".${cls}" used in demo HTML but missing from dist/picotol.css`);
+    }
+  }
+
+  for (const [, tagName, attrs] of openTags) {
+    for (const match of attrs.matchAll(/\bhref\s*=\s*(?:"#([^"]*)"|'#([^']*)'|#([^\s"'=<>`]*))/g)) {
+      const targetId = match[1] ?? match[2] ?? match[3];
+      if (targetId && !demoIds.has(targetId)) {
+        errors.push(`[${filename}] Broken internal anchor link href="#${targetId}" (no matching id="${targetId}")`);
+      }
+    }
+
+    for (const attr of ['aria-describedby', 'aria-labelledby']) {
+      const attrRe = new RegExp(`\\b${attr}\\s*=\\s*(?:"([^"]+)"|'([^']+)'|([^\\s"'=<>` + '`' + `]+))`, 'g');
+      for (const match of attrs.matchAll(attrRe)) {
+        const val = match[1] ?? match[2] ?? match[3];
+        for (const refId of val.trim().split(/\s+/)) {
+          if (!demoIds.has(refId)) {
+            errors.push(`[${filename}] Broken ARIA reference ${attr}="${refId}" (no matching id="${refId}")`);
+          }
+        }
+      }
+    }
+
+    // Ensure non-interactive elements with data-tooltip have tabindex="0"
+    if (
+      /^(?:span|div|abbr)$/i.test(tagName) &&
+      /\bdata-tooltip\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+)/i.test(attrs) &&
+      !/\btabindex\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs)
+    ) {
+      errors.push(`[${filename}] Non-interactive <${tagName} data-tooltip> is missing tabindex="0" for keyboard access`);
+    }
+  }
+
+  return errors;
 }
 
 export function runLint() {
@@ -91,50 +357,7 @@ export function runLint() {
     const relPath = `src/${file}`;
     const content = fs.readFileSync(fullPath, 'utf8');
 
-    // 1. Strict LightningCSS parse & warning gate
-    try {
-      const res = transform({
-        filename: fullPath,
-        code: Buffer.from(content, 'utf8'),
-        minify: false,
-        ...OPTS,
-      });
-      if (res.warnings && res.warnings.length > 0) {
-        for (const w of res.warnings) {
-          errors.push(`[${relPath}:${w.loc?.line || 0}] LightningCSS warning: ${w.message}`);
-        }
-      }
-    } catch (err) {
-      errors.push(`[${relPath}] CSS syntax error: ${err.message}`);
-    }
-
-    // 2. Custom property naming convention (--pt-* or --tol-*)
-    for (const match of content.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)) {
-      const propName = match[1];
-      if (!/^--(pt|tol)-[a-z0-9_-]+$/.test(propName)) {
-        errors.push(`[${relPath}] Invalid custom property name "${propName}" (must match --pt-* or --tol-*)`);
-      }
-    }
-
-    // 3. Forbidden color functions & non-Paul-Tol hex codes
-    if (/\b(?:rgb|rgba|hsl|hsla|oklch|lab|lch)\s*\(/i.test(content)) {
-      errors.push(`[${relPath}] Forbidden color function (rgb/hsl/oklch/lab/lch) found`);
-    }
-    const withoutDataUris = content.replace(/url\("data:[^"]*"\)/g, '');
-    for (const match of withoutDataUris.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
-      const norm = expandHex(match[0]);
-      if (!allowedHexSet.has(norm)) {
-        errors.push(`[${relPath}] Non-Paul-Tol hex color ${match[0]} (${norm})`);
-      }
-    }
-
-    // 4. Accessibility CSS anti-patterns: no outline: none/0, no fixed px font-size
-    if (/\boutline\s*:\s*(?:none|0)\b/i.test(content)) {
-      errors.push(`[${relPath}] Accessible focus violation: "outline: none" or "outline: 0" strips forced-colors focus rings`);
-    }
-    if (/\bfont-size\s*:\s*[0-9.]+px\b/i.test(content)) {
-      errors.push(`[${relPath}] Scalable typography violation: fixed "px" font-size found (use rem, em, %, or clamp)`);
-    }
+    errors.push(...lintCssSnippet(content, relPath, { allowedHexSet }));
   }
 
   // 5. Bundle-level undefined custom property & accessibility feature verification
@@ -147,74 +370,16 @@ export function runLint() {
       }
     }
     const bundledCss = res.code.toString('utf8');
-    const definedVars = new Set([...bundledCss.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]));
-    const usedVars = new Set([...bundledCss.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map((m) => m[1]));
-
-    // Allow --pt-btn-color and --marker-pos as optional override hooks with fallback
-    definedVars.add('--pt-btn-color');
-    definedVars.add('--marker-pos');
-
-    for (const used of usedVars) {
-      if (!definedVars.has(used)) {
-        errors.push(`[${entry}] Undefined CSS custom property referenced: ${used}`);
-      }
-    }
+    errors.push(...lintBundledCss(bundledCss, entry));
   }
 
   const fullDistCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
-  for (const requiredRule of [
-    ':focus-visible',
-    '.skip-to-content',
-    '.sr-only',
-    '.overflow-auto',
-    'prefers-reduced-motion: reduce',
-    'forced-colors: active',
-    '@media print',
-  ]) {
-    if (!fullDistCss.includes(requiredRule)) {
-      errors.push(`[dist/picotol.css] Missing required accessibility/responsive rule: "${requiredRule}"`);
-    }
-  }
+  errors.push(...lintDistAccessibilityRules(fullDistCss, 'dist/picotol.css'));
 
   // 6. Demo HTML structural & accessibility linting
   const demoPath = path.join(ROOT, 'dist/demo/index.html');
   const demoHtml = fs.readFileSync(demoPath, 'utf8');
-
-  const demoIds = new Set([...demoHtml.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
-  const demoClasses = new Set(
-    [...demoHtml.matchAll(/\bclass="([^"]+)"/g)].flatMap((m) => m[1].trim().split(/\s+/))
-  );
-
-  for (const cls of demoClasses) {
-    if (!fullDistCss.includes(`.${cls}`)) {
-      errors.push(`[dist/demo/index.html] Unstyled class ".${cls}" used in demo HTML but missing from dist/picotol.css`);
-    }
-  }
-
-  for (const match of demoHtml.matchAll(/\bhref="#([^"]*)"/g)) {
-    const targetId = match[1];
-    if (targetId && !demoIds.has(targetId)) {
-      errors.push(`[dist/demo/index.html] Broken internal anchor link href="#${targetId}" (no matching id="${targetId}")`);
-    }
-  }
-
-  for (const attr of ['aria-describedby', 'aria-labelledby']) {
-    for (const match of demoHtml.matchAll(new RegExp(`\\b${attr}="([^"]+)"`, 'g'))) {
-      for (const refId of match[1].trim().split(/\s+/)) {
-        if (!demoIds.has(refId)) {
-          errors.push(`[dist/demo/index.html] Broken ARIA reference ${attr}="${refId}" (no matching id="${refId}")`);
-        }
-      }
-    }
-  }
-
-  // Ensure non-interactive elements with data-tooltip have tabindex="0"
-  for (const match of demoHtml.matchAll(/<(span|div|abbr)\b([^>]*\bdata-tooltip="[^"]*"[^>]*)>/gi)) {
-    const attrs = match[2];
-    if (!/\btabindex=/i.test(attrs)) {
-      errors.push(`[dist/demo/index.html] Non-interactive <${match[1]} data-tooltip> is missing tabindex="0" for keyboard access`);
-    }
-  }
+  errors.push(...lintDemoHtml(demoHtml, fullDistCss, 'dist/demo/index.html'));
 
   return errors;
 }

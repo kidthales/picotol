@@ -18,53 +18,18 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
-const tolData = JSON.parse(
-  fs.readFileSync(path.join(ROOT, "data/tol-qualitative.json"), "utf8")
-);
-
-function expandHex(raw) {
-  const upper = raw.toUpperCase();
-  if (upper === "#0000" || upper === "#00000000") return "#000000";
-  if (/^#[0-9A-F]{3}$/.test(upper)) {
-    return `#${upper[1]}${upper[1]}${upper[2]}${upper[2]}${upper[3]}${upper[3]}`;
-  }
-  return upper;
-}
-
-function srgbToLinear(channel) {
-  const c = channel / 255;
-  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-}
-
-function relativeLuminance(hex) {
-  const clean = expandHex(hex).replace("#", "");
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  return (
-    0.2126 * srgbToLinear(r) +
-    0.7152 * srgbToLinear(g) +
-    0.0722 * srgbToLinear(b)
-  );
-}
-
-function contrastRatio(hexA, hexB) {
-  const l1 = relativeLuminance(hexA);
-  const l2 = relativeLuminance(hexB);
-  const lighter = Math.max(l1, l2);
-  const darker = Math.min(l1, l2);
-  return (lighter + 0.05) / (darker + 0.05);
-}
-
-function schemeColor(schemeId, nameOrIndex) {
-  const list = tolData.schemes[schemeId].colors;
-  if (typeof nameOrIndex === "number") return list[nameOrIndex].hex;
-  return list.find((c) => c.name === nameOrIndex).hex;
-}
-
-function achromaticColor(name) {
-  return tolData.achromatic.find((a) => a.name === name).hex;
-}
+import { isTransparentHex } from "../tools/lint.mjs";
+import {
+  tolData,
+  expandHex,
+  relativeLuminance,
+  contrastRatio,
+  mixSrgb,
+  schemeColor,
+  extractLayerBlock,
+  parseCssBlock,
+  getPicotolTokens,
+} from "./helpers/tokens.mjs";
 
 test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canonical Paul Tol schemes", () => {
   const allowedHexSet = new Set(tolData.allowedHexes.map((h) => h.toUpperCase()));
@@ -87,8 +52,11 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
     const matches = content.match(hexRegex) || [];
     for (const match of matches) {
       const normalized = expandHex(match);
+      const isAllowedOrTransparent = isTransparentHex(normalized)
+        ? true
+        : allowedHexSet.has(normalized);
       assert.ok(
-        allowedHexSet.has(normalized),
+        isAllowedOrTransparent,
         `Non-Paul-Tol hex color ${match} (normalized: ${normalized}) found in ${path.relative(ROOT, file)}`
       );
     }
@@ -120,15 +88,16 @@ test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 14.0 KB, picotol.min
 });
 
 test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 4 Paul Tol Accent Ladders (Normal + Hover), and SC 1.4.11 Borders", () => {
-  const lightBg = achromaticColor("white"); // #FFFFFF
-  const lightText = achromaticColor("black"); // #000000
-  const lightMuted = achromaticColor("grey-800"); // #444444
-  const lightBorder = achromaticColor("grey-500"); // #888888
+  const tokens = getPicotolTokens();
+  const lightBg = tokens.getToken("--pt-bg", "light");
+  const lightText = tokens.getToken("--pt-color", "light");
+  const lightMuted = tokens.getToken("--pt-muted-color", "light");
+  const lightBorder = tokens.getToken("--pt-muted-border", "light");
 
-  const darkBg = achromaticColor("black"); // #000000
-  const darkText = achromaticColor("white"); // #FFFFFF
-  const darkMuted = achromaticColor("grey-200"); // #DDDDDD
-  const darkBorder = achromaticColor("grey-700"); // #666666
+  const darkBg = tokens.getToken("--pt-bg", "dark");
+  const darkText = tokens.getToken("--pt-color", "dark");
+  const darkMuted = tokens.getToken("--pt-muted-color", "dark");
+  const darkBorder = tokens.getToken("--pt-muted-border", "dark");
 
   assert.ok(contrastRatio(lightText, lightBg) >= 7.0, "Light mode primary text AAA contrast");
   assert.ok(contrastRatio(lightMuted, lightBg) >= 7.0, "Light mode muted text AAA contrast");
@@ -145,41 +114,15 @@ test("WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 4 Paul 
     `Dark mode border (${darkBorder}) vs black bg must be >= 3.0:1 (SC 1.4.11)`
   );
 
-  // 4 Accent Ladders matching tools/sync-tokens.mjs (--pt-p1..--pt-p5)
-  const accents = [
-    {
-      name: "blue",
-      p1: schemeColor("pale", 0), // #AACCEE
-      p2: schemeColor("light", "light_blue"), // #77AADD
-      p3: schemeColor("bright", "blue"), // #4477AA
-      p4: schemeColor("dark", 3), // #2255AA
-      p5: schemeColor("high-contrast", "blue"), // #004488
-    },
-    {
-      name: "cyan",
-      p1: schemeColor("pale", 1), // #CCEEFF
-      p2: schemeColor("light", "light_cyan"), // #99DDFF
-      p3: schemeColor("vibrant", "blue"), // #0077BB
-      p4: schemeColor("dark", 6), // #117788
-      p5: schemeColor("high-contrast", "blue"), // #004488
-    },
-    {
-      name: "purple",
-      p1: schemeColor("prgn", 3), // #E7D4E8
-      p2: schemeColor("prgn", 2), // #C2A5CF
-      p3: schemeColor("muted", "purple"), // #AA4499
-      p4: schemeColor("prgn", 0), // #762A83
-      p5: schemeColor("muted", "indigo"), // #332288
-    },
-    {
-      name: "magenta",
-      p1: schemeColor("pale", 5), // #EEBBDD
-      p2: schemeColor("light", "pink"), // #FFAABB
-      p3: schemeColor("dark", 8), // #BB4488
-      p4: schemeColor("dark", 4), // #993366
-      p5: schemeColor("muted", "wine"), // #882255
-    },
-  ];
+  // 4 Accent Ladders dynamically extracted from dist/picotol.css (--pt-p1..--pt-p5)
+  const accents = ["blue", "cyan", "purple", "magenta"].map((name) => ({
+    name,
+    p1: tokens.getToken("--pt-p1", "light", name),
+    p2: tokens.getToken("--pt-p2", "light", name),
+    p3: tokens.getToken("--pt-p3", "light", name),
+    p4: tokens.getToken("--pt-p4", "light", name),
+    p5: tokens.getToken("--pt-p5", "light", name),
+  }));
 
   for (const acc of accents) {
     assert.notEqual(
@@ -268,10 +211,10 @@ test("Architecture & Selector Invariants: @layer cascade, --pt-* tokens, [data-t
   assert.ok(!fullCss.includes("--tc-"), "Legacy --tc-* token namespace must be completely migrated");
 
   for (const theme of ["light", "dark"]) {
-    assert.ok(fullCss.includes(`[data-theme="${theme}"]`) || fullCss.includes(`[data-theme=${theme}]`));
+    assert.ok(fullCss.includes(`[data-theme="${theme}"]`));
   }
   for (const accent of ["blue", "cyan", "purple", "magenta"]) {
-    assert.ok(fullCss.includes(`[data-accent="${accent}"]`) || fullCss.includes(`[data-accent=${accent}]`));
+    assert.ok(fullCss.includes(`[data-accent="${accent}"]`));
   }
   for (const retired of ["green", "yellow", "red", "teal", "indigo"]) {
     assert.ok(!fullCss.includes(`[data-accent="${retired}"]`) && !fullCss.includes(`[data-accent=${retired}]`), `Retired accent ${retired} must not be present in [data-accent]`);
@@ -289,15 +232,16 @@ test("Secondary Button Decoupling: neutral slate ladder prevents collision with 
   assert.ok(fullCss.includes(secondarySelector), "Secondary selector present in dist/picotol.css");
   assert.ok(coreCss.includes(secondarySelector), "Secondary selector present in dist/picotol.core.css");
 
+  const tokens = getPicotolTokens();
   const secondaryLadder = {
-    p1: achromaticColor("grey-200"), // #DDDDDD (surface in light mode)
-    p2: achromaticColor("grey-500"), // #888888 (hover in light mode)
-    p3: achromaticColor("grey-700"), // #666666 (hover in dark mode)
-    p4: achromaticColor("grey-800"), // #444444 (surface in dark mode)
+    p1: tokens.getSecondaryToken("--pt-primary-bg", "light"),       // resolves to --pt-surface (light)
+    p2: tokens.getSecondaryToken("--pt-primary-hover-bg", "light"), // resolves to --pt-muted-border (light)
+    p3: tokens.getSecondaryToken("--pt-primary-hover-bg", "dark"),  // resolves to --pt-muted-border (dark)
+    p4: tokens.getSecondaryToken("--pt-primary-bg", "dark"),        // resolves to --pt-surface (dark)
   };
 
-  const lightText = achromaticColor("black"); // #000000
-  const darkText = achromaticColor("white");  // #FFFFFF
+  const lightText = tokens.getToken("--pt-color", "light");
+  const darkText = tokens.getToken("--pt-color", "dark");
 
   const lightCR = contrastRatio(secondaryLadder.p1, lightText);
   const lightHoverCR = contrastRatio(secondaryLadder.p2, lightText);
@@ -395,7 +339,7 @@ test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework b
     "dist/picotol.layer.css must wrap contents in @layer picotol"
   );
   assert.ok(
-    layerMinCss.includes("@layer picotol{") || layerMinCss.includes("@layer picotol {"),
+    layerMinCss.includes("@layer picotol{"),
     "dist/picotol.layer.min.css must contain @layer picotol"
   );
 
@@ -403,7 +347,7 @@ test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework b
   const layers = ["tokens", "reset", "base", "components", "utilities"];
   for (const layer of layers) {
     assert.ok(
-      layerMinCss.includes(`@layer ${layer}`) || layerMinCss.includes(`@layer ${layer}{`),
+      layerMinCss.includes(`@layer ${layer}{`),
       `Layered minified build must retain inner @layer ${layer}`
     );
   }
@@ -452,8 +396,7 @@ test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, sele
 
   // ARIA 1.2 validation selector: &[aria-invalid]:not([aria-invalid="false"])
   assert.ok(
-    coreCss.includes('[aria-invalid]:not([aria-invalid="false"])') ||
-    coreCss.includes('[aria-invalid]:not([aria-invalid=false])'),
+    coreCss.includes('[aria-invalid]:not([aria-invalid="false"])'),
     "Core CSS must support ARIA 1.2 spelling/grammar validation"
   );
 
@@ -464,44 +407,45 @@ test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, sele
   assert.ok(/figure:has\(\s*>\s*table\)/.test(coreCss), "Core CSS must include figure:has(> table) containment");
 
   // SVG Icon ergonomics
-  assert.ok(coreCss.includes("svg.icon") || coreCss.includes("[data-icon]"), "Core CSS includes icon ergonomics");
-  assert.ok(coreCss.includes("gap: .5rem") || coreCss.includes("gap: 0.5rem"), "Core CSS includes gap for icon buttons");
-  assert.ok(coreCss.includes("aspect-ratio: 1") || coreCss.includes("aspect-ratio:1"), "Core CSS includes square icon-only button rule");
+  assert.ok(coreCss.includes("svg.icon") && coreCss.includes("[data-icon]"), "Core CSS includes icon ergonomics");
+  assert.ok(coreCss.includes("gap: .5rem"), "Core CSS includes gap for icon buttons");
+  assert.ok(coreCss.includes("aspect-ratio: 1;"), "Core CSS includes square icon-only button rule");
   assert.ok(coreCss.includes("calc(1lh + 2 * var(--pt-form-y) + 2px)"), "Core CSS includes calculated height matching standard buttons");
 
   // KPI Stat cards & Skeletons
-  assert.ok(fullCss.includes("article.stat") || fullCss.includes("dl.stats"), "Full CSS includes KPI stat card selectors");
-  assert.ok(fullCss.includes("pt-pulse"), "Full CSS includes pt-pulse animation");
+  assert.ok(fullCss.includes("article.stat") && fullCss.includes("dl.stats"), "Full CSS includes KPI stat card selectors");
+  assert.ok(fullCss.includes("pt-spin") && fullCss.includes("pt-pulse"), "Full CSS includes pt-pulse animation");
   assert.ok(fullCss.includes(".skeleton"), "Full CSS includes skeleton loader class");
 
   // Pure-CSS modal close button & header flex layout
-  assert.ok(fullCss.includes("aria-label=\"Close\"") || fullCss.includes("aria-label=Close"), "Full CSS includes dialog close cross button");
+  assert.ok(fullCss.includes('aria-label="Close"'), "Full CSS includes dialog close cross button");
   assert.ok(/dialog\s+article\s*>\s*header\s*\{[^}]*display:\s*flex/i.test(fullCss), "Full CSS includes dialog article > header flex container");
-  assert.ok(fullCss.includes("margin-inline-start: auto") || fullCss.includes("margin-inline-start:auto"), "Full CSS includes margin-inline-start: auto on modal close button");
+  assert.ok(fullCss.includes("margin-inline-start: auto;"), "Full CSS includes margin-inline-start: auto on modal close button");
 });
 
 test("Semantic State Token Contrast: --pt-valid, --pt-warning, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA", () => {
-  const lightBg = achromaticColor("white"); // #FFFFFF
-  const darkBg = achromaticColor("black");  // #000000
+  const tokens = getPicotolTokens();
+  const lightBg = tokens.getToken("--pt-bg", "light");
+  const darkBg = tokens.getToken("--pt-bg", "dark");
 
-  // Light Mode States
-  const lightValid = schemeColor("dark", 5);          // #006644
-  const lightWarning = schemeColor("dark", 9);        // #775500
-  const lightInvalid = schemeColor("vibrant", "red"); // #CC3311
-  const lightMarkBg = schemeColor("pale", 3);         // #EEEEBB
-  const lightMarkText = achromaticColor("black");     // #000000
+  // Light Mode States dynamically resolved from dist/picotol.css tokens
+  const lightValid = tokens.getToken("--pt-valid", "light");
+  const lightWarning = tokens.getToken("--pt-warning", "light");
+  const lightInvalid = tokens.getToken("--pt-invalid", "light");
+  const lightMarkBg = tokens.getToken("--pt-mark-bg", "light");
+  const lightMarkText = tokens.getToken("--pt-color", "light");
 
   assert.ok(contrastRatio(lightValid, lightBg) >= 4.5, "Light valid >= 4.5:1 AA");
   assert.ok(contrastRatio(lightWarning, lightBg) >= 4.5, "Light warning >= 4.5:1 AA");
   assert.ok(contrastRatio(lightInvalid, lightBg) >= 4.5, "Light invalid >= 4.5:1 AA");
   assert.ok(contrastRatio(lightMarkText, lightMarkBg) >= 4.5, "Light mark text >= 4.5:1 AA");
 
-  // Dark Mode States
-  const darkValid = schemeColor("light", "mint");         // #44BB99
-  const darkWarning = schemeColor("light", "light_yellow"); // #EEDD88
-  const darkInvalid = schemeColor("bright", "red");       // #EE6677
-  const darkMarkBg = schemeColor("dark", 9);              // #775500
-  const darkMarkText = achromaticColor("white");          // #FFFFFF
+  // Dark Mode States dynamically resolved from dist/picotol.css tokens
+  const darkValid = tokens.getToken("--pt-valid", "dark");
+  const darkWarning = tokens.getToken("--pt-warning", "dark");
+  const darkInvalid = tokens.getToken("--pt-invalid", "dark");
+  const darkMarkBg = tokens.getToken("--pt-mark-bg", "dark");
+  const darkMarkText = tokens.getToken("--pt-color", "dark");
 
   assert.ok(contrastRatio(darkValid, darkBg) >= 4.5, "Dark valid >= 4.5:1 AA");
   assert.ok(contrastRatio(darkWarning, darkBg) >= 4.5, "Dark warning >= 4.5:1 AA");
@@ -528,8 +472,7 @@ test("Semantic Callout & Status Badge Decoupling: neutral defaults, semantic pre
 
   // Callouts: default to --pt-muted-border and --pt-color
   assert.ok(
-    fullCss.includes("border-inline-start: .25rem solid var(--pt-muted-border)") ||
-    fullCss.includes("border-inline-start: 0.25rem solid var(--pt-muted-border)"),
+    fullCss.includes("border-inline-start: .25rem solid var(--pt-muted-border)"),
     "Callout must default to neutral --pt-muted-border"
   );
 
@@ -576,9 +519,10 @@ test("Color Scheme Scoping & Data-Accent Isolation: [data-accent] must not overr
     );
   }
 
-  // Verify purple light mode contrast: p4 (#762A83) on white (#FFFFFF) >= 7.0 (AAA)
-  const purpleP4 = schemeColor("prgn", 0); // #762A83
-  const lightBg = achromaticColor("white"); // #FFFFFF
+  // Verify purple light mode contrast: p4 on white >= 7.0 (AAA)
+  const tokens = getPicotolTokens();
+  const purpleP4 = tokens.getToken("--pt-p4", "light", "purple");
+  const lightBg = tokens.getToken("--pt-bg", "light");
   const purpleLightCR = contrastRatio(purpleP4, lightBg);
   assert.ok(
     purpleLightCR >= 7.0,
@@ -597,7 +541,7 @@ test("Foundation & Layout Ergonomics: .container-fluid, sticky footer, and layou
     assert.ok(css.includes(".mb-0"), "Layout must declare .mb-0");
     assert.ok(css.includes(".no-margin-bottom"), "Layout must declare .no-margin-bottom");
     assert.ok(
-      css.includes("100dvh") || css.includes("100vh"),
+      css.includes("100dvh"),
       "Body must declare sticky footer height"
     );
   }
@@ -617,15 +561,15 @@ test("High-Density Layout Containment: scope section, article, and hr margins wi
       "Standalone section must preserve default typographic pacing (1.5 * spacing)"
     );
     assert.ok(
-      css.includes('style*="gap"') || css.includes("style*=gap"),
+      css.includes('[style*="gap"]'),
       "Must scope margins for direct children of containers with inline gap"
     );
     assert.ok(
-      css.includes('style*="display: flex"') || css.includes("style*=\"display: flex\"") || css.includes("display: flex"),
+      css.includes('[style*="display: flex"]'),
       "Must scope margins for direct children of flex containers"
     );
     assert.ok(
-      css.includes('margin-bottom: 0;') || css.includes("margin-bottom:0"),
+      css.includes("margin-bottom: 0;"),
       "Must zero out margin-bottom on child container elements in flex/grid context"
     );
   }
@@ -633,12 +577,19 @@ test("High-Density Layout Containment: scope section, article, and hr margins wi
   // Verify minified bundles compile scoping rules without syntax loss
   for (const min of [fullMin, coreMin]) {
     assert.ok(min.includes("margin-bottom:0"), "Minified bundles must compile margin-bottom: 0 reset");
-    assert.ok(min.includes("gap"), "Minified bundles must retain gap-based container selectors");
+    assert.ok(
+      min.includes("[style*=gap]"),
+      "Minified bundles must retain gap-based container selectors"
+    );
+    assert.ok(
+      min.includes('[style*="display: flex"]'),
+      "Minified bundles must retain display: flex container selectors"
+    );
   }
 
   // Full CSS specific checks for article and .card containment
   assert.ok(
-    fullCss.includes(":where(article, .card)") || fullCss.includes("article, .card"),
+    fullCss.includes(":where(article, .card)"),
     "Full CSS must scope article/.card within flex/grid parents"
   );
 });
@@ -647,20 +598,20 @@ test("Ergonomic Class Parity, Compact Control Sizing, and Component Primitives",
   const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
   const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
 
-  // Core & Full bundle class parity
+  // Core & Full bundle class parity (boundary-aware regexes so .btn cannot false-match .btn-icon)
   for (const css of [fullCss, coreCss]) {
-    assert.ok(css.includes(".btn"), "Must support .btn button alias");
-    assert.ok(css.includes(".button"), "Must support .button button alias");
-    assert.ok(css.includes(".small") || css.includes(".sm"), "Must support compact .small / .sm modifier");
-    assert.ok(css.includes(".nowrap"), "Must support .nowrap");
-    assert.ok(css.includes(".swatch"), "Must support .swatch chip primitive");
-    assert.ok(css.includes(".form-row"), "Must support .form-row flex container");
-    assert.ok(css.includes(".inline-form"), "Must support .inline-form flex container");
+    assert.ok(/\.btn(?![\w-])/.test(css), "Must support .btn button alias");
+    assert.ok(/\.button(?![\w-])/.test(css), "Must support .button button alias");
+    assert.ok(/\.small(?![\w-])/.test(css) && /\.sm(?![\w-])/.test(css), "Must support both compact .small and .sm modifiers");
+    assert.ok(/\.nowrap(?![\w-])/.test(css), "Must support .nowrap");
+    assert.ok(/\.swatch(?![\w-])/.test(css), "Must support .swatch chip primitive");
+    assert.ok(/\.form-row(?![\w-])/.test(css), "Must support .form-row flex container");
+    assert.ok(/\.inline-form(?![\w-])/.test(css), "Must support .inline-form flex container");
   }
 
   // Extended components in full bundle
-  assert.ok(fullCss.includes(".card"), "Full CSS must support .card alias for article");
-  assert.ok(fullCss.includes(".toast"), "Full CSS must support .toast notification component");
+  assert.ok(/\.card(?![\w-])/.test(fullCss), "Full CSS must support .card alias for article");
+  assert.ok(/\.toast(?![\w-])/.test(fullCss), "Full CSS must support .toast notification component");
 });
 
 test("Narrow-Corridor Reflow & Table Overflow Containment: .overflow-auto, .table-container, and min-width: 0 compile cleanly into core and full bundles", () => {
@@ -675,15 +626,15 @@ test("Narrow-Corridor Reflow & Table Overflow Containment: .overflow-auto, .tabl
       "Both full and core minified bundles must include .overflow-auto and .table-container"
     );
     assert.ok(
-      css.includes("overflow-x:auto") || css.includes("overflow-x: auto"),
+      css.includes("overflow-x:auto"),
       "Both bundles must include overflow-x: auto for containment"
     );
     assert.ok(
-      css.includes("-webkit-overflow-scrolling:touch") || css.includes("-webkit-overflow-scrolling: touch"),
+      css.includes("-webkit-overflow-scrolling:touch"),
       "Both bundles must include touch momentum scrolling"
     );
     assert.ok(
-      css.includes("min-width:0") || css.includes("min-width: 0"),
+      css.includes("min-width:0"),
       "Both bundles must compile min-width: 0 for narrow-corridor flex/grid reflow"
     );
   }
@@ -707,7 +658,7 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
 
   // Check dimension rules
   assert.ok(
-    (fullCss.includes("0.5rem") || fullCss.includes(".5rem")) && fullCss.includes("50%"),
+    fullCss.includes("width: .5rem;") && fullCss.includes("height: .5rem;") && fullCss.includes("50%"),
     "Status dot must declare 0.5rem dimensions and 50% radius"
   );
 
@@ -724,30 +675,29 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
     "Status dot must support .neutral and .idle class modifiers"
   );
   assert.ok(
-    fullCss.includes('[data-status="neutral"]') || fullCss.includes("[data-status=neutral]"),
+    fullCss.includes('[data-status="neutral"]'),
     "Status dot must support data-status=neutral"
   );
   assert.ok(
-    fullCss.includes('[data-status="idle"]') || fullCss.includes("[data-status=idle]"),
+    fullCss.includes('[data-status="idle"]'),
     "Status dot must support data-status=idle"
   );
   assert.ok(
-    fullCss.includes('[data-status="backlog"]') || fullCss.includes("[data-status=backlog]"),
+    fullCss.includes('[data-status="backlog"]'),
     "Status dot must support data-status=backlog"
   );
   assert.ok(
-    fullCss.includes('[data-status="no-status"]') || fullCss.includes("[data-status=no-status]"),
+    fullCss.includes('[data-status="no-status"]'),
     "Status dot must support data-status=no-status"
   );
 
   // Spacing & Margin Compounding Prevention in Flex Gap Containers
   assert.ok(
-    fullCss.includes(":where(:not(:only-child, :last-child))") ||
-    fullCss.includes(":where(:not(:only-child,:last-child))"),
+    fullCss.includes(":where(:not(:only-child, :last-child))"),
     "Status dot default margin selector must be wrapped in :where() to maintain (0,0,0) specificity"
   );
   assert.ok(
-    fullCss.includes("margin-inline-end: 0.35rem") || fullCss.includes("margin-inline-end: .35rem"),
+    fullCss.includes("margin-inline-end: .35rem"),
     "Status dot preserves default inline spacing when not only or last child"
   );
   assert.ok(
@@ -761,23 +711,24 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
 
   // Forced colors mode outline
   assert.ok(
-    /outline:\s*1px\s+solid\s+canvastext/i.test(fullCss) || /outline:1px solid canvastext/i.test(fullMin),
+    /outline:\s*1px\s+solid\s+canvastext/i.test(fullCss) && /outline:1px solid canvastext/i.test(fullMin),
     "Status dot must provide CanvasText outline in forced-colors mode"
   );
 
   // WCAG 2.2 SC 1.4.11 Non-text contrast verification (>= 3.0:1)
-  const lightBg = achromaticColor("white"); // #FFFFFF
-  const darkBg = achromaticColor("black");  // #000000
+  const tokens = getPicotolTokens();
+  const lightBg = tokens.getToken("--pt-bg", "light");
+  const darkBg = tokens.getToken("--pt-bg", "dark");
 
-  const lightValid = schemeColor("dark", 5);          // #006644
-  const lightWarning = schemeColor("dark", 9);        // #775500
-  const lightInvalid = schemeColor("vibrant", "red"); // #CC3311
-  const lightMuted = achromaticColor("grey-500");     // #888888
+  const lightValid = tokens.getToken("--pt-valid", "light");
+  const lightWarning = tokens.getToken("--pt-warning", "light");
+  const lightInvalid = tokens.getToken("--pt-invalid", "light");
+  const lightMuted = tokens.getToken("--pt-muted-border", "light");
 
-  const darkValid = schemeColor("light", "mint");           // #44BB99
-  const darkWarning = schemeColor("light", "light_yellow"); // #EEDD88
-  const darkInvalid = schemeColor("bright", "red");         // #EE6677
-  const darkMuted = achromaticColor("grey-700");           // #666666
+  const darkValid = tokens.getToken("--pt-valid", "dark");
+  const darkWarning = tokens.getToken("--pt-warning", "dark");
+  const darkInvalid = tokens.getToken("--pt-invalid", "dark");
+  const darkMuted = tokens.getToken("--pt-muted-border", "dark");
 
   // Verify Light Mode dots vs White Surface >= 3.0:1
   assert.ok(contrastRatio(lightValid, lightBg) >= 3.0, "Status dot success >= 3:1 in light mode");
@@ -852,11 +803,11 @@ test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numeric
   // 1. Root default and compact modifiers in tokens
   for (const css of [fullCss, coreCss]) {
     assert.ok(
-      css.includes("--pt-card-padding: var(--pt-spacing);") || css.includes("--pt-card-padding:var(--pt-spacing)"),
+      css.includes("--pt-card-padding: var(--pt-spacing);"),
       "Must define default --pt-card-padding: var(--pt-spacing) on root tokens"
     );
     assert.ok(
-      css.includes('[data-density="compact"]') || css.includes("[data-density=compact]"),
+      css.includes('[data-density="compact"]'),
       "Must support [data-density='compact'] selector modifier"
     );
     assert.ok(
@@ -892,13 +843,13 @@ test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numeric
   // 2. Block margin resets on section, article, and hr within compact context
   for (const css of [fullCss, coreCss]) {
     assert.ok(
-      (css.includes('[data-density="compact"]') || css.includes("[data-density=compact]")) &&
+      css.includes('[data-density="compact"]') &&
       css.includes(".pt-compact") &&
       css.includes("margin-bottom: 0"),
       "Section must zero block margin in compact context"
     );
     assert.ok(
-      (css.includes('[data-density="compact"]') || css.includes("[data-density=compact]")) &&
+      css.includes('[data-density="compact"]') &&
       css.includes(".pt-compact") &&
       css.includes("margin-block: 0"),
       "HR must zero margin-block in compact context"
@@ -906,7 +857,7 @@ test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numeric
   }
 
   assert.ok(
-    fullCss.includes("padding: var(--pt-card-padding);") || fullCss.includes("padding:var(--pt-card-padding)"),
+    fullCss.includes("padding: var(--pt-card-padding);"),
     "Article and card padding must use --pt-card-padding token"
   );
 
@@ -928,7 +879,7 @@ test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numeric
     "Demo HTML must showcase data-density='compact' container"
   );
   assert.ok(
-    demoHtml.includes('class="card pt-compact"') || demoHtml.includes("pt-compact"),
+    demoHtml.includes('class="card pt-compact"'),
     "Demo HTML must showcase .pt-compact utility class"
   );
   assert.ok(
@@ -959,7 +910,7 @@ test("Cross-Engine Meter Custom Properties and Gauge Threshold Pin Markers (Issu
     "Full bundle must provide .pt-progress and .pt-progress-fill fallback structure"
   );
   assert.ok(
-    fullCss.includes('[role="progressbar"]') || fullCss.includes('[role=progressbar]'),
+    fullCss.includes('[role="progressbar"]'),
     "Full bundle must style role='progressbar' containers"
   );
 
@@ -996,11 +947,11 @@ test("Cross-Engine Meter Custom Properties and Gauge Threshold Pin Markers (Issu
     "Demo HTML must showcase .pt-progress fallback"
   );
   assert.ok(
-    demoHtml.includes("pt-gauge-marker") || demoHtml.includes("pt-meter-pin"),
+    demoHtml.includes("pt-gauge-marker") && demoHtml.includes("pt-meter-mark"),
     "Demo HTML must showcase gauge marker pins"
   );
   assert.ok(
-    demoHtml.includes("pt-progress-success") || demoHtml.includes("pt-progress-warning"),
+    demoHtml.includes("pt-progress-success") && demoHtml.includes("pt-progress-warning"),
     "Demo HTML must showcase status modifiers"
   );
 });
@@ -1010,22 +961,19 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
   const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
   const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
   const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
-  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
   const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
 
-  // 1. Canonical Paul Tol color tokens (--pt-red, --pt-yellow, --pt-cyan)
-  assert.ok(
-    tokensCss.includes("--pt-red: #EE6677;") &&
-    tokensCss.includes("--pt-yellow: #CCBB44;") &&
-    tokensCss.includes("--pt-cyan: #66CCEE;"),
-    "Canonical tokens --pt-red, --pt-yellow, and --pt-cyan must be defined in src/tokens.css"
-  );
+  // 1. Canonical Paul Tol severity color tokens (--pt-red, --pt-yellow, --pt-cyan) in compiled bundle
   assert.ok(
     fullCss.includes("--pt-red") &&
     fullCss.includes("--pt-yellow") &&
     fullCss.includes("--pt-cyan"),
     "Full bundle must contain canonical severity color tokens"
   );
+  const tokens = getPicotolTokens();
+  assert.equal(tokens.getToken("--pt-red", "light"), schemeColor("bright", "red"), "--pt-red must map to Tol bright red");
+  assert.equal(tokens.getToken("--pt-yellow", "light"), schemeColor("bright", "yellow"), "--pt-yellow must map to Tol bright yellow");
+  assert.equal(tokens.getToken("--pt-cyan", "light"), schemeColor("bright", "cyan"), "--pt-cyan must map to Tol bright cyan");
 
   // 2. .pt-callout component and severity variants
   assert.ok(
@@ -1035,34 +983,63 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
     fullCss.includes(".pt-callout-info"),
     "Full bundle must define .pt-callout, .pt-callout-critical, .pt-callout-warning, and .pt-callout-info"
   );
+  for (const variant of ["default", "ok", "critical", "warning", "info"]) {
+    assert.ok(
+      Object.hasOwn(tokens.calloutDecls[variant], "--pt-callout-border"),
+      `Callout variant "${variant}" must explicitly define its own --pt-callout-border`
+    );
+  }
   assert.ok(
     fullCss.includes("border-inline-start: 4px solid"),
     "Callouts must use 4px solid start border"
   );
   assert.ok(
-    fullCss.includes("color-mix(in srgb, var(--pt-callout-border) 8%, var(--pt-bg))") ||
-    fullCss.includes("8%"),
+    fullCss.includes("color-mix(in srgb, var(--pt-callout-border) 8%, var(--pt-bg))"),
     "Callouts must use 8% alpha washes"
   );
 
   // 3. Contrast verification across Light/Dark surfaces and greyscale simulation
-  const redLuminance = relativeLuminance("#EE6677");
-  const yellowLuminance = relativeLuminance("#CCBB44");
-  const cyanLuminance = relativeLuminance("#66CCEE");
+  for (const mode of ["light", "dark"]) {
+    const redHex = tokens.getToken("--pt-red", mode);
+    const yellowHex = tokens.getToken("--pt-yellow", mode);
+    const cyanHex = tokens.getToken("--pt-cyan", mode);
 
-  // In greyscale, luminance values are preserved and distinct
-  assert.ok(Math.abs(redLuminance - yellowLuminance) > 0.15, "Red and yellow must be distinguishable in greyscale");
-  assert.ok(redLuminance < yellowLuminance && yellowLuminance < cyanLuminance, "Severity ladder has monotonic greyscale separation");
+    const redLuminance = relativeLuminance(redHex);
+    const yellowLuminance = relativeLuminance(yellowHex);
+    const cyanLuminance = relativeLuminance(cyanHex);
 
-  // Normal typography inside callout uses var(--pt-color) (light: #000000, dark: #FFFFFF)
-  // Contrast against 8% wash passes WCAG 2.2 AA (>= 4.5:1)
-  const lightBgLuminance = 0.08 * redLuminance + 0.92 * 1.0;
-  const darkBgLuminance = 0.08 * redLuminance + 0.92 * 0.0;
-  const lightTextContrast = (lightBgLuminance + 0.05) / (0.0 + 0.05);
-  const darkTextContrast = (1.0 + 0.05) / (darkBgLuminance + 0.05);
+    // In greyscale, luminance values are preserved and distinct in both light and dark modes
+    assert.ok(
+      Math.abs(redLuminance - yellowLuminance) > 0.15,
+      `[${mode}] Red and yellow must be distinguishable in greyscale`
+    );
+    assert.ok(
+      redLuminance < yellowLuminance && yellowLuminance < cyanLuminance,
+      `[${mode}] Severity ladder has monotonic greyscale separation`
+    );
 
-  assert.ok(lightTextContrast >= 4.5, `Callout text contrast on light (${lightTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
-  assert.ok(darkTextContrast >= 4.5, `Callout text contrast on dark (${darkTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
+    // Normal typography inside callout uses var(--pt-color) against 8% wash of var(--pt-callout-border) over var(--pt-bg)
+    const bgHex = tokens.getToken("--pt-bg", mode);
+    const textColorHex = tokens.getToken("--pt-color", mode);
+
+    for (const variant of ["default", "critical", "warning", "info", "ok"]) {
+      const calloutBorderHex = tokens.getCalloutToken("--pt-callout-border", mode, variant);
+      const calloutBgWash = mixSrgb(calloutBorderHex, 8, bgHex);
+      const calloutTextContrast = contrastRatio(textColorHex, calloutBgWash);
+      assert.ok(
+        calloutTextContrast >= 4.5,
+        `[${mode}] Callout (${variant}) text contrast (${calloutTextContrast.toFixed(2)}:1) against 8% --pt-callout-border (${calloutBorderHex}) wash must meet WCAG 2.2 AA`
+      );
+    }
+
+    // Also verify 8% wash of mode-resolved --pt-red against mode-resolved --pt-bg
+    const redBgWash = mixSrgb(redHex, 8, bgHex);
+    const redTextContrast = contrastRatio(textColorHex, redBgWash);
+    assert.ok(
+      redTextContrast >= 4.5,
+      `[${mode}] Callout text contrast (${redTextContrast.toFixed(2)}:1) against 8% --pt-red (${redHex}) wash must meet WCAG 2.2 AA`
+    );
+  }
 
   // 4. Standalone .pt-status-dot utility with variants and pulse animation
   assert.ok(
@@ -1073,7 +1050,7 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
     "Full bundle must provide standalone .pt-status-dot with semantic variants"
   );
   assert.ok(
-    fullCss.includes(".pulse") || fullCss.includes(".pt-pulse"),
+    fullCss.includes(".pulse") && fullCss.includes("pt-pulse"),
     "Full bundle must support pulse animation on status indicators"
   );
   assert.ok(
@@ -1123,7 +1100,7 @@ test("Native Accessible Disclosures, Popovers, and Accordion Cards (Issue #96)",
 
   // 2. Summary disclosure marker and smooth rotation transition on open
   assert.ok(
-    fullCss.includes("rotate(-90deg)") && (fullCss.includes("rotate(0deg)") || fullCss.includes("transform: none")),
+    fullCss.includes("rotate(-90deg)") && fullCss.includes("transform: none;"),
     "Summary disclosure marker must support rotation transition on open"
   );
   assert.ok(
@@ -1143,7 +1120,7 @@ test("Native Accessible Disclosures, Popovers, and Accordion Cards (Issue #96)",
     "Full bundle must compile .pt-popover-menu container"
   );
   assert.ok(
-    fullCss.includes("inset-inline-end: 0") || fullCss.includes("inset-inline: auto 0") || fullCss.includes("right: 0"),
+    fullCss.includes("inset-inline: auto 0;"),
     "Popover menu must support end-alignment positioning modifier"
   );
 
@@ -1175,8 +1152,9 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     fullCss.includes(".segmented-fill") && fullCss.includes(".segmented-equal"),
     "Full bundle must compile .segmented-fill and .segmented-equal modifiers"
   );
-  assert.ok(
-    fullCss.includes("flex: 1 1 0") || fullCss.includes("flex: 1 1") || fullCss.includes("flex: 1"),
+  assert.match(
+    fullCss,
+    /flex:\s*1(?:\s+1(?:\s+0(?:%|px)?)?)?\s*[;}]/,
     "Segmented fill child items must distribute equally across available width"
   );
   assert.ok(
@@ -1187,11 +1165,42 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     fullCss.includes("min-width: 0"),
     "Segmented fill child items must enforce min-width: 0 to allow flex shrinkage"
   );
-  assert.ok(
-    /&:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)\s*\{[^}]*& > \*\s*\{[^}]*display:\s*block;/s.test(fullCss) ||
-    /\.segmented:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)\s*>\s*\*\s*\{[^}]*display:\s*block/s.test(fullCss) ||
-    (fullCss.includes(".segmented-fill") && fullCss.includes("display: block")),
+  const componentsParsed = parseCssBlock(extractLayerBlock(fullCss, "components"));
+  const tablistRules = componentsParsed.rules.filter(
+    (r) => r.selector.includes('[role="tablist"]') && r.selector.includes(".segmented")
+  );
+  assert.equal(tablistRules.length, 1, "Full CSS @layer components must define a single :where([role=\"tablist\"], .segmented) rule");
+  const segmentedBaseRules = tablistRules.flatMap((r) =>
+    r.rules.filter((child) => child.selector.includes("&.segmented"))
+  );
+  assert.equal(segmentedBaseRules.length, 1, "Tablist rule must nest &.segmented container rule");
+  const segmentedFillRules = segmentedBaseRules.flatMap((r) =>
+    r.rules.filter((child) => child.selector.includes(".segmented-fill") && child.selector.includes(".fill"))
+  );
+  assert.equal(segmentedFillRules.length, 1, "&.segmented rule must nest &:is(.segmented-fill, .segmented-equal, .fill) modifier rule");
+  const segmentedChildRules = segmentedFillRules.flatMap((r) =>
+    r.rules.filter((child) => child.selector.replace(/\s+/g, "") === "&>*")
+  );
+  assert.equal(segmentedChildRules.length, 1, "Segmented fill modifier must define a single & > * child item rule");
+  assert.match(
+    segmentedChildRules[0].declarations.flex,
+    /^1(?:\s+1(?:\s+0(?:%|px)?)?)?$/,
+    "Segmented fill child items must declare flex: 1 / 1 1 0 equal-fill shorthand"
+  );
+  assert.equal(
+    segmentedChildRules[0].declarations.display,
+    "block",
     "Segmented fill child items must establish a block formatting context (display: block) to enable text ellipsis truncation"
+  );
+  assert.equal(
+    segmentedChildRules[0].declarations["min-width"],
+    "0",
+    "Segmented fill child items must enforce min-width: 0"
+  );
+  assert.equal(
+    segmentedChildRules[0].declarations["text-overflow"],
+    "ellipsis",
+    "Segmented fill child items must enforce text-overflow: ellipsis"
   );
 
   // 2. Dedicated square icon button utilities compiled in full bundle
@@ -1200,7 +1209,7 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     "Full bundle must compile .btn-icon and .icon-btn utility classes"
   );
   assert.ok(
-    fullCss.includes("aspect-ratio: 1 / 1") || fullCss.includes("aspect-ratio: 1"),
+    fullCss.includes("aspect-ratio: 1;"),
     "Icon buttons must enforce 1:1 square aspect ratio"
   );
   assert.ok(
@@ -1244,7 +1253,7 @@ test("Native Slide-Over Drawer Sheet Primitive and Sub-Elements (Issue #90)", ()
     "Full bundle must declare --pt-sheet-width token"
   );
   assert.ok(
-    fullCss.includes("100dvh") || fullCss.includes("100vh"),
+    fullCss.includes("100dvh"),
     "Sheet primitive must enforce full-height viewport docking (100dvh)"
   );
 
@@ -1254,11 +1263,11 @@ test("Native Slide-Over Drawer Sheet Primitive and Sub-Elements (Issue #90)", ()
     "Full bundle must compile right and left slide keyframe animations"
   );
   assert.ok(
-    fullCss.includes("translateX(100%)") || fullCss.includes("translateX(100.0%)"),
+    fullCss.includes("translateX(100%)"),
     "Right slide keyframe must transition from translateX(100%)"
   );
   assert.ok(
-    fullCss.includes("translateX(-100%)") || fullCss.includes("translateX(-100.0%)"),
+    fullCss.includes("translateX(-100%)"),
     "Left slide keyframe must transition from translateX(-100%)"
   );
 
@@ -1276,13 +1285,13 @@ test("Native Slide-Over Drawer Sheet Primitive and Sub-Elements (Issue #90)", ()
     "Full bundle must compile .sheet-footer anatomy"
   );
   assert.ok(
-    fullCss.includes("overflow-y: auto") || fullCss.includes("overflow-y:auto"),
+    fullCss.includes("overflow-y: auto;"),
     "Sheet body must support flex vertical scrolling (overflow-y: auto)"
   );
 
   // 4. Responsive viewport collapse on viewports <= 600px
   assert.ok(
-    fullCss.includes("600px") || fullCss.includes("37.5rem"),
+    fullCss.includes("600px"),
     "Full bundle must include responsive media query for narrow viewports <= 600px"
   );
 
@@ -1321,7 +1330,7 @@ test("Open Source Governance, Citation Metadata, and Issue Routing (Issue #113)"
   assert.ok(cffContent.includes("@kidthales/picotol"), "Must provide attribution for @kidthales/picotol");
   assert.ok(cffContent.includes("SRON/EPS/TN/09-002"), "Must cite Paul Tol's SRON/EPS/TN/09-002 report");
   assert.ok(cffContent.includes("Pico CSS"), "Must cite Pico CSS");
-  assert.ok(cffContent.includes("Lucas Driscoll") || cffContent.includes("Lucas Larroche"), "Must cite Lucas Driscoll / Lucas Larroche");
+  assert.ok(cffContent.includes("Lucas Driscoll") && cffContent.includes("Lucas Larroche"), "Must cite Lucas Driscoll / Lucas Larroche");
 
   // 3. .github/ISSUE_TEMPLATE/config.yml exists, disables blank issues, and links to discussions & showcase
   const configYmlPath = path.join(ROOT, ".github", "ISSUE_TEMPLATE", "config.yml");
@@ -1459,75 +1468,96 @@ test("Semantic Status Tokens and Dark Mode Contrast Calibration (Issue #126)", (
     assert.ok(layerCss.includes(token), `picotol.layer.css must include ${token}`);
   }
 
-  // 2. Paul Tol Canonical Color Mapping Verification
-  // OK: light #228833 (Tol bright green), dark #44AA99 (Tol muted teal)
-  // Warning: light fg #662506 (Tol ylorbr brown), dark fg #DDAA33 (Tol high-contrast yellow), dark border #EE8866 (Tol light orange)
-  // Critical: light #CC3311 (Tol vibrant red), dark #EE6677 (Tol bright red)
-  // Info: light #4477AA (Tol bright blue), dark #66CCEE (Tol bright cyan)
-  assert.ok(tokensCss.includes("#228833") && tokensCss.includes("#44AA99"), "OK token must use canonical Tol green and teal");
-  assert.ok(tokensCss.includes("#662506") && tokensCss.includes("#DDAA33") && tokensCss.includes("#EE8866"), "Warning token must use canonical Tol brown, yellow and orange");
-  assert.ok(tokensCss.includes("#CC3311") && tokensCss.includes("#EE6677"), "Critical token must use canonical Tol red");
-  assert.ok(tokensCss.includes("#4477AA") && tokensCss.includes("#66CCEE"), "Info token must use canonical Tol blue and cyan");
+  // 2. Paul Tol Canonical Color Mapping Verification via schemeColor() and getToken()
+  const tokens = getPicotolTokens();
+  assert.equal(tokens.getToken("--pt-status-ok-fg", "light"), schemeColor("bright", "green"), "OK light fg must map to Tol bright green");
+  assert.equal(tokens.getToken("--pt-status-ok-fg", "dark"), schemeColor("muted", "teal"), "OK dark fg must map to Tol muted teal");
+  assert.equal(tokens.getToken("--pt-status-ok-border", "light"), schemeColor("bright", "green"), "OK light border must map to Tol bright green");
+  assert.equal(tokens.getToken("--pt-status-ok-border", "dark"), schemeColor("muted", "teal"), "OK dark border must map to Tol muted teal");
 
-  // 3. Automated WCAG 2.2 Contrast Verification against Dark Surfaces (#000000 root, #444444 surface)
-  const darkRoot = "#000000";
-  const darkSurface = "#444444";
-  const lightRoot = "#FFFFFF";
+  assert.equal(tokens.getToken("--pt-status-warning-fg", "light"), schemeColor("ylorbr", 1), "Warning light fg must map to Tol ylorbr brown");
+  assert.equal(tokens.getToken("--pt-status-warning-fg", "dark"), schemeColor("high-contrast", "yellow"), "Warning dark fg must map to Tol high-contrast yellow");
+  assert.equal(tokens.getToken("--pt-status-warning-border", "light"), schemeColor("high-contrast", "yellow"), "Warning light border must map to Tol high-contrast yellow");
+  assert.equal(tokens.getToken("--pt-status-warning-border", "dark"), schemeColor("light", "orange"), "Warning dark border must map to Tol light orange");
+
+  assert.equal(tokens.getToken("--pt-status-critical-fg", "light"), schemeColor("vibrant", "red"), "Critical light fg must map to Tol vibrant red");
+  assert.equal(tokens.getToken("--pt-status-critical-fg", "dark"), schemeColor("bright", "red"), "Critical dark fg must map to Tol bright red");
+  assert.equal(tokens.getToken("--pt-status-critical-border", "light"), schemeColor("vibrant", "red"), "Critical light border must map to Tol vibrant red");
+  assert.equal(tokens.getToken("--pt-status-critical-border", "dark"), schemeColor("bright", "red"), "Critical dark border must map to Tol bright red");
+
+  assert.equal(tokens.getToken("--pt-status-info-fg", "light"), schemeColor("bright", "blue"), "Info light fg must map to Tol bright blue");
+  assert.equal(tokens.getToken("--pt-status-info-fg", "dark"), schemeColor("bright", "cyan"), "Info dark fg must map to Tol bright cyan");
+  assert.equal(tokens.getToken("--pt-status-info-border", "light"), schemeColor("bright", "blue"), "Info light border must map to Tol bright blue");
+  assert.equal(tokens.getToken("--pt-status-info-border", "dark"), schemeColor("bright", "cyan"), "Info dark border must map to Tol bright cyan");
+
+  // 3. Automated WCAG 2.2 Contrast Verification against Dark Surfaces (root & surface)
+  const darkRoot = tokens.getToken("--pt-bg", "dark");
+  const darkSurface = tokens.getToken("--pt-surface", "dark");
+  const lightRoot = tokens.getToken("--pt-bg", "light");
+
+  const warnFgDark = tokens.getToken("--pt-status-warning-fg", "dark");
+  const warnBorderDark = tokens.getToken("--pt-status-warning-border", "dark");
+  const okFgLight = tokens.getToken("--pt-status-ok-fg", "light");
+  const okFgDark = tokens.getToken("--pt-status-ok-fg", "dark");
+  const critFgLight = tokens.getToken("--pt-status-critical-fg", "light");
+  const critFgDark = tokens.getToken("--pt-status-critical-fg", "dark");
+  const infoFgLight = tokens.getToken("--pt-status-info-fg", "light");
+  const infoFgDark = tokens.getToken("--pt-status-info-fg", "dark");
 
   // Warning Dark Mode Calibration:
-  // Text: #DDAA33 must strictly achieve >= 4.5:1 on both root (#000000) and surface (#444444)
-  const crWarnFgDarkRoot = contrastRatio("#DDAA33", darkRoot);
-  const crWarnFgDarkSurface = contrastRatio("#DDAA33", darkSurface);
+  // Text: must strictly achieve >= 4.5:1 on both root and surface
+  const crWarnFgDarkRoot = contrastRatio(warnFgDark, darkRoot);
+  const crWarnFgDarkSurface = contrastRatio(warnFgDark, darkSurface);
   assert.ok(
     crWarnFgDarkRoot >= 4.5,
-    `Warning text #DDAA33 on dark root #000000 must be >= 4.5:1 (got ${crWarnFgDarkRoot.toFixed(2)}:1)`
+    `Warning text ${warnFgDark} on dark root ${darkRoot} must be >= 4.5:1 (got ${crWarnFgDarkRoot.toFixed(2)}:1)`
   );
   assert.ok(
     crWarnFgDarkSurface >= 4.5,
-    `Warning text #DDAA33 on dark surface #444444 must be >= 4.5:1 (got ${crWarnFgDarkSurface.toFixed(2)}:1)`
+    `Warning text ${warnFgDark} on dark surface ${darkSurface} must be >= 4.5:1 (got ${crWarnFgDarkSurface.toFixed(2)}:1)`
   );
 
-  // Non-Text / Border: #EE8866 must strictly achieve >= 3.0:1 on both root (#000000) and surface (#444444)
-  const crWarnBorderDarkRoot = contrastRatio("#EE8866", darkRoot);
-  const crWarnBorderDarkSurface = contrastRatio("#EE8866", darkSurface);
+  // Non-Text / Border: must strictly achieve >= 3.0:1 on both root and surface
+  const crWarnBorderDarkRoot = contrastRatio(warnBorderDark, darkRoot);
+  const crWarnBorderDarkSurface = contrastRatio(warnBorderDark, darkSurface);
   assert.ok(
     crWarnBorderDarkRoot >= 3.0,
-    `Warning border #EE8866 on dark root #000000 must be >= 3.0:1 (got ${crWarnBorderDarkRoot.toFixed(2)}:1)`
+    `Warning border ${warnBorderDark} on dark root ${darkRoot} must be >= 3.0:1 (got ${crWarnBorderDarkRoot.toFixed(2)}:1)`
   );
   assert.ok(
     crWarnBorderDarkSurface >= 3.0,
-    `Warning border #EE8866 on dark surface #444444 must be >= 3.0:1 (got ${crWarnBorderDarkSurface.toFixed(2)}:1)`
+    `Warning border ${warnBorderDark} on dark surface ${darkSurface} must be >= 3.0:1 (got ${crWarnBorderDarkSurface.toFixed(2)}:1)`
   );
 
   // OK Contrast Verification:
-  // Light text #228833 on white >= 4.5:1
-  const crOkLight = contrastRatio("#228833", lightRoot);
-  assert.ok(crOkLight >= 4.5, `OK text #228833 on white must be >= 4.5:1 (got ${crOkLight.toFixed(2)}:1)`);
-  // Dark border/text #44AA99 on dark root >= 4.5:1, on dark surface >= 3.0:1
-  const crOkDarkRoot = contrastRatio("#44AA99", darkRoot);
-  const crOkDarkSurface = contrastRatio("#44AA99", darkSurface);
-  assert.ok(crOkDarkRoot >= 4.5, `OK text/border #44AA99 on dark root must be >= 4.5:1 (got ${crOkDarkRoot.toFixed(2)}:1)`);
-  assert.ok(crOkDarkSurface >= 3.0, `OK border #44AA99 on dark surface must be >= 3.0:1 (got ${crOkDarkSurface.toFixed(2)}:1)`);
+  // Light text on white >= 4.5:1
+  const crOkLight = contrastRatio(okFgLight, lightRoot);
+  assert.ok(crOkLight >= 4.5, `OK text ${okFgLight} on white must be >= 4.5:1 (got ${crOkLight.toFixed(2)}:1)`);
+  // Dark border/text on dark root >= 4.5:1, on dark surface >= 3.0:1
+  const crOkDarkRoot = contrastRatio(okFgDark, darkRoot);
+  const crOkDarkSurface = contrastRatio(okFgDark, darkSurface);
+  assert.ok(crOkDarkRoot >= 4.5, `OK text/border ${okFgDark} on dark root must be >= 4.5:1 (got ${crOkDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crOkDarkSurface >= 3.0, `OK border ${okFgDark} on dark surface must be >= 3.0:1 (got ${crOkDarkSurface.toFixed(2)}:1)`);
 
   // Critical Contrast Verification:
-  // Light text #CC3311 on white >= 4.5:1
-  const crCritLight = contrastRatio("#CC3311", lightRoot);
-  assert.ok(crCritLight >= 4.5, `Critical text #CC3311 on white must be >= 4.5:1 (got ${crCritLight.toFixed(2)}:1)`);
-  // Dark border/text #EE6677 on dark root >= 4.5:1, on dark surface >= 3.0:1
-  const crCritDarkRoot = contrastRatio("#EE6677", darkRoot);
-  const crCritDarkSurface = contrastRatio("#EE6677", darkSurface);
-  assert.ok(crCritDarkRoot >= 4.5, `Critical text/border #EE6677 on dark root must be >= 4.5:1 (got ${crCritDarkRoot.toFixed(2)}:1)`);
-  assert.ok(crCritDarkSurface >= 3.0, `Critical border #EE6677 on dark surface must be >= 3.0:1 (got ${crCritDarkSurface.toFixed(2)}:1)`);
+  // Light text on white >= 4.5:1
+  const crCritLight = contrastRatio(critFgLight, lightRoot);
+  assert.ok(crCritLight >= 4.5, `Critical text ${critFgLight} on white must be >= 4.5:1 (got ${crCritLight.toFixed(2)}:1)`);
+  // Dark border/text on dark root >= 4.5:1, on dark surface >= 3.0:1
+  const crCritDarkRoot = contrastRatio(critFgDark, darkRoot);
+  const crCritDarkSurface = contrastRatio(critFgDark, darkSurface);
+  assert.ok(crCritDarkRoot >= 4.5, `Critical text/border ${critFgDark} on dark root must be >= 4.5:1 (got ${crCritDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crCritDarkSurface >= 3.0, `Critical border ${critFgDark} on dark surface must be >= 3.0:1 (got ${crCritDarkSurface.toFixed(2)}:1)`);
 
   // Info Contrast Verification:
-  // Light text #4477AA on white >= 4.5:1
-  const crInfoLight = contrastRatio("#4477AA", lightRoot);
-  assert.ok(crInfoLight >= 4.5, `Info text #4477AA on white must be >= 4.5:1 (got ${crInfoLight.toFixed(2)}:1)`);
-  // Dark border/text #66CCEE on dark root >= 4.5:1, on dark surface >= 4.5:1
-  const crInfoDarkRoot = contrastRatio("#66CCEE", darkRoot);
-  const crInfoDarkSurface = contrastRatio("#66CCEE", darkSurface);
-  assert.ok(crInfoDarkRoot >= 4.5, `Info text/border #66CCEE on dark root must be >= 4.5:1 (got ${crInfoDarkRoot.toFixed(2)}:1)`);
-  assert.ok(crInfoDarkSurface >= 4.5, `Info border #66CCEE on dark surface must be >= 4.5:1 (got ${crInfoDarkSurface.toFixed(2)}:1)`);
+  // Light text on white >= 4.5:1
+  const crInfoLight = contrastRatio(infoFgLight, lightRoot);
+  assert.ok(crInfoLight >= 4.5, `Info text ${infoFgLight} on white must be >= 4.5:1 (got ${crInfoLight.toFixed(2)}:1)`);
+  // Dark border/text on dark root >= 4.5:1, on dark surface >= 4.5:1
+  const crInfoDarkRoot = contrastRatio(infoFgDark, darkRoot);
+  const crInfoDarkSurface = contrastRatio(infoFgDark, darkSurface);
+  assert.ok(crInfoDarkRoot >= 4.5, `Info text/border ${infoFgDark} on dark root must be >= 4.5:1 (got ${crInfoDarkRoot.toFixed(2)}:1)`);
+  assert.ok(crInfoDarkSurface >= 4.5, `Info border ${infoFgDark} on dark surface must be >= 4.5:1 (got ${crInfoDarkSurface.toFixed(2)}:1)`);
 
   // 4. Component Wiring Assertions
   // Status Dots (.status-dot, .pt-status-dot)
@@ -1583,7 +1613,7 @@ test("Meter Pin Label Positioning and Multi-Marker Range Bands (Issue #124)", ()
 
   // 2. Canonical data-placement and backwards-compatible .bottom utility on meter pins and labels
   assert.ok(
-    fullCss.includes('[data-placement="bottom"]') || fullCss.includes('[data-placement=bottom]'),
+    fullCss.includes('[data-placement="bottom"]'),
     "Full bundle must support canonical data-placement=bottom on meter pins and labels"
   );
   assert.ok(
@@ -1680,19 +1710,19 @@ test("Compact Density Cascading into Form Controls, Tables, Buttons, and Layout 
 
   // 5. 320px mobile viewport zero-overflow invariants
   assert.ok(
-    coreCss.includes("box-sizing: border-box") || coreCss.includes("box-sizing:border-box"),
+    coreCss.includes("box-sizing: border-box;"),
     "Box-sizing border-box applied to prevent horizontal container blowout"
   );
   assert.ok(
-    coreCss.includes("min-width: 0") || coreCss.includes("min-width:0"),
+    coreCss.includes("min-width: 0;"),
     "Flex and grid children must include min-width: 0 to avoid overflow on narrow viewports"
   );
   assert.ok(
-    coreCss.includes("overflow-x: auto") || coreCss.includes("overflow-x:auto"),
+    coreCss.includes("overflow-x: auto;"),
     "Tables and pre blocks must declare horizontal overflow scrolling"
   );
   assert.ok(
-    coreCss.includes("max-width: 100%") || coreCss.includes("max-width:100%"),
+    coreCss.includes("max-width: 100%;"),
     "Media and container utilities must constrain max-width to 100%"
   );
 
@@ -1742,7 +1772,7 @@ test("Release Checksum Manifest and Placement Documentation (Issue #127)", () =>
 
   // 3. Documentation: Gauge Pin Canonical data-placement and compatibility classes
   assert.ok(
-    readme.includes('data-placement="top|bottom"') || readme.includes('data-placement="top"') && readme.includes('data-placement="bottom"'),
+    readme.includes('data-placement="top"') && readme.includes('data-placement="bottom"'),
     "README.md must document canonical data-placement attribute for gauge pins"
   );
   assert.ok(
@@ -1760,7 +1790,7 @@ test("Release Checksum Manifest and Placement Documentation (Issue #127)", () =>
     "README.md must document SHA256SUMS.txt and sri.json artifacts"
   );
   assert.ok(
-    readme.includes("sha256sum --check") || readme.includes("sha256sum"),
+    readme.includes("sha256sum --check"),
     "README.md must document automated bash/POSIX vendoring workflow with sha256sum"
   );
   assert.ok(
@@ -1875,8 +1905,7 @@ test("Native Status Badge and Indicator Component Primitives for Status Triads (
     "src/components.css must define .pt-badge and .pt-indicator"
   );
   assert.ok(
-    compCss.includes("font-size: var(--pt-font-size-xs, .75em)") ||
-    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em)"),
+    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em);"),
     "src/components.css must bind font-size to --pt-font-size-xs with fallback"
   );
 
@@ -1897,29 +1926,29 @@ test("Native Status Badge and Indicator Component Primitives for Status Triads (
   }
 
   // 4. Selector coverage for [data-status] attributes and semantic classes
-  assert.ok(compCss.includes('.pt-badge[data-status="ok"]') || fullCss.includes('.pt-badge[data-status="ok"]'), 'Must bind .pt-badge[data-status="ok"]');
-  assert.ok(compCss.includes('.pt-badge.ok') || fullCss.includes('.pt-badge.ok'), 'Must bind .pt-badge.ok');
-  assert.ok(compCss.includes('.pt-badge.success') || fullCss.includes('.pt-badge.success'), 'Must bind .pt-badge.success');
-  assert.ok(compCss.includes('.pt-badge[data-status="warning"]') || fullCss.includes('.pt-badge[data-status="warning"]'), 'Must bind .pt-badge[data-status="warning"]');
-  assert.ok(compCss.includes('.pt-badge.warning') || fullCss.includes('.pt-badge.warning'), 'Must bind .pt-badge.warning');
-  assert.ok(compCss.includes('.pt-badge[data-status="critical"]') || fullCss.includes('.pt-badge[data-status="critical"]'), 'Must bind .pt-badge[data-status="critical"]');
-  assert.ok(compCss.includes('.pt-badge.critical') || fullCss.includes('.pt-badge.critical'), 'Must bind .pt-badge.critical');
-  assert.ok(compCss.includes('.pt-badge[data-status="danger"]') || fullCss.includes('.pt-badge[data-status="danger"]'), 'Must bind .pt-badge[data-status="danger"]');
-  assert.ok(compCss.includes('.pt-badge.danger') || fullCss.includes('.pt-badge.danger'), 'Must bind .pt-badge.danger');
-  assert.ok(compCss.includes('.pt-badge[data-status="info"]') || fullCss.includes('.pt-badge[data-status="info"]'), 'Must bind .pt-badge[data-status="info"]');
-  assert.ok(compCss.includes('.pt-badge.info') || fullCss.includes('.pt-badge.info'), 'Must bind .pt-badge.info');
+  assert.ok(compCss.includes('.pt-badge[data-status="ok"]') && fullCss.includes('.pt-badge[data-status="ok"]'), 'Must bind .pt-badge[data-status="ok"]');
+  assert.ok(compCss.includes('.pt-badge.ok') && fullCss.includes('.pt-badge.ok'), 'Must bind .pt-badge.ok');
+  assert.ok(compCss.includes('.pt-badge.success') && fullCss.includes('.pt-badge.success'), 'Must bind .pt-badge.success');
+  assert.ok(compCss.includes('.pt-badge[data-status="warning"]') && fullCss.includes('.pt-badge[data-status="warning"]'), 'Must bind .pt-badge[data-status="warning"]');
+  assert.ok(compCss.includes('.pt-badge.warning') && fullCss.includes('.pt-badge.warning'), 'Must bind .pt-badge.warning');
+  assert.ok(compCss.includes('.pt-badge[data-status="critical"]') && fullCss.includes('.pt-badge[data-status="critical"]'), 'Must bind .pt-badge[data-status="critical"]');
+  assert.ok(compCss.includes('.pt-badge.critical') && fullCss.includes('.pt-badge.critical'), 'Must bind .pt-badge.critical');
+  assert.ok(compCss.includes('.pt-badge[data-status="danger"]') && fullCss.includes('.pt-badge[data-status="danger"]'), 'Must bind .pt-badge[data-status="danger"]');
+  assert.ok(compCss.includes('.pt-badge.danger') && fullCss.includes('.pt-badge.danger'), 'Must bind .pt-badge.danger');
+  assert.ok(compCss.includes('.pt-badge[data-status="info"]') && fullCss.includes('.pt-badge[data-status="info"]'), 'Must bind .pt-badge[data-status="info"]');
+  assert.ok(compCss.includes('.pt-badge.info') && fullCss.includes('.pt-badge.info'), 'Must bind .pt-badge.info');
 
-  assert.ok(compCss.includes('.pt-indicator[data-status="ok"]') || fullCss.includes('.pt-indicator[data-status="ok"]'), 'Must bind .pt-indicator[data-status="ok"]');
-  assert.ok(compCss.includes('.pt-indicator.ok') || fullCss.includes('.pt-indicator.ok'), 'Must bind .pt-indicator.ok');
-  assert.ok(compCss.includes('.pt-indicator.success') || fullCss.includes('.pt-indicator.success'), 'Must bind .pt-indicator.success');
-  assert.ok(compCss.includes('.pt-indicator[data-status="warning"]') || fullCss.includes('.pt-indicator[data-status="warning"]'), 'Must bind .pt-indicator[data-status="warning"]');
-  assert.ok(compCss.includes('.pt-indicator.warning') || fullCss.includes('.pt-indicator.warning'), 'Must bind .pt-indicator.warning');
-  assert.ok(compCss.includes('.pt-indicator[data-status="critical"]') || fullCss.includes('.pt-indicator[data-status="critical"]'), 'Must bind .pt-indicator[data-status="critical"]');
-  assert.ok(compCss.includes('.pt-indicator.critical') || fullCss.includes('.pt-indicator.critical'), 'Must bind .pt-indicator.critical');
-  assert.ok(compCss.includes('.pt-indicator[data-status="danger"]') || fullCss.includes('.pt-indicator[data-status="danger"]'), 'Must bind .pt-indicator[data-status="danger"]');
-  assert.ok(compCss.includes('.pt-indicator.danger') || fullCss.includes('.pt-indicator.danger'), 'Must bind .pt-indicator.danger');
-  assert.ok(compCss.includes('.pt-indicator[data-status="info"]') || fullCss.includes('.pt-indicator[data-status="info"]'), 'Must bind .pt-indicator[data-status="info"]');
-  assert.ok(compCss.includes('.pt-indicator.info') || fullCss.includes('.pt-indicator.info'), 'Must bind .pt-indicator.info');
+  assert.ok(compCss.includes('.pt-indicator[data-status="ok"]') && fullCss.includes('.pt-indicator[data-status="ok"]'), 'Must bind .pt-indicator[data-status="ok"]');
+  assert.ok(compCss.includes('.pt-indicator.ok') && fullCss.includes('.pt-indicator.ok'), 'Must bind .pt-indicator.ok');
+  assert.ok(compCss.includes('.pt-indicator.success') && fullCss.includes('.pt-indicator.success'), 'Must bind .pt-indicator.success');
+  assert.ok(compCss.includes('.pt-indicator[data-status="warning"]') && fullCss.includes('.pt-indicator[data-status="warning"]'), 'Must bind .pt-indicator[data-status="warning"]');
+  assert.ok(compCss.includes('.pt-indicator.warning') && fullCss.includes('.pt-indicator.warning'), 'Must bind .pt-indicator.warning');
+  assert.ok(compCss.includes('.pt-indicator[data-status="critical"]') && fullCss.includes('.pt-indicator[data-status="critical"]'), 'Must bind .pt-indicator[data-status="critical"]');
+  assert.ok(compCss.includes('.pt-indicator.critical') && fullCss.includes('.pt-indicator.critical'), 'Must bind .pt-indicator.critical');
+  assert.ok(compCss.includes('.pt-indicator[data-status="danger"]') && fullCss.includes('.pt-indicator[data-status="danger"]'), 'Must bind .pt-indicator[data-status="danger"]');
+  assert.ok(compCss.includes('.pt-indicator.danger') && fullCss.includes('.pt-indicator.danger'), 'Must bind .pt-indicator.danger');
+  assert.ok(compCss.includes('.pt-indicator[data-status="info"]') && fullCss.includes('.pt-indicator[data-status="info"]'), 'Must bind .pt-indicator[data-status="info"]');
+  assert.ok(compCss.includes('.pt-indicator.info') && fullCss.includes('.pt-indicator.info'), 'Must bind .pt-indicator.info');
 
   // 5. Minified bundle presence
   assert.ok(fullMin.includes("pt-badge") && fullMin.includes("pt-indicator"), "dist/picotol.min.css must compile .pt-badge and .pt-indicator");
@@ -2015,7 +2044,7 @@ test("Ultra-Compact Density Modifier, Dense Card Modifier, and Embedded Panel In
   // 1. Ultra-compact tokens in tokens.css and compiled bundles
   for (const css of [tokensCss, fullCss, coreCss]) {
     assert.ok(
-      css.includes('[data-density="tight"]') || css.includes("[data-density=tight]"),
+      css.includes('[data-density="tight"]'),
       "Must define [data-density='tight'] modifier selector"
     );
     assert.ok(
@@ -2137,16 +2166,14 @@ test("Configurable Typography Floor (--pt-font-size-floor) for Compact Density (
       "Minified bundles must include --pt-font-size-floor:12px;"
     );
     assert.ok(
-      minCss.includes("--pt-font-size-xs:max(var(--pt-font-size-floor,12px), .75rem)") ||
-      minCss.includes("--pt-font-size-xs:max(var(--pt-font-size-floor,12px),.75rem)"),
+      minCss.includes("--pt-font-size-xs:max(var(--pt-font-size-floor,12px), .75rem)"),
       "Minified bundles must clamp --pt-font-size-xs"
     );
   }
 
   // 3. Components and density classes respect typography floor via --pt-font-size-xs
   assert.ok(
-    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em);") ||
-    compCss.includes("font-size: var(--pt-font-size-xs, .75em);"),
+    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em);"),
     ".pt-badge and .pt-indicator must wire font-size to --pt-font-size-xs"
   );
   assert.ok(
@@ -2306,9 +2333,11 @@ test("Nested @layer Taxonomy, Sublayer Preamble, and Downstream Extensibility (I
     readme.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
     "README must document nested @layer taxonomy declaration"
   );
+  const defaultLightPrimary = getPicotolTokens().getToken("--pt-primary", "light", "blue");
   assert.ok(
-    readme.includes("@layer picotol.tokens") && readme.includes("var(--brand-primary, #2255AA)"),
-    "README must document downstream @layer picotol.tokens override pattern"
+    readme.includes("@layer picotol.tokens") &&
+      readme.includes(`var(--brand-primary, ${defaultLightPrimary})`),
+    `README must document downstream @layer picotol.tokens override pattern with token-derived fallback (${defaultLightPrimary})`
   );
   assert.ok(
     readme.includes("@layer picotol.components") && readme.includes("article.card"),
@@ -2350,7 +2379,7 @@ test("Boundary-Aligned Meter Marker Modifiers and Label Clipping Invariants (Iss
 
   // 2. CSS Transform rules: start = 0, end = -100%, center = -50%
   assert.ok(
-    compCss.includes("transform: translateX(0)") || compCss.includes("transform: translateX(0%)"),
+    compCss.includes("transform: translateX(0);"),
     "src/components.css must set transform: translateX(0) for start alignment"
   );
   assert.ok(
@@ -2522,7 +2551,7 @@ test("Tabular Numerics on Status Badges, Indicators, and Numeric Modifiers (Issu
     "dist/demo/index.html must showcase .pt-indicator--numeric"
   );
   assert.ok(
-    demoHtml.includes("live-badge-count") || demoHtml.includes("live-indicator-count"),
+    demoHtml.includes("live-badge-count") && demoHtml.includes("live-indicator-count"),
     "dist/demo/index.html must showcase dynamic counter/badge telemetry"
   );
 
@@ -2546,13 +2575,8 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
   const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
   const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
   const layerCss = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.css"), "utf8");
-  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
 
-  // 1. Definition and inclusion of tuned warning foreground token in source tokens and all distribution bundles
-  assert.ok(
-    tokensCss.includes("--pt-status-warning-fg: light-dark(#662506, #DDAA33)"),
-    "tokens.css must define calibrated light-dark(#662506, #DDAA33) for --pt-status-warning-fg"
-  );
+  // 1. Presence check: warning foreground token in all distribution bundles
   assert.ok(
     coreCss.includes("--pt-status-warning-fg"),
     "picotol.core.css must define --pt-status-warning-fg"
@@ -2567,26 +2591,23 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
   );
 
   // 2. Light Theme Status Triads Contrast Audit against WCAG 2.2 Standards
-  // Light root background: #FFFFFF; Light card/surface background: #DDDDDD
-  const lightRoot = "#FFFFFF";
-  const lightSurface = "#DDDDDD";
+  const tokens = getPicotolTokens();
+  assert.equal(
+    tokens.getToken("--pt-status-warning-fg", "light"),
+    schemeColor("ylorbr", 1),
+    "--pt-status-warning-fg light mode must calibrate to Tol ylorbr brown"
+  );
+  assert.equal(
+    tokens.getToken("--pt-status-warning-fg", "dark"),
+    schemeColor("high-contrast", "yellow"),
+    "--pt-status-warning-fg dark mode must calibrate to Tol high-contrast yellow"
+  );
+  const lightRoot = tokens.getToken("--pt-bg", "light");
+  const lightSurface = tokens.getToken("--pt-surface", "light");
 
-  // Simulate 8% border wash over surface
-  function mixSrgb(borderHex, alphaPct, bgHex) {
-    const c1 = expandHex(borderHex).replace("#", "");
-    const c2 = expandHex(bgHex).replace("#", "");
-    const r1 = parseInt(c1.slice(0, 2), 16), g1 = parseInt(c1.slice(2, 4), 16), b1 = parseInt(c1.slice(4, 6), 16);
-    const r2 = parseInt(c2.slice(0, 2), 16), g2 = parseInt(c2.slice(2, 4), 16), b2 = parseInt(c2.slice(4, 6), 16);
-    const a = alphaPct / 100;
-    const r = Math.round(r1 * a + r2 * (1 - a));
-    const g = Math.round(g1 * a + g2 * (1 - a));
-    const b = Math.round(b1 * a + b2 * (1 - a));
-    return "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
-  }
-
-  // Warning triad in light mode: fg #662506 (Tol ylorbr brown), border #DDAA33 (Tol high-contrast yellow)
-  const warnFg = "#662506";
-  const warnBorder = "#DDAA33";
+  // Warning triad in light mode: fg, border
+  const warnFg = tokens.getToken("--pt-status-warning-fg", "light");
+  const warnBorder = tokens.getToken("--pt-status-warning-border", "light");
   const warnBgOnRoot = mixSrgb(warnBorder, 8, lightRoot);
   const warnBgOnSurface = mixSrgb(warnBorder, 8, lightSurface);
 
@@ -2598,25 +2619,25 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
 
   assert.ok(
     crWarnRoot >= 7.0,
-    `Warning fg #662506 on white root must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnRoot.toFixed(2)}:1)`
+    `Warning fg ${warnFg} on white root must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnRoot.toFixed(2)}:1)`
   );
   assert.ok(
     crWarnSurface >= 7.0,
-    `Warning fg #662506 on light surface must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnSurface.toFixed(2)}:1)`
+    `Warning fg ${warnFg} on light surface must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnSurface.toFixed(2)}:1)`
   );
   assert.ok(
     crWarnBadgeRoot >= 7.0,
-    `Warning fg #662506 on 8% badge wash (root) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeRoot.toFixed(2)}:1)`
+    `Warning fg ${warnFg} on 8% badge wash (root) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeRoot.toFixed(2)}:1)`
   );
   assert.ok(
     crWarnBadgeSurface >= 7.0,
-    `Warning fg #662506 on 8% badge wash (surface) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeSurface.toFixed(2)}:1)`
+    `Warning fg ${warnFg} on 8% badge wash (surface) must achieve WCAG 2.2 AAA >= 7:1 (got ${crWarnBadgeSurface.toFixed(2)}:1)`
   );
 
   // 3. Status Triads Audit for OK, Critical, and Info (WCAG 2.2 AA text >= 4.5:1 on root)
-  const okFg = "#228833";
-  const critFg = "#CC3311";
-  const infoFg = "#4477AA";
+  const okFg = tokens.getToken("--pt-status-ok-fg", "light");
+  const critFg = tokens.getToken("--pt-status-critical-fg", "light");
+  const infoFg = tokens.getToken("--pt-status-info-fg", "light");
 
   const crOkRoot = contrastRatio(okFg, lightRoot);
   const crCritRoot = contrastRatio(critFg, lightRoot);
@@ -2633,7 +2654,7 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
   const lumCritFg = relativeLuminance(critFg);
   const lumInfoFg = relativeLuminance(infoFg);
 
-  // Tuned warning foreground #662506 provides strong greyscale contrast vs other status foregrounds
+  // Tuned warning foreground provides strong greyscale contrast vs other status foregrounds
   const greyscaleRatioWarnVsOk = contrastRatio(warnFg, okFg);
   const greyscaleRatioWarnVsCrit = contrastRatio(warnFg, critFg);
   const greyscaleRatioWarnVsInfo = contrastRatio(warnFg, infoFg);
@@ -2840,19 +2861,17 @@ test("Meter Boundary Marker Pin Clamping and Container Overflow Invariants (Issu
   );
 
   assert.ok(
-    fullCss.includes("inset-inline-start: clamp(") || fullCss.includes("inset-inline-start:clamp("),
+    fullCss.includes("inset-inline-start: clamp("),
     "dist/picotol.css must compile clamped marker pin inset-inline-start"
   );
 
   assert.ok(
-    fullMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)") ||
-      fullMin.includes("inset-inline-start:clamp(var(--pt-progress-radius, 0px)"),
+    fullMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)"),
     "dist/picotol.min.css must compile minified clamped marker pin positioning"
   );
 
   assert.ok(
-    layerMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)") ||
-      layerMin.includes("inset-inline-start:clamp(var(--pt-progress-radius, 0px)"),
+    layerMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)"),
     "dist/picotol.layer.min.css must compile minified clamped marker pin positioning"
   );
 
@@ -2951,21 +2970,21 @@ test("Tokenized Status Dot Primitive (.pt-dot) Dimensions, Semantic Variants, Pu
 
   assert.ok(
     fullCss.includes(".pt-dot") &&
-      (fullCss.includes("width: 0.5rem") || fullCss.includes("width: .5rem")) &&
-      (fullCss.includes("height: 0.5rem") || fullCss.includes("height: .5rem")) &&
+      fullCss.includes("width: .5rem;") &&
+      fullCss.includes("height: .5rem;") &&
       fullCss.includes("background-color: var(--pt-color)"),
     "dist/picotol.css must compile .pt-dot base properties"
   );
 
   assert.ok(
     fullMin.includes(".pt-dot") &&
-      (fullMin.includes("width:.5rem") || fullMin.includes("width:0.5rem") || fullMin.includes("width: .5rem")),
+      fullMin.includes("width:.5rem"),
     "dist/picotol.min.css must compile minified .pt-dot"
   );
 
   assert.ok(
     layerMin.includes(".pt-dot") &&
-      (layerMin.includes("width:.5rem") || layerMin.includes("width:0.5rem") || layerMin.includes("width: .5rem")),
+      layerMin.includes("width:.5rem"),
     "dist/picotol.layer.min.css must compile minified layered .pt-dot"
   );
 
@@ -3210,7 +3229,7 @@ test("Native Floating Popover Primitive, Alignment Modifiers, and Viewport Safet
 
   // 1. Token declaration: --pt-z-dropdown
   assert.ok(
-    tokensCss.includes("--pt-z-dropdown: 100;") || tokensCss.includes("--pt-z-dropdown: 100"),
+    tokensCss.includes("--pt-z-dropdown: 100;"),
     "src/tokens.css must declare --pt-z-dropdown with default 100"
   );
 
@@ -3220,7 +3239,7 @@ test("Native Floating Popover Primitive, Alignment Modifiers, and Viewport Safet
     "src/components.css must define .pt-popover and .pt-dropdown containers"
   );
   assert.ok(
-    compCss.includes("top: calc(100% + 4px);") || compCss.includes("top: calc(100% + 4px)"),
+    compCss.includes("top: calc(100% + 4px);"),
     "Popover content must position floating at top: calc(100% + 4px)"
   );
   assert.ok(
@@ -3312,16 +3331,19 @@ test("Native Floating Popover Primitive, Alignment Modifiers, and Viewport Safet
     demoHtml.includes("pt-popover--end"),
     "dist/demo/index.html must showcase .pt-popover--end"
   );
-  assert.ok(
-    readme.includes(".pt-popover--start") || readme.includes("pt-popover--start"),
+  assert.match(
+    readme,
+    /(?<![\w-])\.pt-popover--start(?![\w-])/,
     "README.md must document .pt-popover--start"
   );
-  assert.ok(
-    readme.includes(".pt-popover--end") || readme.includes("pt-popover--end"),
+  assert.match(
+    readme,
+    /(?<![\w-])\.pt-popover--end(?![\w-])/,
     "README.md must document .pt-popover--end"
   );
-  assert.ok(
-    readme.includes(".pt-dropdown") || readme.includes("pt-dropdown"),
+  assert.match(
+    readme,
+    /(?<![\w-])\.pt-dropdown(?![\w-])/,
     "README.md must document .pt-dropdown"
   );
 });
@@ -3390,33 +3412,43 @@ test("Meter Marker Anatomy Disambiguation and Nested Terminus Markup (Issue #183
     "dist/picotol.core.css must strictly exclude .pt-meter-label"
   );
 
-  // 6. Regression simulation: Nested Terminus markup (.pt-meter-mark > .pt-meter-pin + .pt-meter-label)
-  // In downstream Terminus markup, .pt-meter-mark is the outer container. If an inner element has
-  // .pt-meter-pin, it must NOT draw a second pin via ::before nor get label positioning.
-  // We simulate selector matching against the compiled CSS rules.
-  function simulateNestedTerminusAnatomy() {
-    // Outer container: .pt-meter-mark
-    // Inner child 1: .pt-meter-pin (downstream pin element)
-    // Inner child 2: .pt-meter-label (downstream label element)
-    const containerClasses = [".pt-gauge-marker", ".pt-meter-mark", ".pt-meter-mark--start", ".pt-meter-mark--end"];
-    const labelClasses = [".pt-gauge-label", ".pt-meter-label", "[data-label]"];
+  // 6. Regression verification: Nested Terminus markup (.pt-meter-mark > .pt-meter-pin + .pt-meter-label)
+  // In downstream Terminus markup, .pt-meter-mark is the outer container drawing a pin via :before.
+  // Downstream inner elements with .pt-meter-pin must NOT be styled by picotol (drawing 0 duplicate pins),
+  // while .pt-meter-label is styled as a label and receives z-index stacking.
+  // Uses brace-depth-aware parseCssBlock so selector parentheses and declaration order cannot cause false failures.
+  const componentsParsed = parseCssBlock(extractLayerBlock(fullCss, "components"));
+  const meterMarkRules = componentsParsed.rules.filter((r) => r.selector.includes(".pt-meter-mark"));
+  assert.ok(meterMarkRules.length > 0, "Full bundle @layer components must define .pt-meter-mark rules");
 
-    const isContainer = (cls) => containerClasses.includes(cls);
-    const isLabel = (cls) => labelClasses.includes(cls);
+  const hasBeforePinRule = meterMarkRules.some((r) =>
+    r.rules.some(
+      (child) =>
+        child.selector === "&:before" &&
+        child.declarations.content === '""'
+    )
+  );
+  assert.ok(
+    hasBeforePinRule,
+    "Outer .pt-meter-mark must draw pin pseudo-element via nested &:before { content: \"\" }"
+  );
 
-    // .pt-meter-mark is a container that gets ::before pin
-    assert.ok(isContainer(".pt-meter-mark"), "Outer .pt-meter-mark must match container rules");
+  assert.ok(
+    !fullCss.includes(".pt-meter-pin"),
+    "Full bundle must not define .pt-meter-pin selector, reserving it for downstream element markup"
+  );
+  assert.ok(
+    fullCss.includes(".pt-meter-label"),
+    "Full bundle must define .pt-meter-label selector"
+  );
 
-    // .pt-meter-pin is NOT recognized as a container, drawing 0 pseudo-pins from picotol
-    assert.ok(!isContainer(".pt-meter-pin"), "Inner .pt-meter-pin must NOT match container rules");
-
-    // .pt-meter-pin is NOT recognized as a label selector, so it does NOT receive label positioning
-    assert.ok(!isLabel(".pt-meter-pin"), "Inner .pt-meter-pin must NOT match label selector rules");
-
-    // .pt-meter-label matches label rules
-    assert.ok(isLabel(".pt-meter-label"), "Inner .pt-meter-label must match label selector rules");
-  }
-  simulateNestedTerminusAnatomy();
+  const hasMeterMarkZIndex = meterMarkRules.some((r) =>
+    r.declarations["z-index"]?.includes("var(--pt-meter-mark-z")
+  );
+  assert.ok(
+    hasMeterMarkZIndex,
+    "Full bundle must bind --pt-meter-mark-z stacking token to z-index on .pt-meter-mark"
+  );
 
   // 7. README documentation parity
   assert.ok(
@@ -3441,9 +3473,6 @@ test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Al
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
 
   // 1. ::selection rule binds to --pt-primary-bg and --pt-color across source and compiled bundles
-  const expectedBgToken = "var(--pt-primary-bg)";
-  const expectedColorToken = "var(--pt-color)";
-
   assert.ok(
     baseCss.includes("::selection") &&
     baseCss.includes("background-color: var(--pt-primary-bg)") &&
@@ -3463,36 +3492,31 @@ test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Al
     ["dist/picotol.layer.css", layerCss],
     ["dist/picotol.layer.min.css", layerMin],
   ]) {
-    assert.ok(
-      css.includes("::selection"),
-      `${name} must contain ::selection selector`
+    assert.match(
+      css,
+      /::selection\s*\{(?:[^}]*[;\s])?background-color:\s*var\(--pt-primary-bg\)/,
+      `${name} must bind ::selection background to var(--pt-primary-bg)`
     );
-    assert.ok(
-      css.includes(expectedBgToken) || css.includes("--pt-primary-bg"),
-      `${name} must use --pt-primary-bg for selection background`
-    );
-    assert.ok(
-      css.includes(expectedColorToken) || css.includes("--pt-color"),
-      `${name} must use --pt-color for selection text color`
+    assert.match(
+      css,
+      /::selection\s*\{(?:[^}]*[;\s])?color:\s*var\(--pt-color\)/,
+      `${name} must bind ::selection text color to var(--pt-color)`
     );
   }
 
   // 2. Contrast validation across all 4 accent ladders (blue, cyan, purple, magenta)
-  // Light mode: background = --pt-p1, color = #000000
-  // Dark mode: background = --pt-p4, color = #FFFFFF
-  const accents = {
-    blue: { p1: "#AACCEE", p4: "#2255AA" },
-    cyan: { p1: "#CCEEFF", p4: "#117788" },
-    purple: { p1: "#E7D4E8", p4: "#762A83" },
-    magenta: { p1: "#EEBBDD", p4: "#993366" },
-  };
+  // Light mode: background = --pt-primary-bg (resolves to --pt-p1), text = var(--pt-color) (light)
+  // Dark mode: background = --pt-primary-bg (resolves to --pt-p4), text = var(--pt-color) (dark)
+  const tokens = getPicotolTokens();
+  const lightText = tokens.getToken("--pt-color", "light");
+  const darkText = tokens.getToken("--pt-color", "dark");
 
-  const lightText = "#000000";
-  const darkText = "#FFFFFF";
+  for (const accent of ["blue", "cyan", "purple", "magenta"]) {
+    const lightSelectionBg = tokens.getToken("--pt-primary-bg", "light", accent);
+    const darkSelectionBg = tokens.getToken("--pt-primary-bg", "dark", accent);
 
-  for (const [accent, tokens] of Object.entries(accents)) {
-    const lightRatio = contrastRatio(lightText, tokens.p1);
-    const darkRatio = contrastRatio(darkText, tokens.p4);
+    const lightRatio = contrastRatio(lightText, lightSelectionBg);
+    const darkRatio = contrastRatio(darkText, darkSelectionBg);
 
     assert.ok(
       lightRatio >= 7.0,
@@ -3506,18 +3530,18 @@ test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Al
 
   // 3. Demo Meter clearance: vertical spacing between bottom-placed pins and top-placed pins
   assert.ok(
-    demoHtml.includes('style="margin-top: 2.75rem;"') ||
-    demoHtml.includes('margin-top: 2.75rem'),
+    demoHtml.includes('style="margin-top: 2.75rem;"'),
     "dist/demo/index.html must allocate 2.75rem vertical margin for Section 7 gauge threshold clearance"
   );
 
   // 4. README documentation parity
   assert.ok(
-    readme.includes("Theme-Reactive Selection Contrast") || readme.includes("::selection"),
+    readme.includes("Theme-Reactive Selection Contrast (`::selection`)") &&
+      readme.includes("background-color: var(--pt-primary-bg); color: var(--pt-color);"),
     "README.md must document ::selection theme-reactive high-contrast styling"
   );
   assert.ok(
-    readme.includes("Margin Auto-Collapsing") || readme.includes("margin-block: 0;"),
+    readme.includes("Margin Auto-Collapsing") && readme.includes("margin-block: 0;"),
     "README.md must document compact density margin auto-collapsing"
   );
 });
@@ -3550,4 +3574,17 @@ test("Demo Badge & Dot Flex-Gap Row and Tabular Right-Alignment Showcase (Issue 
     "tools/generate-demo.mjs must generate .pt-tabular--align-end within a space-between flex container"
   );
 });
+
+test("Anti-Tautology Guard: tests/picotol.test.mjs contains zero vacuous includes-OR-includes disjunction assertions (Issue #199)", () => {
+  const selfSource = fs.readFileSync(fileURLToPath(import.meta.url), "utf8");
+  const strippedComments = selfSource.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, "");
+  const disjunctionRe = /\.includes\([^)]+\)\s*\|\|\s*[^\n;]*\.includes\(/g;
+  const matches = [...strippedComments.matchAll(disjunctionRe)].map((m) => m[0]);
+  assert.deepEqual(
+    matches,
+    [],
+    `tests/picotol.test.mjs must not use vacuous includes-OR-includes disjunction assertions: ${matches.join(" | ")}`
+  );
+});
+
 
