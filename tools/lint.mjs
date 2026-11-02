@@ -56,6 +56,7 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
       minify: false,
       ...OPTS,
       ...opts.transformOpts,
+      errorRecovery: false,
     });
     if (res.warnings && res.warnings.length > 0) {
       for (const w of res.warnings) {
@@ -87,7 +88,7 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
   }
 
   // 4. Accessibility CSS anti-patterns: no outline: none/0, no fixed px font-size
-  if (/\boutline\s*:\s*(?:none|0)\b/i.test(content)) {
+  if (/\boutline\s*:\s*(?:none|0)(?![\d.])/i.test(content)) {
     errors.push(`[${filename}] Accessible focus violation: "outline: none" or "outline: 0" strips forced-colors focus rings`);
   }
   if (/\bfont-size\s*:\s*[0-9.]+px\b/i.test(content)) {

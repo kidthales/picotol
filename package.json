@@ -101,7 +101,7 @@
     "lint": "node tools/lint.mjs",
     "check:budgets": "node tools/check-budgets.mjs",
     "generate": "npm run sync:tokens && npm run build",
-    "test": "npm run lint && npm run check:budgets && node --test",
+    "test": "npm run lint && npm run check:budgets && node --test --test-concurrency=1",
     "ci:local": "pwsh -NoProfile -ExecutionPolicy Bypass ./scripts/ci-local.ps1"
   },
   "devDependencies": {

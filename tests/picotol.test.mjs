@@ -18,174 +18,19 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
-const tolData = JSON.parse(
-  fs.readFileSync(path.join(ROOT, "data/tol-qualitative.json"), "utf8")
-);
-
-function expandHex(raw) {
-  const upper = raw.toUpperCase();
-  if (upper === "#0000" || upper === "#00000000") return "#000000";
-  if (/^#[0-9A-F]{3}$/.test(upper)) {
-    return `#${upper[1]}${upper[1]}${upper[2]}${upper[2]}${upper[3]}${upper[3]}`;
-  }
-  return upper;
-}
-
-function srgbToLinear(channel) {
-  const c = channel / 255;
-  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-}
-
-function relativeLuminance(hex) {
-  const clean = expandHex(hex).replace("#", "");
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  return (
-    0.2126 * srgbToLinear(r) +
-    0.7152 * srgbToLinear(g) +
-    0.0722 * srgbToLinear(b)
-  );
-}
-
-function contrastRatio(hexA, hexB) {
-  const l1 = relativeLuminance(hexA);
-  const l2 = relativeLuminance(hexB);
-  const lighter = Math.max(l1, l2);
-  const darker = Math.min(l1, l2);
-  return (lighter + 0.05) / (darker + 0.05);
-}
-
-function schemeColor(schemeId, nameOrIndex) {
-  const list = tolData.schemes[schemeId].colors;
-  if (typeof nameOrIndex === "number") return list[nameOrIndex].hex;
-  return list.find((c) => c.name === nameOrIndex).hex;
-}
-
-function achromaticColor(name) {
-  return tolData.achromatic.find((a) => a.name === name).hex;
-}
-
-function parseLightDark(str) {
-  const match = str.trim().match(/^light-dark\s*\((.*)\)$/s);
-  if (!match) return null;
-  const inner = match[1].trim();
-  let depth = 0;
-  let splitIndex = -1;
-  for (let i = 0; i < inner.length; i++) {
-    if (inner[i] === "(") depth++;
-    else if (inner[i] === ")") depth--;
-    else if (inner[i] === "," && depth === 0) {
-      splitIndex = i;
-      break;
-    }
-  }
-  if (splitIndex === -1) return null;
-  return {
-    light: inner.slice(0, splitIndex).trim(),
-    dark: inner.slice(splitIndex + 1).trim(),
-  };
-}
-
-export function parseTokens(cssContent) {
-  const rootDecls = {};
-  const accentDecls = { blue: {}, cyan: {}, purple: {}, magenta: {} };
-  const secondaryDecls = {};
-
-  const startTokens = cssContent.indexOf("@layer tokens {");
-  const endTokens = cssContent.indexOf("@layer reset {", startTokens);
-  const tokensBlock = startTokens !== -1 && endTokens !== -1
-    ? cssContent.slice(startTokens, endTokens)
-    : cssContent;
-
-  const ruleRe = /([^{}]+)\{([^{}]+)\}/g;
-  let m;
-  while ((m = ruleRe.exec(tokensBlock)) !== null) {
-    const sel = m[1].trim();
-    const body = m[2];
-    const decls = {};
-    for (const decl of body.split(";")) {
-      const parts = decl.split(":");
-      if (parts.length >= 2) {
-        const prop = parts[0].trim();
-        const val = parts.slice(1).join(":").trim();
-        if (prop.startsWith("--")) {
-          decls[prop] = val;
-        }
-      }
-    }
-    if (sel.includes(":root") || sel.includes(":host")) {
-      Object.assign(rootDecls, decls);
-      if (sel.includes('[data-accent="blue"]')) {
-        Object.assign(accentDecls.blue, decls);
-      }
-    }
-    for (const acc of ["cyan", "purple", "magenta"]) {
-      if (sel.includes(`[data-accent="${acc}"]`)) {
-        Object.assign(accentDecls[acc], decls);
-      }
-    }
-  }
-
-  // Also parse secondary button from rest of css
-  let m2;
-  while ((m2 = ruleRe.exec(cssContent)) !== null) {
-    const sel = m2[1].trim();
-    const body = m2[2];
-    if (sel.includes(".secondary") || sel.includes('[type="reset"]')) {
-      for (const decl of body.split(";")) {
-        const parts = decl.split(":");
-        if (parts.length >= 2) {
-          const prop = parts[0].trim();
-          const val = parts.slice(1).join(":").trim();
-          if (prop.startsWith("--")) {
-            secondaryDecls[prop] = val;
-          }
-        }
-      }
-    }
-  }
-
-  function resolveValue(val, mode, accent = "blue") {
-    if (!val) return null;
-    let current = val.trim();
-    const ld = parseLightDark(current);
-    if (ld) {
-      current = mode === "dark" ? ld.dark : ld.light;
-    }
-    const varMatch = current.match(/^var\(\s*(--[a-zA-Z0-9_-]+)(?:\s*,\s*([^)]+))?\s*\)$/);
-    if (varMatch) {
-      const varName = varMatch[1];
-      const fallback = varMatch[2];
-      const targetVal = accentDecls[accent]?.[varName] || rootDecls[varName] || fallback;
-      if (targetVal) {
-        return resolveValue(targetVal, mode, accent);
-      }
-    }
-    return current;
-  }
-
-  function getToken(propName, mode = "light", accent = "blue") {
-    const raw = accentDecls[accent]?.[propName] || rootDecls[propName];
-    return resolveValue(raw, mode, accent);
-  }
-
-  function getSecondaryToken(propName, mode = "light") {
-    const raw = secondaryDecls[propName] || rootDecls[propName];
-    return resolveValue(raw, mode, "blue");
-  }
-
-  return { rootDecls, accentDecls, secondaryDecls, getToken, getSecondaryToken, resolveValue };
-}
-
-let cachedPicotolTokens = null;
-export function getPicotolTokens() {
-  if (!cachedPicotolTokens) {
-    const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
-    cachedPicotolTokens = parseTokens(fullCss);
-  }
-  return cachedPicotolTokens;
-}
+import {
+  tolData,
+  expandHex,
+  srgbToLinear,
+  relativeLuminance,
+  contrastRatio,
+  mixSrgb,
+  schemeColor,
+  achromaticColor,
+  parseLightDark,
+  parseTokens,
+  getPicotolTokens,
+} from "./helpers/tokens.mjs";
 
 test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canonical Paul Tol schemes", () => {
   const allowedHexSet = new Set(tolData.allowedHexes.map((h) => h.toUpperCase()));
@@ -716,15 +561,15 @@ test("High-Density Layout Containment: scope section, article, and hr margins wi
       "Standalone section must preserve default typographic pacing (1.5 * spacing)"
     );
     assert.ok(
-      css.includes('style*="gap"') || css.includes("style*=gap"),
+      css.includes('[style*="gap"]'),
       "Must scope margins for direct children of containers with inline gap"
     );
     assert.ok(
-      css.includes('[style*="display: flex"]') || css.includes('[style*="display:flex"]') || css.includes('[style*=display]'),
+      css.includes('[style*="display: flex"]'),
       "Must scope margins for direct children of flex containers"
     );
     assert.ok(
-      css.includes('margin-bottom: 0;') || css.includes("margin-bottom:0"),
+      css.includes("margin-bottom: 0;"),
       "Must zero out margin-bottom on child container elements in flex/grid context"
     );
   }
@@ -733,8 +578,12 @@ test("High-Density Layout Containment: scope section, article, and hr margins wi
   for (const min of [fullMin, coreMin]) {
     assert.ok(min.includes("margin-bottom:0"), "Minified bundles must compile margin-bottom: 0 reset");
     assert.ok(
-      min.includes('[style*="gap"]') || min.includes('[style*=gap]'),
+      min.includes("[style*=gap]"),
       "Minified bundles must retain gap-based container selectors"
+    );
+    assert.ok(
+      min.includes('[style*="display: flex"]'),
+      "Minified bundles must retain display: flex container selectors"
     );
   }
 
@@ -1168,13 +1017,11 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
   const lightColorHex = tokens.getToken("--pt-color", "light");
   const darkColorHex = tokens.getToken("--pt-color", "dark");
 
-  const lightBgLuminance = 0.08 * redLuminance + 0.92 * relativeLuminance(lightBgHex);
-  const darkBgLuminance = 0.08 * redLuminance + 0.92 * relativeLuminance(darkBgHex);
-  const lightTextLum = relativeLuminance(lightColorHex);
-  const darkTextLum = relativeLuminance(darkColorHex);
+  const lightBgWash = mixSrgb(redHex, 8, lightBgHex);
+  const darkBgWash = mixSrgb(redHex, 8, darkBgHex);
 
-  const lightTextContrast = (lightBgLuminance + 0.05) / (lightTextLum + 0.05);
-  const darkTextContrast = (darkTextLum + 0.05) / (darkBgLuminance + 0.05);
+  const lightTextContrast = contrastRatio(lightColorHex, lightBgWash);
+  const darkTextContrast = contrastRatio(darkColorHex, darkBgWash);
 
   assert.ok(lightTextContrast >= 4.5, `Callout text contrast on light (${lightTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
   assert.ok(darkTextContrast >= 4.5, `Callout text contrast on dark (${darkTextContrast.toFixed(2)}:1) must meet WCAG 2.2 AA`);
@@ -1303,7 +1150,7 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     "Segmented fill child items must enforce min-width: 0 to allow flex shrinkage"
   );
   assert.ok(
-    /&:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)[\s\S]*?&\s*>\s*\*[\s\S]*?display:\s*block;/.test(fullCss),
+    /&:is\(\.segmented-fill,\s*\.segmented-equal,\s*\.fill\)\s*\{[^}]*&\s*>\s*\*\s*\{[^}]*display:\s*block;/s.test(fullCss),
     "Segmented fill child items must establish a block formatting context (display: block) to enable text ellipsis truncation"
   );
 
@@ -3517,9 +3364,10 @@ test("Meter Marker Anatomy Disambiguation and Nested Terminus Markup (Issue #183
   // In downstream Terminus markup, .pt-meter-mark is the outer container drawing a pin via :before.
   // Downstream inner elements with .pt-meter-pin must NOT be styled by picotol (drawing 0 duplicate pins),
   // while .pt-meter-label is styled as a label and receives z-index stacking.
-  assert.ok(
-    fullCss.includes(":where(.pt-gauge-marker, .pt-meter-mark):before") || fullCss.includes(".pt-meter-mark:before"),
-    "Outer .pt-meter-mark must draw pin pseudo-element via :before"
+  assert.match(
+    fullCss,
+    /:\s*where\([^)]*\.pt-meter-mark[^)]*\)\s*\{[^}]*&:\s*before\s*\{[^}]*content:\s*""/s,
+    "Outer .pt-meter-mark must draw pin pseudo-element via nested &:before"
   );
   assert.ok(
     !fullCss.includes(".pt-meter-pin"),
@@ -3529,9 +3377,10 @@ test("Meter Marker Anatomy Disambiguation and Nested Terminus Markup (Issue #183
     fullCss.includes(".pt-meter-label"),
     "Full bundle must define .pt-meter-label selector"
   );
-  assert.ok(
-    fullCss.includes("--pt-meter-mark-z"),
-    "Full bundle must define --pt-meter-mark-z stacking token"
+  assert.match(
+    fullCss,
+    /\.pt-meter-mark[^{}]*\{[^}]*z-index:\s*var\(--pt-meter-mark-z/,
+    "Full bundle must bind --pt-meter-mark-z stacking token to z-index on .pt-meter-mark"
   );
 
   // 7. README documentation parity
@@ -3579,49 +3428,31 @@ test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Al
     ["dist/picotol.layer.css", layerCss],
     ["dist/picotol.layer.min.css", layerMin],
   ]) {
-    assert.ok(
-      css.includes("::selection"),
-      `${name} must contain ::selection selector`
+    assert.match(
+      css,
+      /::selection\s*\{[^}]*background-color:\s*var\(--pt-primary-bg\)/,
+      `${name} must bind ::selection background to var(--pt-primary-bg)`
     );
-    assert.ok(
-      css.includes(expectedBgToken),
-      `${name} must use ${expectedBgToken} for selection background`
-    );
-    assert.ok(
-      css.includes(expectedColorToken),
-      `${name} must use ${expectedColorToken} for selection text color`
+    assert.match(
+      css,
+      /::selection\s*\{[^}]*color:\s*var\(--pt-color\)/,
+      `${name} must bind ::selection text color to var(--pt-color)`
     );
   }
 
   // 2. Contrast validation across all 4 accent ladders (blue, cyan, purple, magenta)
-  // Light mode: background = --pt-p1, color = var(--pt-color) (light)
-  // Dark mode: background = --pt-p4, color = var(--pt-color) (dark)
+  // Light mode: background = --pt-primary-bg (resolves to --pt-p1), text = var(--pt-color) (light)
+  // Dark mode: background = --pt-primary-bg (resolves to --pt-p4), text = var(--pt-color) (dark)
   const tokens = getPicotolTokens();
   const lightText = tokens.getToken("--pt-color", "light");
   const darkText = tokens.getToken("--pt-color", "dark");
 
-  const accents = {
-    blue: {
-      p1: tokens.getToken("--pt-p1", "light", "blue"),
-      p4: tokens.getToken("--pt-p4", "light", "blue"),
-    },
-    cyan: {
-      p1: tokens.getToken("--pt-p1", "light", "cyan"),
-      p4: tokens.getToken("--pt-p4", "light", "cyan"),
-    },
-    purple: {
-      p1: tokens.getToken("--pt-p1", "light", "purple"),
-      p4: tokens.getToken("--pt-p4", "light", "purple"),
-    },
-    magenta: {
-      p1: tokens.getToken("--pt-p1", "light", "magenta"),
-      p4: tokens.getToken("--pt-p4", "light", "magenta"),
-    },
-  };
+  for (const accent of ["blue", "cyan", "purple", "magenta"]) {
+    const lightSelectionBg = tokens.getToken("--pt-primary-bg", "light", accent);
+    const darkSelectionBg = tokens.getToken("--pt-primary-bg", "dark", accent);
 
-  for (const [accent, accentTokens] of Object.entries(accents)) {
-    const lightRatio = contrastRatio(lightText, accentTokens.p1);
-    const darkRatio = contrastRatio(darkText, accentTokens.p4);
+    const lightRatio = contrastRatio(lightText, lightSelectionBg);
+    const darkRatio = contrastRatio(darkText, darkSelectionBg);
 
     assert.ok(
       lightRatio >= 7.0,

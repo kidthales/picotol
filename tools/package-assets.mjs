@@ -92,22 +92,23 @@ export function createPkZip(entries) {
   return Buffer.concat([...localHeaders, ...centralHeaders, eocd]);
 }
 
-export function packageAssets() {
-  const assetsDir = join(distDir, 'assets');
+export function packageAssets(opts = {}) {
+  const targetDist = opts.outDir || distDir;
+  const assetsDir = join(targetDist, 'assets');
   mkdirSync(assetsDir, { recursive: true });
 
   const manifest = [
-    { archivePath: 'css/picotol.css', sourcePath: join(distDir, 'picotol.css') },
-    { archivePath: 'css/picotol.min.css', sourcePath: join(distDir, 'picotol.min.css') },
-    { archivePath: 'css/picotol.core.css', sourcePath: join(distDir, 'picotol.core.css') },
-    { archivePath: 'css/picotol.core.min.css', sourcePath: join(distDir, 'picotol.core.min.css') },
-    { archivePath: 'css/picotol.layer.css', sourcePath: join(distDir, 'picotol.layer.css') },
-    { archivePath: 'css/picotol.layer.min.css', sourcePath: join(distDir, 'picotol.layer.min.css') },
+    { archivePath: 'css/picotol.css', sourcePath: join(targetDist, 'picotol.css') },
+    { archivePath: 'css/picotol.min.css', sourcePath: join(targetDist, 'picotol.min.css') },
+    { archivePath: 'css/picotol.core.css', sourcePath: join(targetDist, 'picotol.core.css') },
+    { archivePath: 'css/picotol.core.min.css', sourcePath: join(targetDist, 'picotol.core.min.css') },
+    { archivePath: 'css/picotol.layer.css', sourcePath: join(targetDist, 'picotol.layer.css') },
+    { archivePath: 'css/picotol.layer.min.css', sourcePath: join(targetDist, 'picotol.layer.min.css') },
     { archivePath: 'tokens/tokens.css', sourcePath: join(root, 'src', 'tokens.css') },
     { archivePath: 'tokens/palettes.css', sourcePath: join(root, 'src', 'palettes.css') },
     { archivePath: 'tokens/tol-qualitative.json', sourcePath: join(root, 'data', 'tol-qualitative.json') },
-    { archivePath: 'sri.json', sourcePath: join(distDir, 'sri.json') },
-    { archivePath: 'index.html', sourcePath: join(distDir, 'demo', 'index.html') },
+    { archivePath: 'sri.json', sourcePath: join(targetDist, 'sri.json') },
+    { archivePath: 'index.html', sourcePath: join(targetDist, 'demo', 'index.html') },
   ];
 
   const entries = manifest.map(({ archivePath, sourcePath }) => {

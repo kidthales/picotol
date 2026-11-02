@@ -64,8 +64,10 @@ function sha256Hex(content) {
   return createHash('sha256').update(content, 'utf8').digest('hex');
 }
 
-export function buildAll() {
-  mkdirSync(demoDir, { recursive: true });
+export function buildAll(opts = {}) {
+  const targetDist = opts.outDir || distDir;
+  const targetDemo = join(targetDist, 'demo');
+  mkdirSync(targetDemo, { recursive: true });
 
   const coreEntry = join(root, 'src', 'picotol.core.css');
   const fullEntry = join(root, 'src', 'picotol.css');
@@ -89,12 +91,12 @@ export function buildAll() {
   const layerExpanded = HEADER + layerExpandedRaw;
   const layerMin = HEADER + layerMinRaw;
 
-  writeFileSync(join(distDir, 'picotol.core.css'), coreExpanded, 'utf8');
-  writeFileSync(join(distDir, 'picotol.core.min.css'), coreMin, 'utf8');
-  writeFileSync(join(distDir, 'picotol.css'), fullExpanded, 'utf8');
-  writeFileSync(join(distDir, 'picotol.min.css'), fullMin, 'utf8');
-  writeFileSync(join(distDir, 'picotol.layer.css'), layerExpanded, 'utf8');
-  writeFileSync(join(distDir, 'picotol.layer.min.css'), layerMin, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.core.css'), coreExpanded, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.core.min.css'), coreMin, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.css'), fullExpanded, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.min.css'), fullMin, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.layer.css'), layerExpanded, 'utf8');
+  writeFileSync(join(targetDist, 'picotol.layer.min.css'), layerMin, 'utf8');
 
   const stats = {
     coreBytes: Buffer.byteLength(coreExpanded, 'utf8'),
@@ -133,7 +135,7 @@ export function buildAll() {
     },
   };
 
-  writeFileSync(join(distDir, 'sri.json'), JSON.stringify(sriManifest, null, 2) + '\n', 'utf8');
+  writeFileSync(join(targetDist, 'sri.json'), JSON.stringify(sriManifest, null, 2) + '\n', 'utf8');
 
   const cssFiles = [
     { name: 'picotol.core.css', content: coreExpanded },
@@ -145,7 +147,7 @@ export function buildAll() {
   ];
   cssFiles.sort((a, b) => a.name.localeCompare(b.name));
   const sha256Sums = cssFiles.map((f) => `${sha256Hex(f.content)}  ${f.name}`).join('\n') + '\n';
-  writeFileSync(join(distDir, 'SHA256SUMS.txt'), sha256Sums, 'utf8');
+  writeFileSync(join(targetDist, 'SHA256SUMS.txt'), sha256Sums, 'utf8');
   stats.sha256Sums = sha256Sums;
 
   const artifacts = {};
@@ -162,14 +164,14 @@ export function buildAll() {
     artifacts,
   };
 
-  writeFileSync(join(distDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  writeFileSync(join(targetDist, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   stats.manifest = manifest;
 
   const demoHtml = generateDemoHtml(fullMin, stats);
-  writeFileSync(join(demoDir, 'index.html'), demoHtml, 'utf8');
-  writeFileSync(join(demoDir, 'CNAME'), 'picotol.kidthales.com\n', 'utf8');
+  writeFileSync(join(targetDemo, 'index.html'), demoHtml, 'utf8');
+  writeFileSync(join(targetDemo, 'CNAME'), 'picotol.kidthales.com\n', 'utf8');
 
-  const assetStats = packageAssets();
+  const assetStats = packageAssets({ outDir: targetDist });
   stats.assetStats = assetStats;
 
   return stats;
