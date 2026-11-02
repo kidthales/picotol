@@ -4,45 +4,23 @@
 //   - tokens/ (tokens.css, palettes.css, tol-qualitative.json)
 //   - sri.json
 //   - index.html (self-contained offline kitchen-sink showcase)
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
+import { assertValidMtimeOption, isSameOrSubpath, resolveOutDir } from './path-jail.mjs';
+
+export { isSameOrSubpath, resolveOutDir };
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const distDir = join(root, 'dist');
-const srcDir = join(root, 'src');
-const dataDir = join(root, 'data');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
-function isSameOrSubpath(targetPath, basePath) {
-  const rel = relative(basePath.toLowerCase(), targetPath.toLowerCase());
-  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
-}
-
-function resolveOutDir(opts) {
-  if (opts === null || typeof opts !== 'object') {
-    throw new Error('Invalid outDir: options must be an object');
-  }
-  const hasOutDir = 'outDir' in opts;
-  const rawOutDir = hasOutDir ? opts.outDir : distDir;
-  if (typeof rawOutDir !== 'string' || rawOutDir.trim() === '') {
-    throw new Error('Invalid outDir: must be a non-empty string path');
-  }
-  const resolved = resolve(rawOutDir);
-  if (
-    isSameOrSubpath(resolved, srcDir) ||
-    isSameOrSubpath(resolved, dataDir) ||
-    isSameOrSubpath(root, resolved) ||
-    (isSameOrSubpath(resolved, root) && !isSameOrSubpath(resolved, distDir))
-  ) {
-    throw new Error(`Invalid outDir: refusing to write to protected path ${resolved}`);
-  }
-  return resolved;
-}
-
 function toDosDateTime(date) {
-  const d = date instanceof Date ? date : new Date(date || Date.now());
+  const d = date === undefined ? new Date() : date;
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) {
+    throw new Error('Invalid mtime: must be a valid Date instance');
+  }
   const year = Math.max(1980, d.getFullYear());
   const dosDate = (((year - 1980) & 0x7f) << 9) | (((d.getMonth() + 1) & 0xf) << 5) | (d.getDate() & 0x1f);
   const dosTime = ((d.getHours() & 0x1f) << 11) | ((d.getMinutes() & 0x3f) << 5) | (Math.floor(d.getSeconds() / 2) & 0x1f);
@@ -120,8 +98,70 @@ export function createPkZip(entries) {
   return Buffer.concat([...localHeaders, ...centralHeaders, eocd]);
 }
 
+export function parsePkZipEntries(zipBuf) {
+  let eocdOffset = -1;
+  for (let i = zipBuf.length - 22; i >= Math.max(0, zipBuf.length - 65557); i--) {
+    if (zipBuf.readUInt32LE(i) === 0x06054b50) {
+      eocdOffset = i;
+      break;
+    }
+  }
+  if (eocdOffset === -1) {
+    throw new Error('Valid PKZip End of Central Directory signature (0x06054b50) not found');
+  }
+
+  const totalEntries = zipBuf.readUInt16LE(eocdOffset + 10);
+  const cdOffset = zipBuf.readUInt32LE(eocdOffset + 16);
+  const entries = [];
+  let pos = cdOffset;
+
+  for (let i = 0; i < totalEntries; i++) {
+    if (zipBuf.readUInt32LE(pos) !== 0x02014b50) {
+      throw new Error(`Invalid Central Directory signature at offset ${pos}`);
+    }
+    const crc = zipBuf.readUInt32LE(pos + 16);
+    const compressedSize = zipBuf.readUInt32LE(pos + 20);
+    const uncompressedSize = zipBuf.readUInt32LE(pos + 24);
+    const nameLen = zipBuf.readUInt16LE(pos + 28);
+    const extraLen = zipBuf.readUInt16LE(pos + 30);
+    const commentLen = zipBuf.readUInt16LE(pos + 32);
+    const lfhOffset = zipBuf.readUInt32LE(pos + 42);
+    const name = zipBuf.toString('utf8', pos + 46, pos + 46 + nameLen);
+
+    if (zipBuf.readUInt32LE(lfhOffset) !== 0x04034b50) {
+      throw new Error(`Invalid Local File Header signature at offset ${lfhOffset} for ${name}`);
+    }
+    const lfhNameLen = zipBuf.readUInt16LE(lfhOffset + 26);
+    const lfhExtraLen = zipBuf.readUInt16LE(lfhOffset + 28);
+    const dataStart = lfhOffset + 30 + lfhNameLen + lfhExtraLen;
+    const compressedSlice = zipBuf.subarray(dataStart, dataStart + compressedSize);
+    const decompressed = zlib.inflateRawSync(compressedSlice);
+
+    if (decompressed.length !== uncompressedSize) {
+      throw new Error(`Uncompressed size mismatch for ${name}: expected ${uncompressedSize}, got ${decompressed.length}`);
+    }
+    if ((zlib.crc32(decompressed) >>> 0) !== (crc >>> 0)) {
+      throw new Error(`CRC-32 mismatch for ${name}`);
+    }
+
+    const sha256 = createHash('sha256').update(decompressed).digest('hex');
+    entries.push({
+      name,
+      crc,
+      compressedSize,
+      uncompressedSize,
+      sha256,
+    });
+
+    pos += 46 + nameLen + extraLen + commentLen;
+  }
+
+  return entries;
+}
+
 export function packageAssets(opts = {}) {
   const targetDist = resolveOutDir(opts);
+  const validatedMtime = assertValidMtimeOption(opts);
   const assetsDir = join(targetDist, 'assets');
   mkdirSync(assetsDir, { recursive: true });
 
@@ -147,7 +187,7 @@ export function packageAssets(opts = {}) {
     return {
       name: archivePath,
       data: readFileSync(sourcePath),
-      mtime: opts.mtime ?? stat.mtime,
+      mtime: validatedMtime !== undefined ? validatedMtime : stat.mtime,
     };
   });
 

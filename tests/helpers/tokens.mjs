@@ -153,9 +153,13 @@ export function splitSelectors(rawSelector) {
 }
 
 export function extractLayerBlock(cleanCss, layerName) {
-  const re = new RegExp(`@layer\\s+${layerName}\\s*\\{`);
-  const match = re.exec(cleanCss);
-  if (!match) return null;
+  const re = new RegExp(`@layer\\s+${layerName}\\s*\\{`, 'g');
+  const matches = [...cleanCss.matchAll(re)];
+  if (matches.length === 0) return null;
+  if (matches.length > 1) {
+    throw new Error(`Multiple @layer ${layerName} blocks found in CSS content`);
+  }
+  const match = matches[0];
   const openBraceIdx = match.index + match[0].length - 1;
   let depth = 0;
   let quote = null;
@@ -487,9 +491,7 @@ export function parseTokens(cssContent) {
   }
 
   function getCalloutToken(propName = '--pt-callout-border', mode = 'light', variant = 'default') {
-    const raw =
-      calloutDecls[variant]?.[propName] ??
-      (variant === 'default' ? undefined : calloutDecls.default?.[propName]);
+    const raw = calloutDecls[variant]?.[propName];
     if (raw === undefined) {
       throw new Error(`Token ${propName} (callout variant: ${variant}) not found`);
     }

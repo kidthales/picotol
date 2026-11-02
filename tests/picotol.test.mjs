@@ -25,6 +25,7 @@ import {
   relativeLuminance,
   contrastRatio,
   mixSrgb,
+  schemeColor,
   extractLayerBlock,
   parseCssBlock,
   getPicotolTokens,
@@ -969,6 +970,10 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
     fullCss.includes("--pt-cyan"),
     "Full bundle must contain canonical severity color tokens"
   );
+  const tokens = getPicotolTokens();
+  assert.equal(tokens.getToken("--pt-red", "light"), schemeColor("bright", "red"), "--pt-red must map to Tol bright red");
+  assert.equal(tokens.getToken("--pt-yellow", "light"), schemeColor("bright", "yellow"), "--pt-yellow must map to Tol bright yellow");
+  assert.equal(tokens.getToken("--pt-cyan", "light"), schemeColor("bright", "cyan"), "--pt-cyan must map to Tol bright cyan");
 
   // 2. .pt-callout component and severity variants
   assert.ok(
@@ -978,6 +983,12 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
     fullCss.includes(".pt-callout-info"),
     "Full bundle must define .pt-callout, .pt-callout-critical, .pt-callout-warning, and .pt-callout-info"
   );
+  for (const variant of ["default", "ok", "critical", "warning", "info"]) {
+    assert.ok(
+      Object.hasOwn(tokens.calloutDecls[variant], "--pt-callout-border"),
+      `Callout variant "${variant}" must explicitly define its own --pt-callout-border`
+    );
+  }
   assert.ok(
     fullCss.includes("border-inline-start: 4px solid"),
     "Callouts must use 4px solid start border"
@@ -988,7 +999,6 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
   );
 
   // 3. Contrast verification across Light/Dark surfaces and greyscale simulation
-  const tokens = getPicotolTokens();
   for (const mode of ["light", "dark"]) {
     const redHex = tokens.getToken("--pt-red", mode);
     const yellowHex = tokens.getToken("--pt-yellow", mode);
@@ -1452,8 +1462,29 @@ test("Semantic Status Tokens and Dark Mode Contrast Calibration (Issue #126)", (
     assert.ok(layerCss.includes(token), `picotol.layer.css must include ${token}`);
   }
 
-  // 2. Automated WCAG 2.2 Contrast Verification against Dark Surfaces (root & surface)
+  // 2. Paul Tol Canonical Color Mapping Verification via schemeColor() and getToken()
   const tokens = getPicotolTokens();
+  assert.equal(tokens.getToken("--pt-status-ok-fg", "light"), schemeColor("bright", "green"), "OK light fg must map to Tol bright green");
+  assert.equal(tokens.getToken("--pt-status-ok-fg", "dark"), schemeColor("muted", "teal"), "OK dark fg must map to Tol muted teal");
+  assert.equal(tokens.getToken("--pt-status-ok-border", "light"), schemeColor("bright", "green"), "OK light border must map to Tol bright green");
+  assert.equal(tokens.getToken("--pt-status-ok-border", "dark"), schemeColor("muted", "teal"), "OK dark border must map to Tol muted teal");
+
+  assert.equal(tokens.getToken("--pt-status-warning-fg", "light"), schemeColor("ylorbr", 1), "Warning light fg must map to Tol ylorbr brown");
+  assert.equal(tokens.getToken("--pt-status-warning-fg", "dark"), schemeColor("high-contrast", "yellow"), "Warning dark fg must map to Tol high-contrast yellow");
+  assert.equal(tokens.getToken("--pt-status-warning-border", "light"), schemeColor("high-contrast", "yellow"), "Warning light border must map to Tol high-contrast yellow");
+  assert.equal(tokens.getToken("--pt-status-warning-border", "dark"), schemeColor("light", "orange"), "Warning dark border must map to Tol light orange");
+
+  assert.equal(tokens.getToken("--pt-status-critical-fg", "light"), schemeColor("vibrant", "red"), "Critical light fg must map to Tol vibrant red");
+  assert.equal(tokens.getToken("--pt-status-critical-fg", "dark"), schemeColor("bright", "red"), "Critical dark fg must map to Tol bright red");
+  assert.equal(tokens.getToken("--pt-status-critical-border", "light"), schemeColor("vibrant", "red"), "Critical light border must map to Tol vibrant red");
+  assert.equal(tokens.getToken("--pt-status-critical-border", "dark"), schemeColor("bright", "red"), "Critical dark border must map to Tol bright red");
+
+  assert.equal(tokens.getToken("--pt-status-info-fg", "light"), schemeColor("bright", "blue"), "Info light fg must map to Tol bright blue");
+  assert.equal(tokens.getToken("--pt-status-info-fg", "dark"), schemeColor("bright", "cyan"), "Info dark fg must map to Tol bright cyan");
+  assert.equal(tokens.getToken("--pt-status-info-border", "light"), schemeColor("bright", "blue"), "Info light border must map to Tol bright blue");
+  assert.equal(tokens.getToken("--pt-status-info-border", "dark"), schemeColor("bright", "cyan"), "Info dark border must map to Tol bright cyan");
+
+  // 3. Automated WCAG 2.2 Contrast Verification against Dark Surfaces (root & surface)
   const darkRoot = tokens.getToken("--pt-bg", "dark");
   const darkSurface = tokens.getToken("--pt-surface", "dark");
   const lightRoot = tokens.getToken("--pt-bg", "light");
@@ -2558,6 +2589,16 @@ test("WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for
 
   // 2. Light Theme Status Triads Contrast Audit against WCAG 2.2 Standards
   const tokens = getPicotolTokens();
+  assert.equal(
+    tokens.getToken("--pt-status-warning-fg", "light"),
+    schemeColor("ylorbr", 1),
+    "--pt-status-warning-fg light mode must calibrate to Tol ylorbr brown"
+  );
+  assert.equal(
+    tokens.getToken("--pt-status-warning-fg", "dark"),
+    schemeColor("high-contrast", "yellow"),
+    "--pt-status-warning-fg dark mode must calibrate to Tol high-contrast yellow"
+  );
   const lightRoot = tokens.getToken("--pt-bg", "light");
   const lightSurface = tokens.getToken("--pt-surface", "light");
 

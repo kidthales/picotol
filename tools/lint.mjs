@@ -93,8 +93,17 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
     }
   }
 
-  // 4. Accessibility CSS anti-patterns: no outline: none/0/0px/0.0, no fixed px font-size
-  if (/\boutline\s*:\s*(?:none\b|0(?:\.0+)?(?:px|rem|em|%|vh|vw|ch|ex|pt)?(?![0-9.]))/i.test(cleanContent)) {
+  // 4. Accessibility CSS anti-patterns: no outline: none/0/0px/0.0, outline-style: none, or outline-width: 0
+  // (except programmatic skip-link target [tabindex="-1"]:focus:not(:focus-visible)); no fixed px font-size
+  const withoutProgrammaticFocusTarget = cleanContent.replace(
+    /\[tabindex="-1"\]:focus:not\(:focus-visible\)\s*\{[^}]*\}/g,
+    ''
+  );
+  if (
+    /\b(?:outline\s*:\s*(?:none\b|0(?:\.0+)?(?:px|rem|em|%|vh|vw|ch|ex|pt)?(?![0-9.]))|outline-style\s*:\s*none\b|outline-width\s*:\s*0(?:\.0+)?(?:px|rem|em|%|vh|vw|ch|ex|pt)?(?![0-9.]))[^;}]*(?:[;}]|$)/i.test(
+      withoutProgrammaticFocusTarget
+    )
+  ) {
     errors.push(`[${filename}] Accessible focus violation: "outline: none" or "outline: 0" strips forced-colors focus rings`);
   }
   if (/\bfont-size\s*:\s*[0-9.]+px\b/i.test(cleanContent)) {

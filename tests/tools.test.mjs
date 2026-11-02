@@ -15,9 +15,17 @@ import {
   lintDemoHtml,
   runLint,
 } from '../tools/lint.mjs';
-import { loadSnapshot, buildTokensCss, buildPalettesCss, syncTokens } from '../tools/sync-tokens.mjs';
-import { buildAll } from '../tools/build.mjs';
-import { packageAssets } from '../tools/package-assets.mjs';
+import {
+  loadSnapshot,
+  buildTokensCss,
+  buildPalettesCss,
+  syncTokens,
+  assertSafeCustomSyncTarget,
+  resolveSyncOptions,
+} from '../tools/sync-tokens.mjs';
+import { buildAll, isSameOrSubpath, resolveOutDir } from '../tools/build.mjs';
+import { packageAssets, parsePkZipEntries } from '../tools/package-assets.mjs';
+import { assertValidMtimeOption } from '../tools/path-jail.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -146,8 +154,8 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
     'Unquoted data URI is not exempt under strict double-quoted rule'
   );
 
-  // 7. Accessible focus violation: outline: none, outline: 0, outline:0, outline: 0px, outline: 0.0, and !important rejected,
-  // while outline: 0.5px and commented-out rules are permitted
+  // 7. Accessible focus violation: outline: none/0/0px/0.0, outline-style: none, outline-width: 0, and !important rejected,
+  // while outline: 0.5px, outline-offset: 0, and commented-out rules are permitted
   for (const badOutline of [
     'button:focus { outline: none; }',
     'button:focus { outline: none !important; }',
@@ -158,6 +166,10 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
     'button:focus { outline: 0.0px solid #000000; }',
     'button:focus { outline: 0rem; }',
     'button:focus { outline: 0 !important; }',
+    'button:focus { outline-width: 0; }',
+    'button:focus { outline-width: 0px !important; }',
+    'button:focus { outline-style: none; }',
+    'button:focus { outline-style: none !important; }',
   ]) {
     assert.ok(
       lintCssSnippet(badOutline, 'fixtures/outline-bad.css').some((e) =>
@@ -166,11 +178,11 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
       `Should flag accessible focus violation for: ${badOutline}`
     );
   }
-  const outline05Snippet = `button:focus { /* outline: none; */ outline: 0.5px solid var(--pt-brand); }`;
+  const outline05Snippet = `button:focus { /* outline: none; */ outline: 0.5px solid var(--pt-brand); outline-offset: 0; }`;
   assert.equal(
     lintCssSnippet(outline05Snippet, 'fixtures/outline-05.css').length,
     0,
-    'outline: 0.5px and commented outline: none must not be flagged'
+    'outline: 0.5px, outline-offset: 0, and commented outline: none must not be flagged'
   );
 
   // 8. Scalable typography violation: fixed px font-size rejected
@@ -230,7 +242,7 @@ test('tools/lint.mjs: expandHex utility expands 3-digit hex without turning tran
   assert.equal(isTransparentHex('#000000'), false);
 });
 
-test('tools/sync-tokens.mjs: deterministic generation, strict null/path jail validation, and isolated syncTokens write path', () => {
+test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pure path-jail/symlink/dot-dir validation, and isolated syncTokens write path', () => {
   const snapshot = loadSnapshot();
   assert.ok(snapshot.schemes, 'Snapshot must contain schemes');
   assert.ok(snapshot.achromatic, 'Snapshot must contain achromatic stops');
@@ -243,79 +255,130 @@ test('tools/sync-tokens.mjs: deterministic generation, strict null/path jail val
   assert.equal(buildTokensCss(snapshot).trim(), committedTokens.trim(), 'Generated tokens.css must deterministically match src/tokens.css');
   assert.equal(buildPalettesCss(snapshot).trim(), committedPalettes.trim(), 'Generated palettes.css must deterministically match src/palettes.css');
 
-  // Verify syncTokens() rejects empty, whitespace, null, undefined, half-isolated, and repo-internal paths
-  assert.throws(() => syncTokens(null), /Invalid options/);
-  assert.throws(() => syncTokens({ outSrcDir: '' }), /Invalid outSrcDir/);
-  assert.throws(() => syncTokens({ outSrcDir: '   ' }), /Invalid outSrcDir/);
-  assert.throws(() => syncTokens({ outSrcDir: null }), /Invalid outSrcDir/);
-  assert.throws(() => syncTokens({ outSrcDir: undefined }), /Invalid outSrcDir/);
-  assert.throws(() => syncTokens({ tokensCssPath: null, palettesCssPath: null }), /Invalid tokensCssPath/);
-  assert.throws(() => syncTokens({ tokensCssPath: undefined, palettesCssPath: undefined }), /Invalid tokensCssPath/);
+  // Segment-aware isSameOrSubpath: "..foo" inside ROOT is recognized as a subpath of ROOT (not an outside "..")
+  assert.equal(isSameOrSubpath(path.join(ROOT, '..foo'), ROOT), true, 'ROOT/..foo must be recognized as inside ROOT');
+  assert.equal(isSameOrSubpath(path.dirname(ROOT), ROOT), false, 'Parent of ROOT must not be recognized as inside ROOT');
+  assert.equal(isSameOrSubpath(ROOT, path.dirname(ROOT)), true, 'ROOT is a subpath of its parent directory');
+
+  // Pure validator tests (resolveSyncOptions & assertSafeCustomSyncTarget): zero filesystem writes even if a guard regressed
+  assert.throws(() => resolveSyncOptions(null), /Invalid options/);
+  assert.throws(() => resolveSyncOptions({ outSrcDir: '' }), /Invalid outSrcDir/);
+  assert.throws(() => resolveSyncOptions({ outSrcDir: '   ' }), /Invalid outSrcDir/);
+  assert.throws(() => resolveSyncOptions({ outSrcDir: null }), /Invalid outSrcDir/);
+  assert.throws(() => resolveSyncOptions({ outSrcDir: undefined }), /Invalid outSrcDir/);
+  assert.throws(() => resolveSyncOptions({ tokensCssPath: null, palettesCssPath: null }), /Invalid tokensCssPath/);
+  assert.throws(() => resolveSyncOptions({ tokensCssPath: undefined, palettesCssPath: undefined }), /Invalid tokensCssPath/);
   assert.throws(
-    () => syncTokens({ tokensCssPath: path.join(os.tmpdir(), 'only-tokens.css') }),
+    () => resolveSyncOptions({ tokensCssPath: path.join(os.tmpdir(), 'only-tokens.css') }),
     /must provide outSrcDir or both tokensCssPath and palettesCssPath/
   );
   assert.throws(
-    () => syncTokens({ palettesCssPath: path.join(os.tmpdir(), 'only-palettes.css') }),
+    () => resolveSyncOptions({ palettesCssPath: path.join(os.tmpdir(), 'only-palettes.css') }),
     /must provide outSrcDir or both tokensCssPath and palettesCssPath/
   );
-  assert.throws(() => syncTokens({ outSrcDir: ROOT }), /refusing to write custom sync target inside repository/);
-  assert.throws(() => syncTokens({ outSrcDir: path.join(ROOT, 'src') }), /refusing to write custom sync target inside repository/);
-  assert.throws(() => syncTokens({ outSrcDir: path.join(ROOT, 'data') }), /refusing to write custom sync target inside repository/);
+  assert.throws(() => assertSafeCustomSyncTarget(ROOT, 'outSrcDir'), /refusing to write custom sync target inside repository/);
+  assert.throws(() => assertSafeCustomSyncTarget(path.join(ROOT, 'src'), 'outSrcDir'), /refusing to write custom sync target inside repository/);
+  assert.throws(() => assertSafeCustomSyncTarget(path.join(ROOT, 'data'), 'outSrcDir'), /refusing to write custom sync target inside repository/);
+  assert.throws(() => assertSafeCustomSyncTarget(path.join(ROOT, '..foo'), 'outSrcDir'), /refusing to write custom sync target inside repository/);
+  assert.throws(() => assertSafeCustomSyncTarget(path.dirname(ROOT), 'outSrcDir'), /refusing to write custom sync target inside repository/);
+  assert.throws(() => resolveSyncOptions({ outSrcDir: path.join(ROOT, '..foo') }), /refusing to write custom sync target inside repository/);
   assert.throws(
     () =>
-      syncTokens({
+      resolveSyncOptions({
         tokensCssPath: path.join(ROOT, 'src/tokens.css'),
         palettesCssPath: path.join(ROOT, 'src/palettes.css'),
       }),
     /refusing to write custom sync target inside repository/
   );
 
-  const tempSrcDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-sync-'));
+  let tempSrcDir = null;
+  let tempLinkHolder = null;
   try {
+    tempSrcDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-sync-'));
+    tempLinkHolder = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-link-'));
+
+    // Symlink / junction escape test: a junction in os.tmpdir() pointing into ROOT/src is blocked via realpathSync
+    const linkToSrc = path.join(tempLinkHolder, 'src-junction');
+    fs.symlinkSync(path.join(ROOT, 'src'), linkToSrc, process.platform === 'win32' ? 'junction' : 'dir');
+    assert.throws(
+      () => assertSafeCustomSyncTarget(linkToSrc, 'outSrcDir'),
+      /refusing to write custom sync target inside repository/
+    );
+    assert.throws(
+      () => assertSafeCustomSyncTarget(path.join(linkToSrc, 'nonexistent-child'), 'outSrcDir'),
+      /refusing to write custom sync target inside repository/
+    );
+    assert.throws(
+      () => resolveOutDir({ outDir: linkToSrc }),
+      /refusing to write to protected path/
+    );
+    assert.throws(
+      () => resolveOutDir({ outDir: path.join(linkToSrc, 'nonexistent-child') }),
+      /refusing to write to protected path/
+    );
+
+    // Fail-closed snapshot validation on syncTokens (using isolated tempSrcDir)
+    assert.throws(() => syncTokens({ outSrcDir: tempSrcDir, snapshot: null }), /Invalid snapshot/);
+    assert.throws(() => syncTokens({ outSrcDir: tempSrcDir, snapshot: undefined }), /Invalid snapshot/);
+    assert.throws(() => syncTokens({ outSrcDir: tempSrcDir, snapshot: 'garbage' }), /Invalid snapshot/);
+    assert.throws(() => syncTokens({ outSrcDir: tempSrcDir, snapshot: {} }), /Invalid snapshot/);
+
     const res = syncTokens({ outSrcDir: tempSrcDir, snapshot });
     assert.ok(fs.existsSync(res.tokensCssPath), 'syncTokens must write tokens.css to outSrcDir');
     assert.ok(fs.existsSync(res.palettesCssPath), 'syncTokens must write palettes.css to outSrcDir');
     assert.equal(fs.readFileSync(res.tokensCssPath, 'utf8'), committedTokens, 'Written tokens.css must match committed src/tokens.css byte-for-byte');
     assert.equal(fs.readFileSync(res.palettesCssPath, 'utf8'), committedPalettes, 'Written palettes.css must match committed src/palettes.css byte-for-byte');
   } finally {
-    fs.rmSync(tempSrcDir, { recursive: true, force: true });
+    if (tempLinkHolder) fs.rmSync(tempLinkHolder, { recursive: true, force: true });
+    if (tempSrcDir) fs.rmSync(tempSrcDir, { recursive: true, force: true });
   }
 });
 
 // Concurrency note: No other test file in tests/*.test.mjs imports or calls buildAll(),
 // packageAssets(), or syncTokens() (all other test files only read dist/, and this test writes
 // exclusively to os.tmpdir() via fs.mkdtempSync), so parallel `node --test` execution is race-free.
-test('tools/build.mjs & tools/package-assets.mjs: strict outDir validation, isolated buildAll, PKZip verification, dist/ freshness, and full-tree idempotence', () => {
-  // Reject empty, whitespace, null, undefined, and repo-internal outDir paths
-  assert.throws(() => buildAll(null), /Invalid outDir/);
-  assert.throws(() => buildAll({ outDir: '' }), /Invalid outDir/);
-  assert.throws(() => buildAll({ outDir: '   ' }), /Invalid outDir/);
-  assert.throws(() => buildAll({ outDir: null }), /Invalid outDir/);
-  assert.throws(() => buildAll({ outDir: undefined }), /Invalid outDir/);
-  assert.throws(() => buildAll({ outDir: ROOT }), /refusing to write to protected path/);
-  assert.throws(() => buildAll({ outDir: path.join(ROOT, 'src') }), /refusing to write to protected path/);
-  assert.throws(() => buildAll({ outDir: path.join(ROOT, 'src/nested') }), /refusing to write to protected path/);
-  assert.throws(() => buildAll({ outDir: path.join(ROOT, 'data') }), /refusing to write to protected path/);
-  assert.throws(() => buildAll({ outDir: path.dirname(ROOT) }), /refusing to write to protected path/);
+test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime validation, isolated buildAll, PKZip hash parity, dist/ freshness, and full-tree idempotence', () => {
+  // Pure validator tests (resolveOutDir & assertValidMtimeOption): zero filesystem writes even if a guard regressed
+  assert.throws(() => resolveOutDir(null), /Invalid outDir/);
+  assert.throws(() => resolveOutDir({ outDir: '' }), /Invalid outDir/);
+  assert.throws(() => resolveOutDir({ outDir: '   ' }), /Invalid outDir/);
+  assert.throws(() => resolveOutDir({ outDir: null }), /Invalid outDir/);
+  assert.throws(() => resolveOutDir({ outDir: undefined }), /Invalid outDir/);
+  assert.throws(() => resolveOutDir({ outDir: ROOT }), /refusing to write to protected path/);
+  assert.throws(() => resolveOutDir({ outDir: path.join(ROOT, 'src') }), /refusing to write to protected path/);
+  assert.throws(() => resolveOutDir({ outDir: path.join(ROOT, 'src/nested') }), /refusing to write to protected path/);
+  assert.throws(() => resolveOutDir({ outDir: path.join(ROOT, 'data') }), /refusing to write to protected path/);
+  assert.throws(() => resolveOutDir({ outDir: path.join(ROOT, '..foo') }), /refusing to write to protected path/);
+  assert.throws(() => resolveOutDir({ outDir: path.join(ROOT, 'dist..foo') }), /refusing to write to protected path/);
+  assert.throws(() => resolveOutDir({ outDir: path.dirname(ROOT) }), /refusing to write to protected path/);
 
-  assert.throws(() => packageAssets(null), /Invalid outDir/);
-  assert.throws(() => packageAssets({ outDir: '' }), /Invalid outDir/);
-  assert.throws(() => packageAssets({ outDir: '   ' }), /Invalid outDir/);
-  assert.throws(() => packageAssets({ outDir: null }), /Invalid outDir/);
-  assert.throws(() => packageAssets({ outDir: undefined }), /Invalid outDir/);
-  assert.throws(() => packageAssets({ outDir: ROOT }), /refusing to write to protected path/);
-  assert.throws(() => packageAssets({ outDir: path.join(ROOT, 'src') }), /refusing to write to protected path/);
-  assert.throws(() => packageAssets({ outDir: path.join(ROOT, 'data') }), /refusing to write to protected path/);
+  assert.throws(() => assertValidMtimeOption(null), /Invalid options/);
+  assert.throws(() => assertValidMtimeOption({ mtime: null }), /Invalid mtime/);
+  assert.throws(() => assertValidMtimeOption({ mtime: undefined }), /Invalid mtime/);
+  assert.throws(() => assertValidMtimeOption({ mtime: 'garbage' }), /Invalid mtime/);
+  assert.throws(() => assertValidMtimeOption({ mtime: new Date('invalid') }), /Invalid mtime/);
 
   const committedDistDir = path.join(ROOT, 'dist');
   const committedBefore = hashDirectoryTree(committedDistDir);
 
-  const tempDir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-build1-'));
-  const tempDir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-build2-'));
+  let tempDir1 = null;
+  let tempDir2 = null;
   const fixedMtime = new Date('2026-01-01T00:00:00Z');
 
   try {
+    tempDir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-build1-'));
+    tempDir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-build2-'));
+
+    // Fail-closed mtime validation on buildAll and packageAssets (using isolated tempDir1)
+    assert.throws(() => buildAll({ outDir: tempDir1, mtime: null }), /Invalid mtime/);
+    assert.throws(() => buildAll({ outDir: tempDir1, mtime: undefined }), /Invalid mtime/);
+    assert.throws(() => buildAll({ outDir: tempDir1, mtime: 'garbage' }), /Invalid mtime/);
+    assert.throws(() => buildAll({ outDir: tempDir1, mtime: new Date('invalid') }), /Invalid mtime/);
+    assert.throws(() => packageAssets({ outDir: tempDir1, mtime: null }), /Invalid mtime/);
+    assert.throws(() => packageAssets({ outDir: tempDir1, mtime: undefined }), /Invalid mtime/);
+    assert.throws(() => packageAssets({ outDir: tempDir1, mtime: 'garbage' }), /Invalid mtime/);
+    assert.throws(() => packageAssets({ outDir: tempDir1, mtime: new Date('invalid') }), /Invalid mtime/);
+
     const stats1 = buildAll({ outDir: tempDir1, mtime: fixedMtime });
     const committedAfter = hashDirectoryTree(committedDistDir);
 
@@ -367,35 +430,16 @@ test('tools/build.mjs & tools/package-assets.mjs: strict outDir validation, isol
     const sri = JSON.parse(fs.readFileSync(path.join(tempDir1, 'sri.json'), 'utf8'));
     assert.ok(sri.files['dist/picotol.min.css'].integrity.startsWith('sha384-'));
 
-    // 4. Verify PKZip offline bundle generated in isolated tempDir1 contains all 11 required assets within budget
+    // 4. Verify PKZip offline bundle generated in isolated tempDir1 AND compare its entry hashes against dist/assets/*.zip
     const zipPath = path.join(tempDir1, 'assets', `picotol-v${pkg.version}.zip`);
     assert.ok(fs.existsSync(zipPath), `Asset bundle ${zipPath} must exist in isolated outDir`);
     const zipBuf = fs.readFileSync(zipPath);
     assert.ok(zipBuf.length > 0, 'Asset zip bundle must not be empty');
     assert.ok(zipBuf.length <= 100 * 1024, `Asset bundle size ${zipBuf.length} B exceeds 100 KB budget`);
 
-    let eocdOffset = -1;
-    for (let i = zipBuf.length - 22; i >= Math.max(0, zipBuf.length - 65557); i--) {
-      if (zipBuf.readUInt32LE(i) === 0x06054b50) {
-        eocdOffset = i;
-        break;
-      }
-    }
-    assert.ok(eocdOffset !== -1, 'Valid PKZip End of Central Directory signature (0x06054b50) not found');
-    const totalEntries = zipBuf.readUInt16LE(eocdOffset + 10);
-    assert.equal(totalEntries, 11, 'Zip bundle must contain exactly 11 entries');
-
-    const cdOffset = zipBuf.readUInt32LE(eocdOffset + 16);
-    const foundFiles = [];
-    let pos = cdOffset;
-    for (let i = 0; i < totalEntries; i++) {
-      assert.equal(zipBuf.readUInt32LE(pos), 0x02014b50, `Invalid Central Directory signature at offset ${pos}`);
-      const nameLen = zipBuf.readUInt16LE(pos + 28);
-      const extraLen = zipBuf.readUInt16LE(pos + 30);
-      const commentLen = zipBuf.readUInt16LE(pos + 32);
-      foundFiles.push(zipBuf.toString('utf8', pos + 46, pos + 46 + nameLen));
-      pos += 46 + nameLen + extraLen + commentLen;
-    }
+    const freshZipEntries = parsePkZipEntries(zipBuf);
+    assert.equal(freshZipEntries.length, 11, 'Zip bundle must contain exactly 11 entries');
+    const foundFiles = freshZipEntries.map((e) => e.name);
 
     for (const expected of [
       'css/picotol.css',
@@ -413,13 +457,28 @@ test('tools/build.mjs & tools/package-assets.mjs: strict outDir validation, isol
       assert.ok(foundFiles.includes(expected), `Asset bundle missing expected entry: "${expected}"`);
     }
 
+    // Compare dist/assets/picotol-v*.zip against fresh build by entry name and content hash
+    const committedZipPath = path.join(committedDistDir, 'assets', `picotol-v${pkg.version}.zip`);
+    assert.ok(fs.existsSync(committedZipPath), `dist/assets/picotol-v${pkg.version}.zip must exist`);
+    const committedZipBuf = fs.readFileSync(committedZipPath);
+    assert.ok(
+      committedZipBuf.length <= 100 * 1024,
+      `dist/assets/picotol-v${pkg.version}.zip size ${committedZipBuf.length} B exceeds 100 KB budget`
+    );
+    const committedZipEntries = parsePkZipEntries(committedZipBuf);
+    assert.deepEqual(
+      committedZipEntries.map((e) => ({ name: e.name, sha256: e.sha256, uncompressedSize: e.uncompressedSize })),
+      freshZipEntries.map((e) => ({ name: e.name, sha256: e.sha256, uncompressedSize: e.uncompressedSize })),
+      'dist/assets/picotol-v*.zip entries and content hashes must match fresh buildAll() output'
+    );
+
     // 5. Full-tree idempotence test: second build with same mtime must produce an identical directory tree
     // (covering all 6 CSS bundles, sri.json, manifest.json, SHA256SUMS.txt, demo/*, and assets/*.zip)
     buildAll({ outDir: tempDir2, mtime: fixedMtime });
     const tree2 = hashDirectoryTree(tempDir2);
     assert.deepEqual(tree1, tree2, 'buildAll must be full-tree idempotent across all generated files and zip archive');
   } finally {
-    fs.rmSync(tempDir1, { recursive: true, force: true });
-    fs.rmSync(tempDir2, { recursive: true, force: true });
+    if (tempDir1) fs.rmSync(tempDir1, { recursive: true, force: true });
+    if (tempDir2) fs.rmSync(tempDir2, { recursive: true, force: true });
   }
 });

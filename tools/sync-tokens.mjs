@@ -2,32 +2,16 @@
 // from ../tol-palettes/data/schemes/*.json (when available locally) into
 // data/tol-qualitative.json and generates src/tokens.css + src/palettes.css.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertSafeCustomSyncTarget, isSameOrSubpath, resolveSyncOptions } from './path-jail.mjs';
+
+export { assertSafeCustomSyncTarget, isSameOrSubpath, resolveSyncOptions };
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const srcDir = join(root, 'src');
 const dataDir = join(root, 'data');
 const upstreamDir = join(root, '..', 'tol-palettes', 'data', 'schemes');
 const snapshotPath = join(dataDir, 'tol-qualitative.json');
-const tokensCssPath = join(srcDir, 'tokens.css');
-const palettesCssPath = join(srcDir, 'palettes.css');
-
-function isSameOrSubpath(targetPath, basePath) {
-  const rel = relative(basePath.toLowerCase(), targetPath.toLowerCase());
-  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
-}
-
-function assertSafeCustomSyncTarget(resolvedPath, label) {
-  if (
-    isSameOrSubpath(resolvedPath, srcDir) ||
-    isSameOrSubpath(resolvedPath, dataDir) ||
-    isSameOrSubpath(root, resolvedPath) ||
-    isSameOrSubpath(resolvedPath, root)
-  ) {
-    throw new Error(`Invalid ${label}: refusing to write custom sync target inside repository at ${resolvedPath}`);
-  }
-}
 
 const QUALITATIVE_IDS = [
   'bright',
@@ -176,9 +160,9 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     `    --pt-valid: light-dark(${colorByName('dark', 5)}, ${colorByName('light', 'mint')});`,
     `    --pt-warning: light-dark(${colorByName('dark', 9)}, ${colorByName('light', 'light_yellow')});`,
     `    --pt-invalid: light-dark(${colorByName('vibrant', 'red')}, ${colorByName('bright', 'red')});`,
-    '    --pt-red: #EE6677;',
-    '    --pt-yellow: #CCBB44;',
-    '    --pt-cyan: #66CCEE;',
+    `    --pt-red: ${colorByName('bright', 'red')};`,
+    `    --pt-yellow: ${colorByName('bright', 'yellow')};`,
+    `    --pt-cyan: ${colorByName('bright', 'cyan')};`,
     `    --pt-mark-bg: light-dark(${colorByName('pale', 3)}, ${colorByName('dark', 9)});`,
     '    --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);',
     '    --pt-z-dropdown: 100;',
@@ -277,46 +261,8 @@ export function buildPalettesCss(snapshot = loadSnapshot()) {
 }
 
 export function syncTokens(opts = {}) {
-  if (opts === null || typeof opts !== 'object') {
-    throw new Error('Invalid options: must be an object');
-  }
-  const hasOutSrcDir = 'outSrcDir' in opts;
-  const hasTokensPath = 'tokensCssPath' in opts;
-  const hasPalettesPath = 'palettesCssPath' in opts;
-
-  if (hasOutSrcDir && (typeof opts.outSrcDir !== 'string' || opts.outSrcDir.trim() === '')) {
-    throw new Error('Invalid outSrcDir: must be a non-empty string path');
-  }
-  if (hasTokensPath && (typeof opts.tokensCssPath !== 'string' || opts.tokensCssPath.trim() === '')) {
-    throw new Error('Invalid tokensCssPath: must be a non-empty string path');
-  }
-  if (hasPalettesPath && (typeof opts.palettesCssPath !== 'string' || opts.palettesCssPath.trim() === '')) {
-    throw new Error('Invalid palettesCssPath: must be a non-empty string path');
-  }
-  if (!hasOutSrcDir && hasTokensPath !== hasPalettesPath) {
-    throw new Error(
-      'Invalid token output path: must provide outSrcDir or both tokensCssPath and palettesCssPath to prevent partial writes to src/'
-    );
-  }
-
-  let targetTokensPath = tokensCssPath;
-  let targetPalettesPath = palettesCssPath;
-
-  if (hasOutSrcDir || hasTokensPath || hasPalettesPath) {
-    const baseOutDir = hasOutSrcDir ? resolve(opts.outSrcDir) : null;
-    if (baseOutDir !== null) {
-      assertSafeCustomSyncTarget(baseOutDir, 'outSrcDir');
-    }
-    targetTokensPath = hasTokensPath ? resolve(opts.tokensCssPath) : join(baseOutDir, 'tokens.css');
-    targetPalettesPath = hasPalettesPath ? resolve(opts.palettesCssPath) : join(baseOutDir, 'palettes.css');
-    assertSafeCustomSyncTarget(targetTokensPath, 'tokensCssPath');
-    assertSafeCustomSyncTarget(targetPalettesPath, 'palettesCssPath');
-    if (targetTokensPath.toLowerCase() === targetPalettesPath.toLowerCase()) {
-      throw new Error('Invalid token output path: tokensCssPath and palettesCssPath must be distinct');
-    }
-  }
-
-  const snapshot = opts.snapshot ?? loadSnapshot();
+  const { targetTokensPath, targetPalettesPath, hasSnapshot } = resolveSyncOptions(opts);
+  const snapshot = hasSnapshot ? opts.snapshot : loadSnapshot();
   const tokensCss = buildTokensCss(snapshot);
   const palettesCss = buildPalettesCss(snapshot);
   mkdirSync(dirname(targetTokensPath), { recursive: true });

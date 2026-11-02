@@ -8,6 +8,7 @@ import {
   expandHex,
   relativeLuminance,
   schemeColor,
+  achromaticColor,
   parseLightDark,
   parseVarCall,
   parseCssBlock,
@@ -95,10 +96,81 @@ test('parseTokens: isolates accents without root pollution on fixture CSS and re
 
   // Verify live dist/picotol.css integration via getPicotolTokens() using dynamic schemeColor lookups (zero literal hexes)
   const liveTokens = getPicotolTokens();
+
+  // Blue accent ladder (--pt-p1..--pt-p5)
+  assert.equal(liveTokens.getToken('--pt-p1', 'light', 'blue'), schemeColor('pale', 0));
+  assert.equal(liveTokens.getToken('--pt-p2', 'light', 'blue'), schemeColor('light', 'light_blue'));
   assert.equal(liveTokens.getToken('--pt-p3', 'light', 'blue'), schemeColor('bright', 'blue'));
+  assert.equal(liveTokens.getToken('--pt-p4', 'light', 'blue'), schemeColor('dark', 3));
+  assert.equal(liveTokens.getToken('--pt-p5', 'light', 'blue'), schemeColor('high-contrast', 'blue'));
+
+  // Cyan accent ladder (--pt-p1..--pt-p5)
+  assert.equal(liveTokens.getToken('--pt-p1', 'light', 'cyan'), schemeColor('pale', 1));
+  assert.equal(liveTokens.getToken('--pt-p2', 'light', 'cyan'), schemeColor('light', 'light_cyan'));
   assert.equal(liveTokens.getToken('--pt-p3', 'light', 'cyan'), schemeColor('vibrant', 'blue'));
+  assert.equal(liveTokens.getToken('--pt-p4', 'light', 'cyan'), schemeColor('dark', 6));
+  assert.equal(liveTokens.getToken('--pt-p5', 'light', 'cyan'), schemeColor('high-contrast', 'blue'));
+
+  // Purple accent ladder (--pt-p1..--pt-p5)
+  assert.equal(liveTokens.getToken('--pt-p1', 'light', 'purple'), schemeColor('prgn', 3));
+  assert.equal(liveTokens.getToken('--pt-p2', 'light', 'purple'), schemeColor('prgn', 2));
   assert.equal(liveTokens.getToken('--pt-p3', 'light', 'purple'), schemeColor('muted', 'purple'));
+  assert.equal(liveTokens.getToken('--pt-p4', 'light', 'purple'), schemeColor('prgn', 0));
+  assert.equal(liveTokens.getToken('--pt-p5', 'light', 'purple'), schemeColor('muted', 'indigo'));
+
+  // Magenta accent ladder (--pt-p1..--pt-p5)
+  assert.equal(liveTokens.getToken('--pt-p1', 'light', 'magenta'), schemeColor('pale', 5));
+  assert.equal(liveTokens.getToken('--pt-p2', 'light', 'magenta'), schemeColor('light', 'pink'));
   assert.equal(liveTokens.getToken('--pt-p3', 'light', 'magenta'), schemeColor('dark', 8));
+  assert.equal(liveTokens.getToken('--pt-p4', 'light', 'magenta'), schemeColor('dark', 4));
+  assert.equal(liveTokens.getToken('--pt-p5', 'light', 'magenta'), schemeColor('muted', 'wine'));
+
+  // Canonical severity & semantic status tokens (light + dark)
+  assert.equal(liveTokens.getToken('--pt-red', 'light'), schemeColor('bright', 'red'));
+  assert.equal(liveTokens.getToken('--pt-yellow', 'light'), schemeColor('bright', 'yellow'));
+  assert.equal(liveTokens.getToken('--pt-cyan', 'light'), schemeColor('bright', 'cyan'));
+
+  assert.equal(liveTokens.getToken('--pt-valid', 'light'), schemeColor('dark', 5));
+  assert.equal(liveTokens.getToken('--pt-valid', 'dark'), schemeColor('light', 'mint'));
+  assert.equal(liveTokens.getToken('--pt-warning', 'light'), schemeColor('dark', 9));
+  assert.equal(liveTokens.getToken('--pt-warning', 'dark'), schemeColor('light', 'light_yellow'));
+  assert.equal(liveTokens.getToken('--pt-invalid', 'light'), schemeColor('vibrant', 'red'));
+  assert.equal(liveTokens.getToken('--pt-invalid', 'dark'), schemeColor('bright', 'red'));
+  assert.equal(liveTokens.getToken('--pt-mark-bg', 'light'), schemeColor('pale', 3));
+  assert.equal(liveTokens.getToken('--pt-mark-bg', 'dark'), schemeColor('dark', 9));
+
+  assert.equal(liveTokens.getToken('--pt-status-ok-fg', 'light'), schemeColor('bright', 'green'));
+  assert.equal(liveTokens.getToken('--pt-status-ok-fg', 'dark'), schemeColor('muted', 'teal'));
+  assert.equal(liveTokens.getToken('--pt-status-ok-border', 'light'), schemeColor('bright', 'green'));
+  assert.equal(liveTokens.getToken('--pt-status-ok-border', 'dark'), schemeColor('muted', 'teal'));
+
+  assert.equal(liveTokens.getToken('--pt-status-warning-fg', 'light'), schemeColor('ylorbr', 1));
+  assert.equal(liveTokens.getToken('--pt-status-warning-fg', 'dark'), schemeColor('high-contrast', 'yellow'));
+  assert.equal(liveTokens.getToken('--pt-status-warning-border', 'light'), schemeColor('high-contrast', 'yellow'));
+  assert.equal(liveTokens.getToken('--pt-status-warning-border', 'dark'), schemeColor('light', 'orange'));
+
+  assert.equal(liveTokens.getToken('--pt-status-critical-fg', 'light'), schemeColor('vibrant', 'red'));
+  assert.equal(liveTokens.getToken('--pt-status-critical-fg', 'dark'), schemeColor('bright', 'red'));
+  assert.equal(liveTokens.getToken('--pt-status-critical-border', 'light'), schemeColor('vibrant', 'red'));
+  assert.equal(liveTokens.getToken('--pt-status-critical-border', 'dark'), schemeColor('bright', 'red'));
+
+  assert.equal(liveTokens.getToken('--pt-status-info-fg', 'light'), schemeColor('bright', 'blue'));
+  assert.equal(liveTokens.getToken('--pt-status-info-fg', 'dark'), schemeColor('bright', 'cyan'));
+  assert.equal(liveTokens.getToken('--pt-status-info-border', 'light'), schemeColor('bright', 'blue'));
+  assert.equal(liveTokens.getToken('--pt-status-info-border', 'dark'), schemeColor('bright', 'cyan'));
+
+  // Each callout variant (default, ok, critical, warning, info) must define its own --pt-callout-border
+  for (const variant of ['default', 'ok', 'critical', 'warning', 'info']) {
+    assert.ok(
+      Object.hasOwn(liveTokens.calloutDecls[variant], '--pt-callout-border'),
+      `Callout variant "${variant}" must explicitly define --pt-callout-border`
+    );
+  }
+  assert.equal(liveTokens.getCalloutToken('--pt-callout-border', 'light', 'default'), achromaticColor('grey-500'));
+  assert.equal(liveTokens.getCalloutToken('--pt-callout-border', 'light', 'ok'), schemeColor('bright', 'green'));
+  assert.equal(liveTokens.getCalloutToken('--pt-callout-border', 'light', 'critical'), schemeColor('vibrant', 'red'));
+  assert.equal(liveTokens.getCalloutToken('--pt-callout-border', 'light', 'warning'), schemeColor('high-contrast', 'yellow'));
+  assert.equal(liveTokens.getCalloutToken('--pt-callout-border', 'light', 'info'), schemeColor('bright', 'blue'));
 });
 
 test('parseTokens: getToken and getSecondaryToken throw readable errors on missing tokens without root fallback', () => {
@@ -285,6 +357,15 @@ test('parseTokens: throws if required layers (tokens, reset, base) are missing',
   assert.throws(
     () => parseTokens('@layer tokens { :root { --pt-color: #000; } } @layer reset { * { box-sizing: border-box; } }'),
     /Missing @layer base in CSS content/
+  );
+
+  // Duplicate @layer block must throw instead of silently ignoring the second block
+  assert.throws(
+    () =>
+      parseTokens(
+        '@layer tokens { :root { --pt-a: #4477AA; } } @layer tokens { :root { --pt-b: #0077BB; } } @layer reset { * { box-sizing: border-box; } } @layer base { body { margin: 0; } }'
+      ),
+    /Multiple @layer tokens blocks found in CSS content/
   );
 });
 
