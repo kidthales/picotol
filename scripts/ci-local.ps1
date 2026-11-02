@@ -120,7 +120,7 @@ try {
             $line = $lines[$i]
             $lineNum = $i + 1
 
-            if ($line -match '^\s*uses\s*:\s*(?<action>[^\s#]+)') {
+            if ($line -match '^\s*(?:-\s*)?uses\s*:\s*(?<action>[^\s#]+)') {
                 $actionRef = $Matches['action'].Trim()
                 if ($actionRef -notmatch '^\./') {
                     if ($actionRef -match '@(?<ref>.*)$') {
@@ -134,27 +134,13 @@ try {
                 }
             }
 
-            if ($wf.Name -eq 'release.yml') {
-                if ($line -match '^\s*uses\s*:\s*\./\.github/workflows/ci\.yml\s*$') {
-                    $ReleaseUsesCiWorkflow = $true
-                }
-                if ($line -match '^\s*tag-guard:\s*$' -or $line -match 'TAG=.*RELEASE_TAG') {
-                    $ReleaseHasTagGuard = $true
-                }
+            if ($line -match '^(?:permissions|\x22permissions\x22|\x27permissions\x27):\s*$') {
+                $inRootPermissions = $true
+            } elseif ($line -match '^[a-zA-Z0-9_\x27\x22-]+:\s*') {
+                $inRootPermissions = $false
             }
-
-            if ($wf.Name -eq 'pages.yml') {
-                if ($line -match '^\s*uses\s*:\s*\./\.github/workflows/ci\.yml\s*$') {
-                    $PagesUsesCiWorkflow = $true
-                }
-                if ($line -match '^permissions:\s*$') {
-                    $inRootPermissions = $true
-                } elseif ($line -match '^(?:jobs|on|concurrency|name):') {
-                    $inRootPermissions = $false
-                }
-                if ($inRootPermissions -and $line -match '^\s*(?:pages|id-token)\s*:\s*write') {
-                    $DriftErrors.Add("pages.yml:$lineNum grants root-level write permission '$($line.Trim())'. Write permissions must be scoped to the deploy job.")
-                }
+            if ($inRootPermissions -and $line -match '^\s*[a-zA-Z0-9_-]+\s*:\s*write') {
+                $DriftErrors.Add("$($wf.Name):$lineNum grants root-level write permission '$($line.Trim())'. All workflows must default to least-privilege read permissions at root.")
             }
 
             if ($inRunBlock) {
@@ -216,14 +202,69 @@ try {
     if (-not $CiInvokesScript) {
         $DriftErrors.Add("ci.yml must invoke 'pwsh ./scripts/ci-local.ps1 -CI' in a 'run:' step.")
     }
-    if (-not $ReleaseUsesCiWorkflow) {
-        $DriftErrors.Add("release.yml must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
+
+    # Structural verification for workflow contracts and least-privilege security
+    $ReleaseWf = Join-Path $WorkflowDir "release.yml"
+    if (Test-Path $ReleaseWf) {
+        $releaseContent = Get-Content -Path $ReleaseWf -Raw
+        if ($releaseContent -notmatch '(?m)^\s*uses\s*:\s*\./\.github/workflows/ci\.yml\s*$') {
+            $DriftErrors.Add("release.yml must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
+        }
+        if ($releaseContent -notmatch '(?m)^\s*tag-guard:\s*$') {
+            $DriftErrors.Add("release.yml must define a 'tag-guard' job.")
+        } else {
+            if ($releaseContent -notmatch '(?m)^\s{2}tag-guard:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}permissions:\s*[\r\n]+\s{6}contents:\s*read') {
+                $DriftErrors.Add("release.yml tag-guard job must explicitly define 'permissions: contents: read'.")
+            }
+            if ($releaseContent -notmatch 'EXPECTED_TAG="v\$\{PKG_VER\}"') {
+                $DriftErrors.Add("release.yml tag-guard must construct expected tag as EXPECTED_TAG=""v`${PKG_VER}"".")
+            }
+            if ($releaseContent -notmatch 'TAG="\$\{RELEASE_TAG:-\$REF_NAME\}"') {
+                $DriftErrors.Add("release.yml tag-guard must fallback from RELEASE_TAG to REF_NAME.")
+            }
+            if ($releaseContent -notmatch '(?s)if\s*\[\s*-z\s*"\$TAG"\s*\];.*?exit\s+1') {
+                $DriftErrors.Add("release.yml tag-guard must fail closed (exit 1) on missing tag.")
+            }
+            if ($releaseContent -notmatch '(?s)if\s*\[\s*"\$TAG"\s*!=\s*"\$EXPECTED_TAG"\s*\];.*?exit\s+1') {
+                $DriftErrors.Add("release.yml tag-guard must fail closed (exit 1) on tag mismatch.")
+            }
+        }
+        if ($releaseContent -notmatch '(?m)^\s{2}verify:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}needs:\s*\[tag-guard\]') {
+            $DriftErrors.Add("release.yml verify job must depend on tag-guard (needs: [tag-guard]).")
+        }
+        foreach ($pubJob in @('publish-npm', 'publish-gpr', 'attach-assets')) {
+            if ($releaseContent -notmatch "(?m)^\s{2}${pubJob}:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}needs:\s*\[verify\]") {
+                $DriftErrors.Add("release.yml $pubJob job must depend on verify (needs: [verify]).")
+            }
+        }
     }
-    if (-not $ReleaseHasTagGuard) {
-        $DriftErrors.Add("release.yml must verify that the release tag matches package.json version via a 'tag-guard' job.")
+
+    $PagesWf = Join-Path $WorkflowDir "pages.yml"
+    if (Test-Path $PagesWf) {
+        $pagesContent = Get-Content -Path $PagesWf -Raw
+        if ($pagesContent -notmatch '(?m)^\s*uses\s*:\s*\./\.github/workflows/ci\.yml\s*$') {
+            $DriftErrors.Add("pages.yml must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
+        }
+        if ($pagesContent -notmatch '(?m)^\s{2}build:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}needs:\s*\[verify\]') {
+            $DriftErrors.Add("pages.yml build job must depend on verify (needs: [verify]).")
+        }
+        if ($pagesContent -notmatch '(?m)^\s{2}deploy:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}needs:\s*\[build\]') {
+            $DriftErrors.Add("pages.yml deploy job must depend on build (needs: [build]).")
+        }
+        if ($pagesContent -notmatch '(?m)^\s{2}deploy:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}permissions:\s*[\r\n]+\s{6}pages:\s*write[\r\n]+\s{6}id-token:\s*write') {
+            $DriftErrors.Add("pages.yml deploy job must explicitly scope permissions (pages: write, id-token: write).")
+        }
     }
-    if (-not $PagesUsesCiWorkflow) {
-        $DriftErrors.Add("pages.yml must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
+
+    $CiWf = Join-Path $WorkflowDir "ci.yml"
+    if (Test-Path $CiWf) {
+        $ciContent = Get-Content -Path $CiWf -Raw
+        if ($ciContent -notmatch '(?m)^\s*workflow_call:\s*$') {
+            $DriftErrors.Add("ci.yml must support reusable workflow calls via 'workflow_call:'.")
+        }
+        if ($ciContent -notmatch 'github\.workflow') {
+            $DriftErrors.Add("ci.yml concurrency group must reference 'github.workflow' to isolate callers.")
+        }
     }
 
     if ($DriftErrors.Count -gt 0) {

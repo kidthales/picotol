@@ -202,6 +202,65 @@ test(".github/workflows/release.yml defines dual publishing to npm and GitHub Pa
   assert.ok(content.includes("id-token: write"), "Must grant id-token: write permission for npm provenance");
 });
 
+function findScriptInjections(content, fileName = "workflow.yml") {
+  const lines = content.split("\n");
+  const violations = [];
+  let inRunBlock = false;
+  let runBaseIndent = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNum = i + 1;
+
+    if (inRunBlock) {
+      if (/^\s*$/.test(line)) continue;
+      const indentMatch = line.match(/^(\s*)/);
+      const currentIndent = indentMatch ? indentMatch[1].length : 0;
+      if (currentIndent <= runBaseIndent) {
+        inRunBlock = false;
+      } else {
+        if (!/^\s*#/.test(line)) {
+          if (/\$\{\{/.test(line)) {
+            violations.push(`${fileName}:${lineNum} contains unescaped \${{ ... }} inside 'run:' block`);
+          }
+        }
+        continue;
+      }
+    }
+
+    const runMatch = line.match(/^(\s*)(?:-\s*)?run\s*:\s*(.*)$/);
+    if (runMatch) {
+      runBaseIndent = runMatch[1].length;
+      const val = runMatch[2].trim();
+      if (/^[|>][-+]?\s*(#.*)?$/.test(val)) {
+        inRunBlock = true;
+      } else if (val !== "" && !val.startsWith("#")) {
+        if (/\$\{\{/.test(val)) {
+          violations.push(`${fileName}:${lineNum} contains unescaped \${{ ... }} inside 'run:' step`);
+        }
+      }
+    }
+  }
+
+  return violations;
+}
+
+function parseWorkflowJobs(yamlContent) {
+  const parts = yamlContent.split(/^jobs:\s*$/m);
+  if (parts.length < 2) return { root: parts[0], jobs: {} };
+  const root = parts[0];
+  const jobsSection = parts[1];
+  const jobMatches = [...jobsSection.matchAll(/^ {2}([a-zA-Z0-9_-]+):\s*$/gm)];
+  const jobs = {};
+  for (let i = 0; i < jobMatches.length; i++) {
+    const jobName = jobMatches[i][1];
+    const startIndex = jobMatches[i].index;
+    const endIndex = i + 1 < jobMatches.length ? jobMatches[i + 1].index : jobsSection.length;
+    jobs[jobName] = jobsSection.slice(startIndex, endIndex);
+  }
+  return { root, jobs };
+}
+
 test("GitHub Actions workflows enforce tag guard, script-injection hygiene, and scoped permissions", () => {
   const workflowDir = path.join(ROOT, ".github", "workflows");
   const files = fs.readdirSync(workflowDir).filter((f) => f.endsWith(".yml") || f.endsWith(".yaml"));
@@ -213,73 +272,145 @@ test("GitHub Actions workflows enforce tag guard, script-injection hygiene, and 
   for (const file of files) {
     const filePath = path.join(workflowDir, file);
     const content = fs.readFileSync(filePath, "utf8");
-    const lines = content.split("\n");
-
-    let inRunBlock = false;
-    let runBaseIndent = 0;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const lineNum = i + 1;
-
-      if (inRunBlock) {
-        if (/^\s*$/.test(line)) continue;
-        const indentMatch = line.match(/^(\s*)/);
-        const currentIndent = indentMatch ? indentMatch[1].length : 0;
-        if (currentIndent <= runBaseIndent) {
-          inRunBlock = false;
-        } else {
-          if (!/^\s*#/.test(line)) {
-            assert.doesNotMatch(
-              line,
-              /\$\{\{/,
-              `${file}:${lineNum} contains unescaped \${{ ... }} inside 'run:' block (script injection vulnerability)`
-            );
-          }
-          continue;
-        }
-      }
-
-      const runMatch = line.match(/^(\s*)(?:-\s*)?run\s*:\s*(.*)$/);
-      if (runMatch) {
-        runBaseIndent = runMatch[1].length;
-        const val = runMatch[2].trim();
-        if (/^[|>][-+]?\s*(#.*)?$/.test(val)) {
-          inRunBlock = true;
-        } else if (val !== "" && !val.startsWith("#")) {
-          assert.doesNotMatch(
-            val,
-            /\$\{\{/,
-            `${file}:${lineNum} contains unescaped \${{ ... }} inside 'run:' step (script injection vulnerability)`
-          );
-        }
-      }
-    }
+    const violations = findScriptInjections(content, file);
+    assert.deepStrictEqual(violations, [], `All 'run:' blocks in ${file} must be free from unescaped \${{ ... }} expressions`);
   }
 
   // release.yml invariants
   const releaseYml = fs.readFileSync(path.join(workflowDir, "release.yml"), "utf8");
-  assert.ok(releaseYml.includes("tag-guard:"), "release.yml must define a tag-guard job");
-  assert.ok(
-    /EXPECTED_TAG=["']v\$\{?PKG_VER\}?["']/.test(releaseYml) || releaseYml.includes('v${PKG_VER}'),
-    "release.yml must verify release tag matches 'v' + package.json version"
+  const releaseParsed = parseWorkflowJobs(releaseYml);
+  assert.doesNotMatch(releaseParsed.root, /:\s*write/, "release.yml must not declare write permissions at root level");
+  assert.ok(releaseParsed.jobs["tag-guard"], "release.yml must define a tag-guard job");
+  assert.ok(releaseParsed.jobs.verify, "release.yml must define a verify job");
+  assert.ok(releaseParsed.jobs["publish-npm"], "release.yml must define a publish-npm job");
+  assert.ok(releaseParsed.jobs["publish-gpr"], "release.yml must define a publish-gpr job");
+  assert.ok(releaseParsed.jobs["attach-assets"], "release.yml must define an attach-assets job");
+
+  // Finding 2: explicit permissions on tag-guard
+  assert.match(
+    releaseParsed.jobs["tag-guard"],
+    /permissions:\s*[\r\n]+\s+contents:\s*read/,
+    "release.yml tag-guard job must explicitly define permissions: contents: read"
+  );
+
+  // Finding 4: strict tag-guard verification logic
+  assert.match(
+    releaseParsed.jobs["tag-guard"],
+    /TAG="\$\{RELEASE_TAG:-\$REF_NAME\}"/,
+    "tag-guard must fall back from RELEASE_TAG to REF_NAME"
+  );
+  assert.match(
+    releaseParsed.jobs["tag-guard"],
+    /EXPECTED_TAG="v\$\{PKG_VER\}"/,
+    "tag-guard must construct expected tag as v + PKG_VER"
+  );
+  assert.match(
+    releaseParsed.jobs["tag-guard"],
+    /if\s*\[\s*-z\s*"\$TAG"\s*\];\s*then[\s\S]*?exit\s+1[\s\S]*?fi/,
+    "tag-guard must fail closed (exit 1) on missing tag"
+  );
+  assert.match(
+    releaseParsed.jobs["tag-guard"],
+    /if\s*\[\s*"\$TAG"\s*!=\s*"\$EXPECTED_TAG"\s*\];\s*then[\s\S]*?exit\s+1[\s\S]*?fi/,
+    "tag-guard must fail closed (exit 1) on tag mismatch"
+  );
+
+  // Finding 3: dependency chain
+  assert.match(
+    releaseParsed.jobs.verify,
+    /needs:\s*\[tag-guard\]/,
+    "release.yml verify job must depend on tag-guard"
+  );
+  assert.match(
+    releaseParsed.jobs["publish-npm"],
+    /needs:\s*\[verify\]/,
+    "release.yml publish-npm job must depend on verify"
+  );
+  assert.match(
+    releaseParsed.jobs["publish-gpr"],
+    /needs:\s*\[verify\]/,
+    "release.yml publish-gpr job must depend on verify"
+  );
+  assert.match(
+    releaseParsed.jobs["attach-assets"],
+    /needs:\s*\[verify\]/,
+    "release.yml attach-assets job must depend on verify"
   );
   assert.ok(releaseYml.includes("uses: ./.github/workflows/ci.yml"), "release.yml must delegate to ci.yml");
 
   // pages.yml invariants
   const pagesYml = fs.readFileSync(path.join(workflowDir, "pages.yml"), "utf8");
-  assert.ok(pagesYml.includes("uses: ./.github/workflows/ci.yml"), "pages.yml must delegate to ci.yml before deploy");
-  assert.ok(pagesYml.includes("needs: [verify]"), "pages.yml build job must depend on verify");
+  const pagesParsed = parseWorkflowJobs(pagesYml);
   assert.doesNotMatch(
-    pagesYml.split("jobs:")[0],
-    /^\s*(pages|id-token)\s*:\s*write/m,
-    "pages.yml must not declare pages:write or id-token:write at root workflow level"
+    pagesParsed.root,
+    /:\s*write/,
+    "pages.yml must not declare write permissions at root level"
   );
+  assert.ok(pagesParsed.jobs.verify, "pages.yml must define a verify job");
+  assert.ok(pagesParsed.jobs.build, "pages.yml must define a build job");
+  assert.ok(pagesParsed.jobs.deploy, "pages.yml must define a deploy job");
+
+  // Finding 1: Anchored deploy scoping and isolation of write permissions
   assert.match(
-    pagesYml,
-    /deploy:[\s\S]*?permissions:[\s\S]*?pages:\s*write[\s\S]*?id-token:\s*write/,
-    "pages.yml deploy job must scope pages:write and id-token:write permissions"
+    pagesParsed.jobs.deploy,
+    /permissions:\s*[\r\n]+\s+pages:\s*write[\r\n]+\s+id-token:\s*write/,
+    "pages.yml deploy job must explicitly scope pages: write and id-token: write"
   );
+  for (const [jobName, jobText] of Object.entries(pagesParsed.jobs)) {
+    if (jobName !== "deploy") {
+      assert.doesNotMatch(
+        jobText,
+        /(?:pages|id-token)\s*:\s*write/,
+        `pages.yml job '${jobName}' must not have pages:write or id-token:write permissions`
+      );
+    }
+  }
+
+  assert.match(pagesParsed.jobs.build, /needs:\s*\[verify\]/, "pages.yml build job must depend on verify");
+  assert.match(pagesParsed.jobs.deploy, /needs:\s*\[build\]/, "pages.yml deploy job must depend on build");
+  assert.ok(pagesYml.includes("uses: ./.github/workflows/ci.yml"), "pages.yml must delegate to ci.yml before deploy");
+
+  // ci.yml invariants (Finding 5)
+  const ciYml = fs.readFileSync(path.join(workflowDir, "ci.yml"), "utf8");
+  const ciParsed = parseWorkflowJobs(ciYml);
+  assert.doesNotMatch(ciParsed.root, /:\s*write/, "ci.yml must not declare write permissions at root level");
+  assert.match(ciYml, /workflow_call:/, "ci.yml must declare on: workflow_call for reusable workflow execution");
+  assert.match(
+    ciYml,
+    /concurrency:\s*[\r\n]+\s+group:\s*\$\{\{\s*github\.workflow\s*\}\}-\$\{\{\s*github\.ref\s*\}\}/,
+    "ci.yml concurrency group must reference github.workflow to avoid colliding with caller workflow runs"
+  );
+});
+
+test("GitHub Actions script-injection detection helper correctly flags unescaped expressions in run steps", () => {
+  const badInline = `
+jobs:
+  test:
+    steps:
+      - run: echo "\${{ github.event.issue.title }}"
+`;
+  assert.ok(findScriptInjections(badInline).length > 0, "Must flag inline ${{ ... }} in run:");
+
+  const badBlock = `
+jobs:
+  test:
+    steps:
+      - run: |
+          echo "Title: \${{ github.event.issue.title }}"
+`;
+  assert.ok(findScriptInjections(badBlock).length > 0, "Must flag block scalar ${{ ... }} in run:");
+
+  const goodSafe = `
+jobs:
+  test:
+    steps:
+      - env:
+          TITLE: \${{ github.event.issue.title }}
+        run: |
+          echo "Title: $TITLE"
+      # run: \${{ should be ignored in comment }}
+`;
+  assert.deepStrictEqual(findScriptInjections(goodSafe), [], "Safe env-routed ${{ ... }} and comments must pass without error");
 });
 
 test("dist/SHA256SUMS.txt accurately covers all 6 CSS distribution bundles", () => {
