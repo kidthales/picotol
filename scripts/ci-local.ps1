@@ -73,6 +73,7 @@ if ($IsCI -and ($Quick -or $SkipGenerate)) {
 
 $MaxGate = 4
 $Gate0Status = "fail"
+$Gate1ActionPinsStatus = "fail"
 $Gate1Status = "fail"
 $Gate2Status = "fail"
 $Gate3Status = "fail"
@@ -118,6 +119,20 @@ try {
         for ($i = 0; $i -lt $lines.Count; $i++) {
             $line = $lines[$i]
             $lineNum = $i + 1
+
+            if ($line -match '^\s*uses\s*:\s*(?<action>[^\s#]+)') {
+                $actionRef = $Matches['action'].Trim()
+                if ($actionRef -notmatch '^\./') {
+                    if ($actionRef -match '@(?<ref>.*)$') {
+                        $ref = $Matches['ref']
+                        if ($ref -notmatch '^[a-fA-F0-9]{40}$') {
+                            $DriftErrors.Add("$($wf.Name):$lineNum third-party action '$actionRef' is not pinned to a 40-character commit SHA.")
+                        }
+                    } else {
+                        $DriftErrors.Add("$($wf.Name):$lineNum third-party action '$actionRef' is missing a commit SHA pin.")
+                    }
+                }
+            }
 
             if ($wf.Name -eq 'release.yml') {
                 if ($line -match '^\s*uses\s*:\s*\./\.github/workflows/ci\.yml\s*$') {
@@ -219,6 +234,7 @@ try {
     }
 
     $Gate0Status = "pass"
+    $Gate1ActionPinsStatus = "pass"
     Exit-GatePass "All workflows delegate verification to scripts/ci-local.ps1 with zero drift." $StepTimer
 
     # -------------------------------------------------------------
@@ -397,7 +413,7 @@ try {
             Write-Host "`n[Receipt] Recording local CI receipt via seldon ci receipt..." -ForegroundColor Yellow
             $GateResults = @(
                 "gate0_workflow_contract=$Gate0Status",
-                "gate1_action_pins=not-applicable",
+                "gate1_action_pins=$Gate1ActionPinsStatus",
                 "gate1_agent_leaks=$Gate1Status",
                 "gate2_go_vet=not-applicable",
                 "gate2_pwsh_ast=$Gate2Status",
