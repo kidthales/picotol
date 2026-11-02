@@ -106,9 +106,6 @@ try {
 
     $ForbiddenRunPattern = '\b(npm\s+(test|t|tst|run\s+test|run\s+lint|run\s+check:budgets|pack)|node\s+--test)\b'
     $CiInvokesScript = $false
-    $ReleaseUsesCiWorkflow = $false
-    $ReleaseHasTagGuard = $false
-    $PagesUsesCiWorkflow = $false
 
     foreach ($wf in $WorkflowFiles) {
         $lines = Get-Content -Path $wf.FullName
@@ -120,29 +117,6 @@ try {
             $line = $lines[$i]
             $lineNum = $i + 1
 
-            if ($line -match '^\s*(?:-\s*)?uses\s*:\s*(?<action>[^\s#]+)') {
-                $actionRef = $Matches['action'].Trim()
-                if ($actionRef -notmatch '^\./') {
-                    if ($actionRef -match '@(?<ref>.*)$') {
-                        $ref = $Matches['ref']
-                        if ($ref -notmatch '^[a-fA-F0-9]{40}$') {
-                            $DriftErrors.Add("$($wf.Name):$lineNum third-party action '$actionRef' is not pinned to a 40-character commit SHA.")
-                        }
-                    } else {
-                        $DriftErrors.Add("$($wf.Name):$lineNum third-party action '$actionRef' is missing a commit SHA pin.")
-                    }
-                }
-            }
-
-            if ($line -match '^(?:permissions|\x22permissions\x22|\x27permissions\x27):\s*$') {
-                $inRootPermissions = $true
-            } elseif ($line -match '^[a-zA-Z0-9_\x27\x22-]+:\s*') {
-                $inRootPermissions = $false
-            }
-            if ($inRootPermissions -and $line -match '^\s*[a-zA-Z0-9_-]+\s*:\s*write') {
-                $DriftErrors.Add("$($wf.Name):$lineNum grants root-level write permission '$($line.Trim())'. All workflows must default to least-privilege read permissions at root.")
-            }
-
             if ($inRunBlock) {
                 if ($line -match '^\s*$') {
                     continue
@@ -152,10 +126,10 @@ try {
                 if ($currentIndent -le $runBaseIndent) {
                     $inRunBlock = $false
                 } else {
+                    if ($line -match '\$\{\{') {
+                        $DriftErrors.Add("$($wf.Name):$lineNum contains unescaped `${{ ... }} expression inside 'run:' script block (potential script injection). Pass values via 'env:' instead.")
+                    }
                     if ($line -notmatch '^\s*#') {
-                        if ($line -match '\$\{\{') {
-                            $DriftErrors.Add("$($wf.Name):$lineNum contains unescaped `${{ ... }} expression inside 'run:' script block (potential script injection). Pass values via 'env:' instead.")
-                        }
                         if ($line -match $ForbiddenRunPattern) {
                             $DriftErrors.Add("$($wf.Name):$lineNum invokes forbidden verification command in 'run:': '$($line.Trim())'")
                         }
@@ -171,6 +145,37 @@ try {
                     }
                     continue
                 }
+            }
+
+            if ($line -match '^\s*(?:-\s*)?uses\s*:\s*(?<action>[^\s#]+)') {
+                $actionRef = $Matches['action'].Trim()
+                if ($actionRef -notmatch '^\./') {
+                    if ($actionRef -match '@(?<ref>.*)$') {
+                        $ref = $Matches['ref']
+                        if ($ref -notmatch '^[a-fA-F0-9]{40}$') {
+                            $DriftErrors.Add("$($wf.Name):$lineNum third-party action '$actionRef' is not pinned to a 40-character commit SHA.")
+                        }
+                    } else {
+                        $DriftErrors.Add("$($wf.Name):$lineNum third-party action '$actionRef' is missing a commit SHA pin.")
+                    }
+                }
+            }
+
+            if ($line -match '^(?:permissions|\x22permissions\x22|\x27permissions\x27):\s*(?<permVal>.*)$') {
+                $permVal = ($Matches['permVal'] -replace '#.*$', '').Trim()
+                if ($permVal -eq '') {
+                    $inRootPermissions = $true
+                } else {
+                    $inRootPermissions = $false
+                    if ($permVal -match '\bwrite-all\b|:\s*write\b') {
+                        $DriftErrors.Add("$($wf.Name):$lineNum grants root-level write permission '$($line.Trim())'. All workflows must default to least-privilege read permissions at root.")
+                    }
+                }
+            } elseif ($line -match '^[a-zA-Z0-9_\x27\x22-]+:\s*') {
+                $inRootPermissions = $false
+            }
+            if ($inRootPermissions -and $line -match '^\s*[a-zA-Z0-9_-]+\s*:\s*write\b') {
+                $DriftErrors.Add("$($wf.Name):$lineNum grants root-level write permission '$($line.Trim())'. All workflows must default to least-privilege read permissions at root.")
             }
 
             if ($line -match '^(?<indent>\s*)(?:-\s*)?run\s*:\s*(?<val>.*)$') {
@@ -203,67 +208,99 @@ try {
         $DriftErrors.Add("ci.yml must invoke 'pwsh ./scripts/ci-local.ps1 -CI' in a 'run:' step.")
     }
 
+    function Get-WorkflowJobs([string]$YamlContent) {
+        $norm = $YamlContent -replace "\r\n", "`n"
+        $parts = $norm -split '(?m)^jobs:\s*$'
+        $jobMap = @{}
+        if ($parts.Count -lt 2) {
+            return $jobMap
+        }
+        $jobsSection = $parts[1]
+        $jobMatches = [regex]::Matches($jobsSection, '(?m)^ {2}(?<name>[a-zA-Z0-9_-]+):\s*$')
+        for ($i = 0; $i -lt $jobMatches.Count; $i++) {
+            $name = $jobMatches[$i].Groups['name'].Value
+            $start = $jobMatches[$i].Index
+            $end = if ($i + 1 -lt $jobMatches.Count) { $jobMatches[$i + 1].Index } else { $jobsSection.Length }
+            $jobMap[$name] = $jobsSection.Substring($start, $end - $start)
+        }
+        return $jobMap
+    }
+
     # Structural verification for workflow contracts and least-privilege security
     $ReleaseWf = Join-Path $WorkflowDir "release.yml"
     if (Test-Path $ReleaseWf) {
-        $releaseContent = Get-Content -Path $ReleaseWf -Raw
-        if ($releaseContent -notmatch '(?m)^\s*uses\s*:\s*\./\.github/workflows/ci\.yml\s*$') {
-            $DriftErrors.Add("release.yml must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
+        $releaseContent = (Get-Content -Path $ReleaseWf -Raw) -replace "\r\n", "`n"
+        $releaseJobs = Get-WorkflowJobs $releaseContent
+        if (-not $releaseJobs.ContainsKey('verify') -or $releaseJobs['verify'] -notmatch '(?m)^ {4}uses:\s*\./\.github/workflows/ci\.yml\s*$') {
+            $DriftErrors.Add("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
         }
-        if ($releaseContent -notmatch '(?m)^\s*tag-guard:\s*$') {
+        if (-not $releaseJobs.ContainsKey('tag-guard')) {
             $DriftErrors.Add("release.yml must define a 'tag-guard' job.")
         } else {
-            if ($releaseContent -notmatch '(?m)^\s{2}tag-guard:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}permissions:\s*[\r\n]+\s{6}contents:\s*read') {
-                $DriftErrors.Add("release.yml tag-guard job must explicitly define 'permissions: contents: read'.")
+            $tgSlice = $releaseJobs['tag-guard']
+            if ($tgSlice -notmatch '(?m)^ {4}permissions:\s*\n {6}contents:\s*read\s*$' -or $tgSlice -match '\b[a-z-]+\s*:\s*write\b|\bwrite-all\b') {
+                $DriftErrors.Add("release.yml tag-guard job must explicitly define 'permissions: contents: read' and no write permissions.")
             }
-            if ($releaseContent -notmatch 'EXPECTED_TAG="v\$\{PKG_VER\}"') {
+            if ($tgSlice -notmatch 'EXPECTED_TAG="v\$\{PKG_VER\}"') {
                 $DriftErrors.Add("release.yml tag-guard must construct expected tag as EXPECTED_TAG=""v`${PKG_VER}"".")
             }
-            if ($releaseContent -notmatch 'TAG="\$\{RELEASE_TAG:-\$REF_NAME\}"') {
+            if ($tgSlice -notmatch 'TAG="\$\{RELEASE_TAG:-\$REF_NAME\}"') {
                 $DriftErrors.Add("release.yml tag-guard must fallback from RELEASE_TAG to REF_NAME.")
             }
-            if ($releaseContent -notmatch '(?s)if\s*\[\s*-z\s*"\$TAG"\s*\];.*?exit\s+1') {
-                $DriftErrors.Add("release.yml tag-guard must fail closed (exit 1) on missing tag.")
+            if ($tgSlice -notmatch 'if\s*\[\s*-z\s*"\$TAG"\s*\];\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b') {
+                $DriftErrors.Add("release.yml tag-guard must fail closed (exit 1) inside the missing-tag branch.")
             }
-            if ($releaseContent -notmatch '(?s)if\s*\[\s*"\$TAG"\s*!=\s*"\$EXPECTED_TAG"\s*\];.*?exit\s+1') {
-                $DriftErrors.Add("release.yml tag-guard must fail closed (exit 1) on tag mismatch.")
+            if ($tgSlice -notmatch 'if\s*\[\s*"\$TAG"\s*!=\s*"\$EXPECTED_TAG"\s*\];\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b') {
+                $DriftErrors.Add("release.yml tag-guard must fail closed (exit 1) inside the tag-mismatch branch.")
             }
         }
-        if ($releaseContent -notmatch '(?m)^\s{2}verify:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}needs:\s*\[tag-guard\]') {
+        if (-not $releaseJobs.ContainsKey('verify') -or $releaseJobs['verify'] -notmatch '(?m)^ {4}needs:\s*\[tag-guard\]\s*$') {
             $DriftErrors.Add("release.yml verify job must depend on tag-guard (needs: [tag-guard]).")
         }
         foreach ($pubJob in @('publish-npm', 'publish-gpr', 'attach-assets')) {
-            if ($releaseContent -notmatch "(?m)^\s{2}${pubJob}:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}needs:\s*\[verify\]") {
+            if (-not $releaseJobs.ContainsKey($pubJob) -or $releaseJobs[$pubJob] -notmatch '(?m)^ {4}needs:\s*\[verify\]\s*$') {
                 $DriftErrors.Add("release.yml $pubJob job must depend on verify (needs: [verify]).")
             }
+        }
+        if ($releaseJobs.ContainsKey('notify') -and $releaseJobs['notify'] -match '\b[a-z-]+\s*:\s*write\b|\bwrite-all\b') {
+            $DriftErrors.Add("release.yml notify job must not grant write permissions.")
         }
     }
 
     $PagesWf = Join-Path $WorkflowDir "pages.yml"
     if (Test-Path $PagesWf) {
-        $pagesContent = Get-Content -Path $PagesWf -Raw
-        if ($pagesContent -notmatch '(?m)^\s*uses\s*:\s*\./\.github/workflows/ci\.yml\s*$') {
-            $DriftErrors.Add("pages.yml must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
+        $pagesContent = (Get-Content -Path $PagesWf -Raw) -replace "\r\n", "`n"
+        $pagesJobs = Get-WorkflowJobs $pagesContent
+        if (-not $pagesJobs.ContainsKey('verify') -or $pagesJobs['verify'] -notmatch '(?m)^ {4}uses:\s*\./\.github/workflows/ci\.yml\s*$') {
+            $DriftErrors.Add("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
         }
-        if ($pagesContent -notmatch '(?m)^\s{2}build:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}needs:\s*\[verify\]') {
+        if (-not $pagesJobs.ContainsKey('build') -or $pagesJobs['build'] -notmatch '(?m)^ {4}needs:\s*\[verify\]\s*$') {
             $DriftErrors.Add("pages.yml build job must depend on verify (needs: [verify]).")
         }
-        if ($pagesContent -notmatch '(?m)^\s{2}deploy:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}needs:\s*\[build\]') {
+        if (-not $pagesJobs.ContainsKey('deploy') -or $pagesJobs['deploy'] -notmatch '(?m)^ {4}needs:\s*\[build\]\s*$') {
             $DriftErrors.Add("pages.yml deploy job must depend on build (needs: [build]).")
         }
-        if ($pagesContent -notmatch '(?m)^\s{2}deploy:\s*[\r\n]+(?:\s{4}[^\r\n]*[\r\n]+)*?\s{4}permissions:\s*[\r\n]+\s{6}pages:\s*write[\r\n]+\s{6}id-token:\s*write') {
+        if (-not $pagesJobs.ContainsKey('deploy') -or $pagesJobs['deploy'] -notmatch '(?m)^ {4}permissions:\s*\n {6}pages:\s*write\s*\n {6}id-token:\s*write\s*$') {
             $DriftErrors.Add("pages.yml deploy job must explicitly scope permissions (pages: write, id-token: write).")
+        }
+        foreach ($jobKey in $pagesJobs.Keys) {
+            if ($jobKey -ne 'deploy' -and $pagesJobs[$jobKey] -match '\b[a-z-]+\s*:\s*write\b|\bwrite-all\b') {
+                $DriftErrors.Add("pages.yml job '$jobKey' must not grant any write permissions.")
+            }
         }
     }
 
     $CiWf = Join-Path $WorkflowDir "ci.yml"
     if (Test-Path $CiWf) {
-        $ciContent = Get-Content -Path $CiWf -Raw
+        $ciContent = (Get-Content -Path $CiWf -Raw) -replace "\r\n", "`n"
+        if ($ciContent -notmatch '(?m)^name:\s*CI\s*$') {
+            $DriftErrors.Add("ci.yml workflow name must be 'CI' to match cancel-in-progress concurrency expression.")
+        }
         if ($ciContent -notmatch '(?m)^\s*workflow_call:\s*$') {
             $DriftErrors.Add("ci.yml must support reusable workflow calls via 'workflow_call:'.")
         }
-        if ($ciContent -notmatch 'github\.workflow') {
-            $DriftErrors.Add("ci.yml concurrency group must reference 'github.workflow' to isolate callers.")
+        if ($ciContent -notmatch '(?m)^concurrency:\s*\n {2}group:\s*\$\{\{\s*github\.workflow\s*\}\}-\$\{\{\s*github\.ref\s*\}\}\s*\n {2}cancel-in-progress:\s*\$\{\{\s*github\.workflow\s*==\s*\x27CI\x27\s*\}\}') {
+            $DriftErrors.Add("ci.yml concurrency block must isolate callers via github.workflow and scope cancel-in-progress to github.workflow == 'CI'.")
         }
     }
 
