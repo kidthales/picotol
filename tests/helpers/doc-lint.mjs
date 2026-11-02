@@ -122,7 +122,7 @@ export function extractTokenOccurrencesFromMarkdown(content) {
   const occurrences = [];
   const tokenRe = /(\.(?:pt|segmented)-[a-zA-Z0-9_*-]+|(?<![\w-])--pt-[a-zA-Z0-9_*-]+)(?![\w*-])/g;
   const braceTokenRe =
-    /(?:\.pt|--pt|(?<=[\s"'=])pt)-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
+    /(?:\.(?:pt|segmented)|--pt|(?<=[\s"'=])(?:pt|segmented))-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
   const htmlClassAttrRe = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g;
   const bareClassTokenRe = /^(?:pt|segmented)-[a-zA-Z0-9_*-]+$/;
 

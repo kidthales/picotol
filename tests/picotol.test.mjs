@@ -1786,8 +1786,8 @@ test("Release Checksum Manifest and Placement Documentation (Issue #127)", () =>
     "README.md must note .top and .bottom as compatibility classes"
   );
   assert.ok(
-    readme.includes(".pt-meter-range") && readme.includes(".pt-meter-pin"),
-    "README.md must document .pt-meter-range and .pt-meter-pin primitives"
+    readme.includes(".pt-meter-range") && readme.includes(".pt-meter-mark"),
+    "README.md must document .pt-meter-range and .pt-meter-mark primitives"
   );
 
   // 4. Documentation: Subresource Integrity and Downstream Vendoring Workflows

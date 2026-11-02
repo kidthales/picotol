@@ -138,10 +138,12 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
 
   // Wildcard and brace-expansion patterns are extracted and validated against dist/picotol.css (never silently skipped)
   assert.deepEqual(
-    extractTokensFromMarkdown('Patterns `--pt-*`, `.pt-meter-mark--*`, and `--pt-status-{ok,warning}-{fg,bg}`.'),
+    extractTokensFromMarkdown('Patterns `--pt-*`, `.pt-meter-mark--*`, `.segmented-{fill,equal}`, and `--pt-status-{ok,warning}-{fg,bg}`.'),
     [
       '--pt-*',
       '.pt-meter-mark--*',
+      '.segmented-fill',
+      '.segmented-equal',
       '--pt-status-ok-fg',
       '--pt-status-ok-bg',
       '--pt-status-warning-fg',
@@ -151,7 +153,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
 
   // Valid wildcard and brace patterns pass against dist/picotol.css
   const validPatternsResult = validateDocTokens(
-    'Valid `--pt-*`, `--pt-status-*-fg`, `.pt-meter-mark--*`, and `--pt-status-{ok,warning}-{fg,bg}`.',
+    'Valid `--pt-*`, `--pt-status-*-fg`, `.pt-meter-mark--*`, `.segmented-{fill,equal}`, and `--pt-status-{ok,warning}-{fg,bg}`.',
     distCss,
     'README.md',
     TEMPORARY_ALLOWLIST
@@ -160,7 +162,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
 
   // Phantom wildcard and phantom brace branches fail closed against dist/picotol.css
   const phantomPatternsResult = validateDocTokens(
-    'Invalid `--pt-phantom-*-fg`, `.pt-phantom--*`, and `--pt-status-{ok,phantom}-fg`.',
+    'Invalid `--pt-phantom-*-fg`, `.pt-phantom--*`, `.segmented-{fill,phantom}`, and `--pt-status-{ok,phantom}-fg`.',
     distCss,
     'README.md',
     TEMPORARY_ALLOWLIST
@@ -168,6 +170,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
   assert.deepEqual(phantomPatternsResult.missing, [
     '--pt-phantom-*-fg',
     '.pt-phantom--*',
+    '.segmented-phantom',
     '--pt-status-phantom-fg',
   ]);
 

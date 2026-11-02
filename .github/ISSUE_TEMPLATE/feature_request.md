@@ -10,4 +10,4 @@ assignees: ''
 Describe the semantic HTML pattern or accessibility requirement.
 
 ## Proposed Solution
-Describe the CSS rules or `--pt-*` tokens while respecting the 38 KB bundle budget and 100% Paul Tol hex purity invariant.
+Describe the CSS rules or `--pt-*` tokens while respecting the bundle byte budgets (core <= 14.0 KB, full <= 38.0 KB) and 100% Paul Tol hex purity invariant.
