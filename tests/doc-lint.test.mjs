@@ -112,8 +112,23 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
 test('doc-lint: parser handles compound selectors, wildcard/brace validation, fenced blocks, HTML class attributes, multi-line code spans, and usage-vs-definition checks', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
 
-  // Compound selectors extract all classes
-  assert.deepEqual(extractTokensFromMarkdown('Use `.pt-a.pt-b` together.'), ['.pt-a', '.pt-b']);
+  // Compound selectors and combinators (child >, descendant, sibling) extract all classes
+  assert.deepEqual(
+    extractTokensFromMarkdown('Use `.pt-a.pt-b`, `.pt-parent > .pt-child`, and `.segmented-fill > *` together.'),
+    ['.pt-a', '.pt-b', '.pt-parent', '.pt-child', '.segmented-fill']
+  );
+
+  // Phantom compound selectors with child combinator (>) fail closed against dist/picotol.css
+  const phantomCompoundResult = validateDocTokens(
+    'Use `.segmented-control--fill > .segmented-item` in markup.',
+    distCss,
+    'README.md',
+    TEMPORARY_ALLOWLIST
+  );
+  assert.deepEqual(phantomCompoundResult.missing, [
+    '.segmented-control--fill',
+    '.segmented-item',
+  ]);
 
   // Backticks with * or { outside the token name still extract the token
   assert.deepEqual(extractTokensFromMarkdown('Selector `.pt-phantom *` and `.pt-x{color:red}`.'), [
@@ -233,7 +248,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
   assert.equal(tokenExistsInCss('.pt-in-single-quoted-string', sampleCss), false, 'Class inside string value must not count as selector definition');
 });
 
-test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, match their exact pinned count in their scoped file section, and be guarded by adjacent REMOVE-BY: #200', () => {
+test('doc-lint: TEMPORARY_ALLOWLIST must remain empty following Issue #200 and historical allowlist isolation semantics remain enforced', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const currentVersion = pkg.version;

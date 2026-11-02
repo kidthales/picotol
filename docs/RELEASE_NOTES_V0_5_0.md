@@ -6,7 +6,7 @@ Sixth public open-source pre-release of `@kidthales/picotol`, introducing native
 > **SemVer 2.0.0 Pre-release**: In accordance with SemVer 2.0.0 §4, versions in the `0.y.z` range represent initial development releases with evolving APIs. True stable major releases commence at `v1.0.0`.
 
 > [!IMPORTANT]
-> **Documentation Erratum (v0.5.1)**: Several APIs and modifiers previously described in v0.5.0 documentation do not exist in `src/` and are retracted:
+> **Documentation Erratum**: Several APIs and modifiers previously described in v0.5.0 documentation do not exist in `src/` and are retracted:
 > - Popover surface class and modifiers: *.pt-popover__surface*, *.pt-popover--align-end*, *.pt-popover--align-center*, *.pt-popover--top*, and *--pt-popover-shadow* (actual implementation uses `.pt-popover > :not(summary)` / `.pt-popover-content`, with `.pt-popover--start` and `.pt-popover--end`).
 > - Micro-scale status dot modifier: *.pt-dot--sm* (standard `.pt-dot` is 8px; sizing adapts via container font-size).
 > - Boundary marker clamp custom properties: *--pin-left* and *--pin-right* (boundary clamping is handled via native CSS `clamp()` directly within `.pt-meter-mark`).
