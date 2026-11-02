@@ -7,16 +7,19 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  verify:
+    name: Verify & Test
+    uses: ./.github/workflows/ci.yml
+
   build:
     name: Build & Package Showcase
+    needs: [verify]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -46,6 +49,9 @@ jobs:
     name: Deploy to GitHub Pages
     needs: [build]
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -56,7 +62,7 @@ jobs:
 
   notify:
     name: Discord Pages Notification
-    needs: [build, deploy]
+    needs: [verify, build, deploy]
     if: always()
     runs-on: ubuntu-latest
     env:

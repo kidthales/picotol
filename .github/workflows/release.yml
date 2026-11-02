@@ -13,8 +13,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  tag-guard:
+    name: Verify Release Tag & Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Verify release tag matches package.json version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          TAG="${RELEASE_TAG:-$REF_NAME}"
+          PKG_VER=$(node -p "require('./package.json').version")
+          EXPECTED_TAG="v${PKG_VER}"
+          echo "Comparing release tag '$TAG' with expected tag '$EXPECTED_TAG'..."
+          if [ -z "$TAG" ]; then
+            echo "::error::No release tag or ref name found."
+            exit 1
+          fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then
+            echo "::error::Release tag '$TAG' does not match expected tag '$EXPECTED_TAG' (v + package.json version)."
+            exit 1
+          fi
+          echo "Release tag '$TAG' matches package.json version $PKG_VER."
+
   verify:
     name: Verify & Test
+    needs: [tag-guard]
     uses: ./.github/workflows/ci.yml
 
   publish-npm:
@@ -115,8 +149,11 @@ jobs:
       - name: Upload release assets to GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          gh release upload "${{ github.event.release.tag_name }}" \
+          TAG_NAME="${RELEASE_TAG:-$REF_NAME}"
+          gh release upload "$TAG_NAME" \
             dist/assets/picotol-v*.zip \
             dist/sri.json \
             dist/manifest.json \
@@ -125,7 +162,7 @@ jobs:
 
   notify:
     name: Discord Release Notification
-    needs: [publish-npm, publish-gpr, attach-assets]
+    needs: [tag-guard, verify, publish-npm, publish-gpr, attach-assets]
     if: always()
     runs-on: ubuntu-latest
     permissions:
