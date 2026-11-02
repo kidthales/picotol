@@ -202,6 +202,86 @@ test(".github/workflows/release.yml defines dual publishing to npm and GitHub Pa
   assert.ok(content.includes("id-token: write"), "Must grant id-token: write permission for npm provenance");
 });
 
+test("GitHub Actions workflows enforce tag guard, script-injection hygiene, and scoped permissions", () => {
+  const workflowDir = path.join(ROOT, ".github", "workflows");
+  const files = fs.readdirSync(workflowDir).filter((f) => f.endsWith(".yml") || f.endsWith(".yaml"));
+
+  assert.ok(files.includes("release.yml"), "release.yml must exist");
+  assert.ok(files.includes("pages.yml"), "pages.yml must exist");
+  assert.ok(files.includes("ci.yml"), "ci.yml must exist");
+
+  for (const file of files) {
+    const filePath = path.join(workflowDir, file);
+    const content = fs.readFileSync(filePath, "utf8");
+    const lines = content.split("\n");
+
+    let inRunBlock = false;
+    let runBaseIndent = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const lineNum = i + 1;
+
+      if (inRunBlock) {
+        if (/^\s*$/.test(line)) continue;
+        const indentMatch = line.match(/^(\s*)/);
+        const currentIndent = indentMatch ? indentMatch[1].length : 0;
+        if (currentIndent <= runBaseIndent) {
+          inRunBlock = false;
+        } else {
+          if (!/^\s*#/.test(line)) {
+            assert.doesNotMatch(
+              line,
+              /\$\{\{/,
+              `${file}:${lineNum} contains unescaped \${{ ... }} inside 'run:' block (script injection vulnerability)`
+            );
+          }
+          continue;
+        }
+      }
+
+      const runMatch = line.match(/^(\s*)(?:-\s*)?run\s*:\s*(.*)$/);
+      if (runMatch) {
+        runBaseIndent = runMatch[1].length;
+        const val = runMatch[2].trim();
+        if (/^[|>][-+]?\s*(#.*)?$/.test(val)) {
+          inRunBlock = true;
+        } else if (val !== "" && !val.startsWith("#")) {
+          assert.doesNotMatch(
+            val,
+            /\$\{\{/,
+            `${file}:${lineNum} contains unescaped \${{ ... }} inside 'run:' step (script injection vulnerability)`
+          );
+        }
+      }
+    }
+  }
+
+  // release.yml invariants
+  const releaseYml = fs.readFileSync(path.join(workflowDir, "release.yml"), "utf8");
+  assert.ok(releaseYml.includes("tag-guard:"), "release.yml must define a tag-guard job");
+  assert.ok(
+    /EXPECTED_TAG=["']v\$\{?PKG_VER\}?["']/.test(releaseYml) || releaseYml.includes('v${PKG_VER}'),
+    "release.yml must verify release tag matches 'v' + package.json version"
+  );
+  assert.ok(releaseYml.includes("uses: ./.github/workflows/ci.yml"), "release.yml must delegate to ci.yml");
+
+  // pages.yml invariants
+  const pagesYml = fs.readFileSync(path.join(workflowDir, "pages.yml"), "utf8");
+  assert.ok(pagesYml.includes("uses: ./.github/workflows/ci.yml"), "pages.yml must delegate to ci.yml before deploy");
+  assert.ok(pagesYml.includes("needs: [verify]"), "pages.yml build job must depend on verify");
+  assert.doesNotMatch(
+    pagesYml.split("jobs:")[0],
+    /^\s*(pages|id-token)\s*:\s*write/m,
+    "pages.yml must not declare pages:write or id-token:write at root workflow level"
+  );
+  assert.match(
+    pagesYml,
+    /deploy:[\s\S]*?permissions:[\s\S]*?pages:\s*write[\s\S]*?id-token:\s*write/,
+    "pages.yml deploy job must scope pages:write and id-token:write permissions"
+  );
+});
+
 test("dist/SHA256SUMS.txt accurately covers all 6 CSS distribution bundles", () => {
   const sumsPath = path.join(ROOT, "dist", "SHA256SUMS.txt");
   assert.ok(fs.existsSync(sumsPath), "dist/SHA256SUMS.txt must exist");

@@ -106,18 +106,40 @@ try {
     $ForbiddenRunPattern = '\b(npm\s+(test|t|tst|run\s+test|run\s+lint|run\s+check:budgets|pack)|node\s+--test)\b'
     $CiInvokesScript = $false
     $ReleaseUsesCiWorkflow = $false
+    $ReleaseHasTagGuard = $false
+    $PagesUsesCiWorkflow = $false
 
     foreach ($wf in $WorkflowFiles) {
         $lines = Get-Content -Path $wf.FullName
         $inRunBlock = $false
         $runBaseIndent = 0
+        $inRootPermissions = $false
 
         for ($i = 0; $i -lt $lines.Count; $i++) {
             $line = $lines[$i]
             $lineNum = $i + 1
 
-            if ($wf.Name -eq 'release.yml' -and $line -match '^\s*uses\s*:\s*\./\.github/workflows/ci\.yml\s*$') {
-                $ReleaseUsesCiWorkflow = $true
+            if ($wf.Name -eq 'release.yml') {
+                if ($line -match '^\s*uses\s*:\s*\./\.github/workflows/ci\.yml\s*$') {
+                    $ReleaseUsesCiWorkflow = $true
+                }
+                if ($line -match '^\s*tag-guard:\s*$' -or $line -match 'TAG=.*RELEASE_TAG') {
+                    $ReleaseHasTagGuard = $true
+                }
+            }
+
+            if ($wf.Name -eq 'pages.yml') {
+                if ($line -match '^\s*uses\s*:\s*\./\.github/workflows/ci\.yml\s*$') {
+                    $PagesUsesCiWorkflow = $true
+                }
+                if ($line -match '^permissions:\s*$') {
+                    $inRootPermissions = $true
+                } elseif ($line -match '^(?:jobs|on|concurrency|name):') {
+                    $inRootPermissions = $false
+                }
+                if ($inRootPermissions -and $line -match '^\s*(?:pages|id-token)\s*:\s*write') {
+                    $DriftErrors.Add("pages.yml:$lineNum grants root-level write permission '$($line.Trim())'. Write permissions must be scoped to the deploy job.")
+                }
             }
 
             if ($inRunBlock) {
@@ -130,6 +152,9 @@ try {
                     $inRunBlock = $false
                 } else {
                     if ($line -notmatch '^\s*#') {
+                        if ($line -match '\$\{\{') {
+                            $DriftErrors.Add("$($wf.Name):$lineNum contains unescaped `${{ ... }} expression inside 'run:' script block (potential script injection). Pass values via 'env:' instead.")
+                        }
                         if ($line -match $ForbiddenRunPattern) {
                             $DriftErrors.Add("$($wf.Name):$lineNum invokes forbidden verification command in 'run:': '$($line.Trim())'")
                         }
@@ -153,6 +178,9 @@ try {
                 if ($val -match '^[|>][-+]?\s*(#.*)?$') {
                     $inRunBlock = $true
                 } elseif ($val -ne '' -and $val -notmatch '^#') {
+                    if ($val -match '\$\{\{') {
+                        $DriftErrors.Add("$($wf.Name):$lineNum contains unescaped `${{ ... }} expression inside 'run:' script block (potential script injection). Pass values via 'env:' instead.")
+                    }
                     if ($val -match $ForbiddenRunPattern) {
                         $DriftErrors.Add("$($wf.Name):$lineNum invokes forbidden verification command in 'run:': '$val'")
                     }
@@ -175,6 +203,12 @@ try {
     }
     if (-not $ReleaseUsesCiWorkflow) {
         $DriftErrors.Add("release.yml must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
+    }
+    if (-not $ReleaseHasTagGuard) {
+        $DriftErrors.Add("release.yml must verify that the release tag matches package.json version via a 'tag-guard' job.")
+    }
+    if (-not $PagesUsesCiWorkflow) {
+        $DriftErrors.Add("pages.yml must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
     }
 
     if ($DriftErrors.Count -gt 0) {
