@@ -23,6 +23,7 @@ import {
 } from '../tools/sync-tokens.mjs';
 import { buildAll } from '../tools/build.mjs';
 import {
+  MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES,
   createPkZip,
   packageAssets,
   parsePkZipEntries,
@@ -34,7 +35,9 @@ import {
   assertValidMtimeOption,
   isSameOrSubpath,
   resolveOutDir,
+  resolveRealPath,
   resolveSyncOptions,
+  stripWin32DeviceNamespacePrefix,
 } from '../tools/path-jail.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -230,6 +233,19 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   assert.ok(overrideErrors.some((e) => e.includes('CSS syntax error')), 'errorRecovery must remain false even if transformOpts passes true');
 
   // 10. Negative and positive fixture tests for bundle-level and demo HTML checks (lintBundledCss, lintDistAccessibilityRules, lintDemoHtml)
+  // Also verify string-aware comment stripping: `content: "/*"` must not swallow subsequent violations in lintCssSnippet or lintBundledCss
+  const stringCommentSnippet = `a::before { content: "/*"; } button:focus { outline: none; } a::after { content: "*/"; }`;
+  assert.ok(
+    lintCssSnippet(stringCommentSnippet, 'fixtures/str-comment.css').some((e) =>
+      e.includes('Accessible focus violation')
+    ),
+    'content: "/*" inside string literal must not mask subsequent outline: none violation in lintCssSnippet'
+  );
+  const stringCommentBundle = `a::before { content: "/*"; } .btn { color: var(--pt-hidden-undefined); } a::after { content: "*/"; }`;
+  assert.deepEqual(lintBundledCss(stringCommentBundle, 'fixtures/str-comment-bundle.css'), [
+    '[fixtures/str-comment-bundle.css] Undefined CSS custom property referenced: --pt-hidden-undefined',
+  ]);
+
   const badBundledCss = `:root { --pt-defined: #4477AA; } .btn { color: var(--pt-defined); background: var(--pt-undefined-var); border-color: var(--pt-btn-color, #4477AA); left: var(--marker-pos, 50%); }`;
   const bundleErrors = lintBundledCss(badBundledCss, 'fixtures/bundle.css');
   assert.deepEqual(bundleErrors, [
@@ -249,21 +265,34 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   assert.ok(distRuleErrors.some((e) => e.includes('"@media print"')));
 
   const badDemoHtml = `
-    <div id="existing-id" class="styled-class unstyled-phantom-class card">
+    <div id="existing-id" class="styled-class unstyled-phantom-class card negated-only">
+      <span class='single-quoted-unstyled'>Single quoted class</span>
       <a href="#missing-anchor">Link</a>
       <input aria-describedby="missing-desc" aria-labelledby="existing-id missing-label">
       <span data-tooltip="Missing tabindex">Hover</span>
       <span data-tooltip="Has tabindex" tabindex="0">OK</span>
     </div>
   `;
-  const demoErrors = lintDemoHtml(badDemoHtml, '.styled-class { color: #000000; } .card-foo { color: #000000; }', 'fixtures/demo.html');
+  const demoErrors = lintDemoHtml(
+    badDemoHtml,
+    '.styled-class { color: #000000; } .card-foo:not(.negated-only) { color: #000000; }',
+    'fixtures/demo.html'
+  );
   assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".unstyled-phantom-class"')));
   assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".card"')), '.card must not false-pass against .card-foo');
+  assert.ok(
+    demoErrors.some((e) => e.includes('Unstyled class ".negated-only"')),
+    'Class appearing only inside :not(.negated-only) must not count as styled'
+  );
+  assert.ok(
+    demoErrors.some((e) => e.includes('Unstyled class ".single-quoted-unstyled"')),
+    "Single-quoted class='...' attributes in demo HTML must be linted"
+  );
   assert.ok(demoErrors.some((e) => e.includes('Broken internal anchor link href="#missing-anchor"')));
   assert.ok(demoErrors.some((e) => e.includes('Broken ARIA reference aria-describedby="missing-desc"')));
   assert.ok(demoErrors.some((e) => e.includes('Broken ARIA reference aria-labelledby="missing-label"')));
   assert.ok(demoErrors.some((e) => e.includes('Non-interactive <span data-tooltip> is missing tabindex="0"')));
-  assert.equal(demoErrors.length, 6);
+  assert.equal(demoErrors.length, 8);
 
   // 11. Full runLint() verification
   const projectErrors = runLint();
@@ -298,6 +327,27 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
   assert.equal(isSameOrSubpath(path.join(ROOT, '..foo'), ROOT), true, 'ROOT/..foo must be recognized as inside ROOT');
   assert.equal(isSameOrSubpath(path.dirname(ROOT), ROOT), false, 'Parent of ROOT must not be recognized as inside ROOT');
   assert.equal(isSameOrSubpath(ROOT, path.dirname(ROOT)), true, 'ROOT is a subpath of its parent directory');
+
+  // Windows device-namespace prefix stripping (\\?\ and \??\) for junction / readlinkSync targets
+  assert.equal(stripWin32DeviceNamespacePrefix('\\\\?\\C:\\repo\\src'), 'C:\\repo\\src');
+  assert.equal(stripWin32DeviceNamespacePrefix('\\??\\C:\\repo\\src'), 'C:\\repo\\src');
+  assert.equal(stripWin32DeviceNamespacePrefix('\\\\?\\UNC\\server\\share\\src'), '\\\\server\\share\\src');
+  if (process.platform === 'win32') {
+    assert.equal(
+      isSameOrSubpath(`\\\\?\\${path.join(ROOT, 'src')}`, ROOT),
+      true,
+      '\\\\?\\ device-prefixed path pointing into ROOT/src must be recognized as a subpath of ROOT'
+    );
+    assert.equal(
+      isSameOrSubpath(`\\??\\${path.join(ROOT, 'src')}`, ROOT),
+      true,
+      '\\??\\ NT-prefixed path pointing into ROOT/src must be recognized as a subpath of ROOT'
+    );
+    assert.throws(
+      () => assertSafeCustomSyncTarget(`\\\\?\\${path.join(ROOT, 'src')}`, 'outSrcDir'),
+      /refusing to write custom sync target inside repository/
+    );
+  }
 
   // Pure validator tests (resolveSyncOptions & assertSafeCustomSyncTarget): zero filesystem writes even if a guard regressed
   assert.throws(() => resolveSyncOptions(null), /Invalid options/);
@@ -349,6 +399,21 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
     // Symlink / junction escape test: a junction in os.tmpdir() pointing into ROOT/src is blocked via realpathSync.native
     linkToSrc = path.join(tempLinkHolder, 'src-junction');
     fs.symlinkSync(path.join(ROOT, 'src'), linkToSrc, process.platform === 'win32' ? 'junction' : 'dir');
+    assert.equal(
+      isSameOrSubpath(linkToSrc, path.join(ROOT, 'src')),
+      true,
+      'Junction pointing into ROOT/src must resolve as same/subpath of ROOT/src even when readlinkSync emits device prefixes'
+    );
+    assert.equal(
+      isSameOrSubpath(path.join(linkToSrc, 'tokens.css'), path.join(ROOT, 'src')),
+      true,
+      'Child of junction pointing into ROOT/src must resolve as subpath of ROOT/src'
+    );
+    assert.equal(
+      isSameOrSubpath(path.join(linkToSrc, 'nonexistent-child'), path.join(ROOT, 'src')),
+      true,
+      'Non-existent child of junction pointing into ROOT/src must resolve as subpath of ROOT/src via readlinkSync walk'
+    );
     assert.throws(
       () => assertSafeCustomSyncTarget(linkToSrc, 'outSrcDir'),
       /refusing to write custom sync target inside repository/
@@ -626,10 +691,14 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
       'Default buildAll() zip archive must match committed dist/assets/picotol-v*.zip byte-for-byte across checkouts and timezones'
     );
 
-    // UTC MS-DOS timestamp & SOURCE_DATE_EPOCH verification
+    // UTC MS-DOS timestamp & SOURCE_DATE_EPOCH verification (including 1980–2107 year bounds)
     const dosUtc = toDosDateTime(new Date('2026-06-15T14:30:20Z'));
     assert.equal(dosUtc.dosDate, (((2026 - 1980) << 9) | (6 << 5) | 15) >>> 0);
     assert.equal(dosUtc.dosTime, ((14 << 11) | (30 << 5) | 10) >>> 0);
+    assert.doesNotThrow(() => toDosDateTime(new Date('1980-01-01T00:00:00Z')));
+    assert.doesNotThrow(() => toDosDateTime(new Date('2107-12-31T23:59:58Z')));
+    assert.throws(() => toDosDateTime(new Date('1979-12-31T23:59:59Z')), /Invalid mtime year 1979/);
+    assert.throws(() => toDosDateTime(new Date('2108-01-01T00:00:00Z')), /Invalid mtime year 2108/);
 
     const prevEpoch = process.env.SOURCE_DATE_EPOCH;
     try {
@@ -642,7 +711,9 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
       else process.env.SOURCE_DATE_EPOCH = prevEpoch;
     }
 
-    // parsePkZipEntries strict validation: reject non-deflate method, ZIP64 sentinels, and truncated/oversized payloads
+    // parsePkZipEntries strict validation: reject non-deflate method, ZIP64 sentinels, oversized claims (> MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES),
+    // payload inflating larger than claimed header (ERR_BUFFER_TOO_LARGE), and payload inflating smaller than claimed header (Uncompressed size mismatch)
+    assert.equal(MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES, 10 * 1024 * 1024);
     const sampleZip = createPkZip([{ name: 'hello.txt', data: 'hello world', mtime: fixedMtime }]);
     assert.equal(parsePkZipEntries(sampleZip).length, 1);
 
@@ -656,9 +727,27 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
     zip64Sentinel.writeUInt16LE(0xffff, eocdPos + 10);
     assert.throws(() => parsePkZipEntries(zip64Sentinel), /ZIP64 archives are not supported/);
 
-    const deflatedPayloadsExceedingClaim = Buffer.from(sampleZip);
-    deflatedPayloadsExceedingClaim.writeUInt32LE(3, cdStart + 24); // claim uncompressedSize = 3 when payload inflates to 11
-    assert.throws(() => parsePkZipEntries(deflatedPayloadsExceedingClaim), /Cannot create a Buffer larger than|maxOutputLength|Uncompressed size mismatch/);
+    const exceedMaxCapZip = Buffer.from(sampleZip);
+    exceedMaxCapZip.writeUInt32LE(MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES + 1, cdStart + 24);
+    assert.throws(
+      () => parsePkZipEntries(exceedMaxCapZip),
+      /Entry hello\.txt uncompressed size 10485761 exceeds max allowed 10485760 bytes/
+    );
+
+    const payloadExceedsClaimedSize = Buffer.from(sampleZip);
+    payloadExceedsClaimedSize.writeUInt32LE(3, cdStart + 24); // claim uncompressedSize = 3 when payload inflates to 11
+    assert.throws(
+      () => parsePkZipEntries(payloadExceedsClaimedSize),
+      { code: 'ERR_BUFFER_TOO_LARGE' },
+      'inflateRawSync must reject payload exceeding maxOutputLength with ERR_BUFFER_TOO_LARGE'
+    );
+
+    const claimedSizeLargerThanPayload = Buffer.from(sampleZip);
+    claimedSizeLargerThanPayload.writeUInt32LE(50, cdStart + 24); // claim uncompressedSize = 50 when payload inflates to 11
+    assert.throws(
+      () => parsePkZipEntries(claimedSizeLargerThanPayload),
+      /Uncompressed size mismatch for hello\.txt: expected 50, got 11/
+    );
   } finally {
     if (tempDir1) fs.rmSync(tempDir1, { recursive: true, force: true });
     if (tempDir2) fs.rmSync(tempDir2, { recursive: true, force: true });

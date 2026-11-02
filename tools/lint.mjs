@@ -39,6 +39,73 @@ export function isTransparentHex(normHex) {
   return upper === '#0000' || upper === '#00000000';
 }
 
+export function stripCssComments(css) {
+  // Single-pass CSS comment stripper that preserves /* ... */ inside quoted strings
+  // ("...", '...') and unquoted url(...) tokens.
+  let out = '';
+  let quote = null;
+  let inUnquotedUrl = false;
+  for (let i = 0; i < css.length; i++) {
+    const ch = css[i];
+    if (quote) {
+      out += ch;
+      if (ch === '\\' && i + 1 < css.length) {
+        out += css[++i];
+      } else if (ch === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (inUnquotedUrl) {
+      out += ch;
+      if (ch === '\\' && i + 1 < css.length) {
+        out += css[++i];
+      } else if (ch === ')') {
+        inUnquotedUrl = false;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      out += ch;
+      continue;
+    }
+    if (ch === '/' && css[i + 1] === '*') {
+      const closeIdx = css.indexOf('*/', i + 2);
+      if (closeIdx === -1) break;
+      i = closeIdx + 1;
+      continue;
+    }
+    if (
+      (ch === 'u' || ch === 'U') &&
+      /^url\(\s*(?!['"])/i.test(css.slice(i)) &&
+      (i === 0 || !/[\w-]/.test(css[i - 1]))
+    ) {
+      const openParen = css.indexOf('(', i);
+      out += css.slice(i, openParen + 1);
+      i = openParen;
+      inUnquotedUrl = true;
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
+export function stripCssCommentsAndStrings(css) {
+  return stripCssComments(css).replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '""');
+}
+
+export function stripNotPseudoClasses(css) {
+  // Removes :not(...) segments so negated classes like .foo:not(.phantom) never count as defining .phantom
+  let prev = css;
+  while (true) {
+    const next = prev.replace(/:not\([^()]*\)/gi, '');
+    if (next === prev) return next;
+    prev = next;
+  }
+}
+
 let cachedAllowedHexSet = null;
 function getAllowedHexSet() {
   if (!cachedAllowedHexSet) {
@@ -71,7 +138,7 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
     errors.push(`[${filename}] CSS syntax error: ${err.message}`);
   }
 
-  const cleanContent = content.replace(/\/\*[\s\S]*?\*\//g, '');
+  const cleanContent = stripCssComments(content);
 
   // 2. Custom property naming convention (--pt-* or --tol-*)
   for (const match of cleanContent.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)) {
@@ -115,7 +182,7 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
 
 export function lintBundledCss(bundledCss, entry = 'bundle.css') {
   const errors = [];
-  const cleanCss = bundledCss.replace(/\/\*[\s\S]*?\*\//g, '');
+  const cleanCss = stripCssComments(bundledCss);
   const definedVars = new Set([...cleanCss.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]));
   const usedVars = new Set([...cleanCss.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map((m) => m[1]));
 
@@ -161,32 +228,35 @@ export function lintDistAccessibilityRules(fullDistCss, filename = 'dist/picotol
 
 export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.html') {
   const errors = [];
-  const demoIds = new Set([...demoHtml.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
-  const demoClasses = new Set(
-    [...demoHtml.matchAll(/\bclass="([^"]+)"/g)].flatMap((m) => m[1].trim().split(/\s+/)).filter(Boolean)
+  const demoIds = new Set(
+    [...demoHtml.matchAll(/\bid\s*=\s*(?:"([^"]+)"|'([^']+)')/g)].map((m) => m[1] ?? m[2])
   );
-  const cleanDistCss = fullDistCss
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '""');
+  const demoClasses = new Set(
+    [...demoHtml.matchAll(/\bclass\s*=\s*(?:"([^"]+)"|'([^']+)')/g)]
+      .flatMap((m) => (m[1] ?? m[2]).trim().split(/\s+/))
+      .filter(Boolean)
+  );
+  const positiveDistCss = stripNotPseudoClasses(stripCssCommentsAndStrings(fullDistCss));
 
   for (const cls of demoClasses) {
     const escapedCls = cls.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const classSelRe = new RegExp(`\\.${escapedCls}(?![\\w-])`);
-    if (!classSelRe.test(cleanDistCss)) {
+    const classSelRe = new RegExp(`\\.${escapedCls}(?![\\w-])(?=[^;{}]*\\{)`);
+    if (!classSelRe.test(positiveDistCss)) {
       errors.push(`[${filename}] Unstyled class ".${cls}" used in demo HTML but missing from dist/picotol.css`);
     }
   }
 
-  for (const match of demoHtml.matchAll(/\bhref="#([^"]*)"/g)) {
-    const targetId = match[1];
+  for (const match of demoHtml.matchAll(/\bhref\s*=\s*(?:"#([^"]*)"|'#([^']*)')/g)) {
+    const targetId = match[1] ?? match[2];
     if (targetId && !demoIds.has(targetId)) {
       errors.push(`[${filename}] Broken internal anchor link href="#${targetId}" (no matching id="${targetId}")`);
     }
   }
 
   for (const attr of ['aria-describedby', 'aria-labelledby']) {
-    for (const match of demoHtml.matchAll(new RegExp(`\\b${attr}="([^"]+)"`, 'g'))) {
-      for (const refId of match[1].trim().split(/\s+/)) {
+    for (const match of demoHtml.matchAll(new RegExp(`\\b${attr}\\s*=\\s*(?:"([^"]+)"|'([^']+)')`, 'g'))) {
+      const val = match[1] ?? match[2];
+      for (const refId of val.trim().split(/\s+/)) {
         if (!demoIds.has(refId)) {
           errors.push(`[${filename}] Broken ARIA reference ${attr}="${refId}" (no matching id="${refId}")`);
         }
@@ -195,7 +265,7 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
   }
 
   // Ensure non-interactive elements with data-tooltip have tabindex="0"
-  for (const match of demoHtml.matchAll(/<(span|div|abbr)\b([^>]*\bdata-tooltip="[^"]*"[^>]*)>/gi)) {
+  for (const match of demoHtml.matchAll(/<(span|div|abbr)\b([^>]*\bdata-tooltip\s*=\s*(?:"[^"]*"|'[^']*')[^>]*)>/gi)) {
     const attrs = match[2];
     if (!/\btabindex=/i.test(attrs)) {
       errors.push(`[${filename}] Non-interactive <${match[1]} data-tooltip> is missing tabindex="0" for keyboard access`);

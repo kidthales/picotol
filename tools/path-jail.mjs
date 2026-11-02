@@ -22,17 +22,28 @@ const MAX_SYMLINK_DEPTH = 32;
 const nativeRealpath = (p) => (typeof realpathSync.native === 'function' ? realpathSync.native(p) : realpathSync(p));
 const normCase = (p) => (process.platform === 'win32' ? p.toLowerCase() : p);
 
+export function stripWin32DeviceNamespacePrefix(p) {
+  if (typeof p !== 'string') return p;
+  if (/^(?:\\\\\?\\|\\\?\?\\)UNC\\/i.test(p)) {
+    return '\\\\' + p.slice(8);
+  }
+  if (/^(?:\\\\\?\\|\\\?\?\\)[A-Za-z]:\\/i.test(p)) {
+    return p.slice(4);
+  }
+  return p;
+}
+
 export function resolveRealPath(targetPath, symlinkDepth = 0) {
   if (symlinkDepth > MAX_SYMLINK_DEPTH) {
     throw new Error(`Too many levels of symbolic links while resolving ${targetPath}`);
   }
-  const abs = resolve(targetPath);
+  const abs = resolve(stripWin32DeviceNamespacePrefix(targetPath));
   const parsed = parse(abs);
   const segments = abs.slice(parsed.root.length).split(sep).filter(Boolean);
 
   let current = parsed.root;
   try {
-    current = nativeRealpath(current);
+    current = stripWin32DeviceNamespacePrefix(nativeRealpath(current));
   } catch (err) {
     if (err.code !== 'ENOENT') throw err;
   }
@@ -48,13 +59,14 @@ export function resolveRealPath(targetPath, symlinkDepth = 0) {
     }
 
     if (st.isSymbolicLink()) {
-      const resolvedLinkTarget = resolve(dirname(candidate), readlinkSync(candidate));
+      const rawLinkTarget = stripWin32DeviceNamespacePrefix(readlinkSync(candidate));
+      const resolvedLinkTarget = resolve(dirname(candidate), rawLinkTarget);
       const remaining = segments.slice(i + 1);
       const nextTarget = remaining.length > 0 ? join(resolvedLinkTarget, ...remaining) : resolvedLinkTarget;
       return resolveRealPath(nextTarget, symlinkDepth + 1);
     }
 
-    current = nativeRealpath(candidate);
+    current = stripWin32DeviceNamespacePrefix(nativeRealpath(candidate));
   }
 
   return current;

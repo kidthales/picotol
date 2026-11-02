@@ -15,6 +15,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
 export const DEFAULT_ZIP_MTIME = new Date('2026-01-01T00:00:00Z');
+export const MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES = 10 * 1024 * 1024;
 
 export function resolveDefaultZipMtime() {
   const rawEpoch = process.env.SOURCE_DATE_EPOCH;
@@ -33,7 +34,10 @@ export function toDosDateTime(date) {
   if (!(d instanceof Date) || Number.isNaN(d.getTime())) {
     throw new Error('Invalid mtime: must be a valid Date instance');
   }
-  const year = Math.max(1980, d.getUTCFullYear());
+  const year = d.getUTCFullYear();
+  if (year < 1980 || year > 2107) {
+    throw new Error(`Invalid mtime year ${year}: MS-DOS timestamps only support UTC years 1980–2107`);
+  }
   const dosDate =
     (((year - 1980) & 0x7f) << 9) | (((d.getUTCMonth() + 1) & 0xf) << 5) | (d.getUTCDate() & 0x1f);
   const dosTime =
@@ -167,6 +171,11 @@ export function parsePkZipEntries(zipBuf) {
       throw new Error(`Central Directory variable fields at offset ${pos} exceed EOCD bounds`);
     }
     const name = zipBuf.toString('utf8', pos + 46, pos + 46 + nameLen);
+    if (uncompressedSize > MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES) {
+      throw new Error(
+        `Entry ${name} uncompressed size ${uncompressedSize} exceeds max allowed ${MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES} bytes`
+      );
+    }
 
     if (lfhOffset + 30 > cdOffset) {
       throw new Error(`Local File Header offset ${lfhOffset} for ${name} exceeds Central Directory start`);
@@ -186,7 +195,7 @@ export function parsePkZipEntries(zipBuf) {
     }
     const compressedSlice = zipBuf.subarray(dataStart, dataStart + compressedSize);
     const decompressed = zlib.inflateRawSync(compressedSlice, {
-      maxOutputLength: Math.max(1, uncompressedSize),
+      maxOutputLength: Math.min(MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES, Math.max(1, uncompressedSize)),
     });
 
     if (decompressed.length !== uncompressedSize) {

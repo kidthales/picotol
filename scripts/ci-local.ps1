@@ -81,7 +81,8 @@ $Gate4Status = "fail"
 Push-Location $RootDir
 try {
     $NodeVersionRaw = (& node -p "process.versions.node").Trim()
-    if ([System.Version]$NodeVersionRaw -lt [System.Version]"22.2.0") {
+    $NodeVersionCore = ($NodeVersionRaw -split '[-+]')[0]
+    if ([System.Version]$NodeVersionCore -lt [System.Version]"22.2.0") {
         throw "Node.js >= 22.2.0 is required (for zlib.crc32); found $NodeVersionRaw."
     }
 

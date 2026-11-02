@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stripCssCommentsAndStrings, stripNotPseudoClasses } from '../tools/lint.mjs';
+
+export { stripCssCommentsAndStrings };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -203,24 +206,6 @@ export function extractCurrentChangelogSection(changelogContent, currentVersion)
     throw new Error(`CHANGELOG.md missing header for current package.json version: ## [${currentVersion}]`);
   }
   return changelogMatch[1];
-}
-
-export function stripCssCommentsAndStrings(cssContent) {
-  // Single-pass alternation ensures /* inside a string literal is never mistaken for a comment start
-  return cssContent.replace(
-    /\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g,
-    (match) => (match.startsWith('/*') ? '' : '""')
-  );
-}
-
-function stripNotPseudoClasses(cssContent) {
-  // Removes :not(...) segments so negated classes like .foo:not(.pt-phantom) never count as defining .pt-phantom
-  let prev = cssContent;
-  while (true) {
-    const next = prev.replace(/:not\([^()]*\)/gi, '');
-    if (next === prev) return next;
-    prev = next;
-  }
 }
 
 function tokenToRegexSource(token) {
@@ -471,16 +456,18 @@ test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, match thei
   const currentVersion = pkg.version;
   const selfSource = fs.readFileSync(fileURLToPath(import.meta.url), 'utf8');
   const changelogContent = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8');
+  const currentChangelogSection = extractCurrentChangelogSection(changelogContent, currentVersion);
 
   if (TEMPORARY_ALLOWLIST.length > 0) {
+    // Anchor check to the comment header directly above export const TEMPORARY_ALLOWLIST
     assert.match(
       selfSource,
-      /\/\/\s*REMOVE-BY:\s*#200\b/,
-      'Non-empty TEMPORARY_ALLOWLIST must retain the // REMOVE-BY: #200 enforcement marker'
+      /\/\/\s*REMOVE-BY:\s*#200\b[\s\S]*?export\s+const\s+TEMPORARY_ALLOWLIST\s*=/,
+      'Non-empty TEMPORARY_ALLOWLIST must retain the // REMOVE-BY: #200 header comment above TEMPORARY_ALLOWLIST'
     );
     assert.ok(
-      !/#200\b/.test(changelogContent),
-      'Issue #200 is referenced in CHANGELOG.md, so TEMPORARY_ALLOWLIST must now be emptied!'
+      !/#200\b/.test(currentChangelogSection),
+      `Issue #200 is referenced in CHANGELOG.md ## [${currentVersion}], so TEMPORARY_ALLOWLIST must now be emptied!`
     );
   }
 

@@ -8,6 +8,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { expandHex, stripCssComments } from '../../tools/lint.mjs';
+
+export { expandHex, stripCssComments };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../..');
@@ -15,14 +18,6 @@ const ROOT = path.resolve(__dirname, '../..');
 export const tolData = JSON.parse(
   fs.readFileSync(path.join(ROOT, 'data/tol-qualitative.json'), 'utf8')
 );
-
-export function expandHex(raw) {
-  const upper = raw.toUpperCase();
-  if (/^#[0-9A-F]{3}$/.test(upper)) {
-    return `#${upper[1]}${upper[1]}${upper[2]}${upper[2]}${upper[3]}${upper[3]}`;
-  }
-  return upper;
-}
 
 export function srgbToLinear(channel) {
   const c = channel / 255;
@@ -81,59 +76,6 @@ export function mixSrgb(borderHex, alphaPct, bgHex) {
   const g = Math.round(g1 * a + g2 * (1 - a));
   const b = Math.round(b1 * a + b2 * (1 - a));
   return '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('');
-}
-
-export function stripCssComments(css) {
-  // Single-pass CSS comment stripper that preserves /* ... */ inside quoted strings
-  // ("...", '...') and unquoted url(...) tokens.
-  let out = '';
-  let quote = null;
-  let inUnquotedUrl = false;
-  for (let i = 0; i < css.length; i++) {
-    const ch = css[i];
-    if (quote) {
-      out += ch;
-      if (ch === '\\' && i + 1 < css.length) {
-        out += css[++i];
-      } else if (ch === quote) {
-        quote = null;
-      }
-      continue;
-    }
-    if (inUnquotedUrl) {
-      out += ch;
-      if (ch === '\\' && i + 1 < css.length) {
-        out += css[++i];
-      } else if (ch === ')') {
-        inUnquotedUrl = false;
-      }
-      continue;
-    }
-    if (ch === '"' || ch === "'") {
-      quote = ch;
-      out += ch;
-      continue;
-    }
-    if (ch === '/' && css[i + 1] === '*') {
-      const closeIdx = css.indexOf('*/', i + 2);
-      if (closeIdx === -1) break;
-      i = closeIdx + 1;
-      continue;
-    }
-    if (
-      (ch === 'u' || ch === 'U') &&
-      /^url\(\s*(?!['"])/i.test(css.slice(i)) &&
-      (i === 0 || !/[\w-]/.test(css[i - 1]))
-    ) {
-      const openParen = css.indexOf('(', i);
-      out += css.slice(i, openParen + 1);
-      i = openParen;
-      inUnquotedUrl = true;
-      continue;
-    }
-    out += ch;
-  }
-  return out;
 }
 
 export function schemeColor(schemeId, nameOrIndex) {
