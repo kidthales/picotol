@@ -4,9 +4,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assertSafeCustomSyncTarget, isSameOrSubpath, resolveSyncOptions } from './path-jail.mjs';
-
-export { assertSafeCustomSyncTarget, isSameOrSubpath, resolveSyncOptions };
+import { resolveSyncOptions } from './path-jail.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dataDir = join(root, 'data');

@@ -7,6 +7,8 @@ import assert from 'node:assert/strict';
 import {
   expandHex,
   relativeLuminance,
+  mixSrgb,
+  stripCssComments,
   schemeColor,
   achromaticColor,
   parseLightDark,
@@ -369,14 +371,17 @@ test('parseTokens: throws if required layers (tokens, reset, base) are missing',
   );
 });
 
-test('parseTokens: CSS comments and unquoted url(data:...;base64,...) semicolons do not corrupt parsing', () => {
+test('parseTokens: CSS comments, /* inside strings, and unquoted url(data:...;base64,...) semicolons do not corrupt parsing', () => {
   const commentedCss = `
     /* Comment with { braces: inside; } and ; colons */
     @layer tokens {
       /* Another comment { foo: bar; } */
       :root, :host {
+        --pt-str-comment: "/* inside double quotes";
+        --pt-url-comment: url(https://example.com/*not-a-comment*/icon.svg);
         --pt-icon: url(data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=);
         --pt-bg: #FFFFFF;
+        --pt-str-close: "*/";
       }
     }
     @layer reset {
@@ -389,14 +394,20 @@ test('parseTokens: CSS comments and unquoted url(data:...;base64,...) semicolons
 
   const tokens = parseTokens(commentedCss);
   assert.equal(tokens.getToken('--pt-bg', 'light'), '#FFFFFF');
+  assert.equal(tokens.rootDecls['--pt-str-comment'], '"/* inside double quotes"');
+  assert.equal(tokens.rootDecls['--pt-url-comment'], 'url(https://example.com/*not-a-comment*/icon.svg)');
   assert.equal(tokens.rootDecls['--pt-icon'], 'url(data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=)');
+  assert.equal(
+    stripCssComments('a { content: "/* keep"; /* strip */ background: url(http://x/*keep*/y); }'),
+    'a { content: "/* keep";  background: url(http://x/*keep*/y); }'
+  );
 
   const block = parseCssBlock('background: url(data:image/png;base64,AAAA); color: #4477AA;');
   assert.equal(block.declarations.background, 'url(data:image/png;base64,AAAA)');
   assert.equal(block.declarations.color, '#4477AA');
 });
 
-test('parseTokens: non-hex and transparent (#0000 / #00000000) values throw strict validation errors', () => {
+test('parseTokens: non-hex, transparent (#0000 / #00000000), and invalid mixSrgb inputs throw strict validation errors', () => {
   const nonHexCss = `
     @layer tokens {
       :root {
@@ -433,4 +444,10 @@ test('parseTokens: non-hex and transparent (#0000 / #00000000) values throw stri
     () => relativeLuminance('#0000'),
     /Invalid 6-digit opaque hex color/
   );
+  assert.throws(() => mixSrgb('#0000', 8, '#FFFFFF'), /Invalid 6-digit opaque hex color for borderHex/);
+  assert.throws(() => mixSrgb('#4477AA', 8, 'transparent'), /Invalid 6-digit opaque hex color for bgHex/);
+  assert.throws(() => mixSrgb('#4477AA', -1, '#FFFFFF'), /Invalid alphaPct in mixSrgb/);
+  assert.throws(() => mixSrgb('#4477AA', 101, '#FFFFFF'), /Invalid alphaPct in mixSrgb/);
+  assert.throws(() => mixSrgb('#4477AA', Number.NaN, '#FFFFFF'), /Invalid alphaPct in mixSrgb/);
+  assert.throws(() => mixSrgb('#4477AA', '8', '#FFFFFF'), /Invalid alphaPct in mixSrgb/);
 });

@@ -20,12 +20,22 @@ import {
   buildTokensCss,
   buildPalettesCss,
   syncTokens,
-  assertSafeCustomSyncTarget,
-  resolveSyncOptions,
 } from '../tools/sync-tokens.mjs';
-import { buildAll, isSameOrSubpath, resolveOutDir } from '../tools/build.mjs';
-import { packageAssets, parsePkZipEntries } from '../tools/package-assets.mjs';
-import { assertValidMtimeOption } from '../tools/path-jail.mjs';
+import { buildAll } from '../tools/build.mjs';
+import {
+  createPkZip,
+  packageAssets,
+  parsePkZipEntries,
+  resolveDefaultZipMtime,
+  toDosDateTime,
+} from '../tools/package-assets.mjs';
+import {
+  assertSafeCustomSyncTarget,
+  assertValidMtimeOption,
+  isSameOrSubpath,
+  resolveOutDir,
+  resolveSyncOptions,
+} from '../tools/path-jail.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -271,7 +281,7 @@ test('tools/lint.mjs: expandHex utility expands 3-digit hex without turning tran
   assert.equal(isTransparentHex('#000000'), false);
 });
 
-test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pure path-jail/symlink/dot-dir validation, and isolated syncTokens write path', () => {
+test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pure path-jail/symlink/dot-dir validation, and isolated syncTokens write path', (t) => {
   const snapshot = loadSnapshot();
   assert.ok(snapshot.schemes, 'Snapshot must contain schemes');
   assert.ok(snapshot.achromatic, 'Snapshot must contain achromatic stops');
@@ -304,6 +314,14 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
   assert.throws(
     () => resolveSyncOptions({ palettesCssPath: path.join(os.tmpdir(), 'only-palettes.css') }),
     /must provide outSrcDir or both tokensCssPath and palettesCssPath/
+  );
+  assert.throws(
+    () => resolveSyncOptions({ snapshot }),
+    /custom snapshot requires outSrcDir or both tokensCssPath and palettesCssPath/
+  );
+  assert.throws(
+    () => syncTokens({ snapshot }),
+    /custom snapshot requires outSrcDir or both tokensCssPath and palettesCssPath/
   );
   assert.throws(() => assertSafeCustomSyncTarget(ROOT, 'outSrcDir'), /refusing to write custom sync target inside repository/);
   assert.throws(() => assertSafeCustomSyncTarget(path.join(ROOT, 'src'), 'outSrcDir'), /refusing to write custom sync target inside repository/);
@@ -353,7 +371,7 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
     // must still be resolved via lstatSync + readlinkSync and rejected by the repository jail.
     // On Windows without Developer Mode / SeCreateSymbolicLinkPrivilege, 'junction' is always
     // permitted for directories (including non-existent targets), and we also test 'file' symlink
-    // guarded on EPERM.
+    // guarded on EPERM/ENOSYS with explicit t.diagnostic logging when skipped.
     const danglingDirLink = path.join(tempLinkHolder, 'dangling-dir-link');
     fs.symlinkSync(
       path.join(ROOT, 'src', 'nonexistent-dangling-subdir'),
@@ -384,6 +402,9 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
       fileSymlinkCreated = true;
     } catch (err) {
       if (err.code !== 'EPERM' && err.code !== 'ENOSYS') throw err;
+      t.diagnostic(
+        `Skipped dangling file symlink sub-assertion (${err.code}): Windows file symlinks require Developer Mode or SeCreateSymbolicLinkPrivilege; dangling directory junction test still ran.`
+      );
     }
     if (fileSymlinkCreated) {
       assert.equal(fs.existsSync(danglingLinkToRepoFile), false, 'Dangling file symlink target must not exist');
@@ -414,21 +435,33 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
     // Unlink / rmdir junctions and symlinks explicitly in their own try blocks before removing holder
     if (danglingLinkToRepoFile) {
       try {
-        fs.unlinkSync(danglingLinkToRepoFile);
-      } catch {}
+        if (fs.lstatSync(danglingLinkToRepoFile)) {
+          fs.unlinkSync(danglingLinkToRepoFile);
+        }
+      } catch (err) {
+        if (err.code !== 'ENOENT') t.diagnostic(`Cleanup diagnostic (danglingLinkToRepoFile): ${err.message}`);
+      }
     }
     if (tempLinkHolder) {
       try {
         const danglingDirLink = path.join(tempLinkHolder, 'dangling-dir-link');
-        if (process.platform === 'win32') fs.rmdirSync(danglingDirLink);
-        else fs.unlinkSync(danglingDirLink);
-      } catch {}
+        if (fs.lstatSync(danglingDirLink)) {
+          if (process.platform === 'win32') fs.rmdirSync(danglingDirLink);
+          else fs.unlinkSync(danglingDirLink);
+        }
+      } catch (err) {
+        if (err.code !== 'ENOENT') t.diagnostic(`Cleanup diagnostic (danglingDirLink): ${err.message}`);
+      }
     }
     if (linkToSrc) {
       try {
-        if (process.platform === 'win32') fs.rmdirSync(linkToSrc);
-        else fs.unlinkSync(linkToSrc);
-      } catch {}
+        if (fs.lstatSync(linkToSrc)) {
+          if (process.platform === 'win32') fs.rmdirSync(linkToSrc);
+          else fs.unlinkSync(linkToSrc);
+        }
+      } catch (err) {
+        if (err.code !== 'ENOENT') t.diagnostic(`Cleanup diagnostic (linkToSrc): ${err.message}`);
+      }
     }
     if (tempLinkHolder) fs.rmSync(tempLinkHolder, { recursive: true, force: true });
     if (tempSrcDir) fs.rmSync(tempSrcDir, { recursive: true, force: true });
@@ -582,11 +615,50 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
       'dist/assets/picotol-v*.zip entries and content hashes must match fresh buildAll() output'
     );
 
-    // 5. Full-tree idempotence test: second build with same mtime must produce an identical directory tree
-    // (covering all 6 CSS bundles, sri.json, manifest.json, SHA256SUMS.txt, demo/*, and assets/*.zip)
-    buildAll({ outDir: tempDir2, mtime: fixedMtime });
+    // 5. Full-tree idempotence and UTC / SOURCE_DATE_EPOCH / parsePkZipEntries hardening tests:
+    // Default build without mtime option uses deterministic UTC default epoch (matching committed dist/assets/*.zip byte-for-byte)
+    buildAll({ outDir: tempDir2 });
     const tree2 = hashDirectoryTree(tempDir2);
     assert.deepEqual(tree1, tree2, 'buildAll must be full-tree idempotent across all generated files and zip archive');
+    assert.equal(
+      tree2[`assets/picotol-v${pkg.version}.zip`],
+      committedBefore[`assets/picotol-v${pkg.version}.zip`],
+      'Default buildAll() zip archive must match committed dist/assets/picotol-v*.zip byte-for-byte across checkouts and timezones'
+    );
+
+    // UTC MS-DOS timestamp & SOURCE_DATE_EPOCH verification
+    const dosUtc = toDosDateTime(new Date('2026-06-15T14:30:20Z'));
+    assert.equal(dosUtc.dosDate, (((2026 - 1980) << 9) | (6 << 5) | 15) >>> 0);
+    assert.equal(dosUtc.dosTime, ((14 << 11) | (30 << 5) | 10) >>> 0);
+
+    const prevEpoch = process.env.SOURCE_DATE_EPOCH;
+    try {
+      process.env.SOURCE_DATE_EPOCH = '1767225600'; // 2026-01-01T00:00:00Z
+      assert.equal(resolveDefaultZipMtime().toISOString(), '2026-01-01T00:00:00.000Z');
+      process.env.SOURCE_DATE_EPOCH = 'not-an-int';
+      assert.throws(() => resolveDefaultZipMtime(), /Invalid SOURCE_DATE_EPOCH/);
+    } finally {
+      if (prevEpoch === undefined) delete process.env.SOURCE_DATE_EPOCH;
+      else process.env.SOURCE_DATE_EPOCH = prevEpoch;
+    }
+
+    // parsePkZipEntries strict validation: reject non-deflate method, ZIP64 sentinels, and truncated/oversized payloads
+    const sampleZip = createPkZip([{ name: 'hello.txt', data: 'hello world', mtime: fixedMtime }]);
+    assert.equal(parsePkZipEntries(sampleZip).length, 1);
+
+    const badMethodZip = Buffer.from(sampleZip);
+    const eocdPos = badMethodZip.length - 22;
+    const cdStart = badMethodZip.readUInt32LE(eocdPos + 16);
+    badMethodZip.writeUInt16LE(0, cdStart + 10); // compression method 0 (stored) instead of 8 (deflate)
+    assert.throws(() => parsePkZipEntries(badMethodZip), /Unsupported compression method 0/);
+
+    const zip64Sentinel = Buffer.from(sampleZip);
+    zip64Sentinel.writeUInt16LE(0xffff, eocdPos + 10);
+    assert.throws(() => parsePkZipEntries(zip64Sentinel), /ZIP64 archives are not supported/);
+
+    const deflatedPayloadsExceedingClaim = Buffer.from(sampleZip);
+    deflatedPayloadsExceedingClaim.writeUInt32LE(3, cdStart + 24); // claim uncompressedSize = 3 when payload inflates to 11
+    assert.throws(() => parsePkZipEntries(deflatedPayloadsExceedingClaim), /Cannot create a Buffer larger than|maxOutputLength|Uncompressed size mismatch/);
   } finally {
     if (tempDir1) fs.rmSync(tempDir1, { recursive: true, force: true });
     if (tempDir2) fs.rmSync(tempDir2, { recursive: true, force: true });

@@ -54,8 +54,22 @@ export function contrastRatio(hexA, hexB) {
 }
 
 export function mixSrgb(borderHex, alphaPct, bgHex) {
-  const c1 = expandHex(borderHex).replace('#', '');
-  const c2 = expandHex(bgHex).replace('#', '');
+  if (typeof borderHex !== 'string' || typeof bgHex !== 'string') {
+    throw new Error('Invalid hex input to mixSrgb: borderHex and bgHex must be strings');
+  }
+  const exp1 = expandHex(borderHex);
+  const exp2 = expandHex(bgHex);
+  if (!/^#[0-9A-F]{6}$/i.test(exp1)) {
+    throw new Error(`Invalid 6-digit opaque hex color for borderHex: ${borderHex}`);
+  }
+  if (!/^#[0-9A-F]{6}$/i.test(exp2)) {
+    throw new Error(`Invalid 6-digit opaque hex color for bgHex: ${bgHex}`);
+  }
+  if (typeof alphaPct !== 'number' || !Number.isFinite(alphaPct) || alphaPct < 0 || alphaPct > 100) {
+    throw new Error(`Invalid alphaPct in mixSrgb: "${alphaPct}" must be a finite number in [0, 100]`);
+  }
+  const c1 = exp1.slice(1);
+  const c2 = exp2.slice(1);
   const r1 = parseInt(c1.slice(0, 2), 16);
   const g1 = parseInt(c1.slice(2, 4), 16);
   const b1 = parseInt(c1.slice(4, 6), 16);
@@ -67,6 +81,59 @@ export function mixSrgb(borderHex, alphaPct, bgHex) {
   const g = Math.round(g1 * a + g2 * (1 - a));
   const b = Math.round(b1 * a + b2 * (1 - a));
   return '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+
+export function stripCssComments(css) {
+  // Single-pass CSS comment stripper that preserves /* ... */ inside quoted strings
+  // ("...", '...') and unquoted url(...) tokens.
+  let out = '';
+  let quote = null;
+  let inUnquotedUrl = false;
+  for (let i = 0; i < css.length; i++) {
+    const ch = css[i];
+    if (quote) {
+      out += ch;
+      if (ch === '\\' && i + 1 < css.length) {
+        out += css[++i];
+      } else if (ch === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (inUnquotedUrl) {
+      out += ch;
+      if (ch === '\\' && i + 1 < css.length) {
+        out += css[++i];
+      } else if (ch === ')') {
+        inUnquotedUrl = false;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      out += ch;
+      continue;
+    }
+    if (ch === '/' && css[i + 1] === '*') {
+      const closeIdx = css.indexOf('*/', i + 2);
+      if (closeIdx === -1) break;
+      i = closeIdx + 1;
+      continue;
+    }
+    if (
+      (ch === 'u' || ch === 'U') &&
+      /^url\(\s*(?!['"])/i.test(css.slice(i)) &&
+      (i === 0 || !/[\w-]/.test(css[i - 1]))
+    ) {
+      const openParen = css.indexOf('(', i);
+      out += css.slice(i, openParen + 1);
+      i = openParen;
+      inUnquotedUrl = true;
+      continue;
+    }
+    out += ch;
+  }
+  return out;
 }
 
 export function schemeColor(schemeId, nameOrIndex) {
@@ -153,7 +220,7 @@ export function splitSelectors(rawSelector) {
 }
 
 export function extractLayerBlock(rawCss, layerName) {
-  const cleanCss = rawCss.replace(/\/\*[\s\S]*?\*\//g, '');
+  const cleanCss = stripCssComments(rawCss);
   const re = new RegExp(`@layer\\s+${layerName}\\s*\\{`, 'g');
   const matches = [...cleanCss.matchAll(re)];
   if (matches.length === 0) return null;
@@ -186,7 +253,7 @@ export function extractLayerBlock(rawCss, layerName) {
 }
 
 export function parseCssBlock(rawBlockText) {
-  const blockText = rawBlockText.replace(/\/\*[\s\S]*?\*\//g, '');
+  const blockText = stripCssComments(rawBlockText);
   const declarations = {};
   const rules = [];
   let depth = 0;
@@ -289,8 +356,8 @@ function isSecondaryButtonRuleSelector(rawSelector) {
 }
 
 export function parseTokens(cssContent) {
-  // Strip CSS comments before parsing rules
-  const cleanCss = cssContent.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Strip CSS comments (preserving strings and unquoted url()) before parsing rules
+  const cleanCss = stripCssComments(cssContent);
 
   const tokensBlock = extractLayerBlock(cleanCss, 'tokens');
   if (tokensBlock === null) {

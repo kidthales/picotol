@@ -3,6 +3,12 @@
 // via fs.realpathSync.native to defeat dangling-symlink escapes, junction escapes, and Windows 8.3
 // short names, while using segment-aware relative path checks (rel === '..' || rel.startsWith('..' + sep))
 // so dot-prefixed directory names like "..foo" inside the repository cannot bypass the jail.
+//
+// Security Boundary Note (TOCTOU):
+//   resolveOutDir() and assertSafeCustomSyncTarget() validate target paths prior to synchronous
+//   fs.mkdirSync / fs.writeFileSync calls. An inherent time-of-check/time-of-use (TOCTOU) window
+//   exists against concurrent local filesystem mutation between validation and write; this is an
+//   accepted boundary for a local, single-operator build and development tool.
 import { lstatSync, readlinkSync, realpathSync } from 'node:fs';
 import { dirname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,12 +19,8 @@ export const srcDir = join(root, 'src');
 export const dataDir = join(root, 'data');
 
 const MAX_SYMLINK_DEPTH = 32;
-
-function nativeRealpath(targetPath) {
-  return typeof realpathSync.native === 'function'
-    ? realpathSync.native(targetPath)
-    : realpathSync(targetPath);
-}
+const nativeRealpath = (p) => (typeof realpathSync.native === 'function' ? realpathSync.native(p) : realpathSync(p));
+const normCase = (p) => (process.platform === 'win32' ? p.toLowerCase() : p);
 
 export function resolveRealPath(targetPath, symlinkDepth = 0) {
   if (symlinkDepth > MAX_SYMLINK_DEPTH) {
@@ -26,8 +28,7 @@ export function resolveRealPath(targetPath, symlinkDepth = 0) {
   }
   const abs = resolve(targetPath);
   const parsed = parse(abs);
-  const relFromRoot = abs.slice(parsed.root.length);
-  const segments = relFromRoot.split(sep).filter(Boolean);
+  const segments = abs.slice(parsed.root.length).split(sep).filter(Boolean);
 
   let current = parsed.root;
   try {
@@ -42,18 +43,14 @@ export function resolveRealPath(targetPath, symlinkDepth = 0) {
     try {
       st = lstatSync(candidate);
     } catch (err) {
-      if (err.code === 'ENOENT') {
-        return join(current, ...segments.slice(i));
-      }
+      if (err.code === 'ENOENT') return join(current, ...segments.slice(i));
       throw err;
     }
 
     if (st.isSymbolicLink()) {
-      const linkTarget = readlinkSync(candidate);
-      const resolvedLinkTarget = resolve(dirname(candidate), linkTarget);
+      const resolvedLinkTarget = resolve(dirname(candidate), readlinkSync(candidate));
       const remaining = segments.slice(i + 1);
-      const nextTarget =
-        remaining.length > 0 ? join(resolvedLinkTarget, ...remaining) : resolvedLinkTarget;
+      const nextTarget = remaining.length > 0 ? join(resolvedLinkTarget, ...remaining) : resolvedLinkTarget;
       return resolveRealPath(nextTarget, symlinkDepth + 1);
     }
 
@@ -64,11 +61,7 @@ export function resolveRealPath(targetPath, symlinkDepth = 0) {
 }
 
 export function isSameOrSubpath(targetPath, basePath) {
-  const realTarget = resolveRealPath(targetPath);
-  const realBase = resolveRealPath(basePath);
-  const normTarget = process.platform === 'win32' ? realTarget.toLowerCase() : realTarget;
-  const normBase = process.platform === 'win32' ? realBase.toLowerCase() : realBase;
-  const rel = relative(normBase, normTarget);
+  const rel = relative(normCase(resolveRealPath(basePath)), normCase(resolveRealPath(targetPath)));
   return rel === '' || (rel !== '..' && !rel.startsWith('..' + sep) && !isAbsolute(rel));
 }
 
@@ -89,8 +82,7 @@ export function resolveOutDir(opts = {}) {
   if (opts === null || typeof opts !== 'object') {
     throw new Error('Invalid outDir: options must be an object');
   }
-  const hasOutDir = 'outDir' in opts;
-  const rawOutDir = hasOutDir ? opts.outDir : distDir;
+  const rawOutDir = 'outDir' in opts ? opts.outDir : distDir;
   if (typeof rawOutDir !== 'string' || rawOutDir.trim() === '') {
     throw new Error('Invalid outDir: must be a non-empty string path');
   }
@@ -156,6 +148,11 @@ export function resolveSyncOptions(opts = {}) {
   ) {
     throw new Error('Invalid snapshot: must be a valid snapshot object');
   }
+  if (hasSnapshot && !hasOutSrcDir && !hasTokensPath && !hasPalettesPath) {
+    throw new Error(
+      'Invalid token output path: custom snapshot requires outSrcDir or both tokensCssPath and palettesCssPath to prevent overwriting committed src/'
+    );
+  }
 
   let targetTokensPath = join(srcDir, 'tokens.css');
   let targetPalettesPath = join(srcDir, 'palettes.css');
@@ -168,16 +165,10 @@ export function resolveSyncOptions(opts = {}) {
     targetPalettesPath = hasPalettesPath
       ? assertSafeCustomSyncTarget(opts.palettesCssPath, 'palettesCssPath')
       : assertSafeCustomSyncTarget(join(baseOutDir, 'palettes.css'), 'palettesCssPath');
-    const normTokens = process.platform === 'win32' ? targetTokensPath.toLowerCase() : targetTokensPath;
-    const normPalettes = process.platform === 'win32' ? targetPalettesPath.toLowerCase() : targetPalettesPath;
-    if (normTokens === normPalettes) {
+    if (normCase(targetTokensPath) === normCase(targetPalettesPath)) {
       throw new Error('Invalid token output path: tokensCssPath and palettesCssPath must be distinct');
     }
   }
 
-  return {
-    targetTokensPath,
-    targetPalettesPath,
-    hasSnapshot,
-  };
+  return { targetTokensPath, targetPalettesPath, hasSnapshot };
 }

@@ -13,9 +13,7 @@ import { gzipSync } from 'node:zlib';
 import { bundle, transform, Features } from 'lightningcss';
 import { generateDemoHtml } from './generate-demo.mjs';
 import { packageAssets } from './package-assets.mjs';
-import { assertValidMtimeOption, isSameOrSubpath, resolveOutDir } from './path-jail.mjs';
-
-export { isSameOrSubpath, resolveOutDir };
+import { assertValidMtimeOption, resolveOutDir } from './path-jail.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));

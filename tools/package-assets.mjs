@@ -5,25 +5,41 @@
 //   - sri.json
 //   - index.html (self-contained offline kitchen-sink showcase)
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
-import { assertValidMtimeOption, isSameOrSubpath, resolveOutDir } from './path-jail.mjs';
-
-export { isSameOrSubpath, resolveOutDir };
+import { assertValidMtimeOption, resolveOutDir } from './path-jail.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
-function toDosDateTime(date) {
-  const d = date === undefined ? new Date() : date;
+export const DEFAULT_ZIP_MTIME = new Date('2026-01-01T00:00:00Z');
+
+export function resolveDefaultZipMtime() {
+  const rawEpoch = process.env.SOURCE_DATE_EPOCH;
+  if (rawEpoch !== undefined && rawEpoch.trim() !== '') {
+    const seconds = Number(rawEpoch);
+    if (!Number.isInteger(seconds) || seconds < 0) {
+      throw new Error(`Invalid SOURCE_DATE_EPOCH: "${rawEpoch}" must be a non-negative integer`);
+    }
+    return new Date(seconds * 1000);
+  }
+  return DEFAULT_ZIP_MTIME;
+}
+
+export function toDosDateTime(date) {
+  const d = date === undefined ? resolveDefaultZipMtime() : date;
   if (!(d instanceof Date) || Number.isNaN(d.getTime())) {
     throw new Error('Invalid mtime: must be a valid Date instance');
   }
-  const year = Math.max(1980, d.getFullYear());
-  const dosDate = (((year - 1980) & 0x7f) << 9) | (((d.getMonth() + 1) & 0xf) << 5) | (d.getDate() & 0x1f);
-  const dosTime = ((d.getHours() & 0x1f) << 11) | ((d.getMinutes() & 0x3f) << 5) | (Math.floor(d.getSeconds() / 2) & 0x1f);
+  const year = Math.max(1980, d.getUTCFullYear());
+  const dosDate =
+    (((year - 1980) & 0x7f) << 9) | (((d.getUTCMonth() + 1) & 0xf) << 5) | (d.getUTCDate() & 0x1f);
+  const dosTime =
+    ((d.getUTCHours() & 0x1f) << 11) |
+    ((d.getUTCMinutes() & 0x3f) << 5) |
+    (Math.floor(d.getUTCSeconds() / 2) & 0x1f);
   return { dosDate: dosDate >>> 0, dosTime: dosTime >>> 0 };
 }
 
@@ -99,6 +115,9 @@ export function createPkZip(entries) {
 }
 
 export function parsePkZipEntries(zipBuf) {
+  if (!Buffer.isBuffer(zipBuf) || zipBuf.length < 22) {
+    throw new Error('Invalid PKZip buffer: must be a Buffer of at least 22 bytes');
+  }
   let eocdOffset = -1;
   for (let i = zipBuf.length - 22; i >= Math.max(0, zipBuf.length - 65557); i--) {
     if (zipBuf.readUInt32LE(i) === 0x06054b50) {
@@ -111,13 +130,28 @@ export function parsePkZipEntries(zipBuf) {
   }
 
   const totalEntries = zipBuf.readUInt16LE(eocdOffset + 10);
+  const cdSize = zipBuf.readUInt32LE(eocdOffset + 12);
   const cdOffset = zipBuf.readUInt32LE(eocdOffset + 16);
+  if (totalEntries === 0xffff || cdSize === 0xffffffff || cdOffset === 0xffffffff) {
+    throw new Error('ZIP64 archives are not supported');
+  }
+  if (cdOffset + cdSize > eocdOffset) {
+    throw new Error('Central Directory bounds exceed End of Central Directory offset');
+  }
+
   const entries = [];
   let pos = cdOffset;
 
   for (let i = 0; i < totalEntries; i++) {
+    if (pos + 46 > eocdOffset) {
+      throw new Error(`Central Directory header at offset ${pos} exceeds EOCD bounds`);
+    }
     if (zipBuf.readUInt32LE(pos) !== 0x02014b50) {
       throw new Error(`Invalid Central Directory signature at offset ${pos}`);
+    }
+    const cdMethod = zipBuf.readUInt16LE(pos + 10);
+    if (cdMethod !== 8) {
+      throw new Error(`Unsupported compression method ${cdMethod} in Central Directory (expected 8 / deflate)`);
     }
     const crc = zipBuf.readUInt32LE(pos + 16);
     const compressedSize = zipBuf.readUInt32LE(pos + 20);
@@ -126,16 +160,34 @@ export function parsePkZipEntries(zipBuf) {
     const extraLen = zipBuf.readUInt16LE(pos + 30);
     const commentLen = zipBuf.readUInt16LE(pos + 32);
     const lfhOffset = zipBuf.readUInt32LE(pos + 42);
+    if (compressedSize === 0xffffffff || uncompressedSize === 0xffffffff || lfhOffset === 0xffffffff) {
+      throw new Error('ZIP64 entry fields are not supported');
+    }
+    if (pos + 46 + nameLen + extraLen + commentLen > eocdOffset) {
+      throw new Error(`Central Directory variable fields at offset ${pos} exceed EOCD bounds`);
+    }
     const name = zipBuf.toString('utf8', pos + 46, pos + 46 + nameLen);
 
+    if (lfhOffset + 30 > cdOffset) {
+      throw new Error(`Local File Header offset ${lfhOffset} for ${name} exceeds Central Directory start`);
+    }
     if (zipBuf.readUInt32LE(lfhOffset) !== 0x04034b50) {
       throw new Error(`Invalid Local File Header signature at offset ${lfhOffset} for ${name}`);
+    }
+    const lfhMethod = zipBuf.readUInt16LE(lfhOffset + 8);
+    if (lfhMethod !== 8) {
+      throw new Error(`Unsupported compression method ${lfhMethod} in Local File Header for ${name} (expected 8 / deflate)`);
     }
     const lfhNameLen = zipBuf.readUInt16LE(lfhOffset + 26);
     const lfhExtraLen = zipBuf.readUInt16LE(lfhOffset + 28);
     const dataStart = lfhOffset + 30 + lfhNameLen + lfhExtraLen;
+    if (dataStart + compressedSize > cdOffset) {
+      throw new Error(`Compressed data slice for ${name} exceeds Central Directory start`);
+    }
     const compressedSlice = zipBuf.subarray(dataStart, dataStart + compressedSize);
-    const decompressed = zlib.inflateRawSync(compressedSlice);
+    const decompressed = zlib.inflateRawSync(compressedSlice, {
+      maxOutputLength: Math.max(1, uncompressedSize),
+    });
 
     if (decompressed.length !== uncompressedSize) {
       throw new Error(`Uncompressed size mismatch for ${name}: expected ${uncompressedSize}, got ${decompressed.length}`);
@@ -162,6 +214,7 @@ export function parsePkZipEntries(zipBuf) {
 export function packageAssets(opts = {}) {
   const targetDist = resolveOutDir(opts);
   const validatedMtime = assertValidMtimeOption(opts);
+  const effectiveMtime = validatedMtime !== undefined ? validatedMtime : resolveDefaultZipMtime();
   const assetsDir = join(targetDist, 'assets');
   mkdirSync(assetsDir, { recursive: true });
 
@@ -183,11 +236,10 @@ export function packageAssets(opts = {}) {
     if (!existsSync(sourcePath)) {
       throw new Error(`Cannot package assets: source file missing: ${sourcePath}. Run build first.`);
     }
-    const stat = statSync(sourcePath);
     return {
       name: archivePath,
       data: readFileSync(sourcePath),
-      mtime: validatedMtime !== undefined ? validatedMtime : stat.mtime,
+      mtime: effectiveMtime,
     };
   });
 

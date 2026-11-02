@@ -52,8 +52,11 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
     const matches = content.match(hexRegex) || [];
     for (const match of matches) {
       const normalized = expandHex(match);
+      const isAllowedOrTransparent = isTransparentHex(normalized)
+        ? true
+        : allowedHexSet.has(normalized);
       assert.ok(
-        isTransparentHex(normalized) || allowedHexSet.has(normalized),
+        isAllowedOrTransparent,
         `Non-Paul-Tol hex color ${match} (normalized: ${normalized}) found in ${path.relative(ROOT, file)}`
       );
     }
@@ -208,10 +211,10 @@ test("Architecture & Selector Invariants: @layer cascade, --pt-* tokens, [data-t
   assert.ok(!fullCss.includes("--tc-"), "Legacy --tc-* token namespace must be completely migrated");
 
   for (const theme of ["light", "dark"]) {
-    assert.ok(fullCss.includes(`[data-theme="${theme}"]`) || fullCss.includes(`[data-theme=${theme}]`));
+    assert.ok(fullCss.includes(`[data-theme="${theme}"]`));
   }
   for (const accent of ["blue", "cyan", "purple", "magenta"]) {
-    assert.ok(fullCss.includes(`[data-accent="${accent}"]`) || fullCss.includes(`[data-accent=${accent}]`));
+    assert.ok(fullCss.includes(`[data-accent="${accent}"]`));
   }
   for (const retired of ["green", "yellow", "red", "teal", "indigo"]) {
     assert.ok(!fullCss.includes(`[data-accent="${retired}"]`) && !fullCss.includes(`[data-accent=${retired}]`), `Retired accent ${retired} must not be present in [data-accent]`);
@@ -336,7 +339,7 @@ test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework b
     "dist/picotol.layer.css must wrap contents in @layer picotol"
   );
   assert.ok(
-    layerMinCss.includes("@layer picotol{") || layerMinCss.includes("@layer picotol {"),
+    layerMinCss.includes("@layer picotol{"),
     "dist/picotol.layer.min.css must contain @layer picotol"
   );
 
@@ -344,7 +347,7 @@ test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework b
   const layers = ["tokens", "reset", "base", "components", "utilities"];
   for (const layer of layers) {
     assert.ok(
-      layerMinCss.includes(`@layer ${layer}`) || layerMinCss.includes(`@layer ${layer}{`),
+      layerMinCss.includes(`@layer ${layer}{`),
       `Layered minified build must retain inner @layer ${layer}`
     );
   }
@@ -393,8 +396,7 @@ test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, sele
 
   // ARIA 1.2 validation selector: &[aria-invalid]:not([aria-invalid="false"])
   assert.ok(
-    coreCss.includes('[aria-invalid]:not([aria-invalid="false"])') ||
-    coreCss.includes('[aria-invalid]:not([aria-invalid=false])'),
+    coreCss.includes('[aria-invalid]:not([aria-invalid="false"])'),
     "Core CSS must support ARIA 1.2 spelling/grammar validation"
   );
 
@@ -405,20 +407,20 @@ test("Component Behavioral & ARIA Validation: compiled CSS includes :modal, sele
   assert.ok(/figure:has\(\s*>\s*table\)/.test(coreCss), "Core CSS must include figure:has(> table) containment");
 
   // SVG Icon ergonomics
-  assert.ok(coreCss.includes("svg.icon") || coreCss.includes("[data-icon]"), "Core CSS includes icon ergonomics");
-  assert.ok(coreCss.includes("gap: .5rem") || coreCss.includes("gap: 0.5rem"), "Core CSS includes gap for icon buttons");
-  assert.ok(coreCss.includes("aspect-ratio: 1") || coreCss.includes("aspect-ratio:1"), "Core CSS includes square icon-only button rule");
+  assert.ok(coreCss.includes("svg.icon") && coreCss.includes("[data-icon]"), "Core CSS includes icon ergonomics");
+  assert.ok(coreCss.includes("gap: .5rem"), "Core CSS includes gap for icon buttons");
+  assert.ok(coreCss.includes("aspect-ratio: 1;"), "Core CSS includes square icon-only button rule");
   assert.ok(coreCss.includes("calc(1lh + 2 * var(--pt-form-y) + 2px)"), "Core CSS includes calculated height matching standard buttons");
 
   // KPI Stat cards & Skeletons
-  assert.ok(fullCss.includes("article.stat") || fullCss.includes("dl.stats"), "Full CSS includes KPI stat card selectors");
-  assert.ok(fullCss.includes("pt-pulse"), "Full CSS includes pt-pulse animation");
+  assert.ok(fullCss.includes("article.stat") && fullCss.includes("dl.stats"), "Full CSS includes KPI stat card selectors");
+  assert.ok(fullCss.includes("pt-spin") && fullCss.includes("pt-pulse"), "Full CSS includes pt-pulse animation");
   assert.ok(fullCss.includes(".skeleton"), "Full CSS includes skeleton loader class");
 
   // Pure-CSS modal close button & header flex layout
-  assert.ok(fullCss.includes("aria-label=\"Close\"") || fullCss.includes("aria-label=Close"), "Full CSS includes dialog close cross button");
+  assert.ok(fullCss.includes('aria-label="Close"'), "Full CSS includes dialog close cross button");
   assert.ok(/dialog\s+article\s*>\s*header\s*\{[^}]*display:\s*flex/i.test(fullCss), "Full CSS includes dialog article > header flex container");
-  assert.ok(fullCss.includes("margin-inline-start: auto") || fullCss.includes("margin-inline-start:auto"), "Full CSS includes margin-inline-start: auto on modal close button");
+  assert.ok(fullCss.includes("margin-inline-start: auto;"), "Full CSS includes margin-inline-start: auto on modal close button");
 });
 
 test("Semantic State Token Contrast: --pt-valid, --pt-warning, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA", () => {
@@ -470,8 +472,7 @@ test("Semantic Callout & Status Badge Decoupling: neutral defaults, semantic pre
 
   // Callouts: default to --pt-muted-border and --pt-color
   assert.ok(
-    fullCss.includes("border-inline-start: .25rem solid var(--pt-muted-border)") ||
-    fullCss.includes("border-inline-start: 0.25rem solid var(--pt-muted-border)"),
+    fullCss.includes("border-inline-start: .25rem solid var(--pt-muted-border)"),
     "Callout must default to neutral --pt-muted-border"
   );
 
@@ -540,7 +541,7 @@ test("Foundation & Layout Ergonomics: .container-fluid, sticky footer, and layou
     assert.ok(css.includes(".mb-0"), "Layout must declare .mb-0");
     assert.ok(css.includes(".no-margin-bottom"), "Layout must declare .no-margin-bottom");
     assert.ok(
-      css.includes("100dvh") || css.includes("100vh"),
+      css.includes("100dvh"),
       "Body must declare sticky footer height"
     );
   }
@@ -573,22 +574,22 @@ test("High-Density Layout Containment: scope section, article, and hr margins wi
     );
   }
 
-  // Verify minified bundles compile scoping rules without syntax loss (accepting quoted or unquoted attribute values)
+  // Verify minified bundles compile scoping rules without syntax loss
   for (const min of [fullMin, coreMin]) {
     assert.ok(min.includes("margin-bottom:0"), "Minified bundles must compile margin-bottom: 0 reset");
     assert.ok(
-      min.includes("[style*=gap]") || min.includes('[style*="gap"]'),
+      min.includes("[style*=gap]"),
       "Minified bundles must retain gap-based container selectors"
     );
     assert.ok(
-      min.includes('[style*="display: flex"]') || min.includes('[style*="display:flex"]'),
+      min.includes('[style*="display: flex"]'),
       "Minified bundles must retain display: flex container selectors"
     );
   }
 
   // Full CSS specific checks for article and .card containment
   assert.ok(
-    fullCss.includes(":where(article, .card)") || fullCss.includes("article, .card"),
+    fullCss.includes(":where(article, .card)"),
     "Full CSS must scope article/.card within flex/grid parents"
   );
 });
@@ -625,15 +626,15 @@ test("Narrow-Corridor Reflow & Table Overflow Containment: .overflow-auto, .tabl
       "Both full and core minified bundles must include .overflow-auto and .table-container"
     );
     assert.ok(
-      css.includes("overflow-x:auto") || css.includes("overflow-x: auto"),
+      css.includes("overflow-x:auto"),
       "Both bundles must include overflow-x: auto for containment"
     );
     assert.ok(
-      css.includes("-webkit-overflow-scrolling:touch") || css.includes("-webkit-overflow-scrolling: touch"),
+      css.includes("-webkit-overflow-scrolling:touch"),
       "Both bundles must include touch momentum scrolling"
     );
     assert.ok(
-      css.includes("min-width:0") || css.includes("min-width: 0"),
+      css.includes("min-width:0"),
       "Both bundles must compile min-width: 0 for narrow-corridor flex/grid reflow"
     );
   }
@@ -657,7 +658,7 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
 
   // Check dimension rules
   assert.ok(
-    (fullCss.includes("0.5rem") || fullCss.includes(".5rem")) && fullCss.includes("50%"),
+    fullCss.includes("width: .5rem;") && fullCss.includes("height: .5rem;") && fullCss.includes("50%"),
     "Status dot must declare 0.5rem dimensions and 50% radius"
   );
 
@@ -674,30 +675,29 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
     "Status dot must support .neutral and .idle class modifiers"
   );
   assert.ok(
-    fullCss.includes('[data-status="neutral"]') || fullCss.includes("[data-status=neutral]"),
+    fullCss.includes('[data-status="neutral"]'),
     "Status dot must support data-status=neutral"
   );
   assert.ok(
-    fullCss.includes('[data-status="idle"]') || fullCss.includes("[data-status=idle]"),
+    fullCss.includes('[data-status="idle"]'),
     "Status dot must support data-status=idle"
   );
   assert.ok(
-    fullCss.includes('[data-status="backlog"]') || fullCss.includes("[data-status=backlog]"),
+    fullCss.includes('[data-status="backlog"]'),
     "Status dot must support data-status=backlog"
   );
   assert.ok(
-    fullCss.includes('[data-status="no-status"]') || fullCss.includes("[data-status=no-status]"),
+    fullCss.includes('[data-status="no-status"]'),
     "Status dot must support data-status=no-status"
   );
 
   // Spacing & Margin Compounding Prevention in Flex Gap Containers
   assert.ok(
-    fullCss.includes(":where(:not(:only-child, :last-child))") ||
-    fullCss.includes(":where(:not(:only-child,:last-child))"),
+    fullCss.includes(":where(:not(:only-child, :last-child))"),
     "Status dot default margin selector must be wrapped in :where() to maintain (0,0,0) specificity"
   );
   assert.ok(
-    fullCss.includes("margin-inline-end: 0.35rem") || fullCss.includes("margin-inline-end: .35rem"),
+    fullCss.includes("margin-inline-end: .35rem"),
     "Status dot preserves default inline spacing when not only or last child"
   );
   assert.ok(
@@ -711,7 +711,7 @@ test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping,
 
   // Forced colors mode outline
   assert.ok(
-    /outline:\s*1px\s+solid\s+canvastext/i.test(fullCss) || /outline:1px solid canvastext/i.test(fullMin),
+    /outline:\s*1px\s+solid\s+canvastext/i.test(fullCss) && /outline:1px solid canvastext/i.test(fullMin),
     "Status dot must provide CanvasText outline in forced-colors mode"
   );
 
@@ -803,11 +803,11 @@ test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numeric
   // 1. Root default and compact modifiers in tokens
   for (const css of [fullCss, coreCss]) {
     assert.ok(
-      css.includes("--pt-card-padding: var(--pt-spacing);") || css.includes("--pt-card-padding:var(--pt-spacing)"),
+      css.includes("--pt-card-padding: var(--pt-spacing);"),
       "Must define default --pt-card-padding: var(--pt-spacing) on root tokens"
     );
     assert.ok(
-      css.includes('[data-density="compact"]') || css.includes("[data-density=compact]"),
+      css.includes('[data-density="compact"]'),
       "Must support [data-density='compact'] selector modifier"
     );
     assert.ok(
@@ -843,13 +843,13 @@ test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numeric
   // 2. Block margin resets on section, article, and hr within compact context
   for (const css of [fullCss, coreCss]) {
     assert.ok(
-      (css.includes('[data-density="compact"]') || css.includes("[data-density=compact]")) &&
+      css.includes('[data-density="compact"]') &&
       css.includes(".pt-compact") &&
       css.includes("margin-bottom: 0"),
       "Section must zero block margin in compact context"
     );
     assert.ok(
-      (css.includes('[data-density="compact"]') || css.includes("[data-density=compact]")) &&
+      css.includes('[data-density="compact"]') &&
       css.includes(".pt-compact") &&
       css.includes("margin-block: 0"),
       "HR must zero margin-block in compact context"
@@ -857,7 +857,7 @@ test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numeric
   }
 
   assert.ok(
-    fullCss.includes("padding: var(--pt-card-padding);") || fullCss.includes("padding:var(--pt-card-padding)"),
+    fullCss.includes("padding: var(--pt-card-padding);"),
     "Article and card padding must use --pt-card-padding token"
   );
 
@@ -879,7 +879,7 @@ test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numeric
     "Demo HTML must showcase data-density='compact' container"
   );
   assert.ok(
-    demoHtml.includes('class="card pt-compact"') || demoHtml.includes("pt-compact"),
+    demoHtml.includes('class="card pt-compact"'),
     "Demo HTML must showcase .pt-compact utility class"
   );
   assert.ok(
@@ -910,7 +910,7 @@ test("Cross-Engine Meter Custom Properties and Gauge Threshold Pin Markers (Issu
     "Full bundle must provide .pt-progress and .pt-progress-fill fallback structure"
   );
   assert.ok(
-    fullCss.includes('[role="progressbar"]') || fullCss.includes('[role=progressbar]'),
+    fullCss.includes('[role="progressbar"]'),
     "Full bundle must style role='progressbar' containers"
   );
 
@@ -947,11 +947,11 @@ test("Cross-Engine Meter Custom Properties and Gauge Threshold Pin Markers (Issu
     "Demo HTML must showcase .pt-progress fallback"
   );
   assert.ok(
-    demoHtml.includes("pt-gauge-marker") || demoHtml.includes("pt-meter-pin"),
+    demoHtml.includes("pt-gauge-marker") && demoHtml.includes("pt-meter-mark"),
     "Demo HTML must showcase gauge marker pins"
   );
   assert.ok(
-    demoHtml.includes("pt-progress-success") || demoHtml.includes("pt-progress-warning"),
+    demoHtml.includes("pt-progress-success") && demoHtml.includes("pt-progress-warning"),
     "Demo HTML must showcase status modifiers"
   );
 });
@@ -1050,7 +1050,7 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
     "Full bundle must provide standalone .pt-status-dot with semantic variants"
   );
   assert.ok(
-    fullCss.includes(".pulse") || fullCss.includes(".pt-pulse"),
+    fullCss.includes(".pulse") && fullCss.includes("pt-pulse"),
     "Full bundle must support pulse animation on status indicators"
   );
   assert.ok(
@@ -1100,7 +1100,7 @@ test("Native Accessible Disclosures, Popovers, and Accordion Cards (Issue #96)",
 
   // 2. Summary disclosure marker and smooth rotation transition on open
   assert.ok(
-    fullCss.includes("rotate(-90deg)") && (fullCss.includes("rotate(0deg)") || fullCss.includes("transform: none")),
+    fullCss.includes("rotate(-90deg)") && fullCss.includes("transform: none;"),
     "Summary disclosure marker must support rotation transition on open"
   );
   assert.ok(
@@ -1120,7 +1120,7 @@ test("Native Accessible Disclosures, Popovers, and Accordion Cards (Issue #96)",
     "Full bundle must compile .pt-popover-menu container"
   );
   assert.ok(
-    fullCss.includes("inset-inline-end: 0") || fullCss.includes("inset-inline: auto 0") || fullCss.includes("right: 0"),
+    fullCss.includes("inset-inline: auto 0;"),
     "Popover menu must support end-alignment positioning modifier"
   );
 
@@ -1209,7 +1209,7 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     "Full bundle must compile .btn-icon and .icon-btn utility classes"
   );
   assert.ok(
-    fullCss.includes("aspect-ratio: 1 / 1") || fullCss.includes("aspect-ratio: 1"),
+    fullCss.includes("aspect-ratio: 1;"),
     "Icon buttons must enforce 1:1 square aspect ratio"
   );
   assert.ok(
@@ -1253,7 +1253,7 @@ test("Native Slide-Over Drawer Sheet Primitive and Sub-Elements (Issue #90)", ()
     "Full bundle must declare --pt-sheet-width token"
   );
   assert.ok(
-    fullCss.includes("100dvh") || fullCss.includes("100vh"),
+    fullCss.includes("100dvh"),
     "Sheet primitive must enforce full-height viewport docking (100dvh)"
   );
 
@@ -1263,11 +1263,11 @@ test("Native Slide-Over Drawer Sheet Primitive and Sub-Elements (Issue #90)", ()
     "Full bundle must compile right and left slide keyframe animations"
   );
   assert.ok(
-    fullCss.includes("translateX(100%)") || fullCss.includes("translateX(100.0%)"),
+    fullCss.includes("translateX(100%)"),
     "Right slide keyframe must transition from translateX(100%)"
   );
   assert.ok(
-    fullCss.includes("translateX(-100%)") || fullCss.includes("translateX(-100.0%)"),
+    fullCss.includes("translateX(-100%)"),
     "Left slide keyframe must transition from translateX(-100%)"
   );
 
@@ -1285,13 +1285,13 @@ test("Native Slide-Over Drawer Sheet Primitive and Sub-Elements (Issue #90)", ()
     "Full bundle must compile .sheet-footer anatomy"
   );
   assert.ok(
-    fullCss.includes("overflow-y: auto") || fullCss.includes("overflow-y:auto"),
+    fullCss.includes("overflow-y: auto;"),
     "Sheet body must support flex vertical scrolling (overflow-y: auto)"
   );
 
   // 4. Responsive viewport collapse on viewports <= 600px
   assert.ok(
-    fullCss.includes("600px") || fullCss.includes("37.5rem"),
+    fullCss.includes("600px"),
     "Full bundle must include responsive media query for narrow viewports <= 600px"
   );
 
@@ -1330,7 +1330,7 @@ test("Open Source Governance, Citation Metadata, and Issue Routing (Issue #113)"
   assert.ok(cffContent.includes("@kidthales/picotol"), "Must provide attribution for @kidthales/picotol");
   assert.ok(cffContent.includes("SRON/EPS/TN/09-002"), "Must cite Paul Tol's SRON/EPS/TN/09-002 report");
   assert.ok(cffContent.includes("Pico CSS"), "Must cite Pico CSS");
-  assert.ok(cffContent.includes("Lucas Driscoll") || cffContent.includes("Lucas Larroche"), "Must cite Lucas Driscoll / Lucas Larroche");
+  assert.ok(cffContent.includes("Lucas Driscoll") && cffContent.includes("Lucas Larroche"), "Must cite Lucas Driscoll / Lucas Larroche");
 
   // 3. .github/ISSUE_TEMPLATE/config.yml exists, disables blank issues, and links to discussions & showcase
   const configYmlPath = path.join(ROOT, ".github", "ISSUE_TEMPLATE", "config.yml");
@@ -1613,7 +1613,7 @@ test("Meter Pin Label Positioning and Multi-Marker Range Bands (Issue #124)", ()
 
   // 2. Canonical data-placement and backwards-compatible .bottom utility on meter pins and labels
   assert.ok(
-    fullCss.includes('[data-placement="bottom"]') || fullCss.includes('[data-placement=bottom]'),
+    fullCss.includes('[data-placement="bottom"]'),
     "Full bundle must support canonical data-placement=bottom on meter pins and labels"
   );
   assert.ok(
@@ -1710,19 +1710,19 @@ test("Compact Density Cascading into Form Controls, Tables, Buttons, and Layout 
 
   // 5. 320px mobile viewport zero-overflow invariants
   assert.ok(
-    coreCss.includes("box-sizing: border-box") || coreCss.includes("box-sizing:border-box"),
+    coreCss.includes("box-sizing: border-box;"),
     "Box-sizing border-box applied to prevent horizontal container blowout"
   );
   assert.ok(
-    coreCss.includes("min-width: 0") || coreCss.includes("min-width:0"),
+    coreCss.includes("min-width: 0;"),
     "Flex and grid children must include min-width: 0 to avoid overflow on narrow viewports"
   );
   assert.ok(
-    coreCss.includes("overflow-x: auto") || coreCss.includes("overflow-x:auto"),
+    coreCss.includes("overflow-x: auto;"),
     "Tables and pre blocks must declare horizontal overflow scrolling"
   );
   assert.ok(
-    coreCss.includes("max-width: 100%") || coreCss.includes("max-width:100%"),
+    coreCss.includes("max-width: 100%;"),
     "Media and container utilities must constrain max-width to 100%"
   );
 
@@ -1772,7 +1772,7 @@ test("Release Checksum Manifest and Placement Documentation (Issue #127)", () =>
 
   // 3. Documentation: Gauge Pin Canonical data-placement and compatibility classes
   assert.ok(
-    readme.includes('data-placement="top|bottom"') || readme.includes('data-placement="top"') && readme.includes('data-placement="bottom"'),
+    readme.includes('data-placement="top"') && readme.includes('data-placement="bottom"'),
     "README.md must document canonical data-placement attribute for gauge pins"
   );
   assert.ok(
@@ -1790,7 +1790,7 @@ test("Release Checksum Manifest and Placement Documentation (Issue #127)", () =>
     "README.md must document SHA256SUMS.txt and sri.json artifacts"
   );
   assert.ok(
-    readme.includes("sha256sum --check") || readme.includes("sha256sum"),
+    readme.includes("sha256sum --check"),
     "README.md must document automated bash/POSIX vendoring workflow with sha256sum"
   );
   assert.ok(
@@ -1905,8 +1905,7 @@ test("Native Status Badge and Indicator Component Primitives for Status Triads (
     "src/components.css must define .pt-badge and .pt-indicator"
   );
   assert.ok(
-    compCss.includes("font-size: var(--pt-font-size-xs, .75em)") ||
-    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em)"),
+    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em);"),
     "src/components.css must bind font-size to --pt-font-size-xs with fallback"
   );
 
@@ -1927,29 +1926,29 @@ test("Native Status Badge and Indicator Component Primitives for Status Triads (
   }
 
   // 4. Selector coverage for [data-status] attributes and semantic classes
-  assert.ok(compCss.includes('.pt-badge[data-status="ok"]') || fullCss.includes('.pt-badge[data-status="ok"]'), 'Must bind .pt-badge[data-status="ok"]');
-  assert.ok(compCss.includes('.pt-badge.ok') || fullCss.includes('.pt-badge.ok'), 'Must bind .pt-badge.ok');
-  assert.ok(compCss.includes('.pt-badge.success') || fullCss.includes('.pt-badge.success'), 'Must bind .pt-badge.success');
-  assert.ok(compCss.includes('.pt-badge[data-status="warning"]') || fullCss.includes('.pt-badge[data-status="warning"]'), 'Must bind .pt-badge[data-status="warning"]');
-  assert.ok(compCss.includes('.pt-badge.warning') || fullCss.includes('.pt-badge.warning'), 'Must bind .pt-badge.warning');
-  assert.ok(compCss.includes('.pt-badge[data-status="critical"]') || fullCss.includes('.pt-badge[data-status="critical"]'), 'Must bind .pt-badge[data-status="critical"]');
-  assert.ok(compCss.includes('.pt-badge.critical') || fullCss.includes('.pt-badge.critical'), 'Must bind .pt-badge.critical');
-  assert.ok(compCss.includes('.pt-badge[data-status="danger"]') || fullCss.includes('.pt-badge[data-status="danger"]'), 'Must bind .pt-badge[data-status="danger"]');
-  assert.ok(compCss.includes('.pt-badge.danger') || fullCss.includes('.pt-badge.danger'), 'Must bind .pt-badge.danger');
-  assert.ok(compCss.includes('.pt-badge[data-status="info"]') || fullCss.includes('.pt-badge[data-status="info"]'), 'Must bind .pt-badge[data-status="info"]');
-  assert.ok(compCss.includes('.pt-badge.info') || fullCss.includes('.pt-badge.info'), 'Must bind .pt-badge.info');
+  assert.ok(compCss.includes('.pt-badge[data-status="ok"]') && fullCss.includes('.pt-badge[data-status="ok"]'), 'Must bind .pt-badge[data-status="ok"]');
+  assert.ok(compCss.includes('.pt-badge.ok') && fullCss.includes('.pt-badge.ok'), 'Must bind .pt-badge.ok');
+  assert.ok(compCss.includes('.pt-badge.success') && fullCss.includes('.pt-badge.success'), 'Must bind .pt-badge.success');
+  assert.ok(compCss.includes('.pt-badge[data-status="warning"]') && fullCss.includes('.pt-badge[data-status="warning"]'), 'Must bind .pt-badge[data-status="warning"]');
+  assert.ok(compCss.includes('.pt-badge.warning') && fullCss.includes('.pt-badge.warning'), 'Must bind .pt-badge.warning');
+  assert.ok(compCss.includes('.pt-badge[data-status="critical"]') && fullCss.includes('.pt-badge[data-status="critical"]'), 'Must bind .pt-badge[data-status="critical"]');
+  assert.ok(compCss.includes('.pt-badge.critical') && fullCss.includes('.pt-badge.critical'), 'Must bind .pt-badge.critical');
+  assert.ok(compCss.includes('.pt-badge[data-status="danger"]') && fullCss.includes('.pt-badge[data-status="danger"]'), 'Must bind .pt-badge[data-status="danger"]');
+  assert.ok(compCss.includes('.pt-badge.danger') && fullCss.includes('.pt-badge.danger'), 'Must bind .pt-badge.danger');
+  assert.ok(compCss.includes('.pt-badge[data-status="info"]') && fullCss.includes('.pt-badge[data-status="info"]'), 'Must bind .pt-badge[data-status="info"]');
+  assert.ok(compCss.includes('.pt-badge.info') && fullCss.includes('.pt-badge.info'), 'Must bind .pt-badge.info');
 
-  assert.ok(compCss.includes('.pt-indicator[data-status="ok"]') || fullCss.includes('.pt-indicator[data-status="ok"]'), 'Must bind .pt-indicator[data-status="ok"]');
-  assert.ok(compCss.includes('.pt-indicator.ok') || fullCss.includes('.pt-indicator.ok'), 'Must bind .pt-indicator.ok');
-  assert.ok(compCss.includes('.pt-indicator.success') || fullCss.includes('.pt-indicator.success'), 'Must bind .pt-indicator.success');
-  assert.ok(compCss.includes('.pt-indicator[data-status="warning"]') || fullCss.includes('.pt-indicator[data-status="warning"]'), 'Must bind .pt-indicator[data-status="warning"]');
-  assert.ok(compCss.includes('.pt-indicator.warning') || fullCss.includes('.pt-indicator.warning'), 'Must bind .pt-indicator.warning');
-  assert.ok(compCss.includes('.pt-indicator[data-status="critical"]') || fullCss.includes('.pt-indicator[data-status="critical"]'), 'Must bind .pt-indicator[data-status="critical"]');
-  assert.ok(compCss.includes('.pt-indicator.critical') || fullCss.includes('.pt-indicator.critical'), 'Must bind .pt-indicator.critical');
-  assert.ok(compCss.includes('.pt-indicator[data-status="danger"]') || fullCss.includes('.pt-indicator[data-status="danger"]'), 'Must bind .pt-indicator[data-status="danger"]');
-  assert.ok(compCss.includes('.pt-indicator.danger') || fullCss.includes('.pt-indicator.danger'), 'Must bind .pt-indicator.danger');
-  assert.ok(compCss.includes('.pt-indicator[data-status="info"]') || fullCss.includes('.pt-indicator[data-status="info"]'), 'Must bind .pt-indicator[data-status="info"]');
-  assert.ok(compCss.includes('.pt-indicator.info') || fullCss.includes('.pt-indicator.info'), 'Must bind .pt-indicator.info');
+  assert.ok(compCss.includes('.pt-indicator[data-status="ok"]') && fullCss.includes('.pt-indicator[data-status="ok"]'), 'Must bind .pt-indicator[data-status="ok"]');
+  assert.ok(compCss.includes('.pt-indicator.ok') && fullCss.includes('.pt-indicator.ok'), 'Must bind .pt-indicator.ok');
+  assert.ok(compCss.includes('.pt-indicator.success') && fullCss.includes('.pt-indicator.success'), 'Must bind .pt-indicator.success');
+  assert.ok(compCss.includes('.pt-indicator[data-status="warning"]') && fullCss.includes('.pt-indicator[data-status="warning"]'), 'Must bind .pt-indicator[data-status="warning"]');
+  assert.ok(compCss.includes('.pt-indicator.warning') && fullCss.includes('.pt-indicator.warning'), 'Must bind .pt-indicator.warning');
+  assert.ok(compCss.includes('.pt-indicator[data-status="critical"]') && fullCss.includes('.pt-indicator[data-status="critical"]'), 'Must bind .pt-indicator[data-status="critical"]');
+  assert.ok(compCss.includes('.pt-indicator.critical') && fullCss.includes('.pt-indicator.critical'), 'Must bind .pt-indicator.critical');
+  assert.ok(compCss.includes('.pt-indicator[data-status="danger"]') && fullCss.includes('.pt-indicator[data-status="danger"]'), 'Must bind .pt-indicator[data-status="danger"]');
+  assert.ok(compCss.includes('.pt-indicator.danger') && fullCss.includes('.pt-indicator.danger'), 'Must bind .pt-indicator.danger');
+  assert.ok(compCss.includes('.pt-indicator[data-status="info"]') && fullCss.includes('.pt-indicator[data-status="info"]'), 'Must bind .pt-indicator[data-status="info"]');
+  assert.ok(compCss.includes('.pt-indicator.info') && fullCss.includes('.pt-indicator.info'), 'Must bind .pt-indicator.info');
 
   // 5. Minified bundle presence
   assert.ok(fullMin.includes("pt-badge") && fullMin.includes("pt-indicator"), "dist/picotol.min.css must compile .pt-badge and .pt-indicator");
@@ -2045,7 +2044,7 @@ test("Ultra-Compact Density Modifier, Dense Card Modifier, and Embedded Panel In
   // 1. Ultra-compact tokens in tokens.css and compiled bundles
   for (const css of [tokensCss, fullCss, coreCss]) {
     assert.ok(
-      css.includes('[data-density="tight"]') || css.includes("[data-density=tight]"),
+      css.includes('[data-density="tight"]'),
       "Must define [data-density='tight'] modifier selector"
     );
     assert.ok(
@@ -2167,16 +2166,14 @@ test("Configurable Typography Floor (--pt-font-size-floor) for Compact Density (
       "Minified bundles must include --pt-font-size-floor:12px;"
     );
     assert.ok(
-      minCss.includes("--pt-font-size-xs:max(var(--pt-font-size-floor,12px), .75rem)") ||
-      minCss.includes("--pt-font-size-xs:max(var(--pt-font-size-floor,12px),.75rem)"),
+      minCss.includes("--pt-font-size-xs:max(var(--pt-font-size-floor,12px), .75rem)"),
       "Minified bundles must clamp --pt-font-size-xs"
     );
   }
 
   // 3. Components and density classes respect typography floor via --pt-font-size-xs
   assert.ok(
-    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em);") ||
-    compCss.includes("font-size: var(--pt-font-size-xs, .75em);"),
+    compCss.includes("font-size: var(--pt-font-size-xs, 0.75em);"),
     ".pt-badge and .pt-indicator must wire font-size to --pt-font-size-xs"
   );
   assert.ok(
@@ -2382,7 +2379,7 @@ test("Boundary-Aligned Meter Marker Modifiers and Label Clipping Invariants (Iss
 
   // 2. CSS Transform rules: start = 0, end = -100%, center = -50%
   assert.ok(
-    compCss.includes("transform: translateX(0)") || compCss.includes("transform: translateX(0%)"),
+    compCss.includes("transform: translateX(0);"),
     "src/components.css must set transform: translateX(0) for start alignment"
   );
   assert.ok(
@@ -2554,7 +2551,7 @@ test("Tabular Numerics on Status Badges, Indicators, and Numeric Modifiers (Issu
     "dist/demo/index.html must showcase .pt-indicator--numeric"
   );
   assert.ok(
-    demoHtml.includes("live-badge-count") || demoHtml.includes("live-indicator-count"),
+    demoHtml.includes("live-badge-count") && demoHtml.includes("live-indicator-count"),
     "dist/demo/index.html must showcase dynamic counter/badge telemetry"
   );
 
@@ -2864,19 +2861,17 @@ test("Meter Boundary Marker Pin Clamping and Container Overflow Invariants (Issu
   );
 
   assert.ok(
-    fullCss.includes("inset-inline-start: clamp(") || fullCss.includes("inset-inline-start:clamp("),
+    fullCss.includes("inset-inline-start: clamp("),
     "dist/picotol.css must compile clamped marker pin inset-inline-start"
   );
 
   assert.ok(
-    fullMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)") ||
-      fullMin.includes("inset-inline-start:clamp(var(--pt-progress-radius, 0px)"),
+    fullMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)"),
     "dist/picotol.min.css must compile minified clamped marker pin positioning"
   );
 
   assert.ok(
-    layerMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)") ||
-      layerMin.includes("inset-inline-start:clamp(var(--pt-progress-radius, 0px)"),
+    layerMin.includes("inset-inline-start:clamp(var(--pt-progress-radius,0px)"),
     "dist/picotol.layer.min.css must compile minified clamped marker pin positioning"
   );
 
@@ -2975,21 +2970,21 @@ test("Tokenized Status Dot Primitive (.pt-dot) Dimensions, Semantic Variants, Pu
 
   assert.ok(
     fullCss.includes(".pt-dot") &&
-      (fullCss.includes("width: 0.5rem") || fullCss.includes("width: .5rem")) &&
-      (fullCss.includes("height: 0.5rem") || fullCss.includes("height: .5rem")) &&
+      fullCss.includes("width: .5rem;") &&
+      fullCss.includes("height: .5rem;") &&
       fullCss.includes("background-color: var(--pt-color)"),
     "dist/picotol.css must compile .pt-dot base properties"
   );
 
   assert.ok(
     fullMin.includes(".pt-dot") &&
-      (fullMin.includes("width:.5rem") || fullMin.includes("width:0.5rem") || fullMin.includes("width: .5rem")),
+      fullMin.includes("width:.5rem"),
     "dist/picotol.min.css must compile minified .pt-dot"
   );
 
   assert.ok(
     layerMin.includes(".pt-dot") &&
-      (layerMin.includes("width:.5rem") || layerMin.includes("width:0.5rem") || layerMin.includes("width: .5rem")),
+      layerMin.includes("width:.5rem"),
     "dist/picotol.layer.min.css must compile minified layered .pt-dot"
   );
 
@@ -3336,16 +3331,19 @@ test("Native Floating Popover Primitive, Alignment Modifiers, and Viewport Safet
     demoHtml.includes("pt-popover--end"),
     "dist/demo/index.html must showcase .pt-popover--end"
   );
-  assert.ok(
-    readme.includes("pt-popover--start"),
+  assert.match(
+    readme,
+    /(?<![\w-])\.pt-popover--start(?![\w-])/,
     "README.md must document .pt-popover--start"
   );
-  assert.ok(
-    readme.includes("pt-popover--end"),
+  assert.match(
+    readme,
+    /(?<![\w-])\.pt-popover--end(?![\w-])/,
     "README.md must document .pt-popover--end"
   );
-  assert.ok(
-    readme.includes("pt-dropdown"),
+  assert.match(
+    readme,
+    /(?<![\w-])\.pt-dropdown(?![\w-])/,
     "README.md must document .pt-dropdown"
   );
 });
@@ -3426,7 +3424,7 @@ test("Meter Marker Anatomy Disambiguation and Nested Terminus Markup (Issue #183
   const hasBeforePinRule = meterMarkRules.some((r) =>
     r.rules.some(
       (child) =>
-        (child.selector === "&:before" || child.selector === "&::before") &&
+        child.selector === "&:before" &&
         child.declarations.content === '""'
     )
   );
@@ -3475,9 +3473,6 @@ test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Al
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
 
   // 1. ::selection rule binds to --pt-primary-bg and --pt-color across source and compiled bundles
-  const expectedBgToken = "var(--pt-primary-bg)";
-  const expectedColorToken = "var(--pt-color)";
-
   assert.ok(
     baseCss.includes("::selection") &&
     baseCss.includes("background-color: var(--pt-primary-bg)") &&
@@ -3499,12 +3494,12 @@ test("Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Al
   ]) {
     assert.match(
       css,
-      /::selection\s*\{[^}]*background-color:\s*var\(--pt-primary-bg\)/,
+      /::selection\s*\{(?:[^}]*[;\s])?background-color:\s*var\(--pt-primary-bg\)/,
       `${name} must bind ::selection background to var(--pt-primary-bg)`
     );
     assert.match(
       css,
-      /::selection\s*\{[^}]*color:\s*var\(--pt-color\)/,
+      /::selection\s*\{(?:[^}]*[;\s])?color:\s*var\(--pt-color\)/,
       `${name} must bind ::selection text color to var(--pt-color)`
     );
   }

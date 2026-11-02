@@ -72,9 +72,19 @@ if ($IsCI -and ($Quick -or $SkipGenerate)) {
 }
 
 $MaxGate = 4
+$Gate0Status = "fail"
+$Gate1Status = "fail"
+$Gate2Status = "fail"
+$Gate3Status = "fail"
+$Gate4Status = "fail"
 
 Push-Location $RootDir
 try {
+    $NodeVersionRaw = (& node -p "process.versions.node").Trim()
+    if ([System.Version]$NodeVersionRaw -lt [System.Version]"22.2.0") {
+        throw "Node.js >= 22.2.0 is required (for zlib.crc32); found $NodeVersionRaw."
+    }
+
     # -------------------------------------------------------------
     # Gate 0: Workflow Single-Source-of-Truth Drift Audit
     # -------------------------------------------------------------
@@ -173,6 +183,7 @@ try {
         throw "Gate 0 Failed: Workflow drift detected ($($DriftErrors.Count) violation(s)). scripts/ci-local.ps1 must remain the sole source of CI test truth."
     }
 
+    $Gate0Status = "pass"
     Exit-GatePass "All workflows delegate verification to scripts/ci-local.ps1 with zero drift." $StepTimer
 
     # -------------------------------------------------------------
@@ -212,6 +223,7 @@ try {
         throw "Gate 1 Failed: Agent or scratch files must not exist or be tracked in the repository."
     }
 
+    $Gate1Status = "pass"
     Exit-GatePass "No tracked or untracked agent files detected." $StepTimer
 
     # -------------------------------------------------------------
@@ -235,6 +247,7 @@ try {
         throw "Gate 2 Failed: $ParseErrors PowerShell script(s) failed AST parse validation."
     }
 
+    $Gate2Status = "pass"
     Exit-GatePass "PowerShell AST validation passed ($($Ps1Files.Count) script(s))." $StepTimer
 
     # -------------------------------------------------------------
@@ -260,8 +273,10 @@ try {
             throw "Gate 3 Failed: Generated distribution drift detected."
         }
 
+        $Gate3Status = "pass"
         Exit-GatePass "Generated outputs are up to date and clean." $StepTimer
     } else {
+        $Gate3Status = "not-applicable"
         Write-Host "  -> Skipping distribution regeneration (-SkipGenerate or -Quick)." -ForegroundColor Gray
         if ($IsCI -and $script:InGroup) {
             Write-Host "::endgroup::"
@@ -289,7 +304,9 @@ try {
             Write-Fail "npm pack --dry-run failed with exit code $LASTEXITCODE."
             throw "Gate 4 Failed: Package packaging dry-run failed."
         }
+        $Gate4Status = "pass"
     } else {
+        $Gate4Status = "not-applicable"
         Write-Host "  -> Skipping npm pack --dry-run (-Quick)." -ForegroundColor Gray
     }
 
@@ -327,11 +344,20 @@ try {
         } else {
             Write-Host "`n[Receipt] Recording local CI receipt via seldon ci receipt..." -ForegroundColor Yellow
             $GateResults = @(
-                "gate0_workflow_contract=pass",
-                "gate1_agent_leaks=pass",
-                "gate2_pwsh_ast=pass",
-                "gate3_dist_drift=$(if ($SkipGenerate -or $Quick) { 'not-applicable' } else { 'pass' })",
-                "gate4_npm_test_and_pack=pass"
+                "gate0_workflow_contract=$Gate0Status",
+                "gate1_action_pins=not-applicable",
+                "gate1_agent_leaks=$Gate1Status",
+                "gate2_go_vet=not-applicable",
+                "gate2_pwsh_ast=$Gate2Status",
+                "gate3_dist_drift=$Gate3Status",
+                "gate3_unit_coverage=not-applicable",
+                "gate4_govulncheck=not-applicable",
+                "gate4_npm_test_and_pack=$Gate4Status",
+                "gate5_race_detector=not-applicable",
+                "gate6_pwsh_ast=not-applicable",
+                "gate7_knowledge_budget=not-applicable",
+                "gate8_secret_leaks=not-applicable",
+                "gate9_cross_compile=not-applicable"
             )
             $ReceiptArgs = @(
                 "ci", "receipt",

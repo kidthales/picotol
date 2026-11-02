@@ -581,7 +581,7 @@ High-contrast, unignorable severity banners (`.pt-callout`) feature 4px solid st
 
 ### 4d. Native Disclosures, Accordion Cards & Popovers
 
-Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature smooth chevron marker rotations, structured accordion card containment (`.card.accordion-card` / `.pt-card-disclosure`), and elevated popover menus (`.pt-popover` / `.pt-popover-menu`):
+Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature smooth chevron marker rotations, structured accordion card containment (`.card.accordion-card` / `.pt-card-disclosure`), and elevated popover/dropdown menus (`.pt-popover`, `.pt-dropdown`, `.pt-popover--start`, `.pt-popover--end`, `.pt-popover-menu`):
 
 ```html
 <!-- Structured Accordion Card Container -->

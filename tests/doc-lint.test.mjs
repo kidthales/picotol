@@ -8,67 +8,56 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
 // REMOVE-BY: #200
-// Temporary file-scoped allowlist for phantom/historical tokens documented in Issue #199.
+// Temporary file-and-count-scoped allowlist for phantom/historical tokens documented in Issue #199.
+// Each entry pins the exact occurrence count in its scoped file so any new use in the same file fails closed.
 // Tracked for complete elimination/erratum under Issue #200.
 export const TEMPORARY_ALLOWLIST = [
-  { file: 'README.md', token: '--pt-font-emoji' },
-  { file: 'README.md', token: '--pt-status-neutral-*' },
-  { file: 'README.md', token: '.pt-meter-pin' },
-  { file: 'CHANGELOG.md', token: '.pt-popover__surface' },
-  { file: 'CHANGELOG.md', token: '.pt-dot--sm' },
-  { file: 'CHANGELOG.md', token: '.pt-meter__marker' },
-  { file: 'CHANGELOG.md', token: '.pt-meter__track' },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '.pt-meter-pin' },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-bg' },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-fg' },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-border' },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-track' },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-range' },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-fill' },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-marker' },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-label' },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-pin' },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-gap-tight' },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover__surface' },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--align-end' },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--align-center' },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--top' },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '--pt-popover-shadow' },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-dot--sm' },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-meter__marker' },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-meter__track' },
+  { file: 'README.md', token: '--pt-font-emoji', count: 2 },
+  { file: 'README.md', token: '--pt-status-neutral-*', count: 1 },
+  { file: 'README.md', token: '.pt-meter-pin', count: 1 },
+  { file: 'CHANGELOG.md', token: '.pt-popover__surface', count: 1 },
+  { file: 'CHANGELOG.md', token: '.pt-dot--sm', count: 1 },
+  { file: 'CHANGELOG.md', token: '.pt-meter__marker', count: 2 },
+  { file: 'CHANGELOG.md', token: '.pt-meter__track', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '.pt-meter-pin', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-bg', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-fg', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-border', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-track', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-range', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-fill', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-marker', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-label', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-pin', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-gap-tight', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover__surface', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--align-end', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--align-center', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--top', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '--pt-popover-shadow', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-dot--sm', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-meter__marker', count: 2 },
+  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-meter__track', count: 1 },
 ];
 
 export function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function isAllowlisted(token, file = '') {
-  return TEMPORARY_ALLOWLIST.some((entry) => entry.file === file && entry.token === token);
+export function getAllowlistLimit(token, file = '') {
+  const entry = TEMPORARY_ALLOWLIST.find((e) => e.file === file && e.token === token);
+  return entry ? entry.count : 0;
 }
 
-function countBacktickRuns(text, targetLen) {
-  let count = 0;
-  let idx = 0;
-  while (idx < text.length) {
-    if (text[idx] !== '`') {
-      idx++;
-      continue;
-    }
-    let len = 0;
-    while (idx + len < text.length && text[idx + len] === '`') {
-      len++;
-    }
-    if (len === targetLen) count++;
-    idx += len;
-  }
-  return count;
+export function isAllowlisted(token, file = '', occurrenceCount = 1) {
+  const limit = getAllowlistLimit(token, file);
+  return limit > 0 && occurrenceCount <= limit;
 }
 
 export function extractInlineCodeSpans(segment) {
-  // Extracts CommonMark inline code spans across a paragraph/block segment,
-  // supporting both single-line and multi-line code spans while preventing a stray
-  // unmatched backtick from swallowing a self-contained span on a subsequent line.
+  // Extracts standard CommonMark inline code spans across a paragraph/block segment:
+  // an opening backtick string of length N matches the next backtick string of exact
+  // length N in the paragraph; if none exists, the opening backtick run is literal text.
   const spans = [];
   let i = 0;
   while (i < segment.length) {
@@ -99,26 +88,7 @@ export function extractInlineCodeSpans(segment) {
       searchIdx += runLen;
     }
     if (closeStart !== -1) {
-      const spanText = segment.slice(openEnd, closeStart);
-      if (spanText.includes('\n')) {
-        const closeLineEnd = segment.indexOf('\n', closeStart);
-        const closeLineRest =
-          closeLineEnd === -1
-            ? segment.slice(closeStart)
-            : segment.slice(closeStart, closeLineEnd);
-        const afterCloseLine =
-          closeLineEnd === -1 ? '' : segment.slice(closeLineEnd + 1);
-        // If closeStart is on a later line that already has its own balanced pair and
-        // no further matching backticks follow in the paragraph, the opening tick was stray.
-        if (
-          countBacktickRuns(closeLineRest, tickCount) === 2 &&
-          countBacktickRuns(afterCloseLine, tickCount) === 0
-        ) {
-          i = openEnd;
-          continue;
-        }
-      }
-      spans.push(spanText.replace(/\r?\n/g, ' '));
+      spans.push(segment.slice(openEnd, closeStart).replace(/\r?\n/g, ' '));
       i = closeStart + tickCount;
     } else {
       i = openEnd;
@@ -136,7 +106,7 @@ export function expandBracePattern(pattern) {
   return options.flatMap((opt) => expandBracePattern(`${prefix}${opt}${suffix}`));
 }
 
-export function extractTokensFromMarkdown(content) {
+export function extractTokenOccurrencesFromMarkdown(content) {
   const lines = content.split(/\r?\n/);
   let inFence = false;
   let fenceChar = '';
@@ -188,10 +158,7 @@ export function extractTokensFromMarkdown(content) {
   }
   flushProseParagraphs();
 
-  const tokens = [];
-  // Matches .pt-* (including compound selectors like .pt-a.pt-b and wildcard tokens like .pt-meter-mark--*)
-  // and --pt-* (including wildcard tokens like --pt-status-*-fg).
-  // Trailing standalone '*' separated by whitespace (e.g. `.pt-phantom *`) is not matched as part of the token.
+  const occurrences = [];
   const tokenRe = /(\.pt-[a-zA-Z0-9_*-]+|(?<![\w-])--pt-[a-zA-Z0-9_*-]+)(?![\w*-])/g;
   const braceTokenRe =
     /(?:\.pt|--pt|(?<=[\s"'])pt)-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
@@ -199,9 +166,6 @@ export function extractTokensFromMarkdown(content) {
   const bareClassTokenRe = /^pt-[a-zA-Z0-9_*-]+$/;
 
   for (const rawSegment of codeSegments) {
-    // Expand brace-expansion token patterns (e.g. --pt-status-{ok,warning}-{fg,bg})
-    // into concrete tokens so every branch is validated against dist/picotol.css,
-    // while leaving CSS declaration blocks like `.pt-x{color:red}` untouched.
     const expandedSegment = rawSegment.replace(braceTokenRe, (match) =>
       expandBracePattern(match).join(' ')
     );
@@ -209,7 +173,7 @@ export function extractTokensFromMarkdown(content) {
     tokenRe.lastIndex = 0;
     let tm;
     while ((tm = tokenRe.exec(expandedSegment)) !== null) {
-      tokens.push(tm[1]);
+      occurrences.push(tm[1]);
     }
 
     htmlClassAttrRe.lastIndex = 0;
@@ -218,13 +182,17 @@ export function extractTokensFromMarkdown(content) {
       const classValue = cm[1] ?? cm[2] ?? '';
       for (const cls of classValue.split(/\s+/)) {
         if (bareClassTokenRe.test(cls)) {
-          tokens.push(`.${cls}`);
+          occurrences.push(`.${cls}`);
         }
       }
     }
   }
 
-  return [...new Set(tokens)];
+  return occurrences;
+}
+
+export function extractTokensFromMarkdown(content) {
+  return [...new Set(extractTokenOccurrencesFromMarkdown(content))];
 }
 
 export function extractCurrentChangelogSection(changelogContent, currentVersion) {
@@ -238,9 +206,21 @@ export function extractCurrentChangelogSection(changelogContent, currentVersion)
 }
 
 export function stripCssCommentsAndStrings(cssContent) {
-  return cssContent
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '""');
+  // Single-pass alternation ensures /* inside a string literal is never mistaken for a comment start
+  return cssContent.replace(
+    /\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g,
+    (match) => (match.startsWith('/*') ? '' : '""')
+  );
+}
+
+function stripNotPseudoClasses(cssContent) {
+  // Removes :not(...) segments so negated classes like .foo:not(.pt-phantom) never count as defining .pt-phantom
+  let prev = cssContent;
+  while (true) {
+    const next = prev.replace(/:not\([^()]*\)/gi, '');
+    if (next === prev) return next;
+    prev = next;
+  }
 }
 
 function tokenToRegexSource(token) {
@@ -259,23 +239,29 @@ export function tokenExistsInCss(token, cssContent) {
     return declRe.test(cleanCss);
   }
   if (token.startsWith('.')) {
-    // Require class token in a CSS selector context (followed by { with no intervening ;, {, or })
+    // Require positive class token in a CSS selector context (outside :not(...) and followed by {)
+    const positiveCss = stripNotPseudoClasses(cleanCss);
     const selRe = new RegExp(`${pattern}(?![\\w-])(?=[^;{}]*\\{)`);
-    return selRe.test(cleanCss);
+    return selRe.test(positiveCss);
   }
   return false;
 }
 
 export function validateDocTokens(content, distCss, file = '', allowlistFn = isAllowlisted) {
-  const tokens = extractTokensFromMarkdown(content);
+  const occurrences = extractTokenOccurrencesFromMarkdown(content);
+  const counts = new Map();
+  for (const tok of occurrences) {
+    counts.set(tok, (counts.get(tok) || 0) + 1);
+  }
+  const tokens = [...counts.keys()];
   const missing = [];
   for (const token of tokens) {
-    if (allowlistFn(token, file)) continue;
+    if (allowlistFn(token, file, counts.get(token))) continue;
     if (!tokenExistsInCss(token, distCss)) {
       missing.push(token);
     }
   }
-  return { tokens, missing };
+  return { tokens, missing, counts };
 }
 
 test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs/RELEASE_NOTES_*.md against dist/picotol.css', () => {
@@ -346,6 +332,18 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
     ['.pt-popover__surface'],
     'Allowlisted token for CHANGELOG.md must fail if referenced in README.md'
   );
+
+  // 6. Count-scoped allowlist isolation: a new additional use of an allowlisted phantom in the same file is caught
+  const extraSameFileUse = validateDocTokens(
+    'First `.pt-meter-pin` and second `.pt-meter-pin` in README.',
+    distCss,
+    'README.md'
+  );
+  assert.deepEqual(
+    extraSameFileUse.missing,
+    ['.pt-meter-pin'],
+    'Additional use of allowlisted token beyond its pinned count in the same file must fail'
+  );
 });
 
 test('doc-lint: parser handles compound selectors, wildcard/brace validation, fenced blocks, HTML class attributes, multi-line code spans, and usage-vs-definition checks', () => {
@@ -404,7 +402,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
   const currentSec = extractCurrentChangelogSection(sampleChangelog, '0.5.0');
   assert.deepEqual(extractTokensFromMarkdown(currentSec), ['.pt-current-only']);
 
-  // Fenced code blocks (``` and ~~~), HTML class="pt-..." attributes, multi-line code spans, and stray backtick resilience
+  // Fenced code blocks (``` and ~~~), HTML class="pt-..." attributes, and CommonMark multi-line code spans
   const fenceAndMultilineMd = [
     '~~~css',
     '.pt-inside-tilde-fence { --pt-fenced-prop: 1; }',
@@ -417,8 +415,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
     'Multi-line code span: `first line .pt-multiline-one',
     'and second line --pt-multiline-two` inside a paragraph.',
     '',
-    'Inline ``.pt-double-tick`` and unmatched ` backtick on line 1',
-    'Then `.pt-after-odd` on line 2 is still extracted.',
+    'Inline ``.pt-double-tick`` and `.pt-after-tick` on the same line, plus trailing unmatched ` tick.',
   ].join('\n');
   assert.deepEqual(extractTokensFromMarkdown(fenceAndMultilineMd), [
     '.pt-inside-tilde-fence',
@@ -430,7 +427,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
     '.pt-multiline-one',
     '--pt-multiline-two',
     '.pt-double-tick',
-    '.pt-after-odd',
+    '.pt-after-tick',
   ]);
 
   assert.throws(
@@ -442,39 +439,39 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
     /Unterminated fenced code block/
   );
 
-  // Item 7: tokenExistsInCss requires declaration for --pt-* and selector context for .pt-*, ignoring comments and strings
+  // tokenExistsInCss requires declaration for --pt-* and positive selector context (outside :not) for .pt-*,
+  // while preserving /* inside string literals so strings cannot corrupt comment stripping
   const sampleCss = `
     /* --pt-commented: #000; .pt-commented { color: red; } */
     :root {
+      --pt-str-with-comment: "/* not a comment";
       --pt-defined: #4477AA;
+      --pt-close-comment-str: "*/";
       color: var(--pt-used-only);
       content: ".pt-in-string --pt-in-string: #000";
     }
-    :where(.pt-real-class, .pt-second-class):hover {
+    :where(.pt-real-class, .pt-second-class):not(.pt-negated-only):hover {
       display: block;
     }
   `;
-  assert.equal(tokenExistsInCss('--pt-defined', sampleCss), true);
+  assert.equal(tokenExistsInCss('--pt-defined', sampleCss), true, '/* inside string literal must not swallow subsequent declarations');
   assert.equal(tokenExistsInCss('--pt-used-only', sampleCss), false, 'var(--pt-used-only) usage must not count as definition');
   assert.equal(tokenExistsInCss('--pt-commented', sampleCss), false, 'Commented custom property must not count as definition');
   assert.equal(tokenExistsInCss('--pt-in-string', sampleCss), false, 'String literal must not count as definition');
   assert.equal(tokenExistsInCss('.pt-real-class', sampleCss), true);
   assert.equal(tokenExistsInCss('.pt-second-class', sampleCss), true);
+  assert.equal(tokenExistsInCss('.pt-negated-only', sampleCss), false, 'Class only inside :not(.pt-negated-only) must not count as selector definition');
   assert.equal(tokenExistsInCss('.pt-commented', sampleCss), false, 'Commented class must not count as definition');
   assert.equal(tokenExistsInCss('.pt-in-string', sampleCss), false, 'Class inside string value must not count as selector definition');
 });
 
-test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, present in their scoped file section, and guarded by REMOVE-BY: #200', () => {
+test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, match their exact pinned count in their scoped file section, and be guarded by REMOVE-BY: #200', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const currentVersion = pkg.version;
   const selfSource = fs.readFileSync(fileURLToPath(import.meta.url), 'utf8');
   const changelogContent = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8');
 
-  // Guard limits & dual enforcement:
-  // 1. If Issue #200 is referenced in CHANGELOG.md, the regex guard below fails until TEMPORARY_ALLOWLIST is emptied.
-  // 2. If Issue #200 is fixed without naming #200 in CHANGELOG.md (either by removing the errata from docs or
-  //    implementing the tokens in CSS), the per-entry loop below immediately fails on the modified token.
   if (TEMPORARY_ALLOWLIST.length > 0) {
     assert.match(
       selfSource,
@@ -487,7 +484,7 @@ test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, present in
     );
   }
 
-  for (const { file, token } of TEMPORARY_ALLOWLIST) {
+  for (const { file, token, count } of TEMPORARY_ALLOWLIST) {
     const isPresentInDist = tokenExistsInCss(token, distCss);
     assert.equal(
       isPresentInDist,
@@ -496,15 +493,16 @@ test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, present in
     );
 
     const rawFileContent = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    // Scope CHANGELOG.md staleness check to the exact same current-version section that validateDocTokens scans
     const scopedContent =
       file === 'CHANGELOG.md'
         ? extractCurrentChangelogSection(rawFileContent, currentVersion)
         : rawFileContent;
-    const extracted = extractTokensFromMarkdown(scopedContent);
-    assert.ok(
-      extracted.includes(token),
-      `Allowlisted token "${token}" is no longer referenced in validated scope of ${file}! Remove stale entry from TEMPORARY_ALLOWLIST.`
+    const occurrences = extractTokenOccurrencesFromMarkdown(scopedContent);
+    const actualCount = occurrences.filter((t) => t === token).length;
+    assert.equal(
+      actualCount,
+      count,
+      `Allowlisted token "${token}" in ${file} expected exact count ${count}, found ${actualCount}! Update or remove stale entry from TEMPORARY_ALLOWLIST.`
     );
   }
 });
