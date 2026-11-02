@@ -598,20 +598,20 @@ test("Ergonomic Class Parity, Compact Control Sizing, and Component Primitives",
   const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
   const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
 
-  // Core & Full bundle class parity
+  // Core & Full bundle class parity (boundary-aware regexes so .btn cannot false-match .btn-icon)
   for (const css of [fullCss, coreCss]) {
-    assert.ok(css.includes(".btn"), "Must support .btn button alias");
-    assert.ok(css.includes(".button"), "Must support .button button alias");
-    assert.ok(css.includes(".small") && /\.sm(?![\w-])/.test(css), "Must support both compact .small and .sm modifiers");
-    assert.ok(css.includes(".nowrap"), "Must support .nowrap");
-    assert.ok(css.includes(".swatch"), "Must support .swatch chip primitive");
-    assert.ok(css.includes(".form-row"), "Must support .form-row flex container");
-    assert.ok(css.includes(".inline-form"), "Must support .inline-form flex container");
+    assert.ok(/\.btn(?![\w-])/.test(css), "Must support .btn button alias");
+    assert.ok(/\.button(?![\w-])/.test(css), "Must support .button button alias");
+    assert.ok(/\.small(?![\w-])/.test(css) && /\.sm(?![\w-])/.test(css), "Must support both compact .small and .sm modifiers");
+    assert.ok(/\.nowrap(?![\w-])/.test(css), "Must support .nowrap");
+    assert.ok(/\.swatch(?![\w-])/.test(css), "Must support .swatch chip primitive");
+    assert.ok(/\.form-row(?![\w-])/.test(css), "Must support .form-row flex container");
+    assert.ok(/\.inline-form(?![\w-])/.test(css), "Must support .inline-form flex container");
   }
 
   // Extended components in full bundle
-  assert.ok(fullCss.includes(".card"), "Full CSS must support .card alias for article");
-  assert.ok(fullCss.includes(".toast"), "Full CSS must support .toast notification component");
+  assert.ok(/\.card(?![\w-])/.test(fullCss), "Full CSS must support .card alias for article");
+  assert.ok(/\.toast(?![\w-])/.test(fullCss), "Full CSS must support .toast notification component");
 });
 
 test("Narrow-Corridor Reflow & Table Overflow Containment: .overflow-auto, .table-container, and min-width: 0 compile cleanly into core and full bundles", () => {
@@ -3574,4 +3574,17 @@ test("Demo Badge & Dot Flex-Gap Row and Tabular Right-Alignment Showcase (Issue 
     "tools/generate-demo.mjs must generate .pt-tabular--align-end within a space-between flex container"
   );
 });
+
+test("Anti-Tautology Guard: tests/picotol.test.mjs contains zero vacuous includes-OR-includes disjunction assertions (Issue #199)", () => {
+  const selfSource = fs.readFileSync(fileURLToPath(import.meta.url), "utf8");
+  const strippedComments = selfSource.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, "");
+  const disjunctionRe = /\.includes\([^)]+\)\s*\|\|\s*[^\n;]*\.includes\(/g;
+  const matches = [...strippedComments.matchAll(disjunctionRe)].map((m) => m[0]);
+  assert.deepEqual(
+    matches,
+    [],
+    `tests/picotol.test.mjs must not use vacuous includes-OR-includes disjunction assertions: ${matches.join(" | ")}`
+  );
+});
+
 

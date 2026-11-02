@@ -39,35 +39,42 @@ export function isTransparentHex(normHex) {
   return upper === '#0000' || upper === '#00000000';
 }
 
-export function stripCssComments(css) {
-  // Single-pass CSS comment stripper that preserves /* ... */ inside quoted strings
-  // ("...", '...') and unquoted url(...) tokens.
+function scanCssCommentsAndLiterals(css, { replaceStrings = false } = {}) {
+  // Single-pass CSS lexer that strips /* ... */ comments while tracking quoted strings
+  // ("...", '...') and unquoted url(...) tokens in one unified state machine so quotes
+  // inside unquoted url(...) can never mispair with string quotes outside url(...).
   let out = '';
   let quote = null;
   let inUnquotedUrl = false;
   for (let i = 0; i < css.length; i++) {
     const ch = css[i];
     if (quote) {
-      out += ch;
       if (ch === '\\' && i + 1 < css.length) {
-        out += css[++i];
+        if (!replaceStrings) out += ch + css[i + 1];
+        i++;
       } else if (ch === quote) {
+        if (!replaceStrings) out += ch;
         quote = null;
+      } else if (!replaceStrings) {
+        out += ch;
       }
       continue;
     }
     if (inUnquotedUrl) {
-      out += ch;
       if (ch === '\\' && i + 1 < css.length) {
-        out += css[++i];
+        if (!replaceStrings) out += ch + css[i + 1];
+        i++;
       } else if (ch === ')') {
+        out += ')';
         inUnquotedUrl = false;
+      } else if (!replaceStrings) {
+        out += ch;
       }
       continue;
     }
     if (ch === '"' || ch === "'") {
       quote = ch;
-      out += ch;
+      out += replaceStrings ? '""' : ch;
       continue;
     }
     if (ch === '/' && css[i + 1] === '*') {
@@ -92,8 +99,12 @@ export function stripCssComments(css) {
   return out;
 }
 
+export function stripCssComments(css) {
+  return scanCssCommentsAndLiterals(css, { replaceStrings: false });
+}
+
 export function stripCssCommentsAndStrings(css) {
-  return stripCssComments(css).replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '""');
+  return scanCssCommentsAndLiterals(css, { replaceStrings: true });
 }
 
 export function stripNotPseudoClasses(css) {
@@ -228,14 +239,25 @@ export function lintDistAccessibilityRules(fullDistCss, filename = 'dist/picotol
 
 export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.html') {
   const errors = [];
-  const demoIds = new Set(
-    [...demoHtml.matchAll(/\bid\s*=\s*(?:"([^"]+)"|'([^']+)')/g)].map((m) => m[1] ?? m[2])
-  );
-  const demoClasses = new Set(
-    [...demoHtml.matchAll(/\bclass\s*=\s*(?:"([^"]+)"|'([^']+)')/g)]
-      .flatMap((m) => (m[1] ?? m[2]).trim().split(/\s+/))
-      .filter(Boolean)
-  );
+  const cleanHtml = demoHtml
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+  const openTags = [...cleanHtml.matchAll(/<([a-zA-Z][a-zA-Z0-9:-]*)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/g)];
+
+  const demoIds = new Set();
+  const demoClasses = new Set();
+  for (const [, , attrs] of openTags) {
+    for (const m of attrs.matchAll(/\bid\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/g)) {
+      demoIds.add(m[1] ?? m[2] ?? m[3]);
+    }
+    for (const m of attrs.matchAll(/\bclass\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/g)) {
+      for (const cls of (m[1] ?? m[2] ?? m[3]).trim().split(/\s+/)) {
+        if (cls) demoClasses.add(cls);
+      }
+    }
+  }
+
   const positiveDistCss = stripNotPseudoClasses(stripCssCommentsAndStrings(fullDistCss));
 
   for (const cls of demoClasses) {
@@ -246,29 +268,33 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
     }
   }
 
-  for (const match of demoHtml.matchAll(/\bhref\s*=\s*(?:"#([^"]*)"|'#([^']*)')/g)) {
-    const targetId = match[1] ?? match[2];
-    if (targetId && !demoIds.has(targetId)) {
-      errors.push(`[${filename}] Broken internal anchor link href="#${targetId}" (no matching id="${targetId}")`);
+  for (const [, tagName, attrs] of openTags) {
+    for (const match of attrs.matchAll(/\bhref\s*=\s*(?:"#([^"]*)"|'#([^']*)'|#([^\s"'=<>`]*))/g)) {
+      const targetId = match[1] ?? match[2] ?? match[3];
+      if (targetId && !demoIds.has(targetId)) {
+        errors.push(`[${filename}] Broken internal anchor link href="#${targetId}" (no matching id="${targetId}")`);
+      }
     }
-  }
 
-  for (const attr of ['aria-describedby', 'aria-labelledby']) {
-    for (const match of demoHtml.matchAll(new RegExp(`\\b${attr}\\s*=\\s*(?:"([^"]+)"|'([^']+)')`, 'g'))) {
-      const val = match[1] ?? match[2];
-      for (const refId of val.trim().split(/\s+/)) {
-        if (!demoIds.has(refId)) {
-          errors.push(`[${filename}] Broken ARIA reference ${attr}="${refId}" (no matching id="${refId}")`);
+    for (const attr of ['aria-describedby', 'aria-labelledby']) {
+      const attrRe = new RegExp(`\\b${attr}\\s*=\\s*(?:"([^"]+)"|'([^']+)'|([^\\s"'=<>` + '`' + `]+))`, 'g');
+      for (const match of attrs.matchAll(attrRe)) {
+        const val = match[1] ?? match[2] ?? match[3];
+        for (const refId of val.trim().split(/\s+/)) {
+          if (!demoIds.has(refId)) {
+            errors.push(`[${filename}] Broken ARIA reference ${attr}="${refId}" (no matching id="${refId}")`);
+          }
         }
       }
     }
-  }
 
-  // Ensure non-interactive elements with data-tooltip have tabindex="0"
-  for (const match of demoHtml.matchAll(/<(span|div|abbr)\b([^>]*\bdata-tooltip\s*=\s*(?:"[^"]*"|'[^']*')[^>]*)>/gi)) {
-    const attrs = match[2];
-    if (!/\btabindex=/i.test(attrs)) {
-      errors.push(`[${filename}] Non-interactive <${match[1]} data-tooltip> is missing tabindex="0" for keyboard access`);
+    // Ensure non-interactive elements with data-tooltip have tabindex="0"
+    if (
+      /^(?:span|div|abbr)$/i.test(tagName) &&
+      /\bdata-tooltip\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+)/i.test(attrs) &&
+      !/\btabindex\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs)
+    ) {
+      errors.push(`[${filename}] Non-interactive <${tagName} data-tooltip> is missing tabindex="0" for keyboard access`);
     }
   }
 

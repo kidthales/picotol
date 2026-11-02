@@ -15,7 +15,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
 export const DEFAULT_ZIP_MTIME = new Date('2026-01-01T00:00:00Z');
+export const MAX_ZIP_ENTRIES = 128;
 export const MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES = 10 * 1024 * 1024;
+export const MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES = 25 * 1024 * 1024;
 
 export function resolveDefaultZipMtime() {
   const rawEpoch = process.env.SOURCE_DATE_EPOCH;
@@ -139,12 +141,16 @@ export function parsePkZipEntries(zipBuf) {
   if (totalEntries === 0xffff || cdSize === 0xffffffff || cdOffset === 0xffffffff) {
     throw new Error('ZIP64 archives are not supported');
   }
+  if (totalEntries > MAX_ZIP_ENTRIES) {
+    throw new Error(`Archive entry count ${totalEntries} exceeds max allowed ${MAX_ZIP_ENTRIES} entries`);
+  }
   if (cdOffset + cdSize > eocdOffset) {
     throw new Error('Central Directory bounds exceed End of Central Directory offset');
   }
 
   const entries = [];
   let pos = cdOffset;
+  let totalUncompressedBytes = 0;
 
   for (let i = 0; i < totalEntries; i++) {
     if (pos + 46 > eocdOffset) {
@@ -157,6 +163,8 @@ export function parsePkZipEntries(zipBuf) {
     if (cdMethod !== 8) {
       throw new Error(`Unsupported compression method ${cdMethod} in Central Directory (expected 8 / deflate)`);
     }
+    const dosTime = zipBuf.readUInt16LE(pos + 12);
+    const dosDate = zipBuf.readUInt16LE(pos + 14);
     const crc = zipBuf.readUInt32LE(pos + 16);
     const compressedSize = zipBuf.readUInt32LE(pos + 20);
     const uncompressedSize = zipBuf.readUInt32LE(pos + 24);
@@ -176,6 +184,11 @@ export function parsePkZipEntries(zipBuf) {
         `Entry ${name} uncompressed size ${uncompressedSize} exceeds max allowed ${MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES} bytes`
       );
     }
+    if (totalUncompressedBytes + uncompressedSize > MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES) {
+      throw new Error(
+        `Aggregate uncompressed size ${totalUncompressedBytes + uncompressedSize} exceeds max allowed ${MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES} bytes`
+      );
+    }
 
     if (lfhOffset + 30 > cdOffset) {
       throw new Error(`Local File Header offset ${lfhOffset} for ${name} exceeds Central Directory start`);
@@ -187,6 +200,11 @@ export function parsePkZipEntries(zipBuf) {
     if (lfhMethod !== 8) {
       throw new Error(`Unsupported compression method ${lfhMethod} in Local File Header for ${name} (expected 8 / deflate)`);
     }
+    const lfhDosTime = zipBuf.readUInt16LE(lfhOffset + 10);
+    const lfhDosDate = zipBuf.readUInt16LE(lfhOffset + 12);
+    if (lfhDosTime !== dosTime || lfhDosDate !== dosDate) {
+      throw new Error(`MS-DOS timestamp mismatch between Local File Header and Central Directory for ${name}`);
+    }
     const lfhNameLen = zipBuf.readUInt16LE(lfhOffset + 26);
     const lfhExtraLen = zipBuf.readUInt16LE(lfhOffset + 28);
     const dataStart = lfhOffset + 30 + lfhNameLen + lfhExtraLen;
@@ -194,8 +212,13 @@ export function parsePkZipEntries(zipBuf) {
       throw new Error(`Compressed data slice for ${name} exceeds Central Directory start`);
     }
     const compressedSlice = zipBuf.subarray(dataStart, dataStart + compressedSize);
+    const remainingBudget = MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES - totalUncompressedBytes;
     const decompressed = zlib.inflateRawSync(compressedSlice, {
-      maxOutputLength: Math.min(MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES, Math.max(1, uncompressedSize)),
+      maxOutputLength: Math.min(
+        MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES,
+        remainingBudget,
+        Math.max(1, uncompressedSize)
+      ),
     });
 
     if (decompressed.length !== uncompressedSize) {
@@ -204,11 +227,14 @@ export function parsePkZipEntries(zipBuf) {
     if ((zlib.crc32(decompressed) >>> 0) !== (crc >>> 0)) {
       throw new Error(`CRC-32 mismatch for ${name}`);
     }
+    totalUncompressedBytes += decompressed.length;
 
     const sha256 = createHash('sha256').update(decompressed).digest('hex');
     entries.push({
       name,
       crc,
+      dosDate,
+      dosTime,
       compressedSize,
       uncompressedSize,
       sha256,

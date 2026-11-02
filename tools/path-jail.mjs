@@ -21,14 +21,20 @@ export const dataDir = join(root, 'data');
 const MAX_SYMLINK_DEPTH = 32;
 const nativeRealpath = (p) => (typeof realpathSync.native === 'function' ? realpathSync.native(p) : realpathSync(p));
 const normCase = (p) => (process.platform === 'win32' ? p.toLowerCase() : p);
+const normalizePlatformPath = (p) => (process.platform === 'win32' ? stripWin32DeviceNamespacePrefix(p) : p);
 
 export function stripWin32DeviceNamespacePrefix(p) {
   if (typeof p !== 'string') return p;
-  if (/^(?:\\\\\?\\|\\\?\?\\)UNC\\/i.test(p)) {
-    return '\\\\' + p.slice(8);
-  }
-  if (/^(?:\\\\\?\\|\\\?\?\\)[A-Za-z]:\\/i.test(p)) {
-    return p.slice(4);
+  if (/^(?:[\\/]{2}[?.][\\/]|[\\/]\?\?[\\/])/.test(p)) {
+    const rest = p.slice(4);
+    const uncMatch = rest.match(/^UNC[\\/]+([^\\/]+[\\/].*)$/i);
+    if (uncMatch) {
+      return '\\\\' + uncMatch[1];
+    }
+    if (/^[A-Za-z]:[\\/]/.test(rest)) {
+      return rest;
+    }
+    throw new Error(`Invalid path: unsupported Windows device-namespace or volume path "${p}"`);
   }
   return p;
 }
@@ -37,13 +43,13 @@ export function resolveRealPath(targetPath, symlinkDepth = 0) {
   if (symlinkDepth > MAX_SYMLINK_DEPTH) {
     throw new Error(`Too many levels of symbolic links while resolving ${targetPath}`);
   }
-  const abs = resolve(stripWin32DeviceNamespacePrefix(targetPath));
+  const abs = resolve(normalizePlatformPath(targetPath));
   const parsed = parse(abs);
   const segments = abs.slice(parsed.root.length).split(sep).filter(Boolean);
 
   let current = parsed.root;
   try {
-    current = stripWin32DeviceNamespacePrefix(nativeRealpath(current));
+    current = normalizePlatformPath(nativeRealpath(current));
   } catch (err) {
     if (err.code !== 'ENOENT') throw err;
   }
@@ -59,14 +65,14 @@ export function resolveRealPath(targetPath, symlinkDepth = 0) {
     }
 
     if (st.isSymbolicLink()) {
-      const rawLinkTarget = stripWin32DeviceNamespacePrefix(readlinkSync(candidate));
+      const rawLinkTarget = normalizePlatformPath(readlinkSync(candidate));
       const resolvedLinkTarget = resolve(dirname(candidate), rawLinkTarget);
       const remaining = segments.slice(i + 1);
       const nextTarget = remaining.length > 0 ? join(resolvedLinkTarget, ...remaining) : resolvedLinkTarget;
       return resolveRealPath(nextTarget, symlinkDepth + 1);
     }
 
-    current = stripWin32DeviceNamespacePrefix(nativeRealpath(candidate));
+    current = normalizePlatformPath(nativeRealpath(candidate));
   }
 
   return current;

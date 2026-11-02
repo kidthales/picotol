@@ -145,7 +145,7 @@ export function buildAll(opts = {}) {
     { name: 'picotol.layer.min.css', content: layerMin },
     { name: 'picotol.min.css', content: fullMin },
   ];
-  cssFiles.sort((a, b) => a.name.localeCompare(b.name));
+  cssFiles.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   const sha256Sums = cssFiles.map((f) => `${sha256Hex(f.content)}  ${f.name}`).join('\n') + '\n';
   writeFileSync(join(targetDist, 'SHA256SUMS.txt'), sha256Sums, 'utf8');
   stats.sha256Sums = sha256Sums;

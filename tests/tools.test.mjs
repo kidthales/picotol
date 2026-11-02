@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -14,6 +15,7 @@ import {
   lintDistAccessibilityRules,
   lintDemoHtml,
   runLint,
+  stripCssCommentsAndStrings,
 } from '../tools/lint.mjs';
 import {
   loadSnapshot,
@@ -23,7 +25,9 @@ import {
 } from '../tools/sync-tokens.mjs';
 import { buildAll } from '../tools/build.mjs';
 import {
+  MAX_ZIP_ENTRIES,
   MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES,
+  MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES,
   createPkZip,
   packageAssets,
   parsePkZipEntries,
@@ -48,7 +52,7 @@ function hashDirectoryTree(dirPath) {
   const result = {};
   function walk(currentDir, relPrefix) {
     const entries = fs.readdirSync(currentDir, { withFileTypes: true }).sort((a, b) =>
-      a.name.localeCompare(b.name)
+      a.name < b.name ? -1 : a.name > b.name ? 1 : 0
     );
     for (const entry of entries) {
       const rel = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
@@ -267,16 +271,29 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   const badDemoHtml = `
     <div id="existing-id" class="styled-class unstyled-phantom-class card negated-only">
       <span class='single-quoted-unstyled'>Single quoted class</span>
+      <i class=unquoted-unstyled id=unquoted-id>Unquoted class</i>
       <a href="#missing-anchor">Link</a>
+      <a href=#unquoted-missing-anchor>Unquoted link</a>
       <input aria-describedby="missing-desc" aria-labelledby="existing-id missing-label">
+      <input aria-describedby=unquoted-missing-desc aria-labelledby=unquoted-id>
       <span data-tooltip="Missing tabindex">Hover</span>
+      <abbr data-tooltip=unquoted-tooltip>Unquoted tooltip</abbr>
       <span data-tooltip="Has tabindex" tabindex="0">OK</span>
+      <div data-tooltip=unquoted-ok tabindex=0>OK unquoted</div>
     </div>
   `;
   const demoErrors = lintDemoHtml(
     badDemoHtml,
-    '.styled-class { color: #000000; } .card-foo:not(.negated-only) { color: #000000; }',
+    `.a { background: url(https://example.com/it's-here.svg); } .styled-class { content: 'ok'; color: #000000; } .card-foo:not(.negated-only) { color: #000000; }`,
     'fixtures/demo.html'
+  );
+  assert.ok(
+    !demoErrors.some((e) => e.includes('".styled-class"')),
+    'Unquoted url() with apostrophe must not mispair quotes in stripCssCommentsAndStrings and swallow .styled-class'
+  );
+  assert.equal(
+    stripCssCommentsAndStrings(`.a { background: url(https://example.com/it's-here.svg); } .styled-class { content: 'inside'; }`),
+    '.a { background: url(); } .styled-class { content: ""; }'
   );
   assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".unstyled-phantom-class"')));
   assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".card"')), '.card must not false-pass against .card-foo');
@@ -288,11 +305,18 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
     demoErrors.some((e) => e.includes('Unstyled class ".single-quoted-unstyled"')),
     "Single-quoted class='...' attributes in demo HTML must be linted"
   );
+  assert.ok(
+    demoErrors.some((e) => e.includes('Unstyled class ".unquoted-unstyled"')),
+    'Unquoted class=unquoted-unstyled attributes in demo HTML must be linted'
+  );
   assert.ok(demoErrors.some((e) => e.includes('Broken internal anchor link href="#missing-anchor"')));
+  assert.ok(demoErrors.some((e) => e.includes('Broken internal anchor link href="#unquoted-missing-anchor"')));
   assert.ok(demoErrors.some((e) => e.includes('Broken ARIA reference aria-describedby="missing-desc"')));
+  assert.ok(demoErrors.some((e) => e.includes('Broken ARIA reference aria-describedby="unquoted-missing-desc"')));
   assert.ok(demoErrors.some((e) => e.includes('Broken ARIA reference aria-labelledby="missing-label"')));
   assert.ok(demoErrors.some((e) => e.includes('Non-interactive <span data-tooltip> is missing tabindex="0"')));
-  assert.equal(demoErrors.length, 8);
+  assert.ok(demoErrors.some((e) => e.includes('Non-interactive <abbr data-tooltip> is missing tabindex="0"')));
+  assert.equal(demoErrors.length, 12);
 
   // 11. Full runLint() verification
   const projectErrors = runLint();
@@ -328,10 +352,32 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
   assert.equal(isSameOrSubpath(path.dirname(ROOT), ROOT), false, 'Parent of ROOT must not be recognized as inside ROOT');
   assert.equal(isSameOrSubpath(ROOT, path.dirname(ROOT)), true, 'ROOT is a subpath of its parent directory');
 
-  // Windows device-namespace prefix stripping (\\?\ and \??\) for junction / readlinkSync targets
+  // Windows device-namespace prefix stripping (\\?\, \??\, \\.\, and forward-slash forms) + fail-closed rejection on volume GUIDs
   assert.equal(stripWin32DeviceNamespacePrefix('\\\\?\\C:\\repo\\src'), 'C:\\repo\\src');
   assert.equal(stripWin32DeviceNamespacePrefix('\\??\\C:\\repo\\src'), 'C:\\repo\\src');
+  assert.equal(stripWin32DeviceNamespacePrefix('\\\\.\\C:\\repo\\src'), 'C:\\repo\\src');
+  assert.equal(stripWin32DeviceNamespacePrefix('//?/C:/repo/src'), 'C:/repo/src');
+  assert.equal(stripWin32DeviceNamespacePrefix('//./C:/repo/src'), 'C:/repo/src');
+  assert.equal(stripWin32DeviceNamespacePrefix('/??/C:/repo/src'), 'C:/repo/src');
   assert.equal(stripWin32DeviceNamespacePrefix('\\\\?\\UNC\\server\\share\\src'), '\\\\server\\share\\src');
+  assert.equal(stripWin32DeviceNamespacePrefix('\\\\.\\UNC\\server\\share\\src'), '\\\\server\\share\\src');
+  assert.equal(stripWin32DeviceNamespacePrefix('//?/UNC/server/share/src'), '\\\\server/share/src');
+  assert.throws(
+    () => stripWin32DeviceNamespacePrefix('\\\\?\\Volume{01234567-89ab-cdef-0123-456789abcdef}\\src'),
+    /unsupported Windows device-namespace or volume path/
+  );
+  assert.throws(
+    () => stripWin32DeviceNamespacePrefix('\\\\.\\Volume{01234567-89ab-cdef-0123-456789abcdef}\\src'),
+    /unsupported Windows device-namespace or volume path/
+  );
+  assert.throws(
+    () => stripWin32DeviceNamespacePrefix('//?/Volume{01234567-89ab-cdef-0123-456789abcdef}/src'),
+    /unsupported Windows device-namespace or volume path/
+  );
+  assert.throws(
+    () => stripWin32DeviceNamespacePrefix('\\\\.\\PhysicalDrive0'),
+    /unsupported Windows device-namespace or volume path/
+  );
   if (process.platform === 'win32') {
     assert.equal(
       isSameOrSubpath(`\\\\?\\${path.join(ROOT, 'src')}`, ROOT),
@@ -343,9 +389,18 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
       true,
       '\\??\\ NT-prefixed path pointing into ROOT/src must be recognized as a subpath of ROOT'
     );
+    assert.equal(
+      isSameOrSubpath(`\\\\.\\${path.join(ROOT, 'src')}`, ROOT),
+      true,
+      '\\\\.\\ device-prefixed path pointing into ROOT/src must be recognized as a subpath of ROOT'
+    );
     assert.throws(
       () => assertSafeCustomSyncTarget(`\\\\?\\${path.join(ROOT, 'src')}`, 'outSrcDir'),
       /refusing to write custom sync target inside repository/
+    );
+    assert.throws(
+      () => assertSafeCustomSyncTarget('\\\\?\\Volume{01234567-89ab-cdef-0123-456789abcdef}\\out', 'outSrcDir'),
+      /unsupported Windows device-namespace or volume path/
     );
   }
 
@@ -566,14 +621,22 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
   assert.throws(() => assertValidMtimeOption({ mtime: 'garbage' }), /Invalid mtime/);
   assert.throws(() => assertValidMtimeOption({ mtime: new Date('invalid') }), /Invalid mtime/);
 
+  const gitattributes = fs.readFileSync(path.join(ROOT, '.gitattributes'), 'utf8');
+  assert.match(gitattributes, /^dist\/\*\*\s+text\s+eol=lf$/m, '.gitattributes must pin dist/** to LF');
+  assert.match(gitattributes, /^dist\/assets\/\*\.zip\s+binary$/m, '.gitattributes must mark dist/assets/*.zip as binary');
+
   const committedDistDir = path.join(ROOT, 'dist');
   const committedBefore = hashDirectoryTree(committedDistDir);
 
   let tempDir1 = null;
   let tempDir2 = null;
   const fixedMtime = new Date('2026-01-01T00:00:00Z');
+  const outerSourceDateEpoch = process.env.SOURCE_DATE_EPOCH;
 
   try {
+    // Ensure build test is hermetic against any outer SOURCE_DATE_EPOCH environment variable
+    delete process.env.SOURCE_DATE_EPOCH;
+
     tempDir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-build1-'));
     tempDir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-build2-'));
 
@@ -665,7 +728,8 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
       assert.ok(foundFiles.includes(expected), `Asset bundle missing expected entry: "${expected}"`);
     }
 
-    // Compare dist/assets/picotol-v*.zip against fresh build by entry name and content hash
+    // Compare dist/assets/picotol-v*.zip against fresh build by per-entry metadata & content hash
+    // (avoids brittle whole-zip raw-deflate byte comparison across differing Node/zlib versions)
     const committedZipPath = path.join(committedDistDir, 'assets', `picotol-v${pkg.version}.zip`);
     assert.ok(fs.existsSync(committedZipPath), `dist/assets/picotol-v${pkg.version}.zip must exist`);
     const committedZipBuf = fs.readFileSync(committedZipPath);
@@ -675,20 +739,54 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
     );
     const committedZipEntries = parsePkZipEntries(committedZipBuf);
     assert.deepEqual(
-      committedZipEntries.map((e) => ({ name: e.name, sha256: e.sha256, uncompressedSize: e.uncompressedSize })),
-      freshZipEntries.map((e) => ({ name: e.name, sha256: e.sha256, uncompressedSize: e.uncompressedSize })),
-      'dist/assets/picotol-v*.zip entries and content hashes must match fresh buildAll() output'
+      committedZipEntries.map((e) => ({
+        name: e.name,
+        sha256: e.sha256,
+        crc: e.crc,
+        uncompressedSize: e.uncompressedSize,
+        dosDate: e.dosDate,
+        dosTime: e.dosTime,
+      })),
+      freshZipEntries.map((e) => ({
+        name: e.name,
+        sha256: e.sha256,
+        crc: e.crc,
+        uncompressedSize: e.uncompressedSize,
+        dosDate: e.dosDate,
+        dosTime: e.dosTime,
+      })),
+      'dist/assets/picotol-v*.zip entries, timestamps, CRCs, and content hashes must match fresh buildAll() output'
     );
 
-    // 5. Full-tree idempotence and UTC / SOURCE_DATE_EPOCH / parsePkZipEntries hardening tests:
-    // Default build without mtime option uses deterministic UTC default epoch (matching committed dist/assets/*.zip byte-for-byte)
+    // 5. Full-tree idempotence on the active runtime and real cross-timezone subprocess verification:
     buildAll({ outDir: tempDir2 });
     const tree2 = hashDirectoryTree(tempDir2);
-    assert.deepEqual(tree1, tree2, 'buildAll must be full-tree idempotent across all generated files and zip archive');
+    assert.deepEqual(tree1, tree2, 'buildAll must be full-tree idempotent across all generated files and zip archive on the active runtime');
+
+    // Spawn zip generation with TZ=UTC and TZ=Pacific/Kiritimati (UTC+14) and assert identical bytes
+    const tzScript = [
+      "import { createPkZip } from './tools/package-assets.mjs';",
+      'delete process.env.SOURCE_DATE_EPOCH;',
+      "const buf = createPkZip([{ name: 'tz-check.txt', data: 'timezone invariance check' }]);",
+      "process.stdout.write(buf.toString('hex'));",
+    ].join(' ');
+    const baseChildEnv = { ...process.env };
+    delete baseChildEnv.SOURCE_DATE_EPOCH;
+    const zipHexUtc = execFileSync(process.execPath, ['--input-type=module', '-e', tzScript], {
+      cwd: ROOT,
+      env: { ...baseChildEnv, TZ: 'UTC' },
+      encoding: 'utf8',
+    });
+    const zipHexKiritimati = execFileSync(process.execPath, ['--input-type=module', '-e', tzScript], {
+      cwd: ROOT,
+      env: { ...baseChildEnv, TZ: 'Pacific/Kiritimati' },
+      encoding: 'utf8',
+    });
+    assert.ok(zipHexUtc.length > 44, 'Subprocess zip output must be non-empty');
     assert.equal(
-      tree2[`assets/picotol-v${pkg.version}.zip`],
-      committedBefore[`assets/picotol-v${pkg.version}.zip`],
-      'Default buildAll() zip archive must match committed dist/assets/picotol-v*.zip byte-for-byte across checkouts and timezones'
+      zipHexUtc,
+      zipHexKiritimati,
+      'PKZip archive bytes must be identical across TZ=UTC and TZ=Pacific/Kiritimati'
     );
 
     // UTC MS-DOS timestamp & SOURCE_DATE_EPOCH verification (including 1980–2107 year bounds)
@@ -700,20 +798,21 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
     assert.throws(() => toDosDateTime(new Date('1979-12-31T23:59:59Z')), /Invalid mtime year 1979/);
     assert.throws(() => toDosDateTime(new Date('2108-01-01T00:00:00Z')), /Invalid mtime year 2108/);
 
-    const prevEpoch = process.env.SOURCE_DATE_EPOCH;
     try {
       process.env.SOURCE_DATE_EPOCH = '1767225600'; // 2026-01-01T00:00:00Z
       assert.equal(resolveDefaultZipMtime().toISOString(), '2026-01-01T00:00:00.000Z');
       process.env.SOURCE_DATE_EPOCH = 'not-an-int';
       assert.throws(() => resolveDefaultZipMtime(), /Invalid SOURCE_DATE_EPOCH/);
     } finally {
-      if (prevEpoch === undefined) delete process.env.SOURCE_DATE_EPOCH;
-      else process.env.SOURCE_DATE_EPOCH = prevEpoch;
+      delete process.env.SOURCE_DATE_EPOCH;
     }
 
-    // parsePkZipEntries strict validation: reject non-deflate method, ZIP64 sentinels, oversized claims (> MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES),
-    // payload inflating larger than claimed header (ERR_BUFFER_TOO_LARGE), and payload inflating smaller than claimed header (Uncompressed size mismatch)
+    // parsePkZipEntries strict validation: reject non-deflate method, ZIP64 sentinels, entry count cap (> MAX_ZIP_ENTRIES),
+    // per-entry cap (> MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES), aggregate cap (> MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES),
+    // payload inflating larger than claimed header (ERR_BUFFER_TOO_LARGE), and payload inflating smaller than claimed header
+    assert.equal(MAX_ZIP_ENTRIES, 128);
     assert.equal(MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES, 10 * 1024 * 1024);
+    assert.equal(MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES, 25 * 1024 * 1024);
     const sampleZip = createPkZip([{ name: 'hello.txt', data: 'hello world', mtime: fixedMtime }]);
     assert.equal(parsePkZipEntries(sampleZip).length, 1);
 
@@ -727,11 +826,30 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
     zip64Sentinel.writeUInt16LE(0xffff, eocdPos + 10);
     assert.throws(() => parsePkZipEntries(zip64Sentinel), /ZIP64 archives are not supported/);
 
+    const exceedMaxEntriesZip = Buffer.from(sampleZip);
+    exceedMaxEntriesZip.writeUInt16LE(MAX_ZIP_ENTRIES + 1, eocdPos + 10);
+    assert.throws(
+      () => parsePkZipEntries(exceedMaxEntriesZip),
+      /Archive entry count 129 exceeds max allowed 128 entries/
+    );
+
     const exceedMaxCapZip = Buffer.from(sampleZip);
     exceedMaxCapZip.writeUInt32LE(MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES + 1, cdStart + 24);
     assert.throws(
       () => parsePkZipEntries(exceedMaxCapZip),
       /Entry hello\.txt uncompressed size 10485761 exceeds max allowed 10485760 bytes/
+    );
+
+    // Aggregate uncompressed bytes cap: 3 entries each claiming 9 MiB (<= 10 MiB per-entry limit, 27 MiB > 25 MiB aggregate cap)
+    const nineMiBChunk = Buffer.alloc(9 * 1024 * 1024);
+    const multiEntryZip = createPkZip([
+      { name: 'part1.bin', data: nineMiBChunk, mtime: fixedMtime },
+      { name: 'part2.bin', data: nineMiBChunk, mtime: fixedMtime },
+      { name: 'part3.bin', data: nineMiBChunk, mtime: fixedMtime },
+    ]);
+    assert.throws(
+      () => parsePkZipEntries(multiEntryZip),
+      /Aggregate uncompressed size 28311552 exceeds max allowed 26214400 bytes/
     );
 
     const payloadExceedsClaimedSize = Buffer.from(sampleZip);
@@ -749,6 +867,8 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
       /Uncompressed size mismatch for hello\.txt: expected 50, got 11/
     );
   } finally {
+    if (outerSourceDateEpoch === undefined) delete process.env.SOURCE_DATE_EPOCH;
+    else process.env.SOURCE_DATE_EPOCH = outerSourceDateEpoch;
     if (tempDir1) fs.rmSync(tempDir1, { recursive: true, force: true });
     if (tempDir2) fs.rmSync(tempDir2, { recursive: true, force: true });
   }

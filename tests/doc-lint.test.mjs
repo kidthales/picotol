@@ -3,12 +3,21 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { stripCssCommentsAndStrings, stripNotPseudoClasses } from '../tools/lint.mjs';
-
-export { stripCssCommentsAndStrings };
+import {
+  extractCurrentChangelogSection,
+  extractTokenOccurrencesFromMarkdown,
+  extractTokensFromMarkdown,
+  tokenExistsInCss,
+  validateDocTokens,
+} from './helpers/doc-lint.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
+
+// Requires // REMOVE-BY: #200 to sit directly above export const TEMPORARY_ALLOWLIST
+// with only contiguous // comment lines allowed between the marker and the export.
+const REMOVE_BY_ANCHORED_RE =
+  /^[ \t]*\/\/[ \t]*REMOVE-BY:[ \t]*#200\b[^\r\n]*\r?\n(?:[ \t]*\/\/[^\r\n]*\r?\n)*export[ \t]+const[ \t]+TEMPORARY_ALLOWLIST[ \t]*=/m;
 
 // REMOVE-BY: #200
 // Temporary file-and-count-scoped allowlist for phantom/historical tokens documented in Issue #199.
@@ -43,212 +52,6 @@ export const TEMPORARY_ALLOWLIST = [
   { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-meter__track', count: 1 },
 ];
 
-export function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-export function getAllowlistLimit(token, file = '') {
-  const entry = TEMPORARY_ALLOWLIST.find((e) => e.file === file && e.token === token);
-  return entry ? entry.count : 0;
-}
-
-export function isAllowlisted(token, file = '', occurrenceCount = 1) {
-  const limit = getAllowlistLimit(token, file);
-  return limit > 0 && occurrenceCount <= limit;
-}
-
-export function extractInlineCodeSpans(segment) {
-  // Extracts standard CommonMark inline code spans across a paragraph/block segment:
-  // an opening backtick string of length N matches the next backtick string of exact
-  // length N in the paragraph; if none exists, the opening backtick run is literal text.
-  const spans = [];
-  let i = 0;
-  while (i < segment.length) {
-    if (segment[i] !== '`') {
-      i++;
-      continue;
-    }
-    let tickCount = 0;
-    while (i + tickCount < segment.length && segment[i + tickCount] === '`') {
-      tickCount++;
-    }
-    const openEnd = i + tickCount;
-    let searchIdx = openEnd;
-    let closeStart = -1;
-    while (searchIdx < segment.length) {
-      if (segment[searchIdx] !== '`') {
-        searchIdx++;
-        continue;
-      }
-      let runLen = 0;
-      while (searchIdx + runLen < segment.length && segment[searchIdx + runLen] === '`') {
-        runLen++;
-      }
-      if (runLen === tickCount) {
-        closeStart = searchIdx;
-        break;
-      }
-      searchIdx += runLen;
-    }
-    if (closeStart !== -1) {
-      spans.push(segment.slice(openEnd, closeStart).replace(/\r?\n/g, ' '));
-      i = closeStart + tickCount;
-    } else {
-      i = openEnd;
-    }
-  }
-  return spans;
-}
-
-export function expandBracePattern(pattern) {
-  const braceMatch = pattern.match(/\{([a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+)\}/);
-  if (!braceMatch) return [pattern];
-  const options = braceMatch[1].split(',');
-  const prefix = pattern.slice(0, braceMatch.index);
-  const suffix = pattern.slice(braceMatch.index + braceMatch[0].length);
-  return options.flatMap((opt) => expandBracePattern(`${prefix}${opt}${suffix}`));
-}
-
-export function extractTokenOccurrencesFromMarkdown(content) {
-  const lines = content.split(/\r?\n/);
-  let inFence = false;
-  let fenceChar = '';
-  let fenceLen = 0;
-  let currentFenceLines = [];
-  let currentProseLines = [];
-  const codeSegments = [];
-
-  function flushProseParagraphs() {
-    if (currentProseLines.length === 0) return;
-    const proseText = currentProseLines.join('\n');
-    currentProseLines = [];
-    for (const paragraph of proseText.split(/\n\s*\n/)) {
-      if (paragraph.trim()) {
-        codeSegments.push(...extractInlineCodeSpans(paragraph));
-      }
-    }
-  }
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!inFence) {
-      const openMatch = trimmed.match(/^(`{3,}|~{3,})/);
-      if (openMatch) {
-        flushProseParagraphs();
-        inFence = true;
-        fenceChar = openMatch[1][0];
-        fenceLen = openMatch[1].length;
-        currentFenceLines = [];
-        continue;
-      }
-      currentProseLines.push(line);
-    } else {
-      const closeRe = new RegExp(`^${escapeRegex(fenceChar)}{${fenceLen},}\\s*$`);
-      if (closeRe.test(trimmed)) {
-        codeSegments.push(currentFenceLines.join('\n'));
-        currentFenceLines = [];
-        inFence = false;
-        fenceChar = '';
-        fenceLen = 0;
-      } else {
-        currentFenceLines.push(line);
-      }
-    }
-  }
-
-  if (inFence) {
-    throw new Error('Unterminated fenced code block in markdown content');
-  }
-  flushProseParagraphs();
-
-  const occurrences = [];
-  const tokenRe = /(\.pt-[a-zA-Z0-9_*-]+|(?<![\w-])--pt-[a-zA-Z0-9_*-]+)(?![\w*-])/g;
-  const braceTokenRe =
-    /(?:\.pt|--pt|(?<=[\s"'])pt)-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
-  const htmlClassAttrRe = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
-  const bareClassTokenRe = /^pt-[a-zA-Z0-9_*-]+$/;
-
-  for (const rawSegment of codeSegments) {
-    const expandedSegment = rawSegment.replace(braceTokenRe, (match) =>
-      expandBracePattern(match).join(' ')
-    );
-
-    tokenRe.lastIndex = 0;
-    let tm;
-    while ((tm = tokenRe.exec(expandedSegment)) !== null) {
-      occurrences.push(tm[1]);
-    }
-
-    htmlClassAttrRe.lastIndex = 0;
-    let cm;
-    while ((cm = htmlClassAttrRe.exec(expandedSegment)) !== null) {
-      const classValue = cm[1] ?? cm[2] ?? '';
-      for (const cls of classValue.split(/\s+/)) {
-        if (bareClassTokenRe.test(cls)) {
-          occurrences.push(`.${cls}`);
-        }
-      }
-    }
-  }
-
-  return occurrences;
-}
-
-export function extractTokensFromMarkdown(content) {
-  return [...new Set(extractTokenOccurrencesFromMarkdown(content))];
-}
-
-export function extractCurrentChangelogSection(changelogContent, currentVersion) {
-  const escapedVersion = escapeRegex(currentVersion);
-  const changelogHeaderRegex = new RegExp(`## \\[${escapedVersion}\\][^\\n]*\\n([\\s\\S]*?)(?=\\n## \\[|$)`);
-  const changelogMatch = changelogContent.match(changelogHeaderRegex);
-  if (!changelogMatch) {
-    throw new Error(`CHANGELOG.md missing header for current package.json version: ## [${currentVersion}]`);
-  }
-  return changelogMatch[1];
-}
-
-function tokenToRegexSource(token) {
-  return token
-    .split('*')
-    .map((segment) => escapeRegex(segment))
-    .join('[a-zA-Z0-9_-]+');
-}
-
-export function tokenExistsInCss(token, cssContent) {
-  const cleanCss = stripCssCommentsAndStrings(cssContent);
-  const pattern = tokenToRegexSource(token);
-  if (token.startsWith('--')) {
-    // Require a custom property declaration (--pt-foo:), not merely a var(--pt-foo) usage
-    const declRe = new RegExp(`(?<![\\w-])${pattern}(?![\\w-])\\s*:`);
-    return declRe.test(cleanCss);
-  }
-  if (token.startsWith('.')) {
-    // Require positive class token in a CSS selector context (outside :not(...) and followed by {)
-    const positiveCss = stripNotPseudoClasses(cleanCss);
-    const selRe = new RegExp(`${pattern}(?![\\w-])(?=[^;{}]*\\{)`);
-    return selRe.test(positiveCss);
-  }
-  return false;
-}
-
-export function validateDocTokens(content, distCss, file = '', allowlistFn = isAllowlisted) {
-  const occurrences = extractTokenOccurrencesFromMarkdown(content);
-  const counts = new Map();
-  for (const tok of occurrences) {
-    counts.set(tok, (counts.get(tok) || 0) + 1);
-  }
-  const tokens = [...counts.keys()];
-  const missing = [];
-  for (const token of tokens) {
-    if (allowlistFn(token, file, counts.get(token))) continue;
-    if (!tokenExistsInCss(token, distCss)) {
-      missing.push(token);
-    }
-  }
-  return { tokens, missing, counts };
-}
-
 test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs/RELEASE_NOTES_*.md against dist/picotol.css', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -256,14 +59,14 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
 
   // 1. README.md
   const readmeContent = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  const readmeResult = validateDocTokens(readmeContent, distCss, 'README.md');
+  const readmeResult = validateDocTokens(readmeContent, distCss, 'README.md', TEMPORARY_ALLOWLIST);
   assert.ok(readmeResult.tokens.length > 0, 'README.md must contain documented tokens');
   assert.deepEqual(readmeResult.missing, [], `README.md contains undocumented tokens: ${readmeResult.missing.join(', ')}`);
 
   // 2. CHANGELOG.md scoped strictly to current release header (e.g. ## [0.5.0])
   const changelogContent = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8');
   const changelogSection = extractCurrentChangelogSection(changelogContent, currentVersion);
-  const changelogResult = validateDocTokens(changelogSection, distCss, 'CHANGELOG.md');
+  const changelogResult = validateDocTokens(changelogSection, distCss, 'CHANGELOG.md', TEMPORARY_ALLOWLIST);
   assert.ok(changelogResult.tokens.length > 0, `CHANGELOG.md ## [${currentVersion}] section must contain documented tokens`);
   assert.deepEqual(changelogResult.missing, [], `CHANGELOG.md contains undocumented tokens: ${changelogResult.missing.join(', ')}`);
 
@@ -284,7 +87,7 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
   for (const file of releaseNoteFiles) {
     const relPath = `docs/${file}`;
     const noteContent = fs.readFileSync(path.join(ROOT, 'docs', file), 'utf8');
-    const noteResult = validateDocTokens(noteContent, distCss, relPath);
+    const noteResult = validateDocTokens(noteContent, distCss, relPath, TEMPORARY_ALLOWLIST);
     if (file === currentReleaseNoteFile) {
       assert.ok(noteResult.tokens.length > 0, `${relPath} must contain documented tokens`);
     }
@@ -302,7 +105,7 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
     '<div class="card pt-fake-html-class" style="color: var(--pt-fake-fenced-var)"></div>',
     '```',
   ].join('\n');
-  const fakeResult = validateDocTokens(fakeDoc, distCss, 'README.md');
+  const fakeResult = validateDocTokens(fakeDoc, distCss, 'README.md', TEMPORARY_ALLOWLIST);
   assert.deepEqual(fakeResult.missing, [
     '.pt-fake-primitive',
     '--pt-nonexistent-token',
@@ -311,7 +114,7 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
   ]);
 
   // 5. File-scoped allowlist isolation: a token allowlisted in CHANGELOG.md fails if introduced in README.md
-  const crossFileLeak = validateDocTokens('See `.pt-popover__surface` in README.', distCss, 'README.md');
+  const crossFileLeak = validateDocTokens('See `.pt-popover__surface` in README.', distCss, 'README.md', TEMPORARY_ALLOWLIST);
   assert.deepEqual(
     crossFileLeak.missing,
     ['.pt-popover__surface'],
@@ -322,7 +125,8 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
   const extraSameFileUse = validateDocTokens(
     'First `.pt-meter-pin` and second `.pt-meter-pin` in README.',
     distCss,
-    'README.md'
+    'README.md',
+    TEMPORARY_ALLOWLIST
   );
   assert.deepEqual(
     extraSameFileUse.missing,
@@ -360,7 +164,8 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
   const validPatternsResult = validateDocTokens(
     'Valid `--pt-*`, `--pt-status-*-fg`, `.pt-meter-mark--*`, and `--pt-status-{ok,warning}-{fg,bg}`.',
     distCss,
-    'README.md'
+    'README.md',
+    TEMPORARY_ALLOWLIST
   );
   assert.deepEqual(validPatternsResult.missing, []);
 
@@ -368,7 +173,8 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
   const phantomPatternsResult = validateDocTokens(
     'Invalid `--pt-phantom-*-fg`, `.pt-phantom--*`, and `--pt-status-{ok,phantom}-fg`.',
     distCss,
-    'README.md'
+    'README.md',
+    TEMPORARY_ALLOWLIST
   );
   assert.deepEqual(phantomPatternsResult.missing, [
     '--pt-phantom-*-fg',
@@ -387,7 +193,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
   const currentSec = extractCurrentChangelogSection(sampleChangelog, '0.5.0');
   assert.deepEqual(extractTokensFromMarkdown(currentSec), ['.pt-current-only']);
 
-  // Fenced code blocks (``` and ~~~), HTML class="pt-..." attributes, and CommonMark multi-line code spans
+  // Fenced code blocks (``` and ~~~), HTML class="pt-..." / class='pt-...' / class=pt-... attributes, and CommonMark multi-line code spans
   const fenceAndMultilineMd = [
     '~~~css',
     '.pt-inside-tilde-fence { --pt-fenced-prop: 1; }',
@@ -395,6 +201,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
     '```html',
     '<div class="container pt-callout pt-callout-warning" data-x=\'1\'>',
     "  <span class='pt-badge pt-badge--numeric'>42</span>",
+    '  <i class=pt-unquoted-html-class></i>',
     '</div>',
     '```',
     'Multi-line code span: `first line .pt-multiline-one',
@@ -409,6 +216,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
     '.pt-callout-warning',
     '.pt-badge',
     '.pt-badge--numeric',
+    '.pt-unquoted-html-class',
     '.pt-multiline-one',
     '--pt-multiline-two',
     '.pt-double-tick',
@@ -425,32 +233,33 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
   );
 
   // tokenExistsInCss requires declaration for --pt-* and positive selector context (outside :not) for .pt-*,
-  // while preserving /* inside string literals so strings cannot corrupt comment stripping
+  // while preserving /* inside string literals and apostrophes inside unquoted url(...) so strings cannot mispair
   const sampleCss = `
     /* --pt-commented: #000; .pt-commented { color: red; } */
     :root {
       --pt-str-with-comment: "/* not a comment";
+      --pt-unquoted-url-with-apostrophe: url(https://example.com/it's-an-icon.svg);
       --pt-defined: #4477AA;
       --pt-close-comment-str: "*/";
       color: var(--pt-used-only);
-      content: ".pt-in-string --pt-in-string: #000";
+      content: '.pt-in-single-quoted-string --pt-in-string: #000';
     }
     :where(.pt-real-class, .pt-second-class):not(.pt-negated-only):hover {
       display: block;
     }
   `;
-  assert.equal(tokenExistsInCss('--pt-defined', sampleCss), true, '/* inside string literal must not swallow subsequent declarations');
+  assert.equal(tokenExistsInCss('--pt-defined', sampleCss), true, '/* inside string literal or apostrophe inside unquoted url() must not swallow subsequent declarations');
   assert.equal(tokenExistsInCss('--pt-used-only', sampleCss), false, 'var(--pt-used-only) usage must not count as definition');
   assert.equal(tokenExistsInCss('--pt-commented', sampleCss), false, 'Commented custom property must not count as definition');
   assert.equal(tokenExistsInCss('--pt-in-string', sampleCss), false, 'String literal must not count as definition');
-  assert.equal(tokenExistsInCss('.pt-real-class', sampleCss), true);
+  assert.equal(tokenExistsInCss('.pt-real-class', sampleCss), true, 'Selector after unquoted url() with apostrophe and single-quoted string must be recognized');
   assert.equal(tokenExistsInCss('.pt-second-class', sampleCss), true);
   assert.equal(tokenExistsInCss('.pt-negated-only', sampleCss), false, 'Class only inside :not(.pt-negated-only) must not count as selector definition');
   assert.equal(tokenExistsInCss('.pt-commented', sampleCss), false, 'Commented class must not count as definition');
-  assert.equal(tokenExistsInCss('.pt-in-string', sampleCss), false, 'Class inside string value must not count as selector definition');
+  assert.equal(tokenExistsInCss('.pt-in-single-quoted-string', sampleCss), false, 'Class inside string value must not count as selector definition');
 });
 
-test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, match their exact pinned count in their scoped file section, and be guarded by REMOVE-BY: #200', () => {
+test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, match their exact pinned count in their scoped file section, and be guarded by adjacent REMOVE-BY: #200', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const currentVersion = pkg.version;
@@ -458,12 +267,28 @@ test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, match thei
   const changelogContent = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8');
   const currentChangelogSection = extractCurrentChangelogSection(changelogContent, currentVersion);
 
+  // Verify REMOVE_BY_ANCHORED_RE enforces strict adjacency (contiguous // comment block directly above export)
+  assert.match(
+    '// REMOVE-BY: #200\n// explanation\nexport const TEMPORARY_ALLOWLIST = [];',
+    REMOVE_BY_ANCHORED_RE
+  );
+  assert.doesNotMatch(
+    '// REMOVE-BY: #200\n\nexport const TEMPORARY_ALLOWLIST = [];',
+    REMOVE_BY_ANCHORED_RE,
+    'Blank line between // REMOVE-BY: #200 and export const TEMPORARY_ALLOWLIST must be rejected'
+  );
+  assert.doesNotMatch(
+    '// REMOVE-BY: #200\nconst other = 1;\nexport const TEMPORARY_ALLOWLIST = [];',
+    REMOVE_BY_ANCHORED_RE,
+    'Code statement between // REMOVE-BY: #200 and export const TEMPORARY_ALLOWLIST must be rejected'
+  );
+
   if (TEMPORARY_ALLOWLIST.length > 0) {
-    // Anchor check to the comment header directly above export const TEMPORARY_ALLOWLIST
+    // Anchor check to the contiguous // comment block directly above export const TEMPORARY_ALLOWLIST
     assert.match(
       selfSource,
-      /\/\/\s*REMOVE-BY:\s*#200\b[\s\S]*?export\s+const\s+TEMPORARY_ALLOWLIST\s*=/,
-      'Non-empty TEMPORARY_ALLOWLIST must retain the // REMOVE-BY: #200 header comment above TEMPORARY_ALLOWLIST'
+      REMOVE_BY_ANCHORED_RE,
+      'Non-empty TEMPORARY_ALLOWLIST must retain the // REMOVE-BY: #200 comment in the contiguous comment block directly above export const TEMPORARY_ALLOWLIST'
     );
     assert.ok(
       !/#200\b/.test(currentChangelogSection),

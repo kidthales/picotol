@@ -343,6 +343,7 @@ try {
         if (-not $SeldonBin) {
             Write-Host "`n  -> Skipping local CI receipt generation (seldon binary not found)." -ForegroundColor Gray
         } else {
+            # seldon ci receipt requires explicit --gates statuses to record .ci-local/receipt.json for --local-ci review gates
             Write-Host "`n[Receipt] Recording local CI receipt via seldon ci receipt..." -ForegroundColor Yellow
             $GateResults = @(
                 "gate0_workflow_contract=$Gate0Status",
