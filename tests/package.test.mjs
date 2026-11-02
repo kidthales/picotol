@@ -391,10 +391,14 @@ test("v0.5.0 pre-release artifacts and documentation adhere to open-source relea
   const changelog = fs.readFileSync(changelogPath, "utf8");
   assert.ok(changelog.includes("## [0.5.0] - 2026-10-30"), "CHANGELOG.md must document [0.5.0] - 2026-10-30");
   assert.ok(changelog.includes("docs/RELEASE_NOTES_V0_5_0.md"), "CHANGELOG.md must reference RELEASE_NOTES_V0_5_0.md");
+});
 
-  // 3. package.json and CITATION.cff align on version 0.5.0
-  assert.equal(pkg.version, "0.5.0", "package.json version must be 0.5.0");
+test("package.json and CITATION.cff align on package version", () => {
   const cffPath = path.join(ROOT, "CITATION.cff");
+  assert.ok(fs.existsSync(cffPath), "CITATION.cff must exist");
   const cff = fs.readFileSync(cffPath, "utf8");
-  assert.ok(cff.includes("version: 0.5.0"), "CITATION.cff version must be 0.5.0");
+  assert.ok(
+    cff.includes(`version: ${pkg.version}`),
+    `CITATION.cff version must match package.json (${pkg.version})`
+  );
 });

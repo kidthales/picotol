@@ -19,3 +19,7 @@ dist/assets/
 # Local CI Receipts (NEVER COMMIT)
 .ci-local/
 
+# CI Analysis & SARIF Artifacts
+results.sarif
+*.sarif
+
