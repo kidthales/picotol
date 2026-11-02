@@ -19,38 +19,8 @@ const ROOT = path.resolve(__dirname, '..');
 const REMOVE_BY_ANCHORED_RE =
   /^[ \t]*\/\/[ \t]*REMOVE-BY:[ \t]*#200\b[^\r\n]*\r?\n(?:[ \t]*\/\/[^\r\n]*\r?\n)*export[ \t]+const[ \t]+TEMPORARY_ALLOWLIST[ \t]*=/m;
 
-// REMOVE-BY: #200
-// Temporary file-and-count-scoped allowlist for phantom/historical tokens documented in Issue #199.
-// Each entry pins the exact occurrence count in its scoped file so any new use in the same file fails closed.
-// Tracked for complete elimination/erratum under Issue #200.
-export const TEMPORARY_ALLOWLIST = [
-  { file: 'README.md', token: '--pt-font-emoji', count: 2 },
-  { file: 'README.md', token: '--pt-status-neutral-*', count: 1 },
-  { file: 'README.md', token: '.pt-meter-pin', count: 1 },
-  { file: 'CHANGELOG.md', token: '.pt-popover__surface', count: 1 },
-  { file: 'CHANGELOG.md', token: '.pt-dot--sm', count: 1 },
-  { file: 'CHANGELOG.md', token: '.pt-meter__marker', count: 2 },
-  { file: 'CHANGELOG.md', token: '.pt-meter__track', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '.pt-meter-pin', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-bg', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-fg', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-border', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-track', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-range', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-fill', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-marker', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-label', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-pin', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-gap-tight', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover__surface', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--align-end', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--align-center', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--top', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '--pt-popover-shadow', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-dot--sm', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-meter__marker', count: 2 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-meter__track', count: 1 },
-];
+// Empty allowlist following Issue #200 (all phantom APIs retracted and documentation reconciled).
+export const TEMPORARY_ALLOWLIST = [];
 
 test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs/RELEASE_NOTES_*.md against dist/picotol.css', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
@@ -114,23 +84,27 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
   ]);
 
   // 5. File-scoped allowlist isolation: a token allowlisted in CHANGELOG.md fails if introduced in README.md
-  const crossFileLeak = validateDocTokens('See `.pt-popover__surface` in README.', distCss, 'README.md', TEMPORARY_ALLOWLIST);
+  const mockAllowlist = [
+    { file: 'CHANGELOG.md', token: '.pt-mock-scoped', count: 1 },
+    { file: 'README.md', token: '.pt-mock-pinned', count: 1 },
+  ];
+  const crossFileLeak = validateDocTokens('See `.pt-mock-scoped` in README.', distCss, 'README.md', mockAllowlist);
   assert.deepEqual(
     crossFileLeak.missing,
-    ['.pt-popover__surface'],
+    ['.pt-mock-scoped'],
     'Allowlisted token for CHANGELOG.md must fail if referenced in README.md'
   );
 
   // 6. Count-scoped allowlist isolation: a new additional use of an allowlisted phantom in the same file is caught
   const extraSameFileUse = validateDocTokens(
-    'First `.pt-meter-pin` and second `.pt-meter-pin` in README.',
+    'First `.pt-mock-pinned` and second `.pt-mock-pinned` in README.',
     distCss,
     'README.md',
-    TEMPORARY_ALLOWLIST
+    mockAllowlist
   );
   assert.deepEqual(
     extraSameFileUse.missing,
-    ['.pt-meter-pin'],
+    ['.pt-mock-pinned'],
     'Additional use of allowlisted token beyond its pinned count in the same file must fail'
   );
 });
@@ -281,6 +255,17 @@ test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, match thei
     '// REMOVE-BY: #200\nconst other = 1;\nexport const TEMPORARY_ALLOWLIST = [];',
     REMOVE_BY_ANCHORED_RE,
     'Code statement between // REMOVE-BY: #200 and export const TEMPORARY_ALLOWLIST must be rejected'
+  );
+
+  assert.equal(
+    TEMPORARY_ALLOWLIST.length,
+    0,
+    'TEMPORARY_ALLOWLIST must be empty following Issue #200'
+  );
+  assert.doesNotMatch(
+    selfSource,
+    REMOVE_BY_ANCHORED_RE,
+    '// REMOVE-BY: #200 marker must be removed once TEMPORARY_ALLOWLIST is emptied'
   );
 
   if (TEMPORARY_ALLOWLIST.length > 0) {

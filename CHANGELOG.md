@@ -10,10 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Sixth public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.5.0](docs/RELEASE_NOTES_V0_5_0.md).
 
 ### Added
-- Native zero-JS floating popover primitive (`<details class="pt-popover">` and `.pt-popover__surface`) with alignment modifiers (`--align-end`, `--align-center`, `--top`) and elevation styling (#175).
-- Tokenized status dot primitive (`.pt-dot`, `.pt-dot--sm`) with 8px and 6px dimensions, Paul Tol semantic state bindings, and pulsing modifier (`.pt-dot--pulse`) (#173).
-- Meter boundary marker pin clamping (`--pin-left`, `--pin-right`) to track `border-radius`, preventing corner overhang at extreme values (#172).
-- Dual-mode meter marker markup compatibility supporting both flat `.pt-meter > .pt-meter__marker` and nested `.pt-meter__track > .pt-meter__marker` anatomy (#183).
+- Native zero-JS floating popover primitive (`<details class="pt-popover">` and *.pt-popover__surface*) with alignment modifiers (*.pt-popover--align-end*, *.pt-popover--align-center*, *.pt-popover--top*) and elevation styling (#175).
+- Tokenized status dot primitive (`.pt-dot`, *.pt-dot--sm*) with 8px and 6px dimensions, Paul Tol semantic state bindings, and pulsing modifier (`.pt-dot--pulse`) (#173).
+- Meter boundary marker pin clamping (*--pin-left*, *--pin-right*) to track `border-radius`, preventing corner overhang at extreme values (#172).
+- Dual-mode meter marker markup compatibility supporting both flat *.pt-meter > .pt-meter__marker* and nested *.pt-meter__track > .pt-meter__marker* anatomy (#183).
 - Tabular numerics badge modifier (`.pt-badge--numeric`) with jitter-free alignment and right-alignment utility (`.pt-tabular--align-end`) (#174, #190).
 - Compact density margin resets cascading `[data-density="compact"]` and `[data-density="tight"]` into block margins of sections, articles, and rules in flex/grid layouts (#176).
 - Single-source-of-truth CI verification pipeline (`scripts/ci-local.ps1 -CI`) (#185).
@@ -22,6 +22,20 @@ Sixth public open-source pre-release of `@kidthales/picotol`. For detailed narra
 ### Changed
 - Calibrated dark mode selection contrast and adjusted demo meter label clearances (#188).
 - Updated `README.md` documentation, CDN and vendoring URLs, and APA citation version (`0.5.0`) (#192).
+
+### Errata
+- Retracted documentation claims for phantom APIs not implemented in `src/` (#200):
+  - Retracted popover surface class and modifiers: *.pt-popover__surface*, *.pt-popover--align-end*, *.pt-popover--align-center*, *.pt-popover--top*, and *--pt-popover-shadow* (actual implementation uses `.pt-popover > :not(summary)` / `.pt-popover-content`, with `.pt-popover--start` and `.pt-popover--end`).
+  - Retracted status dot micro-size modifier: *.pt-dot--sm* (standard `.pt-dot` is 8px).
+  - Retracted boundary marker clamp custom properties: *--pin-left* and *--pin-right* (handled via native CSS `clamp()`).
+  - Retracted meter BEM selectors: *.pt-meter__marker* and *.pt-meter__track* (actual selectors are `.pt-meter-mark`, `.pt-meter-range`, `.pt-meter-fill`).
+  - Retracted neutral status triad: *--pt-status-neutral-bg*, *--pt-status-neutral-fg*, *--pt-status-neutral-border* (only *ok*, *warning*, *critical*, and *info* status triads are defined).
+  - Retracted font custom properties: *--pt-font-emoji* and optical sizing (*font-optical-sizing*).
+  - Retracted segmented control BEM selectors: *.segmented-control--fill* and *.segmented-item* (actual classes are `.segmented-fill` and `.segmented-equal`).
+  - Retracted slide-over drawer placement attribute and blur: *sheet [data-placement]* and *backdrop blur* (actual classes are `.sheet`, `.sheet-right`, and `.sheet-left`).
+  - Retracted meter z-index custom properties: *--pt-meter-z-track*, *--pt-meter-z-range*, *--pt-meter-z-fill*, *--pt-meter-z-marker*, *--pt-meter-z-label*, *--pt-meter-z-pin* (actual tokens are `--pt-meter-range-z`, `--pt-meter-fill-z`, `--pt-meter-mark-z`).
+  - Retracted historical pin selector: *.pt-meter-pin* (canonical container is `.pt-meter-mark`).
+  - Retracted tight gap custom property: *--pt-gap-tight*.
 
 ## [0.4.1] - 2026-10-29
 
@@ -51,14 +65,14 @@ Fourth public open-source pre-release of `@kidthales/picotol`. For detailed narr
 - Light-mode semantic status triads (`--pt-status-ok-*`, `--pt-status-warning-*`, `--pt-status-critical-*`, `--pt-status-info-*`) calibrated and certified against WCAG 2.2 AAA contrast ratios ($\ge 7:1$) and color-blind greyscale luminance separation (#156).
 
 ### Fixed
-- Established block formatting context (`min-width: 0`) on equal-fill segmented items (`.segmented-control--fill > .segmented-item`, `.segmented-fill > *`), restoring single-line text truncation and CSS ellipsis behavior in narrow containers (#163).
+- Established block formatting context (`min-width: 0`) on equal-fill segmented items (*.segmented-control--fill > .segmented-item*, `.segmented-fill > *`), restoring single-line text truncation and CSS ellipsis behavior in narrow containers (#163).
 
 ## [0.3.0] - 2026-10-29
 
 Third public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.3.0](docs/RELEASE_NOTES_V0_3_0.md).
 
 ### Added
-- Tokenized z-index stacking layers for meter sub-primitives (`--pt-meter-z-track`, `--pt-meter-z-range`, `--pt-meter-z-fill`, `--pt-meter-z-marker`, `--pt-meter-z-label`, `--pt-meter-z-pin`) preventing visual clipping and collision across overlapping meter elements (#138).
+- Tokenized z-index stacking layers for meter sub-primitives (*--pt-meter-z-track*, *--pt-meter-z-range*, *--pt-meter-z-fill*, *--pt-meter-z-marker*, *--pt-meter-z-label*, *--pt-meter-z-pin*) preventing visual clipping and collision across overlapping meter elements (#138).
 - Native status badge (`.pt-badge`) and indicator (`.pt-indicator`) component primitives with accessible high-contrast outlines and direct binding to semantic status triads (`ok`, `warning`, `critical`, `info`, `neutral`) (#139).
 - Structured machine-readable release manifest (`dist/manifest.json`) recording package metadata, schema URI, artifact checksums (`sha256`), and file size bytes during release builds (#140).
 - Recommended downstream CSS `@layer` cascade ordering guide (`@layer reset, picotol, theme, app;`) documented in README (#141).
@@ -95,7 +109,7 @@ Initial public open-source pre-release of `@kidthales/picotol`. For detailed nar
 - Opt-in layered distribution bundle (`dist/picotol.layer.min.css`) wrapping full bundle within `@layer picotol { ... }` for host design system integration.
 - Automatic `light-dark()` theme adaptation with `[data-theme="light|dark"]` overrides and 6 Paul Tol qualitative accent ladders (`blue`, `cyan`, `green`, `yellow`, `red`, `purple`) via `[data-accent]`.
 - WCAG 2.2 Level AAA/AA resting and hover contrast compliance across all 6 accents plus SC 1.4.11 ($\ge 3.0:1$) non-text contrast for form borders and status dots.
-- Native slide-over drawer sheet primitive (`<dialog class="sheet">` with `[data-placement="left|right|top|bottom"]`), backdrop blur, and hardware-accelerated transforms.
+- Native slide-over drawer sheet primitive (`<dialog class="sheet">` with *[data-placement="left|right|top|bottom"]*), *backdrop blur*, and hardware-accelerated transforms.
 - Accessible Paul Tol status dot indicators (`.status-dot` and `.pt-status-dot`) with semantic color mapping and Windows High Contrast support.
 - Component primitives: callout banners (`.pt-callout`), segmented button groups (`.segmented-fill`), square icon buttons (`.btn-icon`), copy pills (`.pt-copy-pill`), and cross-engine meter custom properties with gauge threshold markers.
 - Narrow-corridor reflow and table overflow containment (`.table-container`, `.overflow-auto`, and `min-width: 0` grid cells).

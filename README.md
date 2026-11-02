@@ -388,7 +388,7 @@ When embedding `@kidthales/picotol` into an existing application shell with its 
 
 ## Accessible Typography & Font Integration
 
-`@kidthales/picotol` ships with bulletproof system font stacks (`--pt-font-sans`, `--pt-font-mono`, `--pt-font-emoji`), native OpenType optical sizing (`font-optical-sizing: auto; font-kerning: normal;`), and fixed-width tabular figures (`.tabular-nums`, `table`, `[role="table"]`, `code`, `kbd`, `samp`, `time`).
+`@kidthales/picotol` ships with bulletproof system font stacks (`--pt-font-sans`, `--pt-font-mono`) and fixed-width tabular figures (`.tabular-nums`, `table`, `[role="table"]`, `code`, `kbd`, `samp`, `time`).
 
 ### Zero-Network Accessible Font Recipes
 
@@ -397,7 +397,7 @@ To preserve privacy, zero runtime network requests, and GDPR compliance, pair `@
 ```css
 /* Recommended accessible font pairings (e.g. Atkinson Hyperlegible, Inter, Lexend) */
 :root, :host {
-  --pt-font-sans: "Atkinson Hyperlegible", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, var(--pt-font-emoji);
+  --pt-font-sans: "Atkinson Hyperlegible", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 ```
 
@@ -512,7 +512,7 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 
 ### 4a. Calibrated Semantic Status Tokens
 
-`@kidthales/picotol` introduces standardized semantic status CSS custom property triads (`--pt-status-*-bg`, `--pt-status-*-fg`, `--pt-status-*-border`) across 5 operational states, mapped directly to Paul Tol qualitative schemes with calibrated dark mode luminance ensuring WCAG 2.2 AA non-text ($\ge 3:1$) and text ($\ge 4.5:1$) contrast:
+`@kidthales/picotol` introduces standardized semantic status CSS custom property triads (`--pt-status-*-bg`, `--pt-status-*-fg`, `--pt-status-*-border`) across 4 operational states, mapped directly to Paul Tol qualitative schemes with calibrated dark mode luminance ensuring WCAG 2.2 AA non-text ($\ge 3:1$) and text ($\ge 4.5:1$) contrast:
 
 | State | CSS Tokens | Light Theme Swatch | Dark Theme Swatch | Contrast Guarantee |
 | :--- | :--- | :--- | :--- | :--- |
@@ -520,7 +520,6 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 | **Warning** | `--pt-status-warning-*` | Paul Tol Brown (`#662506`) / Yellow (`#DDAA33`) | Paul Tol Yellow (`#DDAA33`) / Orange (`#EE8866`) | $\ge 7:1$ text AAA, $\ge 3:1$ non-text |
 | **Critical / Danger** | `--pt-status-critical-*` | Paul Tol Red (`#CC3311`) | Paul Tol Red (`#EE6677`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
 | **Info** | `--pt-status-info-*` | Paul Tol Blue (`#4477AA`) | Paul Tol Cyan (`#66CCEE`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
-| **Neutral** | `--pt-status-neutral-*` | Paul Tol Grey (`#BBBBBB`) | Paul Tol Grey (`#777777`) | $\ge 3:1$ non-text |
 
 These tokens automatically power `.pt-status-dot`, `.status-dot`, `.pt-badge`, `.pt-indicator`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
 
@@ -621,7 +620,7 @@ Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature sm
 
 ### 4e. Equal-Fill Segmented Controls & Square Icon Buttons
 
-For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill segmented controls (`.segmented-fill` or `.segmented-control--fill`) distribute width equally across tabs (`flex: 1 1 0`) and establish a block formatting context (`min-width: 0`) ensuring reliable single-line text truncation with CSS ellipsis. Dedicated square icon buttons enforce an exact 1:1 aspect ratio:
+For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill segmented controls (`.segmented-fill` or `.segmented-equal`) distribute width equally across tabs (`flex: 1 1 0`) and establish a block formatting context (`min-width: 0`) ensuring reliable single-line text truncation with CSS ellipsis. Dedicated square icon buttons enforce an exact 1:1 aspect ratio:
 
 ```html
 <!-- Equal-Fill Segmented Control (BFC & Ellipsis Truncation on Reflow) -->
@@ -647,7 +646,7 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
 > [!NOTE]
 > **Container Pattern & Replaced Element Limits**: Native `<progress>` elements in HTML/browsers (Chromium, Firefox, WebKit) are replaced/void-like elements that cannot render child DOM elements (`.pt-gauge-marker`, `.pt-meter-mark`, `.pt-meter-label`). For rich meters with threshold pins, markers, and range bands, use the standard container pattern: `<div class="pt-meter">` wrapping `<div class="pt-progress" role="progressbar">`. Basic `<progress>` without child pins remains fully supported for simple indeterminate and determinate progress bars.
 
-- **Marker Containers & Pin Drawing**: `.pt-meter-mark` (or `.pt-gauge-marker`) serves as the positioned container and automatically draws the indicator pin via its `::before` pseudo-element. Children elements are strictly labels (`.pt-meter-label`, `[data-label]`, or `.pt-gauge-label`). Note: `.pt-meter-pin` was previously used interchangeably for both container and child pins; as of v0.5.0, `.pt-meter-mark` is the canonical container and child elements are labels only.
+- **Marker Containers & Pin Drawing**: `.pt-meter-mark` (or `.pt-gauge-marker`) serves as the positioned container and automatically draws the indicator pin via its `::before` pseudo-element. Children elements are strictly labels (`.pt-meter-label`, `[data-label]`, or `.pt-gauge-label`). Note: *.pt-meter-pin* was previously used interchangeably in historical release notes for both container and child pins; as of v0.5.0, `.pt-meter-mark` is the canonical container and child elements are labels only.
 - **Canonical Placement (`data-placement`)**: `data-placement="top"` (default) or `data-placement="bottom"`. Compatibility classes `.top` and `.bottom` are also supported.
 - **Positioning**: Pin position configured via `--pt-marker-pos` (`0%` to `100%`); range band span configured via `--pt-range-start` and `--pt-range-end`.
 - **Boundary Clamping & Rounded Corners**: Pin positioning automatically clamps to track corner radius (`inset-inline-start: clamp(var(--pt-progress-radius, 0px), var(--marker-pos, var(--pt-marker-pos, 0%)), calc(100% - var(--pt-progress-radius, 0px)))`), ensuring pins align cleanly within rounded and capsule tracks without overhanging curved ends at 0% or 100%.
