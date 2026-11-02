@@ -320,6 +320,16 @@ test("README.md releases/download/<tag>/<file> URLs and CSS bundles are all pres
     ["missing-var-asset.css"],
     "Variable-interpolated releases/download URL for an asset missing from release.yml must be flagged"
   );
+
+  // Ensure PowerShell Invoke-RestMethod manifest snippet uses PSCustomObject dot-quoted property access, not bracket indexing
+  assert.ok(
+    readme.includes('$manifest.artifacts."picotol.layer.min.css".sha256.ToLower()'),
+    "README.md PowerShell snippet must use PSCustomObject dot-quoted property access ($manifest.artifacts.\"picotol.layer.min.css\")"
+  );
+  assert.ok(
+    !readme.includes('$manifest.artifacts["'),
+    "README.md PowerShell snippet must not use bracket indexing on PSCustomObject ($manifest.artifacts[\"...\"]) which returns $null"
+  );
 });
 
 function findScriptInjections(content, fileName = "workflow.yml") {

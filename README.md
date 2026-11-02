@@ -87,7 +87,7 @@ $u = "https://github.com/kidthales/picotol/releases/download/v0.5.0"
 $manifest = Invoke-RestMethod "$u/manifest.json"
 Invoke-WebRequest "$u/picotol.layer.min.css" -OutFile "./picotol.layer.min.css"
 $hash = (Get-FileHash ./picotol.layer.min.css -Algorithm SHA256).Hash.ToLower()
-$exp = $manifest.artifacts["picotol.layer.min.css"].sha256.ToLower()
+$exp = $manifest.artifacts."picotol.layer.min.css".sha256.ToLower()
 if ($hash -ne $exp) { throw "SHA256 mismatch: expected $exp, got $hash" }
 ```
 
