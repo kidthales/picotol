@@ -6,13 +6,22 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { expandHex, lintCssSnippet, runLint } from '../tools/lint.mjs';
+import {
+  expandHex,
+  isTransparentHex,
+  lintCssSnippet,
+  lintBundledCss,
+  lintDistAccessibilityRules,
+  lintDemoHtml,
+  runLint,
+} from '../tools/lint.mjs';
 import { loadSnapshot, buildTokensCss, buildPalettesCss, syncTokens } from '../tools/sync-tokens.mjs';
 import { buildAll } from '../tools/build.mjs';
 import { packageAssets } from '../tools/package-assets.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
 function hashDirectoryTree(dirPath) {
   const result = {};
@@ -137,13 +146,32 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
     'Unquoted data URI is not exempt under strict double-quoted rule'
   );
 
-  // 7. Accessible focus violation: outline: none and outline: 0 rejected, while outline: 0.5px is permitted
-  const outlineNoneSnippet = `button:focus { outline: none; }`;
-  const outline0Snippet = `button:focus { outline: 0; }`;
-  const outline05Snippet = `button:focus { outline: 0.5px solid var(--pt-brand); }`;
-  assert.ok(lintCssSnippet(outlineNoneSnippet, 'fixtures/outline-none.css').some((e) => e.includes('Accessible focus violation')));
-  assert.ok(lintCssSnippet(outline0Snippet, 'fixtures/outline-0.css').some((e) => e.includes('Accessible focus violation')));
-  assert.equal(lintCssSnippet(outline05Snippet, 'fixtures/outline-05.css').length, 0, 'outline: 0.5px must not be flagged as outline: 0');
+  // 7. Accessible focus violation: outline: none, outline: 0, outline:0, outline: 0px, outline: 0.0, and !important rejected,
+  // while outline: 0.5px and commented-out rules are permitted
+  for (const badOutline of [
+    'button:focus { outline: none; }',
+    'button:focus { outline: none !important; }',
+    'button:focus { outline: 0; }',
+    'button:focus { outline:0; }',
+    'button:focus { outline: 0px; }',
+    'button:focus { outline: 0.0; }',
+    'button:focus { outline: 0.0px solid #000000; }',
+    'button:focus { outline: 0rem; }',
+    'button:focus { outline: 0 !important; }',
+  ]) {
+    assert.ok(
+      lintCssSnippet(badOutline, 'fixtures/outline-bad.css').some((e) =>
+        e.includes('Accessible focus violation')
+      ),
+      `Should flag accessible focus violation for: ${badOutline}`
+    );
+  }
+  const outline05Snippet = `button:focus { /* outline: none; */ outline: 0.5px solid var(--pt-brand); }`;
+  assert.equal(
+    lintCssSnippet(outline05Snippet, 'fixtures/outline-05.css').length,
+    0,
+    'outline: 0.5px and commented outline: none must not be flagged'
+  );
 
   // 8. Scalable typography violation: fixed px font-size rejected
   const pxSnippet = `p { font-size: 16px; }`;
@@ -156,20 +184,53 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   });
   assert.ok(overrideErrors.some((e) => e.includes('CSS syntax error')), 'errorRecovery must remain false even if transformOpts passes true');
 
-  // 10. Full runLint() verification
+  // 10. Negative and positive fixture tests for bundle-level and demo HTML checks (lintBundledCss, lintDistAccessibilityRules, lintDemoHtml)
+  const badBundledCss = `:root { --pt-defined: #4477AA; } .btn { color: var(--pt-defined); background: var(--pt-undefined-var); border-color: var(--pt-btn-color, #4477AA); left: var(--marker-pos, 50%); }`;
+  const bundleErrors = lintBundledCss(badBundledCss, 'fixtures/bundle.css');
+  assert.deepEqual(bundleErrors, [
+    '[fixtures/bundle.css] Undefined CSS custom property referenced: --pt-undefined-var',
+  ]);
+
+  const incompleteDistCss = `:focus-visible { outline: 2px solid #4477AA; } .skip-to-content {} .sr-only {}`;
+  const distRuleErrors = lintDistAccessibilityRules(incompleteDistCss, 'fixtures/dist.css');
+  assert.ok(distRuleErrors.some((e) => e.includes('".overflow-auto"')));
+  assert.ok(distRuleErrors.some((e) => e.includes('"prefers-reduced-motion: reduce"')));
+  assert.ok(distRuleErrors.some((e) => e.includes('"forced-colors: active"')));
+  assert.ok(distRuleErrors.some((e) => e.includes('"@media print"')));
+
+  const badDemoHtml = `
+    <div id="existing-id" class="styled-class unstyled-phantom-class">
+      <a href="#missing-anchor">Link</a>
+      <input aria-describedby="missing-desc" aria-labelledby="existing-id missing-label">
+      <span data-tooltip="Missing tabindex">Hover</span>
+      <span data-tooltip="Has tabindex" tabindex="0">OK</span>
+    </div>
+  `;
+  const demoErrors = lintDemoHtml(badDemoHtml, '.styled-class { color: #000000; }', 'fixtures/demo.html');
+  assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".unstyled-phantom-class"')));
+  assert.ok(demoErrors.some((e) => e.includes('Broken internal anchor link href="#missing-anchor"')));
+  assert.ok(demoErrors.some((e) => e.includes('Broken ARIA reference aria-describedby="missing-desc"')));
+  assert.ok(demoErrors.some((e) => e.includes('Broken ARIA reference aria-labelledby="missing-label"')));
+  assert.ok(demoErrors.some((e) => e.includes('Non-interactive <span data-tooltip> is missing tabindex="0"')));
+  assert.equal(demoErrors.length, 5);
+
+  // 11. Full runLint() verification
   const projectErrors = runLint();
   assert.equal(projectErrors.length, 0, `Expected runLint() to return 0 errors, got: ${projectErrors.join('; ')}`);
 });
 
-test('tools/lint.mjs: expandHex utility expands 3-digit and #0000 correctly', () => {
+test('tools/lint.mjs: expandHex utility expands 3-digit hex without turning transparent #0000 into black', () => {
   assert.equal(expandHex('#47A'), '#4477AA');
-  assert.equal(expandHex('#0000'), '#000000');
-  assert.equal(expandHex('#00000000'), '#000000');
+  assert.equal(expandHex('#0000'), '#0000');
+  assert.equal(expandHex('#00000000'), '#00000000');
   assert.equal(expandHex('#4477AA'), '#4477AA');
   assert.equal(expandHex('#4477AAFF'), '#4477AAFF');
+  assert.equal(isTransparentHex('#0000'), true);
+  assert.equal(isTransparentHex('#00000000'), true);
+  assert.equal(isTransparentHex('#000000'), false);
 });
 
-test('tools/sync-tokens.mjs: deterministic generation and isolated syncTokens write path', () => {
+test('tools/sync-tokens.mjs: deterministic generation, strict null/path jail validation, and isolated syncTokens write path', () => {
   const snapshot = loadSnapshot();
   assert.ok(snapshot.schemes, 'Snapshot must contain schemes');
   assert.ok(snapshot.achromatic, 'Snapshot must contain achromatic stops');
@@ -182,9 +243,33 @@ test('tools/sync-tokens.mjs: deterministic generation and isolated syncTokens wr
   assert.equal(buildTokensCss(snapshot).trim(), committedTokens.trim(), 'Generated tokens.css must deterministically match src/tokens.css');
   assert.equal(buildPalettesCss(snapshot).trim(), committedPalettes.trim(), 'Generated palettes.css must deterministically match src/palettes.css');
 
-  // Verify syncTokens() rejects empty/invalid outSrcDir and writes cleanly to an isolated temp directory
+  // Verify syncTokens() rejects empty, whitespace, null, undefined, half-isolated, and repo-internal paths
+  assert.throws(() => syncTokens(null), /Invalid options/);
   assert.throws(() => syncTokens({ outSrcDir: '' }), /Invalid outSrcDir/);
   assert.throws(() => syncTokens({ outSrcDir: '   ' }), /Invalid outSrcDir/);
+  assert.throws(() => syncTokens({ outSrcDir: null }), /Invalid outSrcDir/);
+  assert.throws(() => syncTokens({ outSrcDir: undefined }), /Invalid outSrcDir/);
+  assert.throws(() => syncTokens({ tokensCssPath: null, palettesCssPath: null }), /Invalid tokensCssPath/);
+  assert.throws(() => syncTokens({ tokensCssPath: undefined, palettesCssPath: undefined }), /Invalid tokensCssPath/);
+  assert.throws(
+    () => syncTokens({ tokensCssPath: path.join(os.tmpdir(), 'only-tokens.css') }),
+    /must provide outSrcDir or both tokensCssPath and palettesCssPath/
+  );
+  assert.throws(
+    () => syncTokens({ palettesCssPath: path.join(os.tmpdir(), 'only-palettes.css') }),
+    /must provide outSrcDir or both tokensCssPath and palettesCssPath/
+  );
+  assert.throws(() => syncTokens({ outSrcDir: ROOT }), /refusing to write custom sync target inside repository/);
+  assert.throws(() => syncTokens({ outSrcDir: path.join(ROOT, 'src') }), /refusing to write custom sync target inside repository/);
+  assert.throws(() => syncTokens({ outSrcDir: path.join(ROOT, 'data') }), /refusing to write custom sync target inside repository/);
+  assert.throws(
+    () =>
+      syncTokens({
+        tokensCssPath: path.join(ROOT, 'src/tokens.css'),
+        palettesCssPath: path.join(ROOT, 'src/palettes.css'),
+      }),
+    /refusing to write custom sync target inside repository/
+  );
 
   const tempSrcDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-sync-'));
   try {
@@ -198,15 +283,30 @@ test('tools/sync-tokens.mjs: deterministic generation and isolated syncTokens wr
   }
 });
 
-// Concurrency note: No test file in tests/*.test.mjs calls buildAll() or packageAssets() on the
-// default dist/ directory (all other test files only read dist/, and this test writes exclusively
-// to os.tmpdir() via fs.mkdtempSync), so parallel `node --test` execution is race-free.
-test('tools/build.mjs: buildAll produces valid bundles to isolated outDir, preserves committed dist/, enforces dist/ freshness, and is full-tree idempotent', () => {
-  // Reject empty or whitespace outDir paths (fail-closed ?? validation)
+// Concurrency note: No other test file in tests/*.test.mjs imports or calls buildAll(),
+// packageAssets(), or syncTokens() (all other test files only read dist/, and this test writes
+// exclusively to os.tmpdir() via fs.mkdtempSync), so parallel `node --test` execution is race-free.
+test('tools/build.mjs & tools/package-assets.mjs: strict outDir validation, isolated buildAll, PKZip verification, dist/ freshness, and full-tree idempotence', () => {
+  // Reject empty, whitespace, null, undefined, and repo-internal outDir paths
+  assert.throws(() => buildAll(null), /Invalid outDir/);
   assert.throws(() => buildAll({ outDir: '' }), /Invalid outDir/);
   assert.throws(() => buildAll({ outDir: '   ' }), /Invalid outDir/);
+  assert.throws(() => buildAll({ outDir: null }), /Invalid outDir/);
+  assert.throws(() => buildAll({ outDir: undefined }), /Invalid outDir/);
+  assert.throws(() => buildAll({ outDir: ROOT }), /refusing to write to protected path/);
+  assert.throws(() => buildAll({ outDir: path.join(ROOT, 'src') }), /refusing to write to protected path/);
+  assert.throws(() => buildAll({ outDir: path.join(ROOT, 'src/nested') }), /refusing to write to protected path/);
+  assert.throws(() => buildAll({ outDir: path.join(ROOT, 'data') }), /refusing to write to protected path/);
+  assert.throws(() => buildAll({ outDir: path.dirname(ROOT) }), /refusing to write to protected path/);
+
+  assert.throws(() => packageAssets(null), /Invalid outDir/);
   assert.throws(() => packageAssets({ outDir: '' }), /Invalid outDir/);
   assert.throws(() => packageAssets({ outDir: '   ' }), /Invalid outDir/);
+  assert.throws(() => packageAssets({ outDir: null }), /Invalid outDir/);
+  assert.throws(() => packageAssets({ outDir: undefined }), /Invalid outDir/);
+  assert.throws(() => packageAssets({ outDir: ROOT }), /refusing to write to protected path/);
+  assert.throws(() => packageAssets({ outDir: path.join(ROOT, 'src') }), /refusing to write to protected path/);
+  assert.throws(() => packageAssets({ outDir: path.join(ROOT, 'data') }), /refusing to write to protected path/);
 
   const committedDistDir = path.join(ROOT, 'dist');
   const committedBefore = hashDirectoryTree(committedDistDir);
@@ -267,7 +367,53 @@ test('tools/build.mjs: buildAll produces valid bundles to isolated outDir, prese
     const sri = JSON.parse(fs.readFileSync(path.join(tempDir1, 'sri.json'), 'utf8'));
     assert.ok(sri.files['dist/picotol.min.css'].integrity.startsWith('sha384-'));
 
-    // 4. Full-tree idempotence test: second build with same mtime must produce an identical directory tree
+    // 4. Verify PKZip offline bundle generated in isolated tempDir1 contains all 11 required assets within budget
+    const zipPath = path.join(tempDir1, 'assets', `picotol-v${pkg.version}.zip`);
+    assert.ok(fs.existsSync(zipPath), `Asset bundle ${zipPath} must exist in isolated outDir`);
+    const zipBuf = fs.readFileSync(zipPath);
+    assert.ok(zipBuf.length > 0, 'Asset zip bundle must not be empty');
+    assert.ok(zipBuf.length <= 100 * 1024, `Asset bundle size ${zipBuf.length} B exceeds 100 KB budget`);
+
+    let eocdOffset = -1;
+    for (let i = zipBuf.length - 22; i >= Math.max(0, zipBuf.length - 65557); i--) {
+      if (zipBuf.readUInt32LE(i) === 0x06054b50) {
+        eocdOffset = i;
+        break;
+      }
+    }
+    assert.ok(eocdOffset !== -1, 'Valid PKZip End of Central Directory signature (0x06054b50) not found');
+    const totalEntries = zipBuf.readUInt16LE(eocdOffset + 10);
+    assert.equal(totalEntries, 11, 'Zip bundle must contain exactly 11 entries');
+
+    const cdOffset = zipBuf.readUInt32LE(eocdOffset + 16);
+    const foundFiles = [];
+    let pos = cdOffset;
+    for (let i = 0; i < totalEntries; i++) {
+      assert.equal(zipBuf.readUInt32LE(pos), 0x02014b50, `Invalid Central Directory signature at offset ${pos}`);
+      const nameLen = zipBuf.readUInt16LE(pos + 28);
+      const extraLen = zipBuf.readUInt16LE(pos + 30);
+      const commentLen = zipBuf.readUInt16LE(pos + 32);
+      foundFiles.push(zipBuf.toString('utf8', pos + 46, pos + 46 + nameLen));
+      pos += 46 + nameLen + extraLen + commentLen;
+    }
+
+    for (const expected of [
+      'css/picotol.css',
+      'css/picotol.min.css',
+      'css/picotol.core.css',
+      'css/picotol.core.min.css',
+      'css/picotol.layer.css',
+      'css/picotol.layer.min.css',
+      'tokens/tokens.css',
+      'tokens/palettes.css',
+      'tokens/tol-qualitative.json',
+      'sri.json',
+      'index.html',
+    ]) {
+      assert.ok(foundFiles.includes(expected), `Asset bundle missing expected entry: "${expected}"`);
+    }
+
+    // 5. Full-tree idempotence test: second build with same mtime must produce an identical directory tree
     // (covering all 6 CSS bundles, sri.json, manifest.json, SHA256SUMS.txt, demo/*, and assets/*.zip)
     buildAll({ outDir: tempDir2, mtime: fixedMtime });
     const tree2 = hashDirectoryTree(tempDir2);

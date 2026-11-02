@@ -7,17 +7,44 @@
 //   - dist/demo/index.html
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { bundle, transform, Features } from 'lightningcss';
 import { generateDemoHtml } from './generate-demo.mjs';
 import { packageAssets } from './package-assets.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = join(root, 'dist');
-const demoDir = join(distDir, 'demo');
+const srcDir = join(root, 'src');
+const dataDir = join(root, 'data');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+
+function isSameOrSubpath(targetPath, basePath) {
+  const rel = relative(basePath.toLowerCase(), targetPath.toLowerCase());
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+}
+
+function resolveOutDir(opts) {
+  if (opts === null || typeof opts !== 'object') {
+    throw new Error('Invalid outDir: options must be an object');
+  }
+  const hasOutDir = 'outDir' in opts;
+  const rawOutDir = hasOutDir ? opts.outDir : distDir;
+  if (typeof rawOutDir !== 'string' || rawOutDir.trim() === '') {
+    throw new Error('Invalid outDir: must be a non-empty string path');
+  }
+  const resolved = resolve(rawOutDir);
+  if (
+    isSameOrSubpath(resolved, srcDir) ||
+    isSameOrSubpath(resolved, dataDir) ||
+    isSameOrSubpath(root, resolved) ||
+    (isSameOrSubpath(resolved, root) && !isSameOrSubpath(resolved, distDir))
+  ) {
+    throw new Error(`Invalid outDir: refusing to write to protected path ${resolved}`);
+  }
+  return resolved;
+}
 
 const HEADER = `/*! ${pkg.name} v${pkg.version} | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */\n`;
 
@@ -65,10 +92,7 @@ function sha256Hex(content) {
 }
 
 export function buildAll(opts = {}) {
-  const targetDist = opts.outDir ?? distDir;
-  if (typeof targetDist !== 'string' || targetDist.trim() === '') {
-    throw new Error('Invalid outDir: must be a non-empty string path');
-  }
+  const targetDist = resolveOutDir(opts);
   const targetDemo = join(targetDist, 'demo');
   mkdirSync(targetDemo, { recursive: true });
 

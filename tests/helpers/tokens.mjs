@@ -1,3 +1,10 @@
+// Token extraction and WCAG 2.2 contrast calculation helpers for @kidthales/picotol tests.
+// Architectural Policy Note:
+//   parseTokens() intentionally enforces picotol's CSS light-dark() token architecture inside
+//   `@layer tokens`: conditional at-rules (@media), explicit [data-theme] token overrides, and
+//   pseudo-class state overrides (:root:hover) inside `@layer tokens` throw an error. If a future
+//   CSS/a11y change introduces intentional conditional token rules in `@layer tokens`, update
+//   processTokensRule() below alongside the corresponding test in tests/tokens.test.mjs.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +18,6 @@ export const tolData = JSON.parse(
 
 export function expandHex(raw) {
   const upper = raw.toUpperCase();
-  if (upper === '#0000' || upper === '#00000000') return '#000000';
   if (/^#[0-9A-F]{3}$/.test(upper)) {
     return `#${upper[1]}${upper[1]}${upper[2]}${upper[2]}${upper[3]}${upper[3]}`;
   }
@@ -24,7 +30,11 @@ export function srgbToLinear(channel) {
 }
 
 export function relativeLuminance(hex) {
-  const clean = expandHex(hex).replace('#', '');
+  const expanded = expandHex(hex);
+  if (!/^#[0-9A-F]{6}$/i.test(expanded)) {
+    throw new Error(`Invalid 6-digit opaque hex color: ${hex}`);
+  }
+  const clean = expanded.slice(1);
   const r = parseInt(clean.slice(0, 2), 16);
   const g = parseInt(clean.slice(2, 4), 16);
   const b = parseInt(clean.slice(4, 6), 16);
@@ -174,6 +184,7 @@ export function parseCssBlock(blockText) {
   const declarations = {};
   const rules = [];
   let depth = 0;
+  let parenDepth = 0;
   let quote = null;
   let tokenStart = 0;
   let blockOpenIdx = -1;
@@ -203,21 +214,26 @@ export function parseCssBlock(blockText) {
       quote = ch;
       continue;
     }
+    if (ch === '(') {
+      parenDepth++;
+    } else if (ch === ')') {
+      parenDepth = Math.max(0, parenDepth - 1);
+    }
     if (depth === 0) {
-      if (ch === ';') {
+      if (ch === ';' && parenDepth === 0) {
         addDeclaration(blockText.slice(tokenStart, i));
         tokenStart = i + 1;
-      } else if (ch === '{') {
+      } else if (ch === '{' && parenDepth === 0) {
         currentSelector = blockText.slice(tokenStart, i).trim();
         blockOpenIdx = i + 1;
         depth = 1;
-      } else if (ch === '}') {
+      } else if (ch === '}' && parenDepth === 0) {
         throw new Error('Unexpected closing brace in CSS block');
       }
     } else {
-      if (ch === '{') {
+      if (ch === '{' && parenDepth === 0) {
         depth++;
-      } else if (ch === '}') {
+      } else if (ch === '}' && parenDepth === 0) {
         depth--;
         if (depth === 0) {
           const childBody = blockText.slice(blockOpenIdx, i);
@@ -355,7 +371,10 @@ export function parseTokens(cssContent) {
   }
 
   // Parse secondary button rules scoped to @layer base (with brace-depth awareness for nested rules)
-  const baseBlock = extractLayerBlock(cleanCss, 'base') ?? cleanCss;
+  const baseBlock = extractLayerBlock(cleanCss, 'base');
+  if (baseBlock === null) {
+    throw new Error('Missing @layer base in CSS content');
+  }
   const baseParsed = parseCssBlock(baseBlock);
   for (const rule of baseParsed.rules) {
     if (isSecondaryButtonRuleSelector(rule.selector)) {
@@ -398,8 +417,19 @@ export function parseTokens(cssContent) {
     }
   }
 
+  function isAccentLadderToken(propName) {
+    return /^--pt-p[1-5]$/.test(propName);
+  }
+
+  function lookupRawToken(propName, accent) {
+    if (isAccentLadderToken(propName)) {
+      return accentDecls[accent]?.[propName];
+    }
+    return accentDecls[accent]?.[propName] ?? rootDecls[propName];
+  }
+
   function resolveValue(val, mode, accent = 'blue', seen = new Set()) {
-    if (!val) return null;
+    if (val === undefined || val === null || val === '') return null;
     let current = val.trim();
     const ld = parseLightDark(current);
     if (ld) {
@@ -415,8 +445,8 @@ export function parseTokens(cssContent) {
       const nextSeen = new Set(seen);
       nextSeen.add(varName);
 
-      const targetVal = accentDecls[accent]?.[varName] || rootDecls[varName] || fallback;
-      if (!targetVal) {
+      const targetVal = lookupRawToken(varName, accent) ?? fallback;
+      if (targetVal === undefined || targetVal === null || targetVal === '') {
         throw new Error(`Token ${varName} not found`);
       }
       return resolveValue(targetVal, mode, accent, nextSeen);
@@ -425,12 +455,12 @@ export function parseTokens(cssContent) {
   }
 
   function getToken(propName, mode = 'light', accent = 'blue') {
-    const raw = accentDecls[accent]?.[propName] ?? rootDecls[propName];
-    if (raw === undefined) {
+    const raw = lookupRawToken(propName, accent);
+    if (raw === undefined || raw === null || raw === '') {
       throw new Error(`Token ${propName} not found`);
     }
     const val = resolveValue(raw, mode, accent);
-    if (!val) {
+    if (val === undefined || val === null || val === '') {
       throw new Error(`Token ${propName} not found`);
     }
     const norm = expandHex(val);

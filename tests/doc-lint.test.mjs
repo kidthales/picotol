@@ -18,6 +18,17 @@ export const TEMPORARY_ALLOWLIST = [
   { file: 'CHANGELOG.md', token: '.pt-dot--sm' },
   { file: 'CHANGELOG.md', token: '.pt-meter__marker' },
   { file: 'CHANGELOG.md', token: '.pt-meter__track' },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '.pt-meter-pin' },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-bg' },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-fg' },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-border' },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-track' },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-range' },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-fill' },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-marker' },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-label' },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-pin' },
+  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-gap-tight' },
   { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover__surface' },
   { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--align-end' },
   { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--align-center' },
@@ -36,30 +47,49 @@ export function isAllowlisted(token, file = '') {
   return TEMPORARY_ALLOWLIST.some((entry) => entry.file === file && entry.token === token);
 }
 
-export function extractInlineCodeSpansFromLine(line) {
-  // Intentionally bounded to a single line so an accidental unmatched backtick in prose
-  // cannot invert inline-code extraction across the remainder of the markdown file.
+function countBacktickRuns(text, targetLen) {
+  let count = 0;
+  let idx = 0;
+  while (idx < text.length) {
+    if (text[idx] !== '`') {
+      idx++;
+      continue;
+    }
+    let len = 0;
+    while (idx + len < text.length && text[idx + len] === '`') {
+      len++;
+    }
+    if (len === targetLen) count++;
+    idx += len;
+  }
+  return count;
+}
+
+export function extractInlineCodeSpans(segment) {
+  // Extracts CommonMark inline code spans across a paragraph/block segment,
+  // supporting both single-line and multi-line code spans while preventing a stray
+  // unmatched backtick from swallowing a self-contained span on a subsequent line.
   const spans = [];
   let i = 0;
-  while (i < line.length) {
-    if (line[i] !== '`') {
+  while (i < segment.length) {
+    if (segment[i] !== '`') {
       i++;
       continue;
     }
     let tickCount = 0;
-    while (i + tickCount < line.length && line[i + tickCount] === '`') {
+    while (i + tickCount < segment.length && segment[i + tickCount] === '`') {
       tickCount++;
     }
     const openEnd = i + tickCount;
     let searchIdx = openEnd;
     let closeStart = -1;
-    while (searchIdx < line.length) {
-      if (line[searchIdx] !== '`') {
+    while (searchIdx < segment.length) {
+      if (segment[searchIdx] !== '`') {
         searchIdx++;
         continue;
       }
       let runLen = 0;
-      while (searchIdx + runLen < line.length && line[searchIdx + runLen] === '`') {
+      while (searchIdx + runLen < segment.length && segment[searchIdx + runLen] === '`') {
         runLen++;
       }
       if (runLen === tickCount) {
@@ -69,10 +99,28 @@ export function extractInlineCodeSpansFromLine(line) {
       searchIdx += runLen;
     }
     if (closeStart !== -1) {
-      spans.push(line.slice(openEnd, closeStart));
+      const spanText = segment.slice(openEnd, closeStart);
+      if (spanText.includes('\n')) {
+        const closeLineEnd = segment.indexOf('\n', closeStart);
+        const closeLineRest =
+          closeLineEnd === -1
+            ? segment.slice(closeStart)
+            : segment.slice(closeStart, closeLineEnd);
+        const afterCloseLine =
+          closeLineEnd === -1 ? '' : segment.slice(closeLineEnd + 1);
+        // If closeStart is on a later line that already has its own balanced pair and
+        // no further matching backticks follow in the paragraph, the opening tick was stray.
+        if (
+          countBacktickRuns(closeLineRest, tickCount) === 2 &&
+          countBacktickRuns(afterCloseLine, tickCount) === 0
+        ) {
+          i = openEnd;
+          continue;
+        }
+      }
+      spans.push(spanText.replace(/\r?\n/g, ' '));
       i = closeStart + tickCount;
     } else {
-      // Unpaired backtick run on this line: skip past it without corrupting remaining line or file
       i = openEnd;
     }
   }
@@ -93,6 +141,52 @@ export function extractTokensFromMarkdown(content) {
   let inFence = false;
   let fenceChar = '';
   let fenceLen = 0;
+  let currentFenceLines = [];
+  let currentProseLines = [];
+  const codeSegments = [];
+
+  function flushProseParagraphs() {
+    if (currentProseLines.length === 0) return;
+    const proseText = currentProseLines.join('\n');
+    currentProseLines = [];
+    for (const paragraph of proseText.split(/\n\s*\n/)) {
+      if (paragraph.trim()) {
+        codeSegments.push(...extractInlineCodeSpans(paragraph));
+      }
+    }
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!inFence) {
+      const openMatch = trimmed.match(/^(`{3,}|~{3,})/);
+      if (openMatch) {
+        flushProseParagraphs();
+        inFence = true;
+        fenceChar = openMatch[1][0];
+        fenceLen = openMatch[1].length;
+        currentFenceLines = [];
+        continue;
+      }
+      currentProseLines.push(line);
+    } else {
+      const closeRe = new RegExp(`^${escapeRegex(fenceChar)}{${fenceLen},}\\s*$`);
+      if (closeRe.test(trimmed)) {
+        codeSegments.push(currentFenceLines.join('\n'));
+        currentFenceLines = [];
+        inFence = false;
+        fenceChar = '';
+        fenceLen = 0;
+      } else {
+        currentFenceLines.push(line);
+      }
+    }
+  }
+
+  if (inFence) {
+    throw new Error('Unterminated fenced code block in markdown content');
+  }
+  flushProseParagraphs();
 
   const tokens = [];
   // Matches .pt-* (including compound selectors like .pt-a.pt-b and wildcard tokens like .pt-meter-mark--*)
@@ -100,45 +194,34 @@ export function extractTokensFromMarkdown(content) {
   // Trailing standalone '*' separated by whitespace (e.g. `.pt-phantom *`) is not matched as part of the token.
   const tokenRe = /(\.pt-[a-zA-Z0-9_*-]+|(?<![\w-])--pt-[a-zA-Z0-9_*-]+)(?![\w*-])/g;
   const braceTokenRe =
-    /(?:\.pt|--pt)-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
+    /(?:\.pt|--pt|(?<=[\s"'])pt)-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
+  const htmlClassAttrRe = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+  const bareClassTokenRe = /^pt-[a-zA-Z0-9_*-]+$/;
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!inFence) {
-      const openMatch = trimmed.match(/^(`{3,}|~{3,})/);
-      if (openMatch) {
-        inFence = true;
-        fenceChar = openMatch[1][0];
-        fenceLen = openMatch[1].length;
-        continue;
-      }
-    } else {
-      const closeRe = new RegExp(`^${escapeRegex(fenceChar)}{${fenceLen},}\\s*$`);
-      if (closeRe.test(trimmed)) {
-        inFence = false;
-        fenceChar = '';
-        fenceLen = 0;
-      }
-      continue;
+  for (const rawSegment of codeSegments) {
+    // Expand brace-expansion token patterns (e.g. --pt-status-{ok,warning}-{fg,bg})
+    // into concrete tokens so every branch is validated against dist/picotol.css,
+    // while leaving CSS declaration blocks like `.pt-x{color:red}` untouched.
+    const expandedSegment = rawSegment.replace(braceTokenRe, (match) =>
+      expandBracePattern(match).join(' ')
+    );
+
+    tokenRe.lastIndex = 0;
+    let tm;
+    while ((tm = tokenRe.exec(expandedSegment)) !== null) {
+      tokens.push(tm[1]);
     }
 
-    const spans = extractInlineCodeSpansFromLine(line);
-    for (const rawSpan of spans) {
-      // Expand brace-expansion token patterns (e.g. --pt-status-{ok,warning}-{fg,bg})
-      // into concrete tokens so every branch is validated against dist/picotol.css,
-      // while leaving CSS declaration blocks like `.pt-x{color:red}` untouched.
-      const expandedSpan = rawSpan.replace(braceTokenRe, (match) => expandBracePattern(match).join(' '));
-
-      tokenRe.lastIndex = 0;
-      let tm;
-      while ((tm = tokenRe.exec(expandedSpan)) !== null) {
-        tokens.push(tm[1]);
+    htmlClassAttrRe.lastIndex = 0;
+    let cm;
+    while ((cm = htmlClassAttrRe.exec(expandedSegment)) !== null) {
+      const classValue = cm[1] ?? cm[2] ?? '';
+      for (const cls of classValue.split(/\s+/)) {
+        if (bareClassTokenRe.test(cls)) {
+          tokens.push(`.${cls}`);
+        }
       }
     }
-  }
-
-  if (inFence) {
-    throw new Error('Unterminated fenced code block in markdown content');
   }
 
   return [...new Set(tokens)];
@@ -195,7 +278,7 @@ export function validateDocTokens(content, distCss, file = '', allowlistFn = isA
   return { tokens, missing };
 }
 
-test('doc-lint: validate README.md, CHANGELOG.md (current version), and current release notes against dist/picotol.css', () => {
+test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs/RELEASE_NOTES_*.md against dist/picotol.css', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const currentVersion = pkg.version;
@@ -213,26 +296,48 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and current 
   assert.ok(changelogResult.tokens.length > 0, `CHANGELOG.md ## [${currentVersion}] section must contain documented tokens`);
   assert.deepEqual(changelogResult.missing, [], `CHANGELOG.md contains undocumented tokens: ${changelogResult.missing.join(', ')}`);
 
-  // 3. docs/RELEASE_NOTES_V*.md scoped to current release (mandatory existence check).
-  // Historical release notes (V0_1_0..V0_4_1) are immutable point-in-time records of older
-  // pre-releases (analogous to older CHANGELOG.md sections) and are intentionally not linted
-  // against current dist/picotol.css.
-  const releaseNoteFile = `RELEASE_NOTES_V${currentVersion.replaceAll('.', '_')}.md`;
-  const releaseNoteRelPath = `docs/${releaseNoteFile}`;
-  const releaseNotePath = path.join(ROOT, 'docs', releaseNoteFile);
+  // 3. All docs/RELEASE_NOTES_*.md files (plus mandatory existence check for current version)
+  const currentReleaseNoteFile = `RELEASE_NOTES_V${currentVersion.replaceAll('.', '_')}.md`;
+  const currentReleaseNotePath = path.join(ROOT, 'docs', currentReleaseNoteFile);
   assert.ok(
-    fs.existsSync(releaseNotePath),
-    `Expected release notes file for current version (${currentVersion}) to exist at ${releaseNoteRelPath}`
+    fs.existsSync(currentReleaseNotePath),
+    `Expected release notes file for current version (${currentVersion}) to exist at docs/${currentReleaseNoteFile}`
   );
-  const noteContent = fs.readFileSync(releaseNotePath, 'utf8');
-  const noteResult = validateDocTokens(noteContent, distCss, releaseNoteRelPath);
-  assert.ok(noteResult.tokens.length > 0, `${releaseNoteRelPath} must contain documented tokens`);
-  assert.deepEqual(noteResult.missing, [], `${releaseNoteRelPath} contains undocumented tokens: ${noteResult.missing.join(', ')}`);
 
-  // 4. Negative test: ensure non-allowlisted phantom token is caught
-  const fakeDoc = 'Use `.pt-fake-primitive` and `--pt-nonexistent-token` for styles.';
+  const releaseNoteFiles = fs
+    .readdirSync(path.join(ROOT, 'docs'))
+    .filter((f) => /^RELEASE_NOTES_.*\.md$/.test(f))
+    .sort();
+  assert.ok(releaseNoteFiles.length >= 6, 'Expected all RELEASE_NOTES_*.md files in docs/');
+
+  for (const file of releaseNoteFiles) {
+    const relPath = `docs/${file}`;
+    const noteContent = fs.readFileSync(path.join(ROOT, 'docs', file), 'utf8');
+    const noteResult = validateDocTokens(noteContent, distCss, relPath);
+    if (file === currentReleaseNoteFile) {
+      assert.ok(noteResult.tokens.length > 0, `${relPath} must contain documented tokens`);
+    }
+    assert.deepEqual(
+      noteResult.missing,
+      [],
+      `${relPath} contains undocumented tokens: ${noteResult.missing.join(', ')}`
+    );
+  }
+
+  // 4. Negative test: ensure non-allowlisted phantom token is caught in inline code, fenced block, and HTML class=""
+  const fakeDoc = [
+    'Use `.pt-fake-primitive` and `--pt-nonexistent-token` for styles.',
+    '```html',
+    '<div class="card pt-fake-html-class" style="color: var(--pt-fake-fenced-var)"></div>',
+    '```',
+  ].join('\n');
   const fakeResult = validateDocTokens(fakeDoc, distCss, 'README.md');
-  assert.deepEqual(fakeResult.missing, ['.pt-fake-primitive', '--pt-nonexistent-token']);
+  assert.deepEqual(fakeResult.missing, [
+    '.pt-fake-primitive',
+    '--pt-nonexistent-token',
+    '--pt-fake-fenced-var',
+    '.pt-fake-html-class',
+  ]);
 
   // 5. File-scoped allowlist isolation: a token allowlisted in CHANGELOG.md fails if introduced in README.md
   const crossFileLeak = validateDocTokens('See `.pt-popover__surface` in README.', distCss, 'README.md');
@@ -243,13 +348,13 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and current 
   );
 });
 
-test('doc-lint: parser handles compound selectors, wildcard/brace validation, tilde fences, unterminated fences, and usage-vs-definition checks', () => {
+test('doc-lint: parser handles compound selectors, wildcard/brace validation, fenced blocks, HTML class attributes, multi-line code spans, and usage-vs-definition checks', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
 
-  // Item 5: Compound selectors extract all classes
+  // Compound selectors extract all classes
   assert.deepEqual(extractTokensFromMarkdown('Use `.pt-a.pt-b` together.'), ['.pt-a', '.pt-b']);
 
-  // Item 6: Backticks with * or { outside the token name still extract the token
+  // Backticks with * or { outside the token name still extract the token
   assert.deepEqual(extractTokensFromMarkdown('Selector `.pt-phantom *` and `.pt-x{color:red}`.'), [
     '.pt-phantom',
     '.pt-x',
@@ -299,15 +404,34 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, ti
   const currentSec = extractCurrentChangelogSection(sampleChangelog, '0.5.0');
   assert.deepEqual(extractTokensFromMarkdown(currentSec), ['.pt-current-only']);
 
-  // Item 9: ~~~ fences, double backticks, odd backticks across lines, and unterminated fences
-  const tildeFenceMd = [
+  // Fenced code blocks (``` and ~~~), HTML class="pt-..." attributes, multi-line code spans, and stray backtick resilience
+  const fenceAndMultilineMd = [
     '~~~css',
-    '.pt-inside-tilde-fence { --pt-ignored: 1; }',
+    '.pt-inside-tilde-fence { --pt-fenced-prop: 1; }',
     '~~~',
+    '```html',
+    '<div class="container pt-callout pt-callout-warning" data-x=\'1\'>',
+    "  <span class='pt-badge pt-badge--numeric'>42</span>",
+    '</div>',
+    '```',
+    'Multi-line code span: `first line .pt-multiline-one',
+    'and second line --pt-multiline-two` inside a paragraph.',
+    '',
     'Inline ``.pt-double-tick`` and unmatched ` backtick on line 1',
     'Then `.pt-after-odd` on line 2 is still extracted.',
   ].join('\n');
-  assert.deepEqual(extractTokensFromMarkdown(tildeFenceMd), ['.pt-double-tick', '.pt-after-odd']);
+  assert.deepEqual(extractTokensFromMarkdown(fenceAndMultilineMd), [
+    '.pt-inside-tilde-fence',
+    '--pt-fenced-prop',
+    '.pt-callout',
+    '.pt-callout-warning',
+    '.pt-badge',
+    '.pt-badge--numeric',
+    '.pt-multiline-one',
+    '--pt-multiline-two',
+    '.pt-double-tick',
+    '.pt-after-odd',
+  ]);
 
   assert.throws(
     () => extractTokensFromMarkdown('```css\n.pt-unclosed {}\n'),

@@ -28,11 +28,15 @@ const OPTS = {
 
 export function expandHex(raw) {
   const upper = raw.toUpperCase();
-  if (upper === '#0000' || upper === '#00000000') return '#000000';
   if (/^#[0-9A-F]{3}$/.test(upper)) {
     return `#${upper[1]}${upper[1]}${upper[2]}${upper[2]}${upper[3]}${upper[3]}`;
   }
   return upper;
+}
+
+export function isTransparentHex(normHex) {
+  const upper = normHex.toUpperCase();
+  return upper === '#0000' || upper === '#00000000';
 }
 
 let cachedAllowedHexSet = null;
@@ -67,8 +71,10 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
     errors.push(`[${filename}] CSS syntax error: ${err.message}`);
   }
 
+  const cleanContent = content.replace(/\/\*[\s\S]*?\*\//g, '');
+
   // 2. Custom property naming convention (--pt-* or --tol-*)
-  for (const match of content.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)) {
+  for (const match of cleanContent.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)) {
     const propName = match[1];
     if (!/^--(pt|tol)-[a-z0-9_-]+$/.test(propName)) {
       errors.push(`[${filename}] Invalid custom property name "${propName}" (must match --pt-* or --tol-*)`);
@@ -76,23 +82,100 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
   }
 
   // 3. Forbidden color functions & non-Paul-Tol hex codes
-  if (/\b(?:rgb|rgba|hsl|hsla|oklch|lab|lch)\s*\(/i.test(content)) {
+  if (/\b(?:rgb|rgba|hsl|hsla|oklch|lab|lch)\s*\(/i.test(cleanContent)) {
     errors.push(`[${filename}] Forbidden color function (rgb/hsl/oklch/lab/lch) found`);
   }
-  const withoutDataUris = content.replace(/url\("data:[^"]*"\)/g, '');
+  const withoutDataUris = cleanContent.replace(/url\("data:[^"]*"\)/g, '');
   for (const match of withoutDataUris.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
     const norm = expandHex(match[0]);
-    if (!allowedHexSet.has(norm)) {
+    if (!isTransparentHex(norm) && !allowedHexSet.has(norm)) {
       errors.push(`[${filename}] Non-Paul-Tol hex color ${match[0]} (${norm})`);
     }
   }
 
-  // 4. Accessibility CSS anti-patterns: no outline: none/0, no fixed px font-size
-  if (/\boutline\s*:\s*(?:none|0)(?![\d.])/i.test(content)) {
+  // 4. Accessibility CSS anti-patterns: no outline: none/0/0px/0.0, no fixed px font-size
+  if (/\boutline\s*:\s*(?:none\b|0(?:\.0+)?(?:px|rem|em|%|vh|vw|ch|ex|pt)?(?![0-9.]))/i.test(cleanContent)) {
     errors.push(`[${filename}] Accessible focus violation: "outline: none" or "outline: 0" strips forced-colors focus rings`);
   }
-  if (/\bfont-size\s*:\s*[0-9.]+px\b/i.test(content)) {
+  if (/\bfont-size\s*:\s*[0-9.]+px\b/i.test(cleanContent)) {
     errors.push(`[${filename}] Scalable typography violation: fixed "px" font-size found (use rem, em, %, or clamp)`);
+  }
+
+  return errors;
+}
+
+export function lintBundledCss(bundledCss, entry = 'bundle.css') {
+  const errors = [];
+  const cleanCss = bundledCss.replace(/\/\*[\s\S]*?\*\//g, '');
+  const definedVars = new Set([...cleanCss.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]));
+  const usedVars = new Set([...cleanCss.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map((m) => m[1]));
+
+  // Allow --pt-btn-color and --marker-pos as optional override hooks with fallback
+  definedVars.add('--pt-btn-color');
+  definedVars.add('--marker-pos');
+
+  for (const used of usedVars) {
+    if (!definedVars.has(used)) {
+      errors.push(`[${entry}] Undefined CSS custom property referenced: ${used}`);
+    }
+  }
+  return errors;
+}
+
+export function lintDistAccessibilityRules(fullDistCss, filename = 'dist/picotol.css') {
+  const errors = [];
+  for (const requiredRule of [
+    ':focus-visible',
+    '.skip-to-content',
+    '.sr-only',
+    '.overflow-auto',
+    'prefers-reduced-motion: reduce',
+    'forced-colors: active',
+    '@media print',
+  ]) {
+    if (!fullDistCss.includes(requiredRule)) {
+      errors.push(`[${filename}] Missing required accessibility/responsive rule: "${requiredRule}"`);
+    }
+  }
+  return errors;
+}
+
+export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.html') {
+  const errors = [];
+  const demoIds = new Set([...demoHtml.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
+  const demoClasses = new Set(
+    [...demoHtml.matchAll(/\bclass="([^"]+)"/g)].flatMap((m) => m[1].trim().split(/\s+/)).filter(Boolean)
+  );
+
+  for (const cls of demoClasses) {
+    if (!fullDistCss.includes(`.${cls}`)) {
+      errors.push(`[${filename}] Unstyled class ".${cls}" used in demo HTML but missing from dist/picotol.css`);
+    }
+  }
+
+  for (const match of demoHtml.matchAll(/\bhref="#([^"]*)"/g)) {
+    const targetId = match[1];
+    if (targetId && !demoIds.has(targetId)) {
+      errors.push(`[${filename}] Broken internal anchor link href="#${targetId}" (no matching id="${targetId}")`);
+    }
+  }
+
+  for (const attr of ['aria-describedby', 'aria-labelledby']) {
+    for (const match of demoHtml.matchAll(new RegExp(`\\b${attr}="([^"]+)"`, 'g'))) {
+      for (const refId of match[1].trim().split(/\s+/)) {
+        if (!demoIds.has(refId)) {
+          errors.push(`[${filename}] Broken ARIA reference ${attr}="${refId}" (no matching id="${refId}")`);
+        }
+      }
+    }
+  }
+
+  // Ensure non-interactive elements with data-tooltip have tabindex="0"
+  for (const match of demoHtml.matchAll(/<(span|div|abbr)\b([^>]*\bdata-tooltip="[^"]*"[^>]*)>/gi)) {
+    const attrs = match[2];
+    if (!/\btabindex=/i.test(attrs)) {
+      errors.push(`[${filename}] Non-interactive <${match[1]} data-tooltip> is missing tabindex="0" for keyboard access`);
+    }
   }
 
   return errors;
@@ -167,74 +250,16 @@ export function runLint() {
       }
     }
     const bundledCss = res.code.toString('utf8');
-    const definedVars = new Set([...bundledCss.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]));
-    const usedVars = new Set([...bundledCss.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map((m) => m[1]));
-
-    // Allow --pt-btn-color and --marker-pos as optional override hooks with fallback
-    definedVars.add('--pt-btn-color');
-    definedVars.add('--marker-pos');
-
-    for (const used of usedVars) {
-      if (!definedVars.has(used)) {
-        errors.push(`[${entry}] Undefined CSS custom property referenced: ${used}`);
-      }
-    }
+    errors.push(...lintBundledCss(bundledCss, entry));
   }
 
   const fullDistCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
-  for (const requiredRule of [
-    ':focus-visible',
-    '.skip-to-content',
-    '.sr-only',
-    '.overflow-auto',
-    'prefers-reduced-motion: reduce',
-    'forced-colors: active',
-    '@media print',
-  ]) {
-    if (!fullDistCss.includes(requiredRule)) {
-      errors.push(`[dist/picotol.css] Missing required accessibility/responsive rule: "${requiredRule}"`);
-    }
-  }
+  errors.push(...lintDistAccessibilityRules(fullDistCss, 'dist/picotol.css'));
 
   // 6. Demo HTML structural & accessibility linting
   const demoPath = path.join(ROOT, 'dist/demo/index.html');
   const demoHtml = fs.readFileSync(demoPath, 'utf8');
-
-  const demoIds = new Set([...demoHtml.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
-  const demoClasses = new Set(
-    [...demoHtml.matchAll(/\bclass="([^"]+)"/g)].flatMap((m) => m[1].trim().split(/\s+/))
-  );
-
-  for (const cls of demoClasses) {
-    if (!fullDistCss.includes(`.${cls}`)) {
-      errors.push(`[dist/demo/index.html] Unstyled class ".${cls}" used in demo HTML but missing from dist/picotol.css`);
-    }
-  }
-
-  for (const match of demoHtml.matchAll(/\bhref="#([^"]*)"/g)) {
-    const targetId = match[1];
-    if (targetId && !demoIds.has(targetId)) {
-      errors.push(`[dist/demo/index.html] Broken internal anchor link href="#${targetId}" (no matching id="${targetId}")`);
-    }
-  }
-
-  for (const attr of ['aria-describedby', 'aria-labelledby']) {
-    for (const match of demoHtml.matchAll(new RegExp(`\\b${attr}="([^"]+)"`, 'g'))) {
-      for (const refId of match[1].trim().split(/\s+/)) {
-        if (!demoIds.has(refId)) {
-          errors.push(`[dist/demo/index.html] Broken ARIA reference ${attr}="${refId}" (no matching id="${refId}")`);
-        }
-      }
-    }
-  }
-
-  // Ensure non-interactive elements with data-tooltip have tabindex="0"
-  for (const match of demoHtml.matchAll(/<(span|div|abbr)\b([^>]*\bdata-tooltip="[^"]*"[^>]*)>/gi)) {
-    const attrs = match[2];
-    if (!/\btabindex=/i.test(attrs)) {
-      errors.push(`[dist/demo/index.html] Non-interactive <${match[1]} data-tooltip> is missing tabindex="0" for keyboard access`);
-    }
-  }
+  errors.push(...lintDemoHtml(demoHtml, fullDistCss, 'dist/demo/index.html'));
 
   return errors;
 }

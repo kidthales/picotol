@@ -2,14 +2,32 @@
 // from ../tol-palettes/data/schemes/*.json (when available locally) into
 // data/tol-qualitative.json and generates src/tokens.css + src/palettes.css.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const srcDir = join(root, 'src');
+const dataDir = join(root, 'data');
 const upstreamDir = join(root, '..', 'tol-palettes', 'data', 'schemes');
-const snapshotPath = join(root, 'data', 'tol-qualitative.json');
-const tokensCssPath = join(root, 'src', 'tokens.css');
-const palettesCssPath = join(root, 'src', 'palettes.css');
+const snapshotPath = join(dataDir, 'tol-qualitative.json');
+const tokensCssPath = join(srcDir, 'tokens.css');
+const palettesCssPath = join(srcDir, 'palettes.css');
+
+function isSameOrSubpath(targetPath, basePath) {
+  const rel = relative(basePath.toLowerCase(), targetPath.toLowerCase());
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+}
+
+function assertSafeCustomSyncTarget(resolvedPath, label) {
+  if (
+    isSameOrSubpath(resolvedPath, srcDir) ||
+    isSameOrSubpath(resolvedPath, dataDir) ||
+    isSameOrSubpath(root, resolvedPath) ||
+    isSameOrSubpath(resolvedPath, root)
+  ) {
+    throw new Error(`Invalid ${label}: refusing to write custom sync target inside repository at ${resolvedPath}`);
+  }
+}
 
 const QUALITATIVE_IDS = [
   'bright',
@@ -259,19 +277,45 @@ export function buildPalettesCss(snapshot = loadSnapshot()) {
 }
 
 export function syncTokens(opts = {}) {
-  if (opts.outSrcDir !== undefined && (typeof opts.outSrcDir !== 'string' || opts.outSrcDir.trim() === '')) {
+  if (opts === null || typeof opts !== 'object') {
+    throw new Error('Invalid options: must be an object');
+  }
+  const hasOutSrcDir = 'outSrcDir' in opts;
+  const hasTokensPath = 'tokensCssPath' in opts;
+  const hasPalettesPath = 'palettesCssPath' in opts;
+
+  if (hasOutSrcDir && (typeof opts.outSrcDir !== 'string' || opts.outSrcDir.trim() === '')) {
     throw new Error('Invalid outSrcDir: must be a non-empty string path');
   }
-  const targetTokensPath = opts.tokensCssPath ?? (opts.outSrcDir !== undefined ? join(opts.outSrcDir, 'tokens.css') : tokensCssPath);
-  const targetPalettesPath = opts.palettesCssPath ?? (opts.outSrcDir !== undefined ? join(opts.outSrcDir, 'palettes.css') : palettesCssPath);
-  if (
-    typeof targetTokensPath !== 'string' ||
-    targetTokensPath.trim() === '' ||
-    typeof targetPalettesPath !== 'string' ||
-    targetPalettesPath.trim() === ''
-  ) {
-    throw new Error('Invalid token output path: must be a non-empty string path');
+  if (hasTokensPath && (typeof opts.tokensCssPath !== 'string' || opts.tokensCssPath.trim() === '')) {
+    throw new Error('Invalid tokensCssPath: must be a non-empty string path');
   }
+  if (hasPalettesPath && (typeof opts.palettesCssPath !== 'string' || opts.palettesCssPath.trim() === '')) {
+    throw new Error('Invalid palettesCssPath: must be a non-empty string path');
+  }
+  if (!hasOutSrcDir && hasTokensPath !== hasPalettesPath) {
+    throw new Error(
+      'Invalid token output path: must provide outSrcDir or both tokensCssPath and palettesCssPath to prevent partial writes to src/'
+    );
+  }
+
+  let targetTokensPath = tokensCssPath;
+  let targetPalettesPath = palettesCssPath;
+
+  if (hasOutSrcDir || hasTokensPath || hasPalettesPath) {
+    const baseOutDir = hasOutSrcDir ? resolve(opts.outSrcDir) : null;
+    if (baseOutDir !== null) {
+      assertSafeCustomSyncTarget(baseOutDir, 'outSrcDir');
+    }
+    targetTokensPath = hasTokensPath ? resolve(opts.tokensCssPath) : join(baseOutDir, 'tokens.css');
+    targetPalettesPath = hasPalettesPath ? resolve(opts.palettesCssPath) : join(baseOutDir, 'palettes.css');
+    assertSafeCustomSyncTarget(targetTokensPath, 'tokensCssPath');
+    assertSafeCustomSyncTarget(targetPalettesPath, 'palettesCssPath');
+    if (targetTokensPath.toLowerCase() === targetPalettesPath.toLowerCase()) {
+      throw new Error('Invalid token output path: tokensCssPath and palettesCssPath must be distinct');
+    }
+  }
+
   const snapshot = opts.snapshot ?? loadSnapshot();
   const tokensCss = buildTokensCss(snapshot);
   const palettesCss = buildPalettesCss(snapshot);

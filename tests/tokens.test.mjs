@@ -6,9 +6,11 @@ import assert from 'node:assert/strict';
 
 import {
   expandHex,
+  relativeLuminance,
   schemeColor,
   parseLightDark,
   parseVarCall,
+  parseCssBlock,
   parseTokens,
   getPicotolTokens,
 } from './helpers/tokens.mjs';
@@ -72,6 +74,9 @@ test('parseTokens: isolates accents without root pollution on fixture CSS and re
     }
     @layer reset {
       * { box-sizing: border-box; }
+    }
+    @layer base {
+      body { margin: 0; }
     }
   `;
   const tokens = parseTokens(fixtureCss);
@@ -141,13 +146,46 @@ test('parseTokens: getToken and getSecondaryToken throw readable errors on missi
     () => tokens.getSecondaryToken('--pt-p1', 'light'),
     /Token --pt-p1 not found in secondaryDecls/
   );
+
+  // Missing accent ladder token (--pt-p1..--pt-p5) in an accent block throws instead of falling back to root/blue
+  const partialAccentCss = `
+    @layer tokens {
+      :root, :host, [data-accent="blue"] {
+        --pt-p1: #AACCEE;
+        --pt-p5: #004488;
+      }
+      :root, :host, :where([data-accent]) {
+        --pt-primary-hover: light-dark(var(--pt-p5), var(--pt-p1));
+      }
+      [data-accent="purple"] {
+        --pt-p1: #E7D4E8;
+      }
+    }
+    @layer reset { * { box-sizing: border-box; } }
+    @layer base { body { margin: 0; } }
+  `;
+  const partialTokens = parseTokens(partialAccentCss);
+  assert.equal(partialTokens.getToken('--pt-p5', 'light', 'blue'), '#004488');
+  assert.equal(partialTokens.getToken('--pt-p1', 'light', 'purple'), '#E7D4E8');
+  assert.throws(
+    () => partialTokens.getToken('--pt-p5', 'light', 'purple'),
+    /Token --pt-p5 not found/,
+    'Omitting --pt-p5 in [data-accent="purple"] must throw rather than falling back to blue/root'
+  );
+  assert.throws(
+    () => partialTokens.getToken('--pt-primary-hover', 'light', 'purple'),
+    /Token --pt-p5 not found/,
+    'Resolving var(--pt-p5) for purple must also throw rather than falling back to blue/root'
+  );
 });
 
 test('parseTokens: brace-depth awareness supports nested & accent rules and rejects @media / [data-theme] / state overrides in @layer tokens', () => {
   const nestedAccentCss = `
     @layer tokens {
       :root {
-        --pt-p3: #4477AA;
+        &[data-accent="blue"] {
+          --pt-p3: #4477AA;
+        }
         &[data-accent="cyan"] {
           --pt-p3: #0077BB;
         }
@@ -155,6 +193,9 @@ test('parseTokens: brace-depth awareness supports nested & accent rules and reje
     }
     @layer reset {
       * { box-sizing: border-box; }
+    }
+    @layer base {
+      body { margin: 0; }
     }
   `;
 
@@ -171,6 +212,7 @@ test('parseTokens: brace-depth awareness supports nested & accent rules and reje
       }
     }
     @layer reset { * { box-sizing: border-box; } }
+    @layer base { body { margin: 0; } }
   `;
   assert.throws(
     () => parseTokens(mediaTokenCss),
@@ -184,6 +226,7 @@ test('parseTokens: brace-depth awareness supports nested & accent rules and reje
       [data-theme="dark"] { --pt-bg: #000000; }
     }
     @layer reset { * { box-sizing: border-box; } }
+    @layer base { body { margin: 0; } }
   `;
   assert.throws(
     () => parseTokens(themeOverrideCss),
@@ -197,6 +240,7 @@ test('parseTokens: brace-depth awareness supports nested & accent rules and reje
       :root:hover { --pt-bg: #000000; }
     }
     @layer reset { * { box-sizing: border-box; } }
+    @layer base { body { margin: 0; } }
   `;
   assert.throws(
     () => parseTokens(stateOverrideCss),
@@ -215,6 +259,9 @@ test('parseTokens: cycle guard throws on recursive CSS custom properties', () =>
     @layer reset {
       * { box-sizing: border-box; }
     }
+    @layer base {
+      body { margin: 0; }
+    }
   `;
 
   const tokens = parseTokens(cyclicCss);
@@ -224,7 +271,7 @@ test('parseTokens: cycle guard throws on recursive CSS custom properties', () =>
   );
 });
 
-test('parseTokens: throws if required layers are missing', () => {
+test('parseTokens: throws if required layers (tokens, reset, base) are missing', () => {
   assert.throws(
     () => parseTokens(':root { --pt-color: #000; }'),
     /Missing @layer tokens/
@@ -234,41 +281,75 @@ test('parseTokens: throws if required layers are missing', () => {
     () => parseTokens('@layer tokens { :root { --pt-color: #000; } }'),
     /Missing @layer reset delimiter/
   );
+
+  assert.throws(
+    () => parseTokens('@layer tokens { :root { --pt-color: #000; } } @layer reset { * { box-sizing: border-box; } }'),
+    /Missing @layer base in CSS content/
+  );
 });
 
-test('parseTokens: CSS comments containing delimiters do not corrupt parsing', () => {
+test('parseTokens: CSS comments and unquoted url(data:...;base64,...) semicolons do not corrupt parsing', () => {
   const commentedCss = `
     /* Comment with { braces: inside; } and ; colons */
     @layer tokens {
       /* Another comment { foo: bar; } */
       :root, :host {
+        --pt-icon: url(data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=);
         --pt-bg: #FFFFFF;
       }
     }
     @layer reset {
       body { margin: 0; }
     }
+    @layer base {
+      body { margin: 0; }
+    }
   `;
 
   const tokens = parseTokens(commentedCss);
   assert.equal(tokens.getToken('--pt-bg', 'light'), '#FFFFFF');
+  assert.equal(tokens.rootDecls['--pt-icon'], 'url(data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=)');
+
+  const block = parseCssBlock('background: url(data:image/png;base64,AAAA); color: #4477AA;');
+  assert.equal(block.declarations.background, 'url(data:image/png;base64,AAAA)');
+  assert.equal(block.declarations.color, '#4477AA');
 });
 
-test('parseTokens: non-hex resolved values throw strict validation errors in getToken', () => {
+test('parseTokens: non-hex and transparent (#0000 / #00000000) values throw strict validation errors', () => {
   const nonHexCss = `
     @layer tokens {
       :root {
         --pt-bad: red;
+        --pt-transparent-4: #0000;
+        --pt-transparent-8: #00000000;
       }
     }
     @layer reset {
       body { margin: 0; }
     }
+    @layer base {
+      body { margin: 0; }
+    }
   `;
+
+  assert.equal(expandHex('#0000'), '#0000', 'expandHex must not turn transparent #0000 into opaque black #000000');
+  assert.equal(expandHex('#00000000'), '#00000000', 'expandHex must not turn transparent #00000000 into opaque black #000000');
 
   const tokens = parseTokens(nonHexCss);
   assert.throws(
     () => tokens.getToken('--pt-bad'),
     /Token "--pt-bad" resolved to non-hex value/
+  );
+  assert.throws(
+    () => tokens.getToken('--pt-transparent-4'),
+    /Token "--pt-transparent-4" resolved to non-hex value/
+  );
+  assert.throws(
+    () => tokens.getToken('--pt-transparent-8'),
+    /Token "--pt-transparent-8" resolved to non-hex value/
+  );
+  assert.throws(
+    () => relativeLuminance('#0000'),
+    /Invalid 6-digit opaque hex color/
   );
 });
