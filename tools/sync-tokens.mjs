@@ -259,9 +259,20 @@ export function buildPalettesCss(snapshot = loadSnapshot()) {
 }
 
 export function syncTokens(opts = {}) {
-  const targetTokensPath = opts.tokensCssPath || (opts.outSrcDir ? join(opts.outSrcDir, 'tokens.css') : tokensCssPath);
-  const targetPalettesPath = opts.palettesCssPath || (opts.outSrcDir ? join(opts.outSrcDir, 'palettes.css') : palettesCssPath);
-  const snapshot = opts.snapshot || loadSnapshot();
+  if (opts.outSrcDir !== undefined && (typeof opts.outSrcDir !== 'string' || opts.outSrcDir.trim() === '')) {
+    throw new Error('Invalid outSrcDir: must be a non-empty string path');
+  }
+  const targetTokensPath = opts.tokensCssPath ?? (opts.outSrcDir !== undefined ? join(opts.outSrcDir, 'tokens.css') : tokensCssPath);
+  const targetPalettesPath = opts.palettesCssPath ?? (opts.outSrcDir !== undefined ? join(opts.outSrcDir, 'palettes.css') : palettesCssPath);
+  if (
+    typeof targetTokensPath !== 'string' ||
+    targetTokensPath.trim() === '' ||
+    typeof targetPalettesPath !== 'string' ||
+    targetPalettesPath.trim() === ''
+  ) {
+    throw new Error('Invalid token output path: must be a non-empty string path');
+  }
+  const snapshot = opts.snapshot ?? loadSnapshot();
   const tokensCss = buildTokensCss(snapshot);
   const palettesCss = buildPalettesCss(snapshot);
   mkdirSync(dirname(targetTokensPath), { recursive: true });

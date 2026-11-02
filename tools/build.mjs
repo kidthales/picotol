@@ -65,7 +65,10 @@ function sha256Hex(content) {
 }
 
 export function buildAll(opts = {}) {
-  const targetDist = opts.outDir || distDir;
+  const targetDist = opts.outDir ?? distDir;
+  if (typeof targetDist !== 'string' || targetDist.trim() === '') {
+    throw new Error('Invalid outDir: must be a non-empty string path');
+  }
   const targetDemo = join(targetDist, 'demo');
   mkdirSync(targetDemo, { recursive: true });
 

@@ -79,7 +79,7 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
   if (/\b(?:rgb|rgba|hsl|hsla|oklch|lab|lch)\s*\(/i.test(content)) {
     errors.push(`[${filename}] Forbidden color function (rgb/hsl/oklch/lab/lch) found`);
   }
-  const withoutDataUris = content.replace(/url\(\s*(?:"data:[^"]*"|'data:[^']*'|data:[^)]*)\s*\)/gi, '');
+  const withoutDataUris = content.replace(/url\("data:[^"]*"\)/g, '');
   for (const match of withoutDataUris.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
     const norm = expandHex(match[0]);
     if (!allowedHexSet.has(norm)) {

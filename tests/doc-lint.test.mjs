@@ -12,6 +12,7 @@ const ROOT = path.resolve(__dirname, '..');
 // Tracked for complete elimination/erratum under Issue #200.
 export const TEMPORARY_ALLOWLIST = [
   { file: 'README.md', token: '--pt-font-emoji' },
+  { file: 'README.md', token: '--pt-status-neutral-*' },
   { file: 'README.md', token: '.pt-meter-pin' },
   { file: 'CHANGELOG.md', token: '.pt-popover__surface' },
   { file: 'CHANGELOG.md', token: '.pt-dot--sm' },
@@ -36,6 +37,8 @@ export function isAllowlisted(token, file = '') {
 }
 
 export function extractInlineCodeSpansFromLine(line) {
+  // Intentionally bounded to a single line so an accidental unmatched backtick in prose
+  // cannot invert inline-code extraction across the remainder of the markdown file.
   const spans = [];
   let i = 0;
   while (i < line.length) {
@@ -76,6 +79,15 @@ export function extractInlineCodeSpansFromLine(line) {
   return spans;
 }
 
+export function expandBracePattern(pattern) {
+  const braceMatch = pattern.match(/\{([a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+)\}/);
+  if (!braceMatch) return [pattern];
+  const options = braceMatch[1].split(',');
+  const prefix = pattern.slice(0, braceMatch.index);
+  const suffix = pattern.slice(braceMatch.index + braceMatch[0].length);
+  return options.flatMap((opt) => expandBracePattern(`${prefix}${opt}${suffix}`));
+}
+
 export function extractTokensFromMarkdown(content) {
   const lines = content.split(/\r?\n/);
   let inFence = false;
@@ -83,8 +95,12 @@ export function extractTokensFromMarkdown(content) {
   let fenceLen = 0;
 
   const tokens = [];
-  // Matches .pt-*, .tol-* (even in compound selectors like .pt-a.pt-b) and --pt-*, --tol-*
-  const tokenRe = /(\.(?:pt|tol)-[a-zA-Z0-9_-]+|(?<![\w-])--(?:pt|tol)-[a-zA-Z0-9_-]+)(?![\w-])/g;
+  // Matches .pt-* (including compound selectors like .pt-a.pt-b and wildcard tokens like .pt-meter-mark--*)
+  // and --pt-* (including wildcard tokens like --pt-status-*-fg).
+  // Trailing standalone '*' separated by whitespace (e.g. `.pt-phantom *`) is not matched as part of the token.
+  const tokenRe = /(\.pt-[a-zA-Z0-9_*-]+|(?<![\w-])--pt-[a-zA-Z0-9_*-]+)(?![\w*-])/g;
+  const braceTokenRe =
+    /(?:\.pt|--pt)-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -108,16 +124,14 @@ export function extractTokensFromMarkdown(content) {
 
     const spans = extractInlineCodeSpansFromLine(line);
     for (const rawSpan of spans) {
-      // Strip only wildcard token patterns (e.g. --pt-*, --pt-status-*-fg, .pt-meter-mark--*)
-      // and brace-expansion token patterns (e.g. --pt-status-{ok,warning}-{fg,bg}),
-      // while preserving normal tokens inside expressions like `.pt-phantom *` or `.pt-x{color:red}`.
-      const cleaned = rawSpan
-        .replace(/(?:\.(?:pt|tol)|--(?:pt|tol))-[a-zA-Z0-9_-]*\*[a-zA-Z0-9_*-]*/g, ' ')
-        .replace(/(?:\.(?:pt|tol)|--(?:pt|tol))-[a-zA-Z0-9_-]*\{[^}:]*,[^}:]*\}[a-zA-Z0-9_{},-]*/g, ' ');
+      // Expand brace-expansion token patterns (e.g. --pt-status-{ok,warning}-{fg,bg})
+      // into concrete tokens so every branch is validated against dist/picotol.css,
+      // while leaving CSS declaration blocks like `.pt-x{color:red}` untouched.
+      const expandedSpan = rawSpan.replace(braceTokenRe, (match) => expandBracePattern(match).join(' '));
 
       tokenRe.lastIndex = 0;
       let tm;
-      while ((tm = tokenRe.exec(cleaned)) !== null) {
+      while ((tm = tokenRe.exec(expandedSpan)) !== null) {
         tokens.push(tm[1]);
       }
     }
@@ -130,22 +144,40 @@ export function extractTokensFromMarkdown(content) {
   return [...new Set(tokens)];
 }
 
+export function extractCurrentChangelogSection(changelogContent, currentVersion) {
+  const escapedVersion = escapeRegex(currentVersion);
+  const changelogHeaderRegex = new RegExp(`## \\[${escapedVersion}\\][^\\n]*\\n([\\s\\S]*?)(?=\\n## \\[|$)`);
+  const changelogMatch = changelogContent.match(changelogHeaderRegex);
+  if (!changelogMatch) {
+    throw new Error(`CHANGELOG.md missing header for current package.json version: ## [${currentVersion}]`);
+  }
+  return changelogMatch[1];
+}
+
 export function stripCssCommentsAndStrings(cssContent) {
   return cssContent
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '""');
 }
 
+function tokenToRegexSource(token) {
+  return token
+    .split('*')
+    .map((segment) => escapeRegex(segment))
+    .join('[a-zA-Z0-9_-]+');
+}
+
 export function tokenExistsInCss(token, cssContent) {
   const cleanCss = stripCssCommentsAndStrings(cssContent);
+  const pattern = tokenToRegexSource(token);
   if (token.startsWith('--')) {
     // Require a custom property declaration (--pt-foo:), not merely a var(--pt-foo) usage
-    const declRe = new RegExp(`(?<![\\w-])${escapeRegex(token)}\\s*:`);
+    const declRe = new RegExp(`(?<![\\w-])${pattern}(?![\\w-])\\s*:`);
     return declRe.test(cleanCss);
   }
   if (token.startsWith('.')) {
     // Require class token in a CSS selector context (followed by { with no intervening ;, {, or })
-    const selRe = new RegExp(`${escapeRegex(token)}(?![\\w-])(?=[^;{}]*\\{)`);
+    const selRe = new RegExp(`${pattern}(?![\\w-])(?=[^;{}]*\\{)`);
     return selRe.test(cleanCss);
   }
   return false;
@@ -176,18 +208,15 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and current 
 
   // 2. CHANGELOG.md scoped strictly to current release header (e.g. ## [0.5.0])
   const changelogContent = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8');
-  const escapedVersion = escapeRegex(currentVersion);
-  const changelogHeaderRegex = new RegExp(`## \\[${escapedVersion}\\][^\\n]*\\n([\\s\\S]*?)(?=\\n## \\[|$)`);
-  const changelogMatch = changelogContent.match(changelogHeaderRegex);
-  if (!changelogMatch) {
-    throw new Error(`CHANGELOG.md missing header for current package.json version: ## [${currentVersion}]`);
-  }
-  const changelogSection = changelogMatch[1];
+  const changelogSection = extractCurrentChangelogSection(changelogContent, currentVersion);
   const changelogResult = validateDocTokens(changelogSection, distCss, 'CHANGELOG.md');
   assert.ok(changelogResult.tokens.length > 0, `CHANGELOG.md ## [${currentVersion}] section must contain documented tokens`);
   assert.deepEqual(changelogResult.missing, [], `CHANGELOG.md contains undocumented tokens: ${changelogResult.missing.join(', ')}`);
 
-  // 3. docs/RELEASE_NOTES_V*.md for current release (mandatory existence check)
+  // 3. docs/RELEASE_NOTES_V*.md scoped to current release (mandatory existence check).
+  // Historical release notes (V0_1_0..V0_4_1) are immutable point-in-time records of older
+  // pre-releases (analogous to older CHANGELOG.md sections) and are intentionally not linted
+  // against current dist/picotol.css.
   const releaseNoteFile = `RELEASE_NOTES_V${currentVersion.replaceAll('.', '_')}.md`;
   const releaseNoteRelPath = `docs/${releaseNoteFile}`;
   const releaseNotePath = path.join(ROOT, 'docs', releaseNoteFile);
@@ -214,7 +243,9 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and current 
   );
 });
 
-test('doc-lint: parser handles compound selectors, wildcard/brace stripping, tilde fences, unterminated fences, and usage-vs-definition checks', () => {
+test('doc-lint: parser handles compound selectors, wildcard/brace validation, tilde fences, unterminated fences, and usage-vs-definition checks', () => {
+  const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
+
   // Item 5: Compound selectors extract all classes
   assert.deepEqual(extractTokensFromMarkdown('Use `.pt-a.pt-b` together.'), ['.pt-a', '.pt-b']);
 
@@ -223,11 +254,50 @@ test('doc-lint: parser handles compound selectors, wildcard/brace stripping, til
     '.pt-phantom',
     '.pt-x',
   ]);
-  // Wildcard and comma-brace templates are still skipped
+
+  // Wildcard and brace-expansion patterns are extracted and validated against dist/picotol.css (never silently skipped)
   assert.deepEqual(
     extractTokensFromMarkdown('Patterns `--pt-*`, `.pt-meter-mark--*`, and `--pt-status-{ok,warning}-{fg,bg}`.'),
-    []
+    [
+      '--pt-*',
+      '.pt-meter-mark--*',
+      '--pt-status-ok-fg',
+      '--pt-status-ok-bg',
+      '--pt-status-warning-fg',
+      '--pt-status-warning-bg',
+    ]
   );
+
+  // Valid wildcard and brace patterns pass against dist/picotol.css
+  const validPatternsResult = validateDocTokens(
+    'Valid `--pt-*`, `--pt-status-*-fg`, `.pt-meter-mark--*`, and `--pt-status-{ok,warning}-{fg,bg}`.',
+    distCss,
+    'README.md'
+  );
+  assert.deepEqual(validPatternsResult.missing, []);
+
+  // Phantom wildcard and phantom brace branches fail closed against dist/picotol.css
+  const phantomPatternsResult = validateDocTokens(
+    'Invalid `--pt-phantom-*-fg`, `.pt-phantom--*`, and `--pt-status-{ok,phantom}-fg`.',
+    distCss,
+    'README.md'
+  );
+  assert.deepEqual(phantomPatternsResult.missing, [
+    '--pt-phantom-*-fg',
+    '.pt-phantom--*',
+    '--pt-status-phantom-fg',
+  ]);
+
+  // Scoped CHANGELOG extraction ignores tokens that only appear in older version sections
+  const sampleChangelog = [
+    '# Changelog',
+    '## [0.5.0] - 2026-10-30',
+    '- Current token `.pt-current-only`.',
+    '## [0.4.0] - 2026-10-29',
+    '- Historical token `.pt-old-only`.',
+  ].join('\n');
+  const currentSec = extractCurrentChangelogSection(sampleChangelog, '0.5.0');
+  assert.deepEqual(extractTokensFromMarkdown(currentSec), ['.pt-current-only']);
 
   // Item 9: ~~~ fences, double backticks, odd backticks across lines, and unterminated fences
   const tildeFenceMd = [
@@ -270,11 +340,17 @@ test('doc-lint: parser handles compound selectors, wildcard/brace stripping, til
   assert.equal(tokenExistsInCss('.pt-in-string', sampleCss), false, 'Class inside string value must not count as selector definition');
 });
 
-test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, present in their scoped file, and guarded by REMOVE-BY: #200', () => {
+test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, present in their scoped file section, and guarded by REMOVE-BY: #200', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  const currentVersion = pkg.version;
   const selfSource = fs.readFileSync(fileURLToPath(import.meta.url), 'utf8');
   const changelogContent = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8');
 
+  // Guard limits & dual enforcement:
+  // 1. If Issue #200 is referenced in CHANGELOG.md, the regex guard below fails until TEMPORARY_ALLOWLIST is emptied.
+  // 2. If Issue #200 is fixed without naming #200 in CHANGELOG.md (either by removing the errata from docs or
+  //    implementing the tokens in CSS), the per-entry loop below immediately fails on the modified token.
   if (TEMPORARY_ALLOWLIST.length > 0) {
     assert.match(
       selfSource,
@@ -283,7 +359,7 @@ test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, present in
     );
     assert.ok(
       !/#200\b/.test(changelogContent),
-      'Issue #200 is referenced in CHANGELOG.md as resolved, so TEMPORARY_ALLOWLIST must now be emptied!'
+      'Issue #200 is referenced in CHANGELOG.md, so TEMPORARY_ALLOWLIST must now be emptied!'
     );
   }
 
@@ -295,11 +371,16 @@ test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, present in
       `Allowlisted token "${token}" (${file}) is now implemented in dist/picotol.css! Remove it from TEMPORARY_ALLOWLIST.`
     );
 
-    const fileContent = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    const extracted = extractTokensFromMarkdown(fileContent);
+    const rawFileContent = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    // Scope CHANGELOG.md staleness check to the exact same current-version section that validateDocTokens scans
+    const scopedContent =
+      file === 'CHANGELOG.md'
+        ? extractCurrentChangelogSection(rawFileContent, currentVersion)
+        : rawFileContent;
+    const extracted = extractTokensFromMarkdown(scopedContent);
     assert.ok(
       extracted.includes(token),
-      `Allowlisted token "${token}" is no longer referenced in ${file}! Remove stale entry from TEMPORARY_ALLOWLIST.`
+      `Allowlisted token "${token}" is no longer referenced in validated scope of ${file}! Remove stale entry from TEMPORARY_ALLOWLIST.`
     );
   }
 });

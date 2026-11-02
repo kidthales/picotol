@@ -93,7 +93,10 @@ export function createPkZip(entries) {
 }
 
 export function packageAssets(opts = {}) {
-  const targetDist = opts.outDir || distDir;
+  const targetDist = opts.outDir ?? distDir;
+  if (typeof targetDist !== 'string' || targetDist.trim() === '') {
+    throw new Error('Invalid outDir: must be a non-empty string path');
+  }
   const assetsDir = join(targetDist, 'assets');
   mkdirSync(assetsDir, { recursive: true });
 
@@ -119,7 +122,7 @@ export function packageAssets(opts = {}) {
     return {
       name: archivePath,
       data: readFileSync(sourcePath),
-      mtime: opts.mtime || stat.mtime,
+      mtime: opts.mtime ?? stat.mtime,
     };
   });
 

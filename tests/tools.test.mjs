@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { expandHex, lintCssSnippet, runLint } from '../tools/lint.mjs';
 import { loadSnapshot, buildTokensCss, buildPalettesCss, syncTokens } from '../tools/sync-tokens.mjs';
 import { buildAll } from '../tools/build.mjs';
+import { packageAssets } from '../tools/package-assets.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -101,20 +102,40 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   const validHexErrors = lintCssSnippet(validHexSnippet, 'fixtures/valid-hex.css');
   assert.equal(validHexErrors.length, 0, `Paul Tol 3-digit, #0000, and #00000000 must be accepted, got: ${validHexErrors.join('; ')}`);
 
-  // 6. Data-URI exemption: double-quoted, single-quoted, and unquoted data URIs are exempt from hex checking
+  // 6. Data-URI exemption: strict double-quoted url("data:...") is exempt from hex checking,
+  // while non-data url() and non-double-quoted data URIs are still checked and flagged
   const dataUriSnippet = `
     .icon-double {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' fill='#123456'%3E%3C/svg%3E");
     }
-    .icon-single {
-      background-image: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" fill="#abcdef"%3E%3C/svg%3E');
+  `;
+  const dataUriErrors = lintCssSnippet(dataUriSnippet, 'fixtures/data-uri.css');
+  assert.equal(dataUriErrors.length, 0, `Double-quoted data URI must be exempt from non-Paul-Tol hex checking, got: ${dataUriErrors.join('; ')}`);
+
+  const nonDataUrlSnippet = `
+    .bad-external-url {
+      background-image: url("https://example.com/icon.svg#123456");
     }
-    .icon-unquoted {
+    .bad-single-quote-data-uri {
+      background-image: url('data:image/svg+xml,%3Csvg fill="#abcdef"%3E%3C/svg%3E');
+    }
+    .bad-unquoted-data-uri {
       background-image: url(data:image/svg+xml,%3Csvg%20fill%3D%22#fedcba%22%3E%3C/svg%3E);
     }
   `;
-  const dataUriErrors = lintCssSnippet(dataUriSnippet, 'fixtures/data-uri.css');
-  assert.equal(dataUriErrors.length, 0, `All data URI quote forms must be exempt from non-Paul-Tol hex checking, got: ${dataUriErrors.join('; ')}`);
+  const nonDataUrlErrors = lintCssSnippet(nonDataUrlSnippet, 'fixtures/non-data-url.css');
+  assert.ok(
+    nonDataUrlErrors.some((e) => e.includes('Non-Paul-Tol hex color #123456')),
+    'Bad hex in a non-data url() must still be flagged'
+  );
+  assert.ok(
+    nonDataUrlErrors.some((e) => e.includes('Non-Paul-Tol hex color #abcdef')),
+    'Single-quoted data URI is not exempt under strict double-quoted rule'
+  );
+  assert.ok(
+    nonDataUrlErrors.some((e) => e.includes('Non-Paul-Tol hex color #fedcba')),
+    'Unquoted data URI is not exempt under strict double-quoted rule'
+  );
 
   // 7. Accessible focus violation: outline: none and outline: 0 rejected, while outline: 0.5px is permitted
   const outlineNoneSnippet = `button:focus { outline: none; }`;
@@ -161,7 +182,10 @@ test('tools/sync-tokens.mjs: deterministic generation and isolated syncTokens wr
   assert.equal(buildTokensCss(snapshot).trim(), committedTokens.trim(), 'Generated tokens.css must deterministically match src/tokens.css');
   assert.equal(buildPalettesCss(snapshot).trim(), committedPalettes.trim(), 'Generated palettes.css must deterministically match src/palettes.css');
 
-  // Verify syncTokens() disk write path in an isolated temp directory
+  // Verify syncTokens() rejects empty/invalid outSrcDir and writes cleanly to an isolated temp directory
+  assert.throws(() => syncTokens({ outSrcDir: '' }), /Invalid outSrcDir/);
+  assert.throws(() => syncTokens({ outSrcDir: '   ' }), /Invalid outSrcDir/);
+
   const tempSrcDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-test-sync-'));
   try {
     const res = syncTokens({ outSrcDir: tempSrcDir, snapshot });
@@ -174,7 +198,16 @@ test('tools/sync-tokens.mjs: deterministic generation and isolated syncTokens wr
   }
 });
 
+// Concurrency note: No test file in tests/*.test.mjs calls buildAll() or packageAssets() on the
+// default dist/ directory (all other test files only read dist/, and this test writes exclusively
+// to os.tmpdir() via fs.mkdtempSync), so parallel `node --test` execution is race-free.
 test('tools/build.mjs: buildAll produces valid bundles to isolated outDir, preserves committed dist/, enforces dist/ freshness, and is full-tree idempotent', () => {
+  // Reject empty or whitespace outDir paths (fail-closed ?? validation)
+  assert.throws(() => buildAll({ outDir: '' }), /Invalid outDir/);
+  assert.throws(() => buildAll({ outDir: '   ' }), /Invalid outDir/);
+  assert.throws(() => packageAssets({ outDir: '' }), /Invalid outDir/);
+  assert.throws(() => packageAssets({ outDir: '   ' }), /Invalid outDir/);
+
   const committedDistDir = path.join(ROOT, 'dist');
   const committedBefore = hashDirectoryTree(committedDistDir);
 

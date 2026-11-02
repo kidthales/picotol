@@ -1,21 +1,17 @@
 // Unit tests for tests/helpers/tokens.mjs CSS token parser and resolvers.
-// Because this file tests the parser itself (rather than WCAG contrast rules),
-// assertions intentionally compare parser output against known literal hex inputs.
+// All literal hex assertions in this file run exclusively against inline fixture CSS
+// so legitimate palette updates in data/tol-qualitative.json cannot break parser unit tests.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import {
   expandHex,
+  schemeColor,
   parseLightDark,
   parseVarCall,
   parseTokens,
+  getPicotolTokens,
 } from './helpers/tokens.mjs';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
 
 test('parseLightDark: parses light and dark values correctly and handles edge cases', () => {
   assert.deepEqual(parseLightDark('light-dark(#FFFFFF, #000000)'), {
@@ -58,26 +54,46 @@ test('parseVarCall: parses variable names and complex fallbacks with balanced pa
   });
 });
 
-test('parseTokens: resolves blue --pt-p3 to #4477AA and isolates accents without root pollution', () => {
-  const fullCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
-  const tokens = parseTokens(fullCss);
+test('parseTokens: isolates accents without root pollution on fixture CSS and resolves getPicotolTokens() dynamically', () => {
+  const fixtureCss = `
+    @layer tokens {
+      :root, :host, [data-accent="blue"] {
+        --pt-p3: #47a;
+      }
+      [data-accent="cyan"] {
+        --pt-p3: #0077BB;
+      }
+      [data-accent="purple"] {
+        --pt-p3: #AA4499;
+      }
+      [data-accent="magenta"] {
+        --pt-p3: #BB4488;
+      }
+    }
+    @layer reset {
+      * { box-sizing: border-box; }
+    }
+  `;
+  const tokens = parseTokens(fixtureCss);
 
-  // Blue default accent resolves to canonical Paul Tol bright blue (#4477AA)
+  // Blue default accent expands 3-digit #47a to 6-digit #4477AA
   assert.equal(tokens.getToken('--pt-p3', 'light', 'blue'), '#4477AA');
   assert.equal(tokens.getToken('--pt-p3', 'dark', 'blue'), '#4477AA');
 
-  // Cyan resolves to its distinct ladder
+  // Cyan, purple, and magenta resolve to their isolated accent maps
   assert.equal(tokens.getToken('--pt-p3', 'light', 'cyan'), '#0077BB');
-
-  // Purple resolves to its distinct ladder
   assert.equal(tokens.getToken('--pt-p3', 'light', 'purple'), '#AA4499');
-
-  // Magenta resolves to its distinct ladder
   assert.equal(tokens.getToken('--pt-p3', 'light', 'magenta'), '#BB4488');
 
-  // Verify that rootDecls retains the blue default and is not overwritten by cyan/purple/magenta.
-  // LightningCSS may shorten #4477AA to #47a in dist/picotol.css, so expandHex normalizes it to 6-digit hex.
+  // Verify that rootDecls retains the blue default and is not overwritten by subsequent [data-accent] rules
   assert.equal(expandHex(tokens.rootDecls['--pt-p3']), '#4477AA');
+
+  // Verify live dist/picotol.css integration via getPicotolTokens() using dynamic schemeColor lookups (zero literal hexes)
+  const liveTokens = getPicotolTokens();
+  assert.equal(liveTokens.getToken('--pt-p3', 'light', 'blue'), schemeColor('bright', 'blue'));
+  assert.equal(liveTokens.getToken('--pt-p3', 'light', 'cyan'), schemeColor('vibrant', 'blue'));
+  assert.equal(liveTokens.getToken('--pt-p3', 'light', 'purple'), schemeColor('muted', 'purple'));
+  assert.equal(liveTokens.getToken('--pt-p3', 'light', 'magenta'), schemeColor('dark', 8));
 });
 
 test('parseTokens: getToken and getSecondaryToken throw readable errors on missing tokens without root fallback', () => {

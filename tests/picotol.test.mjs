@@ -572,15 +572,15 @@ test("High-Density Layout Containment: scope section, article, and hr margins wi
     );
   }
 
-  // Verify minified bundles compile scoping rules without syntax loss
+  // Verify minified bundles compile scoping rules without syntax loss (accepting quoted or unquoted attribute values)
   for (const min of [fullMin, coreMin]) {
     assert.ok(min.includes("margin-bottom:0"), "Minified bundles must compile margin-bottom: 0 reset");
     assert.ok(
-      min.includes("[style*=gap]"),
+      min.includes("[style*=gap]") || min.includes('[style*="gap"]'),
       "Minified bundles must retain gap-based container selectors"
     );
     assert.ok(
-      min.includes('[style*="display: flex"]'),
+      min.includes('[style*="display: flex"]') || min.includes('[style*="display:flex"]'),
       "Minified bundles must retain display: flex container selectors"
     );
   }
@@ -1165,17 +1165,36 @@ test("Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89
     "Segmented fill child items must enforce min-width: 0 to allow flex shrinkage"
   );
   const componentsParsed = parseCssBlock(extractLayerBlock(fullCss, "components"));
-  const tablistRule = componentsParsed.rules.find((r) => r.selector.includes(".segmented"));
-  assert.ok(tablistRule, "Full CSS @layer components must include .segmented rule");
-  const segmentedGroupRule = tablistRule.rules.find((r) => r.selector.includes(".segmented-fill"));
-  assert.ok(segmentedGroupRule, ".segmented rule must include nested .segmented-fill rule");
-  const segmentedFillRule = segmentedGroupRule.rules.find((r) => r.selector.includes(".segmented-fill"));
-  assert.ok(segmentedFillRule, "Nested .segmented rule must include &:is(.segmented-fill, .segmented-equal, .fill)");
-  const segmentedChildRule = segmentedFillRule.rules.find((r) => r.selector.replace(/\s+/g, "") === "&>*");
+  const tablistRules = componentsParsed.rules.filter(
+    (r) => r.selector.includes('[role="tablist"]') && r.selector.includes(".segmented")
+  );
+  assert.equal(tablistRules.length, 1, "Full CSS @layer components must define a single :where([role=\"tablist\"], .segmented) rule");
+  const segmentedBaseRules = tablistRules.flatMap((r) =>
+    r.rules.filter((child) => child.selector.includes("&.segmented"))
+  );
+  assert.equal(segmentedBaseRules.length, 1, "Tablist rule must nest &.segmented container rule");
+  const segmentedFillRules = segmentedBaseRules.flatMap((r) =>
+    r.rules.filter((child) => child.selector.includes(".segmented-fill") && child.selector.includes(".fill"))
+  );
+  assert.equal(segmentedFillRules.length, 1, "&.segmented rule must nest &:is(.segmented-fill, .segmented-equal, .fill) modifier rule");
+  const segmentedChildRules = segmentedFillRules.flatMap((r) =>
+    r.rules.filter((child) => child.selector.replace(/\s+/g, "") === "&>*")
+  );
+  assert.equal(segmentedChildRules.length, 1, "Segmented fill modifier must define a single & > * child item rule");
   assert.equal(
-    segmentedChildRule?.declarations?.display,
+    segmentedChildRules[0].declarations.display,
     "block",
     "Segmented fill child items must establish a block formatting context (display: block) to enable text ellipsis truncation"
+  );
+  assert.equal(
+    segmentedChildRules[0].declarations["min-width"],
+    "0",
+    "Segmented fill child items must enforce min-width: 0"
+  );
+  assert.equal(
+    segmentedChildRules[0].declarations["text-overflow"],
+    "ellipsis",
+    "Segmented fill child items must enforce text-overflow: ellipsis"
   );
 
   // 2. Dedicated square icon button utilities compiled in full bundle
@@ -2266,10 +2285,11 @@ test("Nested @layer Taxonomy, Sublayer Preamble, and Downstream Extensibility (I
   assert.ok(compCss.includes("@layer components {"), "src/components.css must define @layer components");
 
   // 5. Downstream Hook Capability: compiling @layer picotol.tokens and @layer picotol.components
+  // (#123456 is an intentional arbitrary consumer brand hex testing downstream @layer picotol.tokens override compilation)
   const downstreamSnippet = `
     @layer picotol.tokens, my-theme, picotol.reset, picotol.base, picotol.components, my-components, picotol.utilities;
     @layer picotol.tokens {
-      :root { --pt-primary: var(--brand-primary); }
+      :root { --pt-primary: var(--brand-primary, #123456); }
     }
     @layer picotol.components {
       article.card { border-radius: 1.5rem; }
@@ -2314,9 +2334,11 @@ test("Nested @layer Taxonomy, Sublayer Preamble, and Downstream Extensibility (I
     readme.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
     "README must document nested @layer taxonomy declaration"
   );
+  const defaultLightPrimary = getPicotolTokens().getToken("--pt-primary", "light", "blue");
   assert.ok(
-    readme.includes("@layer picotol.tokens") && readme.includes("var(--brand-primary,"),
-    "README must document downstream @layer picotol.tokens override pattern"
+    readme.includes("@layer picotol.tokens") &&
+      readme.includes(`var(--brand-primary, ${defaultLightPrimary})`),
+    `README must document downstream @layer picotol.tokens override pattern with token-derived fallback (${defaultLightPrimary})`
   );
   assert.ok(
     readme.includes("@layer picotol.components") && readme.includes("article.card"),
