@@ -154,7 +154,7 @@ test("dist/assets/picotol-v*.zip offline bundle exists, stays within 100 KB budg
 
   const zipBuf = fs.readFileSync(zipPath);
   const parsedEntries = parsePkZipEntries(zipBuf);
-  assert.equal(parsedEntries.length, 11, "Zip bundle must contain exactly 11 entries");
+  assert.equal(parsedEntries.length, 13, "Zip bundle must contain exactly 13 entries");
 
   const expectedSources = [
     ["css/picotol.css", path.join(ROOT, "dist", "picotol.css")],
@@ -168,6 +168,8 @@ test("dist/assets/picotol-v*.zip offline bundle exists, stays within 100 KB budg
     ["tokens/tol-qualitative.json", path.join(ROOT, "data", "tol-qualitative.json")],
     ["sri.json", path.join(ROOT, "dist", "sri.json")],
     ["index.html", path.join(ROOT, "dist", "demo", "index.html")],
+    ["LICENSE", path.join(ROOT, "LICENSE")],
+    ["NOTICE", path.join(ROOT, "NOTICE")],
   ];
 
   const byName = Object.fromEntries(parsedEntries.map((e) => [e.name, e]));
@@ -193,6 +195,14 @@ test(".github/workflows/release.yml defines dual publishing to npm and GitHub Pa
   assert.ok(content.includes("attach-assets:"), "Must define attach-assets job");
   assert.ok(content.includes("https://npm.pkg.github.com"), "Must publish to GitHub Packages registry");
   assert.ok(content.includes("https://registry.npmjs.org"), "Must publish to npm public registry");
+  assert.ok(content.includes("dist/picotol.core.css"), "Must upload picotol.core.css to GitHub Release");
+  assert.ok(content.includes("dist/picotol.core.min.css"), "Must upload picotol.core.min.css to GitHub Release");
+  assert.ok(content.includes("dist/picotol.css"), "Must upload picotol.css to GitHub Release");
+  assert.ok(content.includes("dist/picotol.layer.css"), "Must upload picotol.layer.css to GitHub Release");
+  assert.ok(content.includes("dist/picotol.layer.min.css"), "Must upload picotol.layer.min.css to GitHub Release");
+  assert.ok(content.includes("dist/picotol.min.css"), "Must upload picotol.min.css to GitHub Release");
+  assert.ok(content.includes("LICENSE"), "Must upload LICENSE to GitHub Release");
+  assert.ok(content.includes("NOTICE"), "Must upload NOTICE to GitHub Release");
   assert.ok(content.includes("dist/assets/picotol-v*.zip"), "Must upload asset bundle zip to GitHub Release");
   assert.ok(content.includes("dist/sri.json"), "Must upload sri.json to GitHub Release");
   assert.ok(content.includes("dist/manifest.json"), "Must upload manifest.json to GitHub Release");
@@ -200,6 +210,126 @@ test(".github/workflows/release.yml defines dual publishing to npm and GitHub Pa
   assert.ok(content.includes("packages: write"), "Must grant packages: write permission for GitHub Packages");
   assert.ok(content.includes("contents: write"), "Must grant contents: write permission for asset upload");
   assert.ok(content.includes("id-token: write"), "Must grant id-token: write permission for npm provenance");
+});
+
+function extractReleaseUploadPaths(releaseYmlContent) {
+  const uploadMatch = releaseYmlContent.match(/gh\s+release\s+upload\s+"[^"]+"\s+((?:\\\r?\n|[^\r\n])*)/);
+  if (!uploadMatch) return [];
+  const rawArgs = uploadMatch[1]
+    .replace(/\\\r?\n/g, " ")
+    .split(/\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && !s.startsWith("-"));
+  return rawArgs;
+}
+
+function extractReleaseUploadBasenames(releaseYmlContent, version = pkg.version) {
+  return extractReleaseUploadPaths(releaseYmlContent).map((p) =>
+    path.posix.basename(p).replace("picotol-v*.zip", `picotol-v${version}.zip`)
+  );
+}
+
+function extractReadmeReleaseDownloadFiles(readmeContent) {
+  const files = new Set();
+
+  // 1. Direct URLs: releases/download/<tag>/<file>
+  const directRe = /releases\/download\/[^/\s"'`)]+\/([^\s"'`)]+)/g;
+  for (const match of readmeContent.matchAll(directRe)) {
+    files.add(match[1]);
+  }
+
+  // 2. Shell/PowerShell variable base URLs: $u = ".../releases/download/<tag>" -> "$u/<file>" or "${u}/<file>"
+  const varDefs = new Map();
+  const varAssignRe = /\$?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*["']([^"']*releases\/download\/[^/"']+)["']/g;
+  for (const match of readmeContent.matchAll(varAssignRe)) {
+    varDefs.set(match[1], match[2]);
+  }
+
+  for (const varName of varDefs.keys()) {
+    const escaped = varName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const refRe = new RegExp(`\\$\\{?${escaped}\\}?\\/([^\\s"'\`)]+)`, "g");
+    for (const match of readmeContent.matchAll(refRe)) {
+      files.add(match[1]);
+    }
+  }
+
+  return [...files];
+}
+
+function findUnuploadedReadmeReleaseUrls(readmeContent, releaseYmlContent, version = pkg.version) {
+  const uploaded = new Set(extractReleaseUploadBasenames(releaseYmlContent, version));
+  const referenced = extractReadmeReleaseDownloadFiles(readmeContent);
+  return referenced.filter((file) => !uploaded.has(file));
+}
+
+test("README.md releases/download/<tag>/<file> URLs and CSS bundles are all present in release.yml upload list (Issue #197)", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const releaseYml = fs.readFileSync(path.join(ROOT, ".github", "workflows", "release.yml"), "utf8");
+
+  const uploadedBasenames = extractReleaseUploadBasenames(releaseYml, pkg.version);
+  assert.ok(uploadedBasenames.length >= 12, `Expected at least 12 uploaded release assets in release.yml, got ${uploadedBasenames.length}`);
+
+  const referencedDownloadFiles = extractReadmeReleaseDownloadFiles(readme);
+  assert.ok(
+    referencedDownloadFiles.length > 0,
+    "Expected README.md to contain at least one releases/download/<tag>/<file> URL"
+  );
+  assert.ok(
+    referencedDownloadFiles.includes("picotol.layer.min.css"),
+    "Expected README.md release download URLs to include picotol.layer.min.css"
+  );
+  assert.ok(
+    referencedDownloadFiles.includes("SHA256SUMS.txt"),
+    "Expected README.md release download URLs to include SHA256SUMS.txt"
+  );
+  assert.ok(
+    referencedDownloadFiles.includes("manifest.json"),
+    "Expected README.md release download URLs to include manifest.json"
+  );
+
+  const missingFromUpload = findUnuploadedReadmeReleaseUrls(readme, releaseYml, pkg.version);
+  assert.deepEqual(
+    missingFromUpload,
+    [],
+    `Every releases/download/<tag>/<file> URL in README.md must be in release.yml gh release upload list; missing: ${missingFromUpload.join(", ")}`
+  );
+
+  // Also verify every dist/*.css file referenced anywhere in README.md is uploaded individually
+  const readmeCssRefs = new Set(
+    [...readme.matchAll(/\b(picotol(?:\.[a-z]+)*\.css)\b/g)].map((m) => m[1])
+  );
+  assert.ok(readmeCssRefs.size > 0, "Expected README.md to reference picotol*.css files");
+  for (const cssFile of readmeCssRefs) {
+    assert.ok(
+      uploadedBasenames.includes(cssFile),
+      `CSS bundle "${cssFile}" referenced in README.md must be uploaded in release.yml`
+    );
+  }
+
+  // Negative checks: unuploaded direct URL or variable-interpolated URL must be flagged
+  const badDirectReadme = `${readme}\ncurl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.5.0/unlisted-bundle.css\n`;
+  assert.deepEqual(
+    findUnuploadedReadmeReleaseUrls(badDirectReadme, releaseYml, pkg.version),
+    ["unlisted-bundle.css"],
+    "Direct releases/download URL for an asset missing from release.yml must be flagged"
+  );
+
+  const badVarReadme = `${readme}\n$u = "https://github.com/kidthales/picotol/releases/download/v0.5.0"\nInvoke-WebRequest "$u/missing-var-asset.css"\n`;
+  assert.deepEqual(
+    findUnuploadedReadmeReleaseUrls(badVarReadme, releaseYml, pkg.version),
+    ["missing-var-asset.css"],
+    "Variable-interpolated releases/download URL for an asset missing from release.yml must be flagged"
+  );
+
+  // Ensure PowerShell Invoke-RestMethod manifest snippet uses PSCustomObject dot-quoted property access, not bracket indexing
+  assert.ok(
+    readme.includes('$manifest.artifacts."picotol.layer.min.css".sha256.ToLower()'),
+    "README.md PowerShell snippet must use PSCustomObject dot-quoted property access ($manifest.artifacts.\"picotol.layer.min.css\")"
+  );
+  assert.ok(
+    !readme.includes('$manifest.artifacts["'),
+    "README.md PowerShell snippet must not use bracket indexing on PSCustomObject ($manifest.artifacts[\"...\"]) which returns $null"
+  );
 });
 
 function findScriptInjections(content, fileName = "workflow.yml") {
@@ -464,33 +594,49 @@ jobs:
   assert.deepStrictEqual(findScriptInjections(goodSafe), [], "Safe env-routed ${{ ... }} and YAML comments outside run blocks must pass without error");
 });
 
-test("dist/SHA256SUMS.txt accurately covers all 6 CSS distribution bundles", () => {
+test("dist/SHA256SUMS.txt accurately covers every uploaded release asset", () => {
   const sumsPath = path.join(ROOT, "dist", "SHA256SUMS.txt");
   assert.ok(fs.existsSync(sumsPath), "dist/SHA256SUMS.txt must exist");
   const content = fs.readFileSync(sumsPath, "utf8");
   const lines = content.trim().split("\n").filter(Boolean);
 
-  const expectedBundles = [
-    "picotol.core.css",
-    "picotol.core.min.css",
-    "picotol.css",
-    "picotol.layer.css",
-    "picotol.layer.min.css",
-    "picotol.min.css",
-  ];
+  const releaseYml = fs.readFileSync(path.join(ROOT, ".github", "workflows", "release.yml"), "utf8");
+  const uploadPaths = extractReleaseUploadPaths(releaseYml);
+  const expectedAssetMap = new Map();
+  for (const rawPath of uploadPaths) {
+    const resolvedRel = rawPath.replace("picotol-v*.zip", `picotol-v${pkg.version}.zip`);
+    const basename = path.posix.basename(resolvedRel);
+    if (basename === "SHA256SUMS.txt") continue;
+    expectedAssetMap.set(basename, path.join(ROOT, ...resolvedRel.split("/")));
+  }
 
-  assert.equal(lines.length, expectedBundles.length, `SHA256SUMS.txt must cover exactly ${expectedBundles.length} bundles`);
+  assert.equal(expectedAssetMap.size, 11, "release.yml must upload 11 non-checksum assets");
+  assert.equal(
+    lines.length,
+    expectedAssetMap.size,
+    `SHA256SUMS.txt must cover all ${expectedAssetMap.size} uploaded release assets`
+  );
 
+  const seenAssets = new Set();
   for (const line of lines) {
-    const match = line.match(/^([a-f0-9]{64})\s+(.+)$/);
+    const match = line.match(/^([a-f0-9]{64})  (.+)$/);
     assert.ok(match, `Invalid SHA256SUMS line format: "${line}"`);
     const [, hash, filename] = match;
-    assert.ok(expectedBundles.includes(filename), `Unexpected bundle "${filename}" in SHA256SUMS.txt`);
+    assert.ok(expectedAssetMap.has(filename), `Unexpected asset "${filename}" in SHA256SUMS.txt`);
+    seenAssets.add(filename);
 
-    const fileBytes = fs.readFileSync(path.join(ROOT, "dist", filename));
+    const diskPath = expectedAssetMap.get(filename);
+    assert.ok(fs.existsSync(diskPath), `Uploaded asset "${filename}" missing on disk at ${diskPath}`);
+    const fileBytes = fs.readFileSync(diskPath);
     const computedHash = crypto.createHash("sha256").update(fileBytes).digest("hex");
     assert.equal(hash, computedHash, `Checksum mismatch for ${filename}`);
   }
+
+  assert.deepEqual(
+    [...seenAssets].sort(),
+    [...expectedAssetMap.keys()].sort(),
+    "SHA256SUMS.txt must cover every uploaded release asset in release.yml"
+  );
 });
 
 test("dist/manifest.json accurately covers all 6 CSS distribution bundles with valid schema, hashes, and byte lengths", () => {

@@ -1739,25 +1739,31 @@ test("Release Checksum Manifest and Placement Documentation (Issue #127)", () =>
   const sumsPath = path.join(ROOT, "dist/SHA256SUMS.txt");
 
   // 1. Standalone SHA256SUMS.txt manifest validation
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   assert.ok(fs.existsSync(sumsPath), "dist/SHA256SUMS.txt must be generated during build");
   const sumsContent = fs.readFileSync(sumsPath, "utf8");
   const lines = sumsContent.trim().split("\n").filter(Boolean);
-  assert.equal(lines.length, 6, "SHA256SUMS.txt must cover all 6 CSS distribution bundles");
+  assert.equal(lines.length, 11, "SHA256SUMS.txt must cover all 11 uploaded release assets");
 
-  const bundles = [
-    "picotol.core.css",
-    "picotol.core.min.css",
-    "picotol.css",
-    "picotol.layer.css",
-    "picotol.layer.min.css",
-    "picotol.min.css",
+  const expectedAssetSources = [
+    ["LICENSE", path.join(ROOT, "LICENSE")],
+    ["NOTICE", path.join(ROOT, "NOTICE")],
+    ["manifest.json", path.join(ROOT, "dist", "manifest.json")],
+    [`picotol-v${pkg.version}.zip`, path.join(ROOT, "dist", "assets", `picotol-v${pkg.version}.zip`)],
+    ["picotol.core.css", path.join(ROOT, "dist", "picotol.core.css")],
+    ["picotol.core.min.css", path.join(ROOT, "dist", "picotol.core.min.css")],
+    ["picotol.css", path.join(ROOT, "dist", "picotol.css")],
+    ["picotol.layer.css", path.join(ROOT, "dist", "picotol.layer.css")],
+    ["picotol.layer.min.css", path.join(ROOT, "dist", "picotol.layer.min.css")],
+    ["picotol.min.css", path.join(ROOT, "dist", "picotol.min.css")],
+    ["sri.json", path.join(ROOT, "dist", "sri.json")],
   ];
 
-  for (const b of bundles) {
-    const line = lines.find((l) => l.endsWith(`  ${b}`));
-    assert.ok(line, `Missing checksum entry for ${b}`);
-    const expectedHash = crypto.createHash("sha256").update(fs.readFileSync(path.join(ROOT, "dist", b))).digest("hex");
-    assert.equal(line.split(/\s+/)[0], expectedHash, `Checksum mismatch for ${b}`);
+  for (const [assetName, assetPath] of expectedAssetSources) {
+    const line = lines.find((l) => l.endsWith(`  ${assetName}`));
+    assert.ok(line, `Missing checksum entry for ${assetName}`);
+    const expectedHash = crypto.createHash("sha256").update(fs.readFileSync(assetPath)).digest("hex");
+    assert.equal(line.split(/\s+/)[0], expectedHash, `Checksum mismatch for ${assetName}`);
   }
 
   // 2. GitHub Release Asset Configuration

@@ -60,7 +60,9 @@ function sha384(content) {
 }
 
 function sha256Hex(content) {
-  return createHash('sha256').update(content, 'utf8').digest('hex');
+  return Buffer.isBuffer(content)
+    ? createHash('sha256').update(content).digest('hex')
+    : createHash('sha256').update(content, 'utf8').digest('hex');
 }
 
 export function buildAll(opts = {}) {
@@ -135,7 +137,8 @@ export function buildAll(opts = {}) {
     },
   };
 
-  writeFileSync(join(targetDist, 'sri.json'), JSON.stringify(sriManifest, null, 2) + '\n', 'utf8');
+  const sriJson = JSON.stringify(sriManifest, null, 2) + '\n';
+  writeFileSync(join(targetDist, 'sri.json'), sriJson, 'utf8');
 
   const cssFiles = [
     { name: 'picotol.core.css', content: coreExpanded },
@@ -146,9 +149,6 @@ export function buildAll(opts = {}) {
     { name: 'picotol.min.css', content: fullMin },
   ];
   cssFiles.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-  const sha256Sums = cssFiles.map((f) => `${sha256Hex(f.content)}  ${f.name}`).join('\n') + '\n';
-  writeFileSync(join(targetDist, 'SHA256SUMS.txt'), sha256Sums, 'utf8');
-  stats.sha256Sums = sha256Sums;
 
   const artifacts = {};
   for (const f of cssFiles) {
@@ -164,7 +164,8 @@ export function buildAll(opts = {}) {
     artifacts,
   };
 
-  writeFileSync(join(targetDist, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  const manifestJson = JSON.stringify(manifest, null, 2) + '\n';
+  writeFileSync(join(targetDist, 'manifest.json'), manifestJson, 'utf8');
   stats.manifest = manifest;
 
   const demoHtml = generateDemoHtml(fullMin, stats);
@@ -174,6 +175,19 @@ export function buildAll(opts = {}) {
   const assetOpts = { outDir: targetDist, ...(validatedMtime !== undefined ? { mtime: validatedMtime } : {}) };
   const assetStats = packageAssets(assetOpts);
   stats.assetStats = assetStats;
+
+  const releaseAssets = [
+    ...cssFiles,
+    { name: 'LICENSE', content: readFileSync(join(root, 'LICENSE')) },
+    { name: 'NOTICE', content: readFileSync(join(root, 'NOTICE')) },
+    { name: 'manifest.json', content: manifestJson },
+    { name: assetStats.zipName, content: readFileSync(assetStats.zipPath) },
+    { name: 'sri.json', content: sriJson },
+  ];
+  releaseAssets.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  const sha256Sums = releaseAssets.map((f) => `${sha256Hex(f.content)}  ${f.name}`).join('\n') + '\n';
+  writeFileSync(join(targetDist, 'SHA256SUMS.txt'), sha256Sums, 'utf8');
+  stats.sha256Sums = sha256Sums;
 
   return stats;
 }
@@ -186,7 +200,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       `  • picotol.min.css:       ${stats.fullMinBytes} B (${(stats.fullMinBytes / 1024).toFixed(2)} KB, gzip ${stats.fullGzipBytes} B) [${stats.fullIntegrity}]\n` +
       `  • picotol.layer.min.css: ${stats.layerMinBytes} B (${(stats.layerMinBytes / 1024).toFixed(2)} KB, gzip ${stats.layerGzipBytes} B) [${stats.layerIntegrity}]\n` +
       `  • sri.json, manifest.json, demo & CNAME: generated\n` +
-      `  • SHA256SUMS.txt:        generated (6 bundles)\n` +
+      `  • SHA256SUMS.txt:        generated (11 release assets)\n` +
       `  • offline asset bundle:  ${stats.assetStats.zipName} (${stats.assetStats.byteLength} B)`
   );
 }

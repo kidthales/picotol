@@ -265,6 +265,8 @@ export function packageAssets(opts = {}) {
     { archivePath: 'tokens/tol-qualitative.json', sourcePath: join(root, 'data', 'tol-qualitative.json') },
     { archivePath: 'sri.json', sourcePath: join(targetDist, 'sri.json') },
     { archivePath: 'index.html', sourcePath: join(targetDist, 'demo', 'index.html') },
+    { archivePath: 'LICENSE', sourcePath: join(root, 'LICENSE') },
+    { archivePath: 'NOTICE', sourcePath: join(root, 'NOTICE') },
   ];
 
   const entries = manifest.map(({ archivePath, sourcePath }) => {
