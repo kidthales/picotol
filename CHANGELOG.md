@@ -5,6 +5,14 @@ All notable changes to `@kidthales/picotol` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Hidden toasts now use `visibility: hidden` after their fade-out, so they leave the accessibility tree and can no longer receive focus. Visible toasts are unchanged (#220).
+
+### Deprecated
+- The `[aria-hidden="false"]` show state on `.toast` is a deprecated alias for `.show` and will be removed in v0.7.0 (#220).
+
 ## [0.5.0] - 2026-10-30
 
 Sixth public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.5.0](docs/RELEASE_NOTES_V0_5_0.md).

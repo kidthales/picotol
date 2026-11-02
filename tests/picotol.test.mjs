@@ -3551,3 +3551,17 @@ test("Demo Badge & Dot Flex-Gap Row and Tabular Right-Alignment Showcase (Issue 
   );
 });
 
+test("Toast CSS source sets visibility:hidden when hidden and visibility:visible when shown (Issue #220)", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const { code } = transform({ code: Buffer.from(css), minify: true });
+  const rules = code.toString("utf8");
+
+  const toast = rules.match(/:where\(\.toast\)\{([\s\S]*?)\}\}/)?.[1] ?? "";
+  assert.ok(toast, "src/components.css must define a :where(.toast) rule");
+  const [hidden, shown] = toast.split("&:is(");
+
+  assert.match(hidden, /visibility:hidden/, "Hidden .toast must use visibility:hidden in src/components.css");
+  assert.match(hidden, /visibility 0s linear \.2s/, "Hidden .toast must delay the visibility change until the fade ends");
+  assert.match(shown, /^\.show,\[aria-hidden=false\]\)\{[^}]*visibility:visible/, "Shown .toast must restore visibility:visible for .show and the deprecated aria-hidden alias");
+});
+

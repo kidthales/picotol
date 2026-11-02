@@ -1979,17 +1979,20 @@
       color: var(--pt-bg);
       box-shadow: var(--pt-box-shadow);
       opacity: 0;
+      visibility: hidden;
       pointer-events: none;
       bottom: 1.5rem;
       padding: .75rem 1.25rem;
-      transition: opacity .2s, transform .2s;
+      transition: opacity .2s, transform .2s, visibility 0s linear .2s;
       position: fixed;
       inset-inline-end: 1.5rem;
       transform: translateY(1rem);
 
       &:is(.show, [aria-hidden="false"]) {
         opacity: 1;
+        visibility: visible;
         pointer-events: auto;
+        transition-delay: 0s;
         transform: translateY(0);
       }
     }

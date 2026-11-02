@@ -1227,13 +1227,17 @@
     background: var(--pt-color);
     color: var(--pt-bg);
     box-shadow: var(--pt-box-shadow);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
     transform: translateY(1rem);
 
+    /* [aria-hidden="false"] is a deprecated show alias, removed in v0.7.0 */
     &:is(.show, [aria-hidden="false"]) {
       opacity: 1;
+      visibility: visible;
+      transition-delay: 0s;
       pointer-events: auto;
       transform: translateY(0);
     }

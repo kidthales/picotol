@@ -1,0 +1,94 @@
+
+> @kidthales/picotol@0.5.0 test
+> npm run lint && npm run check:budgets && node --test
+
+
+> @kidthales/picotol@0.5.0 lint
+> node tools/lint.mjs
+
+✔ Lint passed: 0 CSS AST errors, 0 JS syntax errors, 100% Paul Tol token purity (--pt-* / --tol-*), all WCAG/ARIA & exports valid.
+
+> @kidthales/picotol@0.5.0 check:budgets
+> node tools/check-budgets.mjs
+
+  • dist/picotol.core.css       17348 B (16.94 / 18.00 KB) | gzip  4379 B (4.28 / 5.00 KB) | brotli  3754 B (3.67 / 4.50 KB)
+  • dist/picotol.core.min.css   13308 B (13.00 / 14.00 KB) | gzip  4044 B (3.95 / 4.50 KB) | brotli  3521 B (3.44 / 4.00 KB)
+  • dist/picotol.css            50836 B (49.64 / 52.00 KB) | gzip  9527 B (9.30 / 10.50 KB) | brotli  8162 B (7.97 / 9.00 KB)
+  • dist/picotol.min.css        38550 B (37.65 / 38.00 KB) | gzip  8545 B (8.34 / 9.00 KB) | brotli  7601 B (7.42 / 8.00 KB)
+  • dist/picotol.layer.css      54493 B (53.22 / 56.00 KB) | gzip  9684 B (9.46 / 10.50 KB) | brotli  8240 B (8.05 / 9.00 KB)
+  • dist/picotol.layer.min.css  38652 B (37.75 / 38.00 KB) | gzip  8575 B (8.37 / 9.00 KB) | brotli  7629 B (7.45 / 8.00 KB)
+✔ Bundle size & compression budgets verified: all 6 CSS bundles within raw, minified, gzip, and brotli ceilings; README.md & manifests in sync.
+✔ npm pack --dry-run enforces size budgets and excludes demo/dev/CI files (562.5583ms)
+✔ all 11 package.json subpath exports resolve to valid files (1.2142ms)
+✔ all exported subpaths have resolving TypeScript ambient definitions and types metadata (0.8781ms)
+✔ package.json is configured for public npm release (0.0917ms)
+✔ tools/package-assets.mjs produces compliant PKZip offline bundle containing all 11 required assets (0.5303ms)
+✔ .github/workflows/release.yml defines dual publishing to npm and GitHub Packages, and release asset upload (0.2823ms)
+✔ dist/SHA256SUMS.txt accurately covers all 6 CSS distribution bundles (1.3276ms)
+✔ dist/manifest.json accurately covers all 6 CSS distribution bundles with valid schema, hashes, and byte lengths (1.4237ms)
+✔ v0.1.0 pre-release artifacts and documentation adhere to open-source release standards (0.4393ms)
+✔ v0.2.0 pre-release artifacts and documentation adhere to open-source release standards (0.4635ms)
+✔ v0.3.0 pre-release artifacts and documentation adhere to open-source release standards (0.3446ms)
+✔ v0.4.0 pre-release artifacts and documentation adhere to open-source release standards (0.3062ms)
+✔ v0.4.1 pre-release artifacts and documentation adhere to open-source release standards (0.3028ms)
+✔ v0.5.0 pre-release artifacts and documentation adhere to open-source release standards (0.3778ms)
+✔ 100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canonical Paul Tol schemes (7.0695ms)
+✔ Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 14.0 KB, picotol.min.css <= 38.0 KB, and picotol.layer.min.css <= 38.0 KB (0.2646ms)
+✔ WCAG 2.2 Contrast Verification across Light and Dark surfaces, all 4 Paul Tol Accent Ladders (Normal + Hover), and SC 1.4.11 Borders (0.5166ms)
+✔ Architecture & Selector Invariants: @layer cascade, --pt-* tokens, [data-theme], and [data-accent] (0.894ms)
+✔ Secondary Button Decoupling: neutral slate ladder prevents collision with cyan and all accents (0.4666ms)
+✔ WCAG 2.2 Accessibility, Reflow, Typography Measure, Screen Reader UX, and SRI Manifest Invariants (1.4364ms)
+✔ Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework bundle in @layer picotol without syntax errors (0.4889ms)
+✔ Two-Tier Isolation: Core bundle strictly excludes extended components (0.4026ms)
+✔ Component Behavioral & ARIA Validation: compiled CSS includes :modal, select chevron, pt-spin, and ARIA 1.2 validation (1.2316ms)
+✔ Semantic State Token Contrast: --pt-valid, --pt-warning, --pt-invalid, and --pt-mark-bg certify WCAG 2.2 AA (0.2293ms)
+✔ Search Bar Button Group: only :first-child and :last-child receive pill radii with flush inner edges (0.2628ms)
+✔ Semantic Callout & Status Badge Decoupling: neutral defaults, semantic preservation, and primary opt-in (0.1986ms)
+✔ Color Scheme Scoping & Data-Accent Isolation: [data-accent] must not override inherited color-scheme (0.4596ms)
+✔ Foundation & Layout Ergonomics: .container-fluid, sticky footer, and layout tokens (0.3014ms)
+✔ High-Density Layout Containment: scope section, article, and hr margins within flex and grid containers (Issue #92) (0.3709ms)
+✔ Ergonomic Class Parity, Compact Control Sizing, and Component Primitives (0.2737ms)
+✔ Narrow-Corridor Reflow & Table Overflow Containment: .overflow-auto, .table-container, and min-width: 0 compile cleanly into core and full bundles (0.4431ms)
+✔ Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping, forced-colors, and SC 1.4.11 contrast (0.5522ms)
+✔ SVG Namespace Encoding: data-URIs percent-encode XML namespace and contain zero unencoded http:// literals (0.942ms)
+✔ Consumer @layer Guide: README documents canonical 4-layer cascade architecture, host encapsulation, and token bridges (0.2408ms)
+✔ Compact Density Tokens, Container Block Margin Resets, and Tabular Numerics Utility (Issue #93) (0.8995ms)
+✔ Cross-Engine Meter Custom Properties and Gauge Threshold Pin Markers (Issue #94) (0.6909ms)
+✔ Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #95) (0.9184ms)
+✔ Native Accessible Disclosures, Popovers, and Accordion Cards (Issue #96) (0.6869ms)
+✔ Equal-Fill Segmented Controls and Dedicated Square Icon Buttons (Issue #89) (1.3468ms)
+✔ Native Slide-Over Drawer Sheet Primitive and Sub-Elements (Issue #90) (0.7872ms)
+✔ Open Source Governance, Citation Metadata, and Issue Routing (Issue #113) (0.4938ms)
+✔ Card Flex Column Layout, Auto-Docking Footers, and Vertical Body Fill (Issue #128) (0.6643ms)
+✔ Semantic Status Tokens and Dark Mode Contrast Calibration (Issue #126) (0.6031ms)
+✔ Meter Pin Label Positioning and Multi-Marker Range Bands (Issue #124) (0.628ms)
+✔ Compact Density Cascading into Form Controls, Tables, Buttons, and Layout Gaps (Issue #125) (0.7092ms)
+✔ Release Checksum Manifest and Placement Documentation (Issue #127) (2.0196ms)
+✔ Tokenized Z-Index Stacking Layers for Meter Sub-Primitives (Issue #138) (0.8608ms)
+✔ Native Status Badge and Indicator Component Primitives for Status Triads (Issue #139) (1.0845ms)
+✔ Release Distribution Integrity: dist/manifest.json exists, is valid JSON, and matches all 6 bundles in SHA-256 and size_bytes (0.9273ms)
+✔ Downstream CSS @layer Cascade Ordering Guide (Issue #141) (0.23ms)
+✔ Ultra-Compact Density Modifier, Dense Card Modifier, and Embedded Panel Invariants (Issue #142) (0.9943ms)
+✔ Configurable Typography Floor (--pt-font-size-floor) for Compact Density (Issue #152) (1.1316ms)
+✔ Nested @layer Taxonomy, Sublayer Preamble, and Downstream Extensibility (Issue #153) (1.3268ms)
+✔ Boundary-Aligned Meter Marker Modifiers and Label Clipping Invariants (Issue #154) (1.184ms)
+✔ Tabular Numerics on Status Badges, Indicators, and Numeric Modifiers (Issue #155) (1.1144ms)
+✔ WCAG 2.2 AAA Contrast Compliance and Color-Blind Greyscale Distinction for Status Triads (Issue #156) (0.6221ms)
+✔ Automated Bundle Size, Compression Budgets, CI Gate Parity & README Synchronization (Issue #167) (1179.8389ms)
+✔ Compact and tight density resets section, article, card, and hr margins in flex and grid layouts (Issue #176) (1.2765ms)
+✔ Meter Boundary Marker Pin Clamping and Container Overflow Invariants (Issue #172) (1.0192ms)
+✔ Tokenized Status Dot Primitive (.pt-dot) Dimensions, Semantic Variants, Pulse, and High-Contrast Invariants (Issue #173) (1.5816ms)
+✔ Tabular Numerics Badge Modifier, Right-Alignment Utility, and Cascade Parity (Issue #174) (1.2758ms)
+✔ Native Floating Popover Primitive, Alignment Modifiers, and Viewport Safety (Issue #175) (1.2971ms)
+✔ Meter Marker Anatomy Disambiguation and Nested Terminus Markup (Issue #183) (1.0343ms)
+✔ Dark Mode Selection Contrast, Demo Meter Clearance, and v0.5.0 Showcase Alignment (Issue #188) (1.1352ms)
+✔ Demo Badge & Dot Flex-Gap Row and Tabular Right-Alignment Showcase (Issue #190) (0.5758ms)
+✔ Toast CSS source sets visibility:hidden when hidden and visibility:visible when shown (Issue #220) (2.1871ms)
+ℹ tests 66
+ℹ suites 0
+ℹ pass 66
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1344.8046

@@ -1,0 +1,20 @@
+
+> @kidthales/picotol@0.5.0 generate
+> npm run sync:tokens && npm run build
+
+
+> @kidthales/picotol@0.5.0 sync:tokens
+> node tools/sync-tokens.mjs
+
+Synced 10 Paul Tol qualitative schemes -> src/tokens.css & src/palettes.css
+
+> @kidthales/picotol@0.5.0 build
+> node tools/build.mjs
+
+Built @kidthales/picotol:
+  • picotol.core.min.css:  13308 B (13.00 KB, gzip 4044 B) [sha384-T1lSOwzVRl1F0f9FaMNIC2oOtTAVThV04A200Rgm8O6J0Qbb3Pf+1HXIiGS1WOEh]
+  • picotol.min.css:       38550 B (37.65 KB, gzip 8545 B) [sha384-yeamO/JLMFlm+uBhLt6B88kOrGJwRXJxPy2lcmt2AVkYTeVzJZn41g6kzORGoYHo]
+  • picotol.layer.min.css: 38652 B (37.75 KB, gzip 8575 B) [sha384-1KWqZKFTkN7SgLRBNOZcDZ/7nMvYIVxerFIgy+NMspKM8PU+t5v4uRzi5wWJh2Dn]
+  • sri.json, manifest.json, demo & CNAME: generated
+  • SHA256SUMS.txt:        generated (6 bundles)
+  • offline asset bundle:  picotol-v0.5.0.zip (76555 B)
