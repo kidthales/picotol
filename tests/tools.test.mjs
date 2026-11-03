@@ -30,6 +30,7 @@ import {
 } from '../tools/sync-tokens.mjs';
 import { buildAll } from '../tools/build.mjs';
 import {
+  DEFAULT_ZIP_MTIME,
   MAX_ZIP_ENTRIES,
   MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES,
   MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES,
@@ -37,6 +38,7 @@ import {
   packageAssets,
   parsePkZipEntries,
   resolveDefaultZipMtime,
+  resolveLastCommitDate,
   toDosDateTime,
 } from '../tools/package-assets.mjs';
 import {
@@ -1124,6 +1126,58 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
     } finally {
       delete process.env.SOURCE_DATE_EPOCH;
     }
+
+    // Git commit timestamp resolution and fallback hierarchy (Issue #211)
+    const repoCommitDate = resolveLastCommitDate(ROOT);
+    assert.ok(repoCommitDate instanceof Date, 'resolveLastCommitDate(ROOT) must resolve a valid Date instance');
+    assert.ok(!Number.isNaN(repoCommitDate.getTime()), 'resolveLastCommitDate(ROOT) timestamp must be valid');
+    assert.equal(
+      resolveLastCommitDate('/nonexistent-path-never-exists'),
+      null,
+      'resolveLastCommitDate on invalid/non-git path must return null safely without throwing'
+    );
+
+    // 1. SOURCE_DATE_EPOCH takes precedence over git commit fallback
+    try {
+      process.env.SOURCE_DATE_EPOCH = '1767225600';
+      assert.equal(
+        resolveDefaultZipMtime({ fallbackToGit: true }).toISOString(),
+        '2026-01-01T00:00:00.000Z',
+        'SOURCE_DATE_EPOCH must take precedence over fallbackToGit'
+      );
+    } finally {
+      delete process.env.SOURCE_DATE_EPOCH;
+    }
+
+    // 2. Fallback to git last commit date when requested
+    assert.equal(
+      resolveDefaultZipMtime({ fallbackToGit: true }).getTime(),
+      repoCommitDate.getTime(),
+      'resolveDefaultZipMtime({ fallbackToGit: true }) must match resolveLastCommitDate()'
+    );
+
+    // 3. Fallback to DEFAULT_ZIP_MTIME when git returns null
+    assert.equal(
+      resolveDefaultZipMtime({ fallbackToGit: true, cwd: '/nonexistent-path' }).getTime(),
+      DEFAULT_ZIP_MTIME.getTime(),
+      'resolveDefaultZipMtime with failed git resolution must fall back to DEFAULT_ZIP_MTIME'
+    );
+
+    // 4. Two consecutive builds produce byte-identical zips (Issue #211)
+    const zip1 = createPkZip([
+      { name: 'a.txt', data: 'alpha content', mtime: fixedMtime },
+      { name: 'b.txt', data: 'beta content', mtime: fixedMtime },
+    ]);
+    const zip2 = createPkZip([
+      { name: 'a.txt', data: 'alpha content', mtime: fixedMtime },
+      { name: 'b.txt', data: 'beta content', mtime: fixedMtime },
+    ]);
+    assert.equal(zip1.compare(zip2), 0, 'Consecutive createPkZip builds with identical mtime must produce byte-identical buffers');
+    assert.equal(
+      crypto.createHash('sha256').update(zip1).digest('hex'),
+      crypto.createHash('sha256').update(zip2).digest('hex'),
+      'Consecutive zips must produce identical SHA-256 hashes'
+    );
 
     // parsePkZipEntries strict validation: reject non-deflate method, ZIP64 sentinels, entry count cap (> MAX_ZIP_ENTRIES),
     // per-entry cap (> MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES), aggregate cap (> MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES),
