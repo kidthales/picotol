@@ -127,10 +127,12 @@ test('parseTokens: isolates accents without root pollution on fixture CSS and re
   assert.equal(liveTokens.getToken('--pt-p4', 'light', 'magenta'), schemeColor('dark', 4));
   assert.equal(liveTokens.getToken('--pt-p5', 'light', 'magenta'), schemeColor('muted', 'wine'));
 
-  // Canonical severity & semantic status tokens (light + dark)
-  assert.equal(liveTokens.getToken('--pt-red', 'light'), schemeColor('bright', 'red'));
-  assert.equal(liveTokens.getToken('--pt-yellow', 'light'), schemeColor('bright', 'yellow'));
-  assert.equal(liveTokens.getToken('--pt-cyan', 'light'), schemeColor('bright', 'cyan'));
+  // Dead severity tokens removed in Issue #213 (B5)
+  assert.equal(liveTokens.rootDecls['--pt-red'], undefined);
+  assert.equal(liveTokens.rootDecls['--pt-yellow'], undefined);
+  assert.equal(liveTokens.rootDecls['--pt-cyan'], undefined);
+
+  // Canonical semantic status tokens (light + dark)
 
   assert.equal(liveTokens.getToken('--pt-valid', 'light'), schemeColor('dark', 5));
   assert.equal(liveTokens.getToken('--pt-valid', 'dark'), schemeColor('light', 'mint'));

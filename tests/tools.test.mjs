@@ -8,7 +8,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  expandHex,
   isTransparentHex,
   CSS_NAMED_COLORS,
   extractDeclarationValues,
@@ -21,6 +20,14 @@ import {
   stripCssCommentsAndStrings,
 } from '../tools/lint.mjs';
 import {
+  expandHex,
+  hexToRgb,
+  srgbToLinear,
+  relativeLuminance,
+  contrastRatio,
+  mixSrgb,
+} from '../tools/color-utils.mjs';
+import {
   loadSnapshot,
   refreshFromUpstream,
   parseCliArgs,
@@ -28,7 +35,9 @@ import {
   buildPalettesCss,
   syncTokens,
 } from '../tools/sync-tokens.mjs';
-import { buildAll } from '../tools/build.mjs';
+import { UPSTREAM_PICO_HEADER_ATTRIBUTION, buildAll } from '../tools/build.mjs';
+import { UPSTREAM_PICO_MIN_BYTES } from '../tools/generate-demo.mjs';
+import { auditWorkflows } from '../tools/check-workflows.mjs';
 import {
   DEFAULT_ZIP_MTIME,
   MAX_ZIP_ENTRIES,
@@ -336,7 +345,7 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   `;
   const demoErrors = lintDemoHtml(
     badDemoHtml,
-    `.a { background: url(https://example.com/it's-here.svg); } .styled-class { content: 'ok'; color: #000000; } .card-foo:not(.negated-only) { color: #000000; }`,
+    `.a { background: url(https://example.com/it's-here.svg); } .styled-class { content: 'ok'; color: #000000; } .card-header:not(.negated-only) .card-foo { color: #000000; }`,
     'fixtures/demo.html'
   );
   assert.ok(
@@ -348,7 +357,7 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
     '.a { background: url(); } .styled-class { content: ""; }'
   );
   assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".unstyled-phantom-class"')));
-  assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".card"')), '.card must not false-pass against .card-foo');
+  assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".card"')), '.card must not false-pass against .card-header or .card-foo');
   assert.ok(
     demoErrors.some((e) => e.includes('Unstyled class ".negated-only"')),
     'Class appearing only inside :not(.negated-only) must not count as styled'
@@ -375,7 +384,8 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   assert.equal(projectErrors.length, 0, `Expected runLint() to return 0 errors, got: ${projectErrors.join('; ')}`);
 });
 
-test('tools/lint.mjs: expandHex utility expands 3-digit hex without turning transparent #0000 into black', () => {
+test('tools/color-utils.mjs: shared color and contrast utilities (B7)', () => {
+  // expandHex
   assert.equal(expandHex('#47A'), '#4477AA');
   assert.equal(expandHex('#0000'), '#0000');
   assert.equal(expandHex('#00000000'), '#00000000');
@@ -384,6 +394,64 @@ test('tools/lint.mjs: expandHex utility expands 3-digit hex without turning tran
   assert.equal(isTransparentHex('#0000'), true);
   assert.equal(isTransparentHex('#00000000'), true);
   assert.equal(isTransparentHex('#000000'), false);
+
+  // hexToRgb
+  assert.deepEqual(hexToRgb('#4477AA'), [0x44, 0x77, 0xAA]);
+  assert.deepEqual(hexToRgb('#000000'), [0, 0, 0]);
+  assert.deepEqual(hexToRgb('#FFFFFF'), [255, 255, 255]);
+  assert.deepEqual(hexToRgb('#47A'), [0x44, 0x77, 0xAA]);
+  assert.throws(() => hexToRgb('#0000'), /Invalid 6-digit opaque hex color/);
+  assert.throws(() => hexToRgb('not-a-color'), /Invalid 6-digit opaque hex color/);
+
+  // srgbToLinear & relativeLuminance
+  assert.equal(relativeLuminance('#000000'), 0);
+  assert.equal(relativeLuminance('#FFFFFF'), 1);
+  assert.throws(() => relativeLuminance('#0000'), /Invalid 6-digit opaque hex color/);
+  assert.throws(() => relativeLuminance('invalid'), /Invalid 6-digit opaque hex color/);
+
+  // contrastRatio
+  assert.equal(contrastRatio('#000000', '#FFFFFF'), 21);
+  assert.equal(contrastRatio('#FFFFFF', '#FFFFFF'), 1);
+
+  // mixSrgb
+  assert.equal(mixSrgb('#000000', 50, '#FFFFFF'), '#808080');
+  assert.equal(mixSrgb('#4477AA', 0, '#FFFFFF'), '#FFFFFF');
+  assert.equal(mixSrgb('#4477AA', 100, '#FFFFFF'), '#4477AA');
+  assert.throws(() => mixSrgb('#0000', 8, '#FFFFFF'), /Invalid 6-digit opaque hex color for borderHex/);
+  assert.throws(() => mixSrgb('#4477AA', 8, 'transparent'), /Invalid 6-digit opaque hex color for bgHex/);
+  assert.throws(() => mixSrgb('#4477AA', -1, '#FFFFFF'), /Invalid alphaPct in mixSrgb/);
+  assert.throws(() => mixSrgb('#4477AA', 101, '#FFFFFF'), /Invalid alphaPct in mixSrgb/);
+});
+
+test('tools/lint.mjs: lintDemoHtml matches whole selector tokens (.card not satisfied by .card-header) (B3)', () => {
+  const html = '<div class="card">Card</div>';
+  const cssWithCardHeader = '.card-header { color: red; }';
+  const errors = lintDemoHtml(html, cssWithCardHeader, 'fixtures/card-header.html');
+  assert.equal(errors.length, 1);
+  assert.ok(errors[0].includes('Unstyled class ".card" used in demo HTML but missing from dist/picotol.css'));
+
+  const cssWithCard = '.card { color: red; }';
+  const noErrors = lintDemoHtml(html, cssWithCard, 'fixtures/card.html');
+  assert.equal(noErrors.length, 0);
+
+  // Additional boundary checks: .card-title, .card_body, .card2, article.card
+  const boundaryCss = '.card-title, .card_body, .card2 { color: blue; }';
+  const boundaryErrors = lintDemoHtml(html, boundaryCss, 'fixtures/boundary.html');
+  assert.equal(boundaryErrors.length, 1);
+  assert.ok(boundaryErrors[0].includes('Unstyled class ".card"'));
+
+  const compoundCss = 'article.card { color: green; }';
+  assert.equal(lintDemoHtml(html, compoundCss, 'fixtures/compound.html').length, 0);
+});
+
+test('build constants: named constants for Pico CSS v2.1.1 header and upstream byte count (B5)', () => {
+  assert.equal(UPSTREAM_PICO_HEADER_ATTRIBUTION, 'Pico CSS v2.1.1 (MIT)');
+  assert.equal(UPSTREAM_PICO_MIN_BYTES, 83319);
+});
+
+test('tools/check-workflows.mjs: real YAML parser workflow drift auditor (B6)', () => {
+  const errors = auditWorkflows(ROOT);
+  assert.deepEqual(errors, [], `auditWorkflows must pass cleanly on root repository workflows, got: ${errors.join('; ')}`);
 });
 
 test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pure path-jail/symlink/dot-dir validation, and isolated syncTokens write path', (t) => {
