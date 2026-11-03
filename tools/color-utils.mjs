@@ -25,6 +25,9 @@ export function expandHex(raw) {
  * @returns {[number, number, number]} RGB values [r, g, b]
  */
 export function hexToRgb(hex) {
+  if (typeof hex !== 'string') {
+    throw new Error(`Invalid 6-digit opaque hex color: ${hex}`);
+  }
   const expanded = expandHex(hex);
   if (!/^#[0-9A-F]{6}$/i.test(expanded)) {
     throw new Error(`Invalid 6-digit opaque hex color: ${hex}`);
@@ -55,14 +58,7 @@ export function srgbToLinear(channel) {
  * @returns {number} Relative luminance [0..1]
  */
 export function relativeLuminance(hex) {
-  const expanded = expandHex(hex);
-  if (!/^#[0-9A-F]{6}$/i.test(expanded)) {
-    throw new Error(`Invalid 6-digit opaque hex color: ${hex}`);
-  }
-  const clean = expanded.slice(1);
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
+  const [r, g, b] = hexToRgb(hex);
   return (
     0.2126 * srgbToLinear(r) +
     0.7152 * srgbToLinear(g) +
@@ -89,34 +85,32 @@ export function contrastRatio(hexA, hexB) {
 /**
  * Mixes two opaque hex colors in sRGB space by a given percentage.
  *
- * @param {string} colorA - First hex color
- * @param {number} pctA - Percentage of colorA [0..100]
- * @param {string} colorB - Second hex color (remainder 100 - pctA)
+ * @param {string} borderHex - First hex color
+ * @param {number} alphaPct - Percentage of borderHex [0..100]
+ * @param {string} bgHex - Second hex color (remainder 100 - alphaPct)
  * @returns {string} Mixed 6-digit uppercase hex color string
  */
 export function mixSrgb(borderHex, alphaPct, bgHex) {
   if (typeof borderHex !== 'string' || typeof bgHex !== 'string') {
     throw new Error('Invalid hex input to mixSrgb: borderHex and bgHex must be strings');
   }
-  const exp1 = expandHex(borderHex);
-  const exp2 = expandHex(bgHex);
-  if (!/^#[0-9A-F]{6}$/i.test(exp1)) {
+  let rgb1;
+  try {
+    rgb1 = hexToRgb(borderHex);
+  } catch {
     throw new Error(`Invalid 6-digit opaque hex color for borderHex: ${borderHex}`);
   }
-  if (!/^#[0-9A-F]{6}$/i.test(exp2)) {
+  let rgb2;
+  try {
+    rgb2 = hexToRgb(bgHex);
+  } catch {
     throw new Error(`Invalid 6-digit opaque hex color for bgHex: ${bgHex}`);
   }
   if (typeof alphaPct !== 'number' || !Number.isFinite(alphaPct) || alphaPct < 0 || alphaPct > 100) {
     throw new Error(`Invalid alphaPct in mixSrgb: "${alphaPct}" must be a finite number in [0, 100]`);
   }
-  const c1 = exp1.slice(1);
-  const c2 = exp2.slice(1);
-  const r1 = parseInt(c1.slice(0, 2), 16);
-  const g1 = parseInt(c1.slice(2, 4), 16);
-  const b1 = parseInt(c1.slice(4, 6), 16);
-  const r2 = parseInt(c2.slice(0, 2), 16);
-  const g2 = parseInt(c2.slice(2, 4), 16);
-  const b2 = parseInt(c2.slice(4, 6), 16);
+  const [r1, g1, b1] = rgb1;
+  const [r2, g2, b2] = rgb2;
   const a = alphaPct / 100;
   const r = Math.round(r1 * a + r2 * (1 - a));
   const g = Math.round(g1 * a + g2 * (1 - a));

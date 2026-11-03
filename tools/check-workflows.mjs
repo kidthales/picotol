@@ -41,6 +41,15 @@ export function auditWorkflows(rootDir = ROOT) {
     return errors;
   }
 
+  const requiredWorkflows = ['ci.yml', 'release.yml', 'pages.yml'];
+  if (path.resolve(rootDir) === ROOT) {
+    for (const req of requiredWorkflows) {
+      if (!files.includes(req)) {
+        errors.push(`Missing required workflow file: .github/workflows/${req}`);
+      }
+    }
+  }
+
   const expectedCheckoutCounts = {
     'ci.yml': 2,
     'release.yml': 4,
@@ -245,13 +254,13 @@ export function auditWorkflows(rootDir = ROOT) {
 
     if (file === 'pages.yml') {
       const verifyJob = jobs.verify;
-      if (!verifyJob || verifyJob.uses !== './.github/workflows/ci.yml') {
+      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== './.github/workflows/ci.yml') {
         errors.push("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.");
       }
-      if (!verifyJob || !verifyJob.permissions || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
+      if (!verifyJob || typeof verifyJob !== 'object' || !verifyJob.permissions || typeof verifyJob.permissions !== 'object' || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
         errors.push("pages.yml verify job must explicitly scope permissions (contents: read, security-events: write).");
       }
-      if (verifyJob && verifyJob.permissions) {
+      if (verifyJob && typeof verifyJob === 'object' && verifyJob.permissions && typeof verifyJob.permissions === 'object') {
         for (const [pKey, pVal] of Object.entries(verifyJob.permissions)) {
           if (pKey !== 'security-events' && pVal === 'write') {
             errors.push("pages.yml verify job must not grant unauthorized write permissions.");
@@ -260,7 +269,7 @@ export function auditWorkflows(rootDir = ROOT) {
       }
 
       const buildJob = jobs.build;
-      if (buildJob) {
+      if (buildJob && typeof buildJob === 'object') {
         const buildNeeds = Array.isArray(buildJob.needs) ? buildJob.needs : [buildJob.needs];
         if (!buildNeeds.includes('verify')) {
           errors.push('pages.yml build job must depend on verify (needs: [verify]).');
@@ -270,12 +279,12 @@ export function auditWorkflows(rootDir = ROOT) {
       }
 
       const deployJob = jobs.deploy;
-      if (deployJob) {
+      if (deployJob && typeof deployJob === 'object') {
         const deployNeeds = Array.isArray(deployJob.needs) ? deployJob.needs : [deployJob.needs];
         if (!deployNeeds.includes('build')) {
           errors.push('pages.yml deploy job must depend on build (needs: [build]).');
         }
-        const deployPerms = deployJob.permissions || {};
+        const deployPerms = (deployJob.permissions && typeof deployJob.permissions === 'object') ? deployJob.permissions : {};
         if (deployPerms.pages !== 'write' || deployPerms['id-token'] !== 'write') {
           errors.push('pages.yml deploy job must explicitly scope permissions (pages: write, id-token: write).');
         }
@@ -284,8 +293,9 @@ export function auditWorkflows(rootDir = ROOT) {
       }
 
       for (const [jKey, jVal] of Object.entries(jobs)) {
+        if (!jVal || typeof jVal !== 'object') continue;
         if (jKey !== 'deploy' && jKey !== 'verify' && jVal.permissions) {
-          if (jVal.permissions === 'write-all' || Object.values(jVal.permissions).includes('write')) {
+          if (jVal.permissions === 'write-all' || (typeof jVal.permissions === 'object' && Object.values(jVal.permissions).includes('write'))) {
             errors.push(`pages.yml job '${jKey}' must not grant any write permissions.`);
           }
         }
@@ -300,22 +310,31 @@ export function auditWorkflows(rootDir = ROOT) {
         errors.push("ci.yml must support reusable workflow calls via 'workflow_call:'.");
       }
 
-      const rawNorm = rawContent.replace(/\r\n/g, '\n');
-      if (!/concurrency:\s*\n {2}group:\s*\$\{\{\s*github\.workflow\s*\}\}-\$\{\{\s*github\.ref\s*\}\}\s*\n {2}cancel-in-progress:\s*\$\{\{\s*github\.workflow\s*==\s*'CI'\s*\}/.test(rawNorm)) {
+      const concurrency = doc.concurrency;
+      if (!concurrency || typeof concurrency !== 'object') {
         errors.push("ci.yml concurrency block must isolate callers via github.workflow and scope cancel-in-progress to github.workflow == 'CI'.");
+      } else {
+        const groupNorm = typeof concurrency.group === 'string' ? concurrency.group.replace(/\s+/g, '') : '';
+        const cancelRaw = typeof concurrency['cancel-in-progress'] === 'string'
+          ? concurrency['cancel-in-progress'].replace(/\s+/g, '')
+          : String(concurrency['cancel-in-progress'] ?? '');
+        const cancelNorm = cancelRaw.replace(/"/g, "'");
+        if (groupNorm !== '${{github.workflow}}-${{github.ref}}' || cancelNorm !== "${{github.workflow=='CI'}}") {
+          errors.push("ci.yml concurrency block must isolate callers via github.workflow and scope cancel-in-progress to github.workflow == 'CI'.");
+        }
       }
 
       const secJob = jobs.security;
-      if (!secJob) {
+      if (!secJob || typeof secJob !== 'object') {
         errors.push("ci.yml must define a dedicated 'security' job to run gitleaks and zizmor once rather than per matrix leg.");
       } else {
-        const secPerms = secJob.permissions || {};
+        const secPerms = (secJob.permissions && typeof secJob.permissions === 'object') ? secJob.permissions : {};
         if (secPerms.contents !== 'read' || secPerms['security-events'] !== 'write') {
           errors.push("ci.yml security job must explicitly scope permissions (contents: read, security-events: write).");
         }
         const secSteps = Array.isArray(secJob.steps) ? secJob.steps : [];
-        const hasGitleaks = secSteps.some((s) => s.uses && s.uses.includes('gitleaks/gitleaks-action'));
-        const hasZizmor = secSteps.some((s) => s.uses && s.uses.includes('zizmorcore/zizmor-action'));
+        const hasGitleaks = secSteps.some((s) => s && s.uses && s.uses.includes('gitleaks/gitleaks-action'));
+        const hasZizmor = secSteps.some((s) => s && s.uses && s.uses.includes('zizmorcore/zizmor-action'));
         if (!hasGitleaks) {
           errors.push('ci.yml security job must run gitleaks secret detection.');
         }
@@ -330,23 +349,24 @@ export function auditWorkflows(rootDir = ROOT) {
       }
 
       for (const [jKey, jVal] of Object.entries(jobs)) {
+        if (!jVal || typeof jVal !== 'object') continue;
         if (jKey !== 'security' && jVal.permissions) {
-          if (jVal.permissions === 'write-all' || Object.values(jVal.permissions).includes('write')) {
+          if (jVal.permissions === 'write-all' || (typeof jVal.permissions === 'object' && Object.values(jVal.permissions).includes('write'))) {
             errors.push(`ci.yml job '${jKey}' must not grant any write permissions.`);
           }
         }
       }
 
       const verifyJob = jobs.verify;
-      if (verifyJob) {
+      if (verifyJob && typeof verifyJob === 'object') {
         const vSteps = Array.isArray(verifyJob.steps) ? verifyJob.steps : [];
-        if (vSteps.some((s) => s.uses && s.uses.includes('gitleaks/gitleaks-action'))) {
+        if (vSteps.some((s) => s && s.uses && s.uses.includes('gitleaks/gitleaks-action'))) {
           errors.push('ci.yml verify matrix job must not run gitleaks (must run once in security job).');
         }
       }
 
       const notifyJob = jobs.notify;
-      if (notifyJob) {
+      if (notifyJob && typeof notifyJob === 'object') {
         const notifIf = String(notifyJob.if || '');
         if (!/always\(\)\s*&&\s*github\.event_name\s*!=\s*['"]workflow_call['"]\s*&&\s*github\.workflow\s*==\s*['"]CI['"]/.test(notifIf)) {
           errors.push("ci.yml notify job must skip execution under workflow_call via 'if: always() && github.event_name != ''workflow_call'' && github.workflow == ''CI'''.");
@@ -355,7 +375,7 @@ export function auditWorkflows(rootDir = ROOT) {
     }
   }
 
-  if (!ciInvokesScript) {
+  if (!ciInvokesScript && (files.includes('ci.yml') || path.resolve(rootDir) === ROOT)) {
     errors.push("ci.yml must invoke 'pwsh ./scripts/ci-local.ps1 -CI' in a 'run:' step.");
   }
 
