@@ -523,7 +523,7 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 
 These tokens automatically power `.pt-status-dot`, `.status-dot`, `.pt-badge`, `.pt-indicator`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
 
-> **Status Contrast Policy**: In accordance with WCAG 2.2 §1.4.1 (Use of Color), Paul Tol semantic status hues carry only non-text signals (borders, dots, and icons). Status callout and badge text uses the high-contrast body foreground token (`--pt-color`), certifying $\ge 4.5:1$ text contrast on 8% alpha washes across both light and dark themes. Every documented status callout and badge requires a descriptive status word or icon so colour is never the sole carrier of state.
+> **Status Contrast Policy**: In accordance with WCAG 2.2 §1.4.1 (Use of Color) and §1.4.3 (Contrast (Minimum)), Paul Tol semantic status hues carry only non-text signals (borders, dots, and icons via `--pt-icon-color`). Status callout and badge text uses the high-contrast body foreground token (`--pt-color`), certifying $\ge 4.5:1$ text contrast on 8% alpha washes across both light and dark themes. Nested icons (`svg`, `[data-icon]`) automatically inherit the status hue via `--pt-icon-color`. Every documented status callout and badge requires a descriptive status word or icon so colour is never the sole carrier of state.
 
 ### 4b. Status Badges, Indicators & Dots
 

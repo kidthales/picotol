@@ -20,7 +20,7 @@ Sixth public open-source pre-release of `@kidthales/picotol`. For detailed narra
 - Standalone offline bundle packaging producing `dist/assets/picotol-v0.5.0.zip`.
 
 ### Changed
-- Standardized status callout and badge text to the high-contrast body foreground token (`--pt-color`), reserving Paul Tol hues exclusively for non-text signals (borders, dots, and icons) for full WCAG 2.2 AA text contrast compliance, and added foreground outline/shadow (`box-shadow: 0 0 0 1px var(--pt-color)`) on the switch thumb (`[role="switch"]::before`) for $\ge 3:1$ boundary contrast against the track in light and dark modes (#202).
+- Standardized status callout and badge text to the high-contrast body foreground token (`--pt-color`), reserving Paul Tol hues exclusively for non-text signals (borders, dots, and icons via `--pt-icon-color`) for full WCAG 2.2 AA text contrast compliance, and added foreground outline/shadow (`box-shadow: 0 0 0 1px var(--pt-color)`) on the switch thumb (`[role="switch"]::before`) for $\ge 3:1$ boundary contrast against the track in light and dark modes (#202).
 - Calibrated dark mode selection contrast and adjusted demo meter label clearances (#188).
 - Updated `README.md` documentation, CDN and vendoring URLs, and APA citation version (`0.5.0`) (#192).
 

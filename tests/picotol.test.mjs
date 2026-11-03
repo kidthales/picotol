@@ -3633,7 +3633,6 @@ test("Demo Badge & Dot Flex-Gap Row and Tabular Right-Alignment Showcase (Issue 
 
 test("Status Callout & Badge Body Foreground Contrast Policy (Issue #202)", () => {
   const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
-  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
   const tokens = getPicotolTokens();
 
   // 1. In src/components.css, status callouts and badges declare body fg token var(--pt-color)
