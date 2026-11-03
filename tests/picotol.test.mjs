@@ -3631,6 +3631,202 @@ test("Demo Badge & Dot Flex-Gap Row and Tabular Right-Alignment Showcase (Issue 
   );
 });
 
+test("Status Callout & Badge Body Foreground Contrast Policy (Issue #202)", () => {
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const tokens = getPicotolTokens();
+
+  // 1. In src/components.css, status callouts and badges declare body fg token var(--pt-color)
+  assert.ok(
+    compCss.includes(':where(.badge, [role="status"], .pt-badge, .pt-indicator)') &&
+    compCss.includes("color: var(--pt-color)"),
+    "src/components.css must establish color: var(--pt-color) on baseline status badges and indicators"
+  );
+  assert.ok(
+    compCss.includes(":where(.pt-callout)") &&
+    compCss.includes("color: var(--pt-color)"),
+    "src/components.css must establish color: var(--pt-color) on .pt-callout banners"
+  );
+
+  // Status Triads explicitly preserve body fg token
+  for (const status of ["ok", "warning", "critical", "info"]) {
+    const triadRegex = new RegExp(`\\.pt-badge\\[data-status="${status}"\\][^{]*\\{[^}]*color:\\s*var\\(--pt-color\\)`);
+    assert.match(
+      compCss,
+      triadRegex,
+      `src/components.css must bind .pt-badge[data-status="${status}"] to color: var(--pt-color)`
+    );
+  }
+
+  // 2. Automated WCAG 2.2 Contrast Verification of body fg token against 8% wash across light and dark
+  const lightBg = tokens.getToken("--pt-bg", "light");
+  const darkBg = tokens.getToken("--pt-bg", "dark");
+  const lightSurface = tokens.getToken("--pt-surface", "light");
+  const darkSurface = tokens.getToken("--pt-surface", "dark");
+  const lightColor = tokens.getToken("--pt-color", "light");
+  const darkColor = tokens.getToken("--pt-color", "dark");
+
+  const statusTriads = [
+    { name: "ok", token: "--pt-status-ok-border", fgToken: "--pt-status-ok-fg" },
+    { name: "warning", token: "--pt-status-warning-border", fgToken: "--pt-status-warning-fg" },
+    { name: "critical", token: "--pt-status-critical-border", fgToken: "--pt-status-critical-fg" },
+    { name: "info", token: "--pt-status-info-border", fgToken: "--pt-status-info-fg" },
+  ];
+
+  for (const { name, token, fgToken } of statusTriads) {
+    const borderLight = tokens.getToken(token, "light");
+    const borderDark = tokens.getToken(token, "dark");
+
+    // Light-mode: 8% border wash over root white and surface card
+    const washLightRoot = mixSrgb(borderLight, 8, lightBg);
+    const washLightSurface = mixSrgb(borderLight, 8, lightSurface);
+
+    const crLightRoot = contrastRatio(lightColor, washLightRoot);
+    const crLightSurface = contrastRatio(lightColor, washLightSurface);
+
+    assert.ok(
+      crLightRoot >= 4.5,
+      `[light] ${name} badge text (--pt-color) on 8% root wash (${washLightRoot}) must meet WCAG 2.2 AA >= 4.5:1 (got ${crLightRoot.toFixed(2)}:1)`
+    );
+    assert.ok(
+      crLightSurface >= 4.5,
+      `[light] ${name} badge text (--pt-color) on 8% surface wash (${washLightSurface}) must meet WCAG 2.2 AA >= 4.5:1 (got ${crLightSurface.toFixed(2)}:1)`
+    );
+
+    // Dark-mode: 8% border wash over root black and dark surface card
+    const washDarkRoot = mixSrgb(borderDark, 8, darkBg);
+    const washDarkSurface = mixSrgb(borderDark, 8, darkSurface);
+
+    const crDarkRoot = contrastRatio(darkColor, washDarkRoot);
+    const crDarkSurface = contrastRatio(darkColor, washDarkSurface);
+
+    assert.ok(
+      crDarkRoot >= 4.5,
+      `[dark] ${name} badge text (--pt-color) on 8% root wash (${washDarkRoot}) must meet WCAG 2.2 AA >= 4.5:1 (got ${crDarkRoot.toFixed(2)}:1)`
+    );
+    assert.ok(
+      crDarkSurface >= 4.5,
+      `[dark] ${name} badge text (--pt-color) on 8% surface wash (${washDarkSurface}) must meet WCAG 2.2 AA >= 4.5:1 (got ${crDarkSurface.toFixed(2)}:1)`
+    );
+
+    // Audit finding reproduction check: verify historical light-mode status text failure on 8% wash
+    if (name === "ok" || name === "info") {
+      const oldFgLight = tokens.getToken(fgToken, "light");
+      const oldCr = contrastRatio(oldFgLight, washLightRoot);
+      assert.ok(
+        oldCr < 4.5,
+        `Expected historical ${name} text (${oldFgLight}) on 8% wash to fail AA (< 4.5:1, got ${oldCr.toFixed(2)}:1) demonstrating the necessity of --pt-color`
+      );
+    }
+  }
+});
+
+test("Accessible Switch Thumb Contrast and Boundary Ratio (Issue #202)", () => {
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const tokens = getPicotolTokens();
+
+  // 1. src/components.css and compiled dist/picotol.css must declare fg-token box-shadow on [role="switch"]::before
+  assert.ok(
+    compCss.includes('[role="switch"]') && compCss.includes("box-shadow: 0 0 0 1px var(--pt-color)"),
+    'src/components.css must declare box-shadow: 0 0 0 1px var(--pt-color) on [role="switch"]::before'
+  );
+  assert.ok(
+    fullCss.includes('[role="switch"]') && fullCss.includes("box-shadow: 0 0 0 1px var(--pt-color)"),
+    'dist/picotol.css must compile box-shadow: 0 0 0 1px var(--pt-color) on [role="switch"]::before'
+  );
+
+  // 2. #199 contrast harness boundary ratio calculations
+  const lightBg = tokens.getToken("--pt-bg", "light");
+  const darkBg = tokens.getToken("--pt-bg", "dark");
+  const lightSurface = tokens.getToken("--pt-surface", "light");
+  const darkSurface = tokens.getToken("--pt-surface", "dark");
+  const lightFg = tokens.getToken("--pt-color", "light");
+  const darkFg = tokens.getToken("--pt-color", "dark");
+
+  // Inactive (unchecked) state: thumb boundary (--pt-color) vs track (--pt-surface)
+  const crLightThumbTrack = contrastRatio(lightFg, lightSurface);
+  const crDarkThumbTrack = contrastRatio(darkFg, darkSurface);
+
+  assert.ok(
+    crLightThumbTrack >= 3.0,
+    `Inactive switch thumb boundary vs track in light mode must be >= 3:1 (got ${crLightThumbTrack.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crDarkThumbTrack >= 3.0,
+    `Inactive switch thumb boundary vs track in dark mode must be >= 3:1 (got ${crDarkThumbTrack.toFixed(2)}:1)`
+  );
+
+  // Thumb boundary vs thumb body (--pt-bg)
+  const crLightThumbBody = contrastRatio(lightFg, lightBg);
+  const crDarkThumbBody = contrastRatio(darkFg, darkBg);
+
+  assert.ok(
+    crLightThumbBody >= 3.0,
+    `Switch thumb boundary vs thumb body in light mode must be >= 3:1 (got ${crLightThumbBody.toFixed(2)}:1)`
+  );
+  assert.ok(
+    crDarkThumbBody >= 3.0,
+    `Switch thumb boundary vs thumb body in dark mode must be >= 3:1 (got ${crDarkThumbBody.toFixed(2)}:1)`
+  );
+
+  // Active (checked) state: thumb (--pt-bg) vs primary track across all accents
+  const accents = ["blue", "cyan", "purple", "magenta"];
+  for (const mode of ["light", "dark"]) {
+    const bg = tokens.getToken("--pt-bg", mode);
+    for (const accent of accents) {
+      const primary = tokens.getToken("--pt-primary", mode, accent);
+      const crChecked = contrastRatio(bg, primary);
+      assert.ok(
+        crChecked >= 3.0,
+        `[${mode}:${accent}] Checked switch thumb vs track must be >= 3:1 (got ${crChecked.toFixed(2)}:1)`
+      );
+    }
+  }
+});
+
+test("Documented Status Examples Contain Text Label or Icon (Issue #202)", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // Scan documented status components across README.md and dist/demo/index.html
+  // Status components include: .pt-badge, .pt-indicator, .pt-chip, .pt-callout, .badge, [role="status"], [role="alert"]
+  // Exclude empty live regions (such as toast announcement targets) that receive dynamic text at runtime
+  const statusElementRegex = /<(?:span|aside|div)[^>]*(?:class=["'][^"']*(?:badge|indicator|chip|callout)[^"']*|role=["'](?:status|alert)["'])[^>]*>([\s\S]*?)<\/(?:span|aside|div)>/gi;
+
+  const sources = [
+    { file: "README.md", content: readme },
+    { file: "dist/demo/index.html", content: demoHtml },
+  ];
+
+  let totalInspected = 0;
+  for (const { file, content } of sources) {
+    statusElementRegex.lastIndex = 0;
+    let match;
+    while ((match = statusElementRegex.exec(content)) !== null) {
+      const fullTag = match[0];
+      // Live notification regions (e.g. aria-live toasts) start empty by design
+      if (/\b(?:aria-live|toast)\b/i.test(fullTag)) {
+        continue;
+      }
+
+      const innerHtml = match[1];
+      // Strip nested tags to extract text content
+      const textContent = innerHtml.replace(/<[^>]+>/g, "").trim();
+      // Check for non-text visual carrier (icon, dot, SVG)
+      const hasIcon = /<(?:svg|\w+[^>]*class=["'][^"']*(?:dot|icon)[^"']*)/i.test(innerHtml);
+      const hasText = textContent.length > 0;
+
+      assert.ok(
+        hasText || hasIcon,
+        `Documented status example in ${file} must contain a text label or icon (found empty/color-only status component: "${fullTag}")`
+      );
+      totalInspected++;
+    }
+  }
+
+  assert.ok(totalInspected >= 20, `Must inspect at least 20 documented status examples (inspected ${totalInspected})`);
+});
+
 test("Anti-Tautology Guard: tests/picotol.test.mjs contains zero vacuous includes-OR-includes disjunction assertions (Issue #199)", () => {
   const selfSource = fs.readFileSync(fileURLToPath(import.meta.url), "utf8");
   const strippedComments = selfSource.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, "");
