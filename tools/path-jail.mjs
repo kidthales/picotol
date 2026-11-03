@@ -214,7 +214,15 @@ export function resolveRefreshOptions(opts = {}) {
   let targetSnapshotPath = join(dataDir, 'tol-qualitative.json');
   if (hasSnapshotPath) {
     targetSnapshotPath = assertSafeCustomSyncTarget(opts.snapshotPath, 'snapshotPath');
-    resolveSyncOptions(opts);
+    const { targetTokensPath, targetPalettesPath } = resolveSyncOptions(opts);
+    if (
+      normCase(targetSnapshotPath) === normCase(targetTokensPath) ||
+      normCase(targetSnapshotPath) === normCase(targetPalettesPath)
+    ) {
+      throw new Error(
+        'Invalid token output path: snapshotPath must be distinct from tokensCssPath and palettesCssPath'
+      );
+    }
   }
 
   return {

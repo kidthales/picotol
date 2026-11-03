@@ -315,13 +315,15 @@ export function parseCliArgs(argv = process.argv.slice(2)) {
     if (arg === '--upstream') {
       isUpstream = true;
       const next = argv[i + 1];
-      if (next && !next.startsWith('--')) {
+      if (next && !next.startsWith('-')) {
         upstreamPath = next;
         i++;
       }
     } else if (arg.startsWith('--upstream=')) {
       isUpstream = true;
       upstreamPath = arg.slice('--upstream='.length);
+    } else {
+      throw new Error(`Unrecognized argument: ${arg}`);
     }
   }
 
@@ -329,7 +331,17 @@ export function parseCliArgs(argv = process.argv.slice(2)) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { isUpstream, upstreamPath } = parseCliArgs();
+  let isUpstream = false;
+  let upstreamPath = null;
+  try {
+    const parsed = parseCliArgs();
+    isUpstream = parsed.isUpstream;
+    upstreamPath = parsed.upstreamPath;
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
+
   if (isUpstream) {
     if (!upstreamPath) {
       console.error('Error: An explicit upstream path is required to refresh tokens: provide --upstream <path>');
@@ -345,7 +357,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       process.exit(1);
     }
   } else {
-    const { snapshot } = syncTokens();
-    console.log(`Synced ${Object.keys(snapshot.schemes).length} Paul Tol qualitative schemes -> src/tokens.css & src/palettes.css`);
+    try {
+      const { snapshot } = syncTokens();
+      console.log(`Synced ${Object.keys(snapshot.schemes).length} Paul Tol qualitative schemes -> src/tokens.css & src/palettes.css`);
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
   }
 }

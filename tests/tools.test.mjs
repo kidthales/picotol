@@ -732,6 +732,8 @@ test('tools/sync-tokens.mjs: upstream refresh isolation, explicit path enforceme
       upstreamPath: '/custom/path',
     });
     assert.deepEqual(parseCliArgs(['--upstream=/custom/path']), { isUpstream: true, upstreamPath: '/custom/path' });
+    assert.throws(() => parseCliArgs(['--unknown']), /Unrecognized argument: --unknown/);
+    assert.throws(() => parseCliArgs(['--upstream', '-h']), /Unrecognized argument: -h/);
 
   // 6. Isolated refresh execution with mock upstream scheme files
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-upstream-test-'));
@@ -806,6 +808,24 @@ test('tools/sync-tokens.mjs: upstream refresh isolation, explicit path enforceme
         }),
       /refusing to write custom sync target inside repository/
     );
+    assert.throws(
+      () =>
+        refreshFromUpstream(path.join(tempDir, 'mock-upstream'), {
+          snapshotPath: path.join(tempDir, 'collision.css'),
+          tokensCssPath: path.join(tempDir, 'collision.css'),
+          palettesCssPath: path.join(tempDir, 'palettes.css'),
+        }),
+      /snapshotPath must be distinct from tokensCssPath and palettesCssPath/
+    );
+    assert.throws(
+      () =>
+        refreshFromUpstream(path.join(tempDir, 'mock-upstream'), {
+          snapshotPath: path.join(tempDir, 'collision.css'),
+          tokensCssPath: path.join(tempDir, 'tokens.css'),
+          palettesCssPath: path.join(tempDir, 'collision.css'),
+        }),
+      /snapshotPath must be distinct from tokensCssPath and palettesCssPath/
+    );
 
     // 8. Default CLI and function execution refreshes committed files without tripping custom-snapshot output guard
     const committedSnapshotContent = fs.readFileSync(path.join(ROOT, 'data/tol-qualitative.json'), 'utf8');
@@ -829,6 +849,35 @@ test('tools/sync-tokens.mjs: upstream refresh isolation, explicit path enforceme
         { env: childEnv, encoding: 'utf8' }
       );
       assert.match(cliOut, /Refreshed 10 schemes/);
+
+      // Verify CLI entrypoint failure modes via child process
+      assert.throws(
+        () =>
+          execFileSync(process.execPath, [path.join(ROOT, 'tools/sync-tokens.mjs'), '--upstream'], {
+            env: childEnv,
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'pipe'],
+          }),
+        (err) => {
+          assert.equal(err.status, 1);
+          assert.match(err.stderr, /An explicit upstream path is required to refresh tokens/);
+          return true;
+        }
+      );
+
+      assert.throws(
+        () =>
+          execFileSync(process.execPath, [path.join(ROOT, 'tools/sync-tokens.mjs'), '--unknown'], {
+            env: childEnv,
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'pipe'],
+          }),
+        (err) => {
+          assert.equal(err.status, 1);
+          assert.match(err.stderr, /Unrecognized argument: --unknown/);
+          return true;
+        }
+      );
     } finally {
       fs.writeFileSync(path.join(ROOT, 'data/tol-qualitative.json'), committedSnapshotContent, 'utf8');
       fs.writeFileSync(path.join(ROOT, 'src/tokens.css'), committedTokensContent, 'utf8');
