@@ -112,7 +112,7 @@
       content: "";
       position: fixed;
       inset: 0;
-      z-index: 98;
+      z-index: var(--pt-z-dropdown-backdrop, var(--pt-z-backdrop, 98));
       background: transparent;
       cursor: default;
     }
@@ -272,7 +272,7 @@
   }
 
   /* 5. Modal (<dialog>) */
-  :where(dialog) {
+  :where(dialog:not(.sheet, .sheet-right, .sheet-left)) {
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
     background-color: var(--pt-bg);
@@ -284,7 +284,7 @@
     & > article {
       width: 100%;
       max-width: min(100vw - 2rem, 40rem);
-      max-height: 90vh;
+      max-height: 90dvh;
       margin: 0;
       overflow: auto;
     }
@@ -309,13 +309,13 @@
     &::backdrop {
       background-color: color-mix(in srgb, var(--pt-black) 65%, transparent);
     }
-    &:has(> article) {
+    &:not(.sheet, .sheet-right, .sheet-left):has(> article) {
       display: flex;
       align-items: center;
       justify-content: center;
       position: fixed;
       inset: 0;
-      z-index: 999;
+      z-index: var(--pt-z-modal, 999);
       max-width: none;
       margin: 0;
       padding: var(--pt-spacing);
@@ -384,7 +384,7 @@
     color: var(--pt-color);
     box-shadow: var(--pt-box-shadow);
     flex-direction: column;
-    z-index: 999;
+    z-index: var(--pt-z-modal, 999);
     overflow: hidden;
 
     &:not([open]) { display: none; }
@@ -702,7 +702,7 @@
       box-shadow: 0 0 0 1px var(--pt-color);
       transition: margin var(--pt-transition);
     }
-    &:checked {
+    &:is(:checked, [aria-checked="true"]) {
       background-color: var(--pt-primary);
       border-color: var(--pt-primary);
       &::before {
@@ -716,7 +716,7 @@
     [role="switch"] {
       border-color: ButtonText;
       &::before { background-color: ButtonText; }
-      &:checked {
+      &:is(:checked, [aria-checked="true"]) {
         background-color: Highlight;
         border-color: Highlight;
         &::before { background-color: HighlightText; }
@@ -782,7 +782,7 @@
       &::before, &::after {
         position: absolute;
         left: 50%;
-        z-index: 99;
+        z-index: var(--pt-z-tooltip, 99);
         transform: translateX(-50%);
         pointer-events: auto;
       }
@@ -1141,7 +1141,7 @@
     }
   }
 
-  /* 16. Dedicated Square Icon Buttons (.btn-icon, .icon-btn) */
+  /* 13. Dedicated Square Icon Buttons (.btn-icon, .icon-btn) */
   :where(.btn-icon, .icon-btn) {
     display: inline-flex;
     align-items: center;
@@ -1158,7 +1158,7 @@
     }
   }
 
-  /* 13. KPI Stat Cards */
+  /* 14. KPI Stat Cards */
   :where(article.stat, dl.stats > :is(div, article)) {
     display: flex;
     flex-direction: column;
@@ -1206,7 +1206,7 @@
     }
   }
 
-  /* 14. Skeleton Loaders */
+  /* 15. Skeleton Loaders */
   :where(.skeleton) {
     display: inline-block;
     width: 100%;
@@ -1238,12 +1238,12 @@
     }
   }
 
-  /* 8. Toast Notification (.show; [aria-hidden="false"] deprecated alias until v0.7.0) */
+  /* 16. Toast Notification (.show; [aria-hidden="false"] deprecated alias until v0.7.0) */
   :where(.toast) {
     position: fixed;
     bottom: 1.5rem;
     inset-inline-end: 1.5rem;
-    z-index: 9999;
+    z-index: var(--pt-z-toast, 9990);
     padding: 0.75rem 1.25rem;
     border-radius: var(--pt-border-radius);
     background: var(--pt-color);
@@ -1264,7 +1264,7 @@
     }
   }
 
-  /* 15. Callout Banners */
+  /* 17. Callout Banners */
   :where(.pt-callout) {
     --pt-callout-border: var(--pt-muted-border);
     --pt-callout-bg: color-mix(in srgb, var(--pt-callout-border) 8%, var(--pt-bg));

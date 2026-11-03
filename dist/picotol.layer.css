@@ -48,7 +48,13 @@
       --pt-invalid: light-dark(#c31, #e67);
       --pt-mark-bg: light-dark(#eeb, #750);
       --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
+      --pt-z-backdrop: 98;
+      --pt-z-dropdown-backdrop: var(--pt-z-backdrop, 98);
+      --pt-z-tooltip: 99;
       --pt-z-dropdown: 100;
+      --pt-z-modal: 999;
+      --pt-z-toast: 9990;
+      --pt-z-skip-link: 10000;
       --pt-status-ok-fg: light-dark(#283, #4a9);
       --pt-status-ok-border: var(--pt-status-ok-fg);
       --pt-status-ok-bg: color-mix(in srgb, var(--pt-status-ok-border) 8%, transparent);
@@ -114,7 +120,7 @@
       font-size: clamp(.85rem, .8rem + .3vw, .95rem);
     }
 
-    [data-density="tight"], .pt-tight, :where([data-density="tight"], .pt-tight) {
+    [data-density="tight"], .pt-tight {
       --pt-spacing: .25rem;
       --pt-card-padding: .25rem;
       --pt-form-y: .125rem;
@@ -149,7 +155,7 @@
       margin: 0;
     }
 
-    :where([hidden]) {
+    :where([hidden]:not([hidden="until-found"])) {
       display: none !important;
     }
   }
@@ -416,7 +422,7 @@
       display: inline-block;
     }
 
-    :where([disabled], fieldset[disabled] *) {
+    :where([disabled], fieldset[disabled] > *) {
       opacity: .5;
       pointer-events: none;
     }
@@ -827,7 +833,7 @@
 
       &[open] > summary:before {
         content: "";
-        z-index: 98;
+        z-index: var(--pt-z-dropdown-backdrop, var(--pt-z-backdrop, 98));
         cursor: default;
         background: none;
         position: fixed;
@@ -975,7 +981,7 @@
       }
     }
 
-    :where(dialog) {
+    :where(dialog:not(.sheet, .sheet-right, .sheet-left)) {
       border: var(--pt-border);
       border-radius: var(--pt-border-radius);
       background-color: var(--pt-bg);
@@ -991,7 +997,7 @@
       & > article {
         width: 100%;
         max-width: min(100vw - 2rem, 40rem);
-        max-height: 90vh;
+        max-height: 90dvh;
         margin: 0;
         overflow: auto;
       }
@@ -1021,8 +1027,8 @@
         background-color: color-mix(in srgb, var(--pt-black) 65%, transparent);
       }
 
-      &:has( > article) {
-        z-index: 999;
+      &:not(.sheet, .sheet-right, .sheet-left):has( > article) {
+        z-index: var(--pt-z-modal, 999);
         max-width: none;
         padding: var(--pt-spacing);
         justify-content: center;
@@ -1096,7 +1102,7 @@
       max-width: 100vw;
       color: var(--pt-color);
       box-shadow: var(--pt-box-shadow);
-      z-index: 999;
+      z-index: var(--pt-z-modal, 999);
       border: 0;
       border-radius: 0;
       flex-direction: column;
@@ -1446,7 +1452,7 @@
         display: block;
       }
 
-      &:checked {
+      &:is(:checked, [aria-checked="true"]) {
         background-color: var(--pt-primary);
         border-color: var(--pt-primary);
 
@@ -1465,7 +1471,7 @@
           background-color: buttontext;
         }
 
-        &:checked {
+        &:is(:checked, [aria-checked="true"]) {
           background-color: highlight;
           border-color: highlight;
 
@@ -1539,7 +1545,7 @@
 
       &:is(:hover, :focus-visible) {
         &:before, &:after {
-          z-index: 99;
+          z-index: var(--pt-z-tooltip, 99);
           pointer-events: auto;
           position: absolute;
           left: 50%;
@@ -2002,7 +2008,7 @@
     }
 
     :where(.toast) {
-      z-index: 9999;
+      z-index: var(--pt-z-toast, 9990);
       border-radius: var(--pt-border-radius);
       background: var(--pt-color);
       color: var(--pt-bg);
@@ -2076,7 +2082,7 @@
 
   @layer utilities {
     .skip-to-content:is(:focus, :focus-visible) {
-      z-index: 9999;
+      z-index: var(--pt-z-skip-link, 10000);
       border: 2px solid var(--pt-primary);
       border-radius: var(--pt-border-radius);
       background: var(--pt-bg);

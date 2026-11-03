@@ -12,7 +12,7 @@
   }
 
   :where(button, input, optgroup, select, textarea) { margin: 0; font: inherit; }
-  :where([hidden]) { display: none !important; }
+  :where([hidden]:not([hidden="until-found"])) { display: none !important; }
 }
 
 @layer base {
@@ -68,7 +68,7 @@
     position: fixed;
     top: 0.5rem;
     inset-inline-start: 0.5rem;
-    z-index: 9999;
+    z-index: var(--pt-z-skip-link, 10000);
     padding: 0.5rem 1rem;
     border: 2px solid var(--pt-primary);
     border-radius: var(--pt-border-radius);

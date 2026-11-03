@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deprecated `.toast[aria-hidden="false"]` as a standalone toast activation selector in favor of `.toast.show`; retained as a compatibility alias scheduled for removal in v0.7.0 (#220).
 
 ### Fixed
+- Scoped `[hidden]` with `:not([hidden="until-found"])` to preserve search-in-page `until-found` reveal styling, and scoped `fieldset[disabled] > *` to direct children to eliminate stacked opacity compounding (#218).
+- Replaced hard-coded z-index values (98, 99, 100, 999, 9999) with `--pt-z-*` design tokens (`--pt-z-backdrop`, `--pt-z-dropdown-backdrop`, `--pt-z-tooltip`, `--pt-z-dropdown`, `--pt-z-modal`, `--pt-z-toast`, `--pt-z-skip-link`), decoupling toast (`9990`) and skip-link (`10000`) z-indices (#218).
+- Excluded slide-over sheet drawers explicitly from dialog modal constraints (`:where(dialog:not(.sheet, .sheet-right, .sheet-left))`) to eliminate source order reliance, transitioned `dialog > article` to dynamic viewport units (`90dvh`), styled `[role="switch"][aria-checked="true"]` across standard and forced-colors modes, deduplicated the tight density selector, and normalized section numbering in `components.css` (#218).
 - Late-bound button and form control density tokens through fallback chains (`var(--pt-btn-padding-block, var(--pt-form-y))`, `var(--pt-form-element-spacing-vertical, var(--pt-form-y))`, `var(--pt-form-element-spacing-horizontal, var(--pt-form-x))`) so `.small`/`.sm` and nested `[data-density="compact"]` successfully shrink vertical padding, enforced via AST static cascade linter (#203).
 - Hid inactive `.toast` elements from the accessibility tree and sequential focus navigation with `visibility: hidden` (delayed via `visibility 0s linear 0.2s` until opacity fade-out completes) (#220).
 

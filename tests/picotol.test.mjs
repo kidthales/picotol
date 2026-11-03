@@ -4014,7 +4014,11 @@ test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-e
     assert.equal(beforeDecl["pointer-events"], "auto", `${relPath}: ::before must set pointer-events: auto`);
     assert.equal(beforeDecl.left, "50%", `${relPath}: ::before must center at left: 50%`);
     assert.match(beforeDecl.transform ?? "", /^translateX?\(-50%\)$/, `${relPath}: ::before must center with translateX(-50%)`);
-    assert.equal(beforeDecl["z-index"], "99", `${relPath}: ::before must set z-index: 99`);
+    assert.match(
+      beforeDecl["z-index"] ?? "",
+      /^var\(--pt-z-tooltip,\s*99\)$/,
+      `${relPath}: ::before must set z-index: var(--pt-z-tooltip, 99)`
+    );
 
     assert.equal(afterDecl.content, '""', `${relPath}: ::after hover bridge must set content: ""`);
     assert.equal(afterDecl.position, "absolute", `${relPath}: ::after hover bridge must be position: absolute`);
@@ -4417,6 +4421,123 @@ test("CSS logical properties and RTL support (Issue #217)", async () => {
   const allowed = lintPhysicalDirectionProperties("select:dir(rtl) { background-position: left 0.75rem center; }", "src/forms.css");
   assert.equal(allowed.length, 0, "lintPhysicalDirectionProperties must permit allowlisted select chevron in src/forms.css");
 });
+
+test("CSS pseudo-element conflicts, z-index tokens, hidden/fieldset, sheet specificity, switch aria (Issue #218)", () => {
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const baseCss = fs.readFileSync(path.join(ROOT, "src/base.css"), "utf8");
+  const contentCss = fs.readFileSync(path.join(ROOT, "src/content.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // C9: Host pseudo-element collision limitation documented for [data-tooltip] and [aria-busy="true"]
+  assert.match(
+    readme,
+    /not supported on hosts with their own `::before` or `::after`/,
+    "README must document [data-tooltip] host pseudo-element limitations"
+  );
+  assert.ok(
+    readme.includes('[aria-busy="true"]'),
+    "README must list [aria-busy=\"true\"] as an unsupported tooltip host"
+  );
+
+  // C10: --pt-z-* tokens replace hard-coded 98/99/100/999/9999; toast and skip-link no longer share 9999
+  const expectedZTokens = [
+    "--pt-z-backdrop: 98;",
+    "--pt-z-dropdown-backdrop: var(--pt-z-backdrop, 98);",
+    "--pt-z-tooltip: 99;",
+    "--pt-z-dropdown: 100;",
+    "--pt-z-modal: 999;",
+    "--pt-z-toast: 9990;",
+    "--pt-z-skip-link: 10000;",
+  ];
+  for (const token of expectedZTokens) {
+    assert.ok(tokensCss.includes(token), `src/tokens.css must declare "${token}"`);
+  }
+
+  // Verify toast and skip-link use distinct z-index tokens
+  assert.ok(
+    baseCss.includes("z-index: var(--pt-z-skip-link, 10000);"),
+    "src/base.css skip-to-content must declare z-index: var(--pt-z-skip-link, 10000)"
+  );
+  assert.ok(
+    compCss.includes("z-index: var(--pt-z-toast, 9990);"),
+    "src/components.css toast must declare z-index: var(--pt-z-toast, 9990)"
+  );
+  assert.ok(
+    compCss.includes("z-index: var(--pt-z-tooltip, 99);"),
+    "src/components.css tooltip must declare z-index: var(--pt-z-tooltip, 99)"
+  );
+  assert.ok(
+    compCss.includes("z-index: var(--pt-z-modal, 999);"),
+    "src/components.css dialog / sheet must declare z-index: var(--pt-z-modal, 999)"
+  );
+
+  // C11: [hidden]:not([hidden=until-found]); fieldset[disabled] > * (no stacked opacity)
+  assert.ok(
+    baseCss.includes(':where([hidden]:not([hidden="until-found"]))'),
+    "src/base.css must scope [hidden] with :not([hidden=\"until-found\"])"
+  );
+  assert.ok(
+    contentCss.includes("fieldset[disabled] > *"),
+    "src/content.css must scope disabled fieldset opacity to direct children (fieldset[disabled] > *)"
+  );
+  assert.ok(
+    !contentCss.includes("fieldset[disabled] *"),
+    "src/content.css must not apply stacked opacity across arbitrary descendants (fieldset[disabled] *)"
+  );
+
+  // C12: explicit .sheet overrides instead of relying on source order; dialog > article uses dvh
+  assert.ok(
+    compCss.includes(":where(dialog:not(.sheet, .sheet-right, .sheet-left))"),
+    "src/components.css dialog rule must explicitly exclude .sheet modifiers"
+  );
+  assert.ok(
+    compCss.includes("max-height: 90dvh;"),
+    "src/components.css dialog > article must declare max-height: 90dvh"
+  );
+  assert.ok(
+    !compCss.includes("max-height: 90vh;"),
+    "src/components.css dialog > article must not use legacy 90vh unit"
+  );
+
+  // C13: [role=switch][aria-checked=true] is styled; tight density selector deduplicated
+  assert.ok(
+    compCss.includes('&:is(:checked, [aria-checked="true"])'),
+    "src/components.css [role=\"switch\"] must style &:is(:checked, [aria-checked=\"true\"])"
+  );
+  const normTokens = tokensCss.replace(/\r\n/g, "\n");
+  assert.ok(
+    normTokens.includes('[data-density="tight"], .pt-tight {\n    --pt-spacing: 0.25rem;'),
+    "src/tokens.css tight density selector must not duplicate :where([data-density=\"tight\"], .pt-tight)"
+  );
+  assert.ok(
+    !normTokens.includes(':where([data-density="tight"], .pt-tight)'),
+    "src/tokens.css must not duplicate tight density selector"
+  );
+
+  // C14: components.css section numbering fixed
+  const sectionHeaders = [...compCss.matchAll(/\/\*\s*(\d+[a-z]?)\.\s*([^*]+)\*\//g)].map((m) => ({
+    num: m[1],
+    title: m[2].trim(),
+  }));
+  const nums = sectionHeaders.map((s) => s.num);
+  // Ensure no duplicate section numbers (such as the duplicate "8")
+  const uniqueNums = new Set(nums);
+  assert.equal(uniqueNums.size, nums.length, `Section numbers must be unique, found duplicates in: ${nums.join(", ")}`);
+  // Ensure sections 12, 13, 14, 15, 16, 17 are sequentially ordered
+  const idx12 = nums.indexOf("12");
+  const idx13 = nums.indexOf("13");
+  const idx14 = nums.indexOf("14");
+  const idx15 = nums.indexOf("15");
+  const idx16 = nums.indexOf("16");
+  const idx17 = nums.indexOf("17");
+  assert.ok(idx12 < idx13, "Section 12 must precede Section 13");
+  assert.ok(idx13 < idx14, "Section 13 must precede Section 14");
+  assert.ok(idx14 < idx15, "Section 14 must precede Section 15");
+  assert.ok(idx15 < idx16, "Section 15 must precede Section 16");
+  assert.ok(idx16 < idx17, "Section 16 must precede Section 17");
+});
+
 
 
 
