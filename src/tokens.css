@@ -43,7 +43,6 @@
     --pt-mark-bg: light-dark(#EEEEBB, #775500);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
     --pt-z-backdrop: 98;
-    --pt-z-dropdown-backdrop: var(--pt-z-backdrop, 98);
     --pt-z-tooltip: 99;
     --pt-z-dropdown: 100;
     --pt-z-modal: 999;

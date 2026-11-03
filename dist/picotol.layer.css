@@ -49,7 +49,6 @@
       --pt-mark-bg: light-dark(#eeb, #750);
       --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
       --pt-z-backdrop: 98;
-      --pt-z-dropdown-backdrop: var(--pt-z-backdrop, 98);
       --pt-z-tooltip: 99;
       --pt-z-dropdown: 100;
       --pt-z-modal: 999;
@@ -155,7 +154,7 @@
       margin: 0;
     }
 
-    :where([hidden]:not([hidden="until-found"])) {
+    :where([hidden]:not([hidden="until-found" i])) {
       display: none !important;
     }
   }
@@ -422,7 +421,7 @@
       display: inline-block;
     }
 
-    :where([disabled], fieldset[disabled] > *) {
+    :where([disabled]:not(fieldset[disabled] *), fieldset[disabled] > :not(legend)) {
       opacity: .5;
       pointer-events: none;
     }
@@ -833,7 +832,7 @@
 
       &[open] > summary:before {
         content: "";
-        z-index: var(--pt-z-dropdown-backdrop, var(--pt-z-backdrop, 98));
+        z-index: var(--pt-z-backdrop, 98);
         cursor: default;
         background: none;
         position: fixed;
@@ -1027,7 +1026,7 @@
         background-color: color-mix(in srgb, var(--pt-black) 65%, transparent);
       }
 
-      &:not(.sheet, .sheet-right, .sheet-left):has( > article) {
+      &:where(:not(.sheet, .sheet-right, .sheet-left)):has( > article) {
         z-index: var(--pt-z-modal, 999);
         max-width: none;
         padding: var(--pt-spacing);
@@ -1432,6 +1431,8 @@
     }
 
     [role="switch"] {
+      cursor: pointer;
+      vertical-align: middle;
       border: var(--pt-border);
       background-color: var(--pt-surface);
       appearance: none;
@@ -1439,6 +1440,7 @@
       height: 1.5rem;
       transition: background-color var(--pt-transition), border-color var(--pt-transition);
       border-radius: 1.5rem;
+      padding: 0;
 
       &:before {
         content: "";
@@ -1506,7 +1508,7 @@
       pointer-events: none;
     }
 
-    [aria-busy="true"]:not(input, select, textarea, html, form):before {
+    [aria-busy="true"]:not(input, select, textarea, html, form, summary):before {
       content: "";
       vertical-align: -.125em;
       border: .15em solid;
@@ -1534,7 +1536,7 @@
       }
     }
 
-    [data-tooltip] {
+    [data-tooltip]:not([aria-busy="true"], summary, [role="switch"]) {
       position: relative;
 
       &:not(a, button, input, [role="button"]) {

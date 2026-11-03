@@ -112,7 +112,7 @@
       content: "";
       position: fixed;
       inset: 0;
-      z-index: var(--pt-z-dropdown-backdrop, var(--pt-z-backdrop, 98));
+      z-index: var(--pt-z-backdrop, 98);
       background: transparent;
       cursor: default;
     }
@@ -309,7 +309,7 @@
     &::backdrop {
       background-color: color-mix(in srgb, var(--pt-black) 65%, transparent);
     }
-    &:not(.sheet, .sheet-right, .sheet-left):has(> article) {
+    &:where(:not(.sheet, .sheet-right, .sheet-left)):has(> article) {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -686,6 +686,9 @@
   [role="switch"] {
     width: 2.75rem;
     height: 1.5rem;
+    padding: 0;
+    cursor: pointer;
+    vertical-align: middle;
     border: var(--pt-border);
     border-radius: 1.5rem;
     background-color: var(--pt-surface);
@@ -746,7 +749,7 @@
     pointer-events: none;
   }
 
-  [aria-busy="true"]:not(input, select, textarea, html, form)::before {
+  [aria-busy="true"]:not(input, select, textarea, html, form, summary)::before {
     content: "";
     display: inline-block;
     width: 1em;
@@ -771,7 +774,7 @@
    * :hover; no CSS Escape dismissal (use JS/Popover) or host ::before/::after support.
    * Pair with aria-describedby; interestfor (Nov 2026) is non-baseline.
    */
-  [data-tooltip] {
+  [data-tooltip]:not([aria-busy="true"], summary, [role="switch"]) {
     position: relative;
     &:not(a, button, input, [role="button"]) {
       border-bottom: 1px dotted;

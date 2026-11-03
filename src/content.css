@@ -109,7 +109,7 @@
     vertical-align: -0.08em;
   }
 
-  :where([disabled], fieldset[disabled] > *) { opacity: 0.5; pointer-events: none; }
+  :where([disabled]:not(fieldset[disabled] *), fieldset[disabled] > :not(legend)) { opacity: 0.5; pointer-events: none; }
 
   :where(pre, code, kbd, samp) {
     padding: 0.125em 0.375em;

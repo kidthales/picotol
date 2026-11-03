@@ -194,7 +194,6 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     `    --pt-mark-bg: light-dark(${colorByName('pale', 3)}, ${colorByName('dark', 9)});`,
     '    --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);',
     '    --pt-z-backdrop: 98;',
-    '    --pt-z-dropdown-backdrop: var(--pt-z-backdrop, 98);',
     '    --pt-z-tooltip: 99;',
     '    --pt-z-dropdown: 100;',
     '    --pt-z-modal: 999;',
