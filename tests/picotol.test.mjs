@@ -3916,26 +3916,53 @@ test("Toast production bundles set visibility:hidden when hidden, reset transiti
       `${relPath}: shown .toast must restore pointer-events: auto`
     );
 
-    // Verify @layer base prefers-reduced-motion transition: none !important overrides component transitions
+    // Verify @layer base prefers-reduced-motion rule targets * with transition: none !important
     const baseBlock = extractLayerBlock(css, "base");
     assert.ok(baseBlock, `${relPath} must contain @layer base`);
+    const parsedBase = parseCssBlock(baseBlock);
+    const reducedMotionMedia = parsedBase.rules.find((r) =>
+      /^@media\s*\(\s*prefers-reduced-motion:\s*reduce\s*\)$/.test(r.selector)
+    );
+    assert.ok(reducedMotionMedia, `${relPath}: @layer base must define @media (prefers-reduced-motion: reduce)`);
+    const universalTransitionRule = reducedMotionMedia.rules.find((r) =>
+      splitSelectors(r.selector).includes("*")
+    );
+    assert.ok(
+      universalTransitionRule,
+      `${relPath}: @media (prefers-reduced-motion: reduce) must include universal (*) selector rule`
+    );
     assert.match(
-      baseBlock,
-      /@media\s*\(\s*prefers-reduced-motion:\s*reduce\s*\)[\s\S]*?transition:\s*none\s*!important/,
-      `${relPath}: @layer base must disable transitions with !important under prefers-reduced-motion: reduce`
+      universalTransitionRule.declarations.transition ?? "",
+      /^none\s*!important$/,
+      `${relPath}: universal (*) rule under prefers-reduced-motion: reduce must set transition: none !important`
     );
   }
 
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
   const changelog = fs.readFileSync(path.join(ROOT, "CHANGELOG.md"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
 
   const toastSectionMatch = readme.match(/6\.\s+\*\*Accessible Toasts[\s\S]*?(?=\n---|\n## )/);
   assert.ok(toastSectionMatch, "README must contain section 6. Accessible Toasts");
   const toastReadme = toastSectionMatch[0];
 
   assert.match(toastReadme, /transition-delay:\s*0s/, "README toast section must document transition-delay: 0s entrance reset");
-  assert.match(toastReadme, /never pair `\.show` with `aria-hidden="true"`/, "README toast section must warn against pairing .show with aria-hidden=\"true\"");
+  assert.match(
+    toastReadme,
+    /never pair `\.show` with `aria-hidden="true"`\s*\(which hides visible toasts from assistive tech\)/,
+    "README toast section must warn against pairing .show with aria-hidden=\"true\" and explain why"
+  );
   assert.match(toastReadme, /role="status"[\s\S]*?role="alert"[\s\S]*?aria-live/, "README toast section must document role=\"status\", role=\"alert\", and aria-live announcement behavior");
+  assert.match(
+    demoHtml,
+    /<div role="status" aria-live="polite"><div id="toast" class="toast"><\/div><\/div>/,
+    "Demo HTML must wrap #toast inside a persistent role=\"status\" aria-live=\"polite\" live region"
+  );
+  assert.match(
+    demoHtml,
+    /function showToast\(msg\)\s*\{\s*if\s*\(!toast\)\s*return;\s*toast\.classList\.add\('show'\);\s*toast\.textContent\s*=\s*msg;/,
+    "Demo showToast() must add .show before setting textContent"
+  );
   assert.match(changelog, /### Deprecated[\s\S]*?\[aria-hidden="false"\][\s\S]*?v0\.7\.0/, "CHANGELOG must include a ### Deprecated entry for [aria-hidden=\"false\"] removal in v0.7.0");
   assert.match(changelog, /### Fixed[\s\S]*?visibility:\s*hidden/, "CHANGELOG must include a ### Fixed entry for hiding inactive toasts with visibility: hidden");
 });
@@ -4045,8 +4072,45 @@ test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-e
       bridgeHeightRem >= bubbleGapRem && bubbleGapRem > 0,
       `${relPath}: ::after bridge height (${bridgeHeightRem}rem) must bridge the full ::before offset (${bubbleGapRem}rem) with zero dead zone`
     );
+  }
 
-    // Verify restored .sheet:has(> article), [role="progressbar"]:not(progress):has(...), and deduplicated .pt-meter / .segmented-fill
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const changelog = fs.readFileSync(path.join(ROOT, "CHANGELOG.md"), "utf8");
+  const compSource = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+
+  const tooltipSectionMatch = readme.match(/3\.\s+\*\*Accessible Tooltips[\s\S]*?(?=\n4\.\s+\*\*)/);
+  assert.ok(tooltipSectionMatch, "README must contain section 3. Accessible Tooltips");
+  const tooltipReadme = tooltipSectionMatch[0];
+
+  const tooltipCommentMatch = compSource.match(/\/\*\s*9\.\s*Tooltip[\s\S]*?\*\/\s*\[data-tooltip\]/);
+  assert.ok(tooltipCommentMatch, "src/components.css must have a section 9 comment immediately preceding [data-tooltip]");
+  const tooltipComment = tooltipCommentMatch[0];
+
+  assert.match(tooltipReadme, /aria-describedby/, "README tooltip section must require pairing non-decorative tooltips with aria-describedby or aria-label");
+  assert.match(tooltipReadme, /SC 1\.4\.13[\s\S]*?Escape/, "README tooltip section must document pure-CSS Escape dismissal limitation under WCAG 2.1 SC 1.4.13");
+  assert.match(tooltipReadme, /not supported on hosts with their own `::before` or `::after`/, "README tooltip section must document ::before / ::after host collision limitation");
+  assert.match(tooltipReadme, /full-width `0\.375rem` `::after` bridge strip[\s\S]*?narrower than `16rem`/, "README tooltip section must document ::after bridge strip pointer interception on narrow bubbles");
+  assert.match(tooltipReadme, /Nov 2026/, "README tooltip section must date-stamp the interestfor evaluation");
+  assert.match(tooltipReadme, /open-ui\.org\/components\/interest-invokers/, "README tooltip section must link a source for the interestfor evaluation");
+  assert.match(tooltipReadme, /overflow:\s*hidden/, "README tooltip section must call out overflow: hidden ancestor clipping on tooltips");
+  assert.match(tooltipComment, /Escape/, "src/components.css section 9 comment must note pure-CSS Escape dismissal limitation");
+  assert.match(tooltipComment, /::before\/::after/, "src/components.css section 9 comment must note host ::before/::after limitation");
+  assert.match(changelog, /partial WCAG 2\.1 SC 1\.4\.13/, "CHANGELOG must clarify partial WCAG 2.1 SC 1.4.13 compliance for pure CSS tooltips");
+});
+
+test("Component deduplications preserve .sheet and progressbar markers while removing redundant .pt-meter and .segmented-fill declarations (Issue #220)", () => {
+  const bundles = [
+    "dist/picotol.min.css",
+    "dist/picotol.layer.min.css",
+    "dist/picotol.css",
+  ];
+
+  for (const relPath of bundles) {
+    const css = fs.readFileSync(path.join(ROOT, relPath), "utf8");
+    const componentsBlock = extractLayerBlock(css, "components");
+    assert.ok(componentsBlock, `${relPath} must contain @layer components`);
+    const parsed = parseCssBlock(componentsBlock);
+
     const sheetRule = parsed.rules.find((r) => r.selector.startsWith(":where(.sheet"));
     assert.ok(sheetRule, `${relPath}: must define .sheet rule`);
     const sheetHasArticle = sheetRule.rules.find((r) => /^&:has\(\s*>\s*article\s*\)$/.test(r.selector));
@@ -4054,7 +4118,7 @@ test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-e
     assert.equal(sheetHasArticle.declarations["align-items"], "stretch", `${relPath}: .sheet:has(> article) must preserve align-items: stretch`);
     assert.equal(sheetHasArticle.declarations["justify-content"], "flex-start", `${relPath}: .sheet:has(> article) must preserve justify-content: flex-start`);
 
-    const progressRoleRule = parsed.rules.find((r) => r.selector.includes('[role="progressbar"]:not(progress)') || r.selector.includes("[role=progressbar]:not(progress)"));
+    const progressRoleRule = parsed.rules.find((r) => /\[role=["']?progressbar["']?\]:not\(progress\)/.test(r.selector));
     assert.ok(progressRoleRule, `${relPath}: must define [role=progressbar]:not(progress) rule`);
     const progressHasMarker = progressRoleRule.rules.find((r) => r.selector.startsWith("&:has(.pt-gauge-marker"));
     assert.ok(progressHasMarker, `${relPath}: [role=progressbar]:not(progress) must nest &:has(.pt-gauge-marker, ...) rule`);
@@ -4087,26 +4151,7 @@ test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-e
     );
   }
 
-  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
   const changelog = fs.readFileSync(path.join(ROOT, "CHANGELOG.md"), "utf8");
-  const compSource = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
-
-  const tooltipSectionMatch = readme.match(/3\.\s+\*\*Accessible Tooltips[\s\S]*?(?=\n4\.\s+\*\*)/);
-  assert.ok(tooltipSectionMatch, "README must contain section 3. Accessible Tooltips");
-  const tooltipReadme = tooltipSectionMatch[0];
-
-  const tooltipCommentMatch = compSource.match(/\/\*\s*9\.\s*Tooltip[\s\S]*?\*\/\s*\[data-tooltip\]/);
-  assert.ok(tooltipCommentMatch, "src/components.css must have a section 9 comment immediately preceding [data-tooltip]");
-  const tooltipComment = tooltipCommentMatch[0];
-
-  assert.match(tooltipReadme, /aria-describedby/, "README tooltip section must require pairing non-decorative tooltips with aria-describedby or aria-label");
-  assert.match(tooltipReadme, /SC 1\.4\.13[\s\S]*?Escape/, "README tooltip section must document pure-CSS Escape dismissal limitation under WCAG 2.1 SC 1.4.13");
-  assert.match(tooltipReadme, /not supported on hosts with their own `::before` or `::after`/, "README tooltip section must document ::before / ::after host collision limitation");
-  assert.match(tooltipReadme, /Nov 2026/, "README tooltip section must date-stamp the interestfor evaluation");
-  assert.match(tooltipReadme, /open-ui\.org\/components\/interest-invokers/, "README tooltip section must link a source for the interestfor evaluation");
-  assert.match(tooltipReadme, /overflow:\s*hidden/, "README tooltip section must call out overflow: hidden ancestor clipping on tooltips");
-  assert.match(tooltipComment, /Escape/, "src/components.css section 9 comment must note pure-CSS Escape dismissal limitation");
-  assert.match(tooltipComment, /::before\/::after/, "src/components.css section 9 comment must note host ::before/::after limitation");
   assert.match(changelog, /\.pt-meter:has\(\.\.\.\)[\s\S]*?justify-content:\s*center/, "CHANGELOG must document the .pt-meter:has(...) and .segmented-fill justify-content dedupes");
 });
 
