@@ -661,48 +661,44 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
 });
 
 test('tools/sync-tokens.mjs: upstream refresh isolation, explicit path enforcement, CI rejection, and CLI argument parsing', () => {
-  // 1. loadSnapshot() defaults strictly to committed snapshot file and never silently searches ../tol-palettes
-  const snapshot = loadSnapshot();
-  assert.ok(snapshot.schemes, 'Snapshot must have schemes');
-  assert.throws(() => loadSnapshot(path.join(ROOT, 'nonexistent-snapshot.json')), /Committed token snapshot .* does not exist/);
-
-  // 2. refreshFromUpstream() requires an explicit non-empty path
-  assert.throws(() => refreshFromUpstream(''), /An explicit upstream path is required to refresh tokens/);
-  assert.throws(() => refreshFromUpstream('   '), /An explicit upstream path is required to refresh tokens/);
-  assert.throws(() => refreshFromUpstream(null), /An explicit upstream path is required to refresh tokens/);
-  assert.throws(() => refreshFromUpstream(undefined), /An explicit upstream path is required to refresh tokens/);
-
-  // 3. refreshFromUpstream() fails closed when upstream directory does not exist
-  assert.throws(
-    () => refreshFromUpstream(path.join(ROOT, 'fixtures/nonexistent-upstream')),
-    /Upstream schemes directory does not exist/
-  );
-
-  // 4. refreshFromUpstream() is strictly forbidden in CI environments
   const origCi = process.env.CI;
   try {
+    // 1. refreshFromUpstream() is strictly forbidden in CI environments
     process.env.CI = 'true';
     assert.throws(
       () => refreshFromUpstream(path.join(ROOT, 'data')),
       /Refreshing tokens from upstream is forbidden in CI environments/
     );
-  } finally {
-    if (origCi === undefined) {
-      delete process.env.CI;
-    } else {
-      process.env.CI = origCi;
-    }
-  }
 
-  // 5. parseCliArgs() correctly handles diverse argument styles
-  assert.deepEqual(parseCliArgs([]), { isUpstream: false, upstreamPath: null });
-  assert.deepEqual(parseCliArgs(['--upstream']), { isUpstream: true, upstreamPath: null });
-  assert.deepEqual(parseCliArgs(['--upstream', '/custom/path']), { isUpstream: true, upstreamPath: '/custom/path' });
-  assert.deepEqual(parseCliArgs(['--upstream', '--upstream', '/custom/path']), {
-    isUpstream: true,
-    upstreamPath: '/custom/path',
-  });
-  assert.deepEqual(parseCliArgs(['--upstream=/custom/path']), { isUpstream: true, upstreamPath: '/custom/path' });
+    // Isolate non-CI environment for path validation & mock tests
+    delete process.env.CI;
+
+    // 2. loadSnapshot() defaults strictly to committed snapshot file and never silently searches ../tol-palettes
+    const snapshot = loadSnapshot();
+    assert.ok(snapshot.schemes, 'Snapshot must have schemes');
+    assert.throws(() => loadSnapshot(path.join(ROOT, 'nonexistent-snapshot.json')), /Committed token snapshot .* does not exist/);
+
+    // 3. refreshFromUpstream() requires an explicit non-empty path
+    assert.throws(() => refreshFromUpstream(''), /An explicit upstream path is required to refresh tokens/);
+    assert.throws(() => refreshFromUpstream('   '), /An explicit upstream path is required to refresh tokens/);
+    assert.throws(() => refreshFromUpstream(null), /An explicit upstream path is required to refresh tokens/);
+    assert.throws(() => refreshFromUpstream(undefined), /An explicit upstream path is required to refresh tokens/);
+
+    // 4. refreshFromUpstream() fails closed when upstream directory does not exist
+    assert.throws(
+      () => refreshFromUpstream(path.join(ROOT, 'fixtures/nonexistent-upstream')),
+      /Upstream schemes directory does not exist/
+    );
+
+    // 5. parseCliArgs() correctly handles diverse argument styles
+    assert.deepEqual(parseCliArgs([]), { isUpstream: false, upstreamPath: null });
+    assert.deepEqual(parseCliArgs(['--upstream']), { isUpstream: true, upstreamPath: null });
+    assert.deepEqual(parseCliArgs(['--upstream', '/custom/path']), { isUpstream: true, upstreamPath: '/custom/path' });
+    assert.deepEqual(parseCliArgs(['--upstream', '--upstream', '/custom/path']), {
+      isUpstream: true,
+      upstreamPath: '/custom/path',
+    });
+    assert.deepEqual(parseCliArgs(['--upstream=/custom/path']), { isUpstream: true, upstreamPath: '/custom/path' });
 
   // 6. Isolated refresh execution with mock upstream scheme files
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-upstream-test-'));
@@ -762,6 +758,13 @@ test('tools/sync-tokens.mjs: upstream refresh isolation, explicit path enforceme
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
+} finally {
+  if (origCi === undefined) {
+    delete process.env.CI;
+  } else {
+    process.env.CI = origCi;
+  }
+}
 });
 
 // Concurrency note: No other test file in tests/*.test.mjs imports or calls buildAll(),
