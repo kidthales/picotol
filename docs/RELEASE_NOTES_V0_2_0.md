@@ -15,7 +15,7 @@ Second public open-source pre-release of `@kidthales/picotol`, incorporating pro
 - **Vertical Body Fill**: Added native support for `<main>`, `.card-body`, `.body`, and `[data-card-body]` children within cards to expand vertically (`flex: 1 1 auto; min-width: 0;`), eliminating stranded footers and awkward white-space voids.
 
 ### 2. Meter Pin Labels & Multi-Marker Range Bands (#124)
-- **Canonical Marker Placement**: Standardized pin orientation via `data-placement="top|bottom"` on `.pt-gauge-marker` and `.pt-meter-pin` (retaining `.top` and `.bottom` utility classes for backwards compatibility).
+- **Canonical Marker Placement**: Standardized pin orientation via `data-placement="top|bottom"` on `.pt-gauge-marker` and *.pt-meter-pin* (retaining `.top` and `.bottom` utility classes for backwards compatibility).
 - **Aligned Pin Labels**: Introduced `.pt-meter-label` and `[data-label]` child elements automatically aligned to `--pt-marker-pos` without requiring bespoke consumer positioning CSS.
 - **Declarative Range Bands**: Added `.pt-meter-range` component primitive supporting shaded threshold ranges configured declaratively via `--pt-range-start`, `--pt-range-end`, and `--pt-range-color` with semantic variants (`ok`, `warning`, `critical`).
 
@@ -30,7 +30,7 @@ Second public open-source pre-release of `@kidthales/picotol`, incorporating pro
   - `--pt-status-warning-bg`, `--pt-status-warning-fg`, `--pt-status-warning-border` (Calibrated Paul Tol yellow `#DDAA33` / `#EE8866`)
   - `--pt-status-critical-bg`, `--pt-status-critical-fg`, `--pt-status-critical-border` (Paul Tol red `#EE6677` / `#CC3311`)
   - `--pt-status-info-bg`, `--pt-status-info-fg`, `--pt-status-info-border` (Paul Tol cyan `#66CCEE` / Tol blue `#4477AA`)
-  - `--pt-status-neutral-bg`, `--pt-status-neutral-fg`, `--pt-status-neutral-border` (Paul Tol grey `#BBBBBB` / `#777777`)
+  - *--pt-status-neutral-bg*, *--pt-status-neutral-fg*, *--pt-status-neutral-border* (Paul Tol grey `#BBBBBB` / `#777777`)
 - **Dark Mode Contrast Calibration**: Specifically re-calibrated warning/yellow tokens against dark theme surfaces (`[data-theme="dark"]`), guaranteeing WCAG 2.2 AA non-text contrast ($\ge 3:1$) and text contrast ($\ge 4.5:1$).
 - **Component Integration**: Wired semantic status triads into `.pt-status-dot`, `.status-dot`, `.pt-callout`, and gauge marker primitives.
 

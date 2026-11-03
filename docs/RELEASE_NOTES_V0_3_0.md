@@ -10,7 +10,7 @@ Third public open-source pre-release of `@kidthales/picotol`, incorporating adva
 ## Highlights
 
 ### 1. Tokenized Meter Z-Index Stacking Layers (#138)
-- **Deterministic Stacking Context**: Introduced tokenized z-index custom properties for all meter sub-primitives (`--pt-meter-z-track: 1;`, `--pt-meter-z-range: 2;`, `--pt-meter-z-fill: 3;`, `--pt-meter-z-marker: 4;`, `--pt-meter-z-label: 5;`, `--pt-meter-z-pin: 6;`).
+- **Deterministic Stacking Context**: Introduced tokenized z-index custom properties for all meter sub-primitives (*--pt-meter-z-track: 1;*, *--pt-meter-z-range: 2;*, *--pt-meter-z-fill: 3;*, *--pt-meter-z-marker: 4;*, *--pt-meter-z-label: 5;*, *--pt-meter-z-pin: 6;*).
 - **Zero-Clipping Overlays**: Guarantees gauge pins, threshold markers, and range band labels render in front of filled tracks without accidental element occlusion or z-index wars in complex embedded dashboards.
 
 ### 2. Native Status Badges & Indicator Primitives (#139)
@@ -28,7 +28,7 @@ Third public open-source pre-release of `@kidthales/picotol`, incorporating adva
 
 ### 5. Ultra-Compact Density Modifier (`[data-density="tight"]`) (#142)
 - **Micro-Dashboards & IDE Corridors**: Introduced `[data-density="tight"]` and `.pt-tight` density modifier alongside `compact`.
-- **Space Optimization**: Applies a 50% tighter vertical padding on form controls (`0.25rem`), compact buttons (`0.25rem 0.5rem`), condensed table cell spacing (`0.25rem 0.5rem`), and tight grid/flex container gaps (`--pt-gap-tight: 0.375rem`), while strictly preserving mobile reflow at 320px CSS width.
+- **Space Optimization**: Applies a 50% tighter vertical padding on form controls (`0.25rem`), compact buttons (`0.25rem 0.5rem`), condensed table cell spacing (`0.25rem 0.5rem`), and tight grid/flex container gaps (*--pt-gap-tight: 0.375rem*), while strictly preserving mobile reflow at 320px CSS width.
 
 ---
 

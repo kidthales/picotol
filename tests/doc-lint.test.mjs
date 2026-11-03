@@ -19,38 +19,8 @@ const ROOT = path.resolve(__dirname, '..');
 const REMOVE_BY_ANCHORED_RE =
   /^[ \t]*\/\/[ \t]*REMOVE-BY:[ \t]*#200\b[^\r\n]*\r?\n(?:[ \t]*\/\/[^\r\n]*\r?\n)*export[ \t]+const[ \t]+TEMPORARY_ALLOWLIST[ \t]*=/m;
 
-// REMOVE-BY: #200
-// Temporary file-and-count-scoped allowlist for phantom/historical tokens documented in Issue #199.
-// Each entry pins the exact occurrence count in its scoped file so any new use in the same file fails closed.
-// Tracked for complete elimination/erratum under Issue #200.
-export const TEMPORARY_ALLOWLIST = [
-  { file: 'README.md', token: '--pt-font-emoji', count: 2 },
-  { file: 'README.md', token: '--pt-status-neutral-*', count: 1 },
-  { file: 'README.md', token: '.pt-meter-pin', count: 1 },
-  { file: 'CHANGELOG.md', token: '.pt-popover__surface', count: 1 },
-  { file: 'CHANGELOG.md', token: '.pt-dot--sm', count: 1 },
-  { file: 'CHANGELOG.md', token: '.pt-meter__marker', count: 2 },
-  { file: 'CHANGELOG.md', token: '.pt-meter__track', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '.pt-meter-pin', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-bg', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-fg', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-status-neutral-border', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-track', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-range', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-fill', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-marker', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-label', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-meter-z-pin', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_3_0.md', token: '--pt-gap-tight', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover__surface', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--align-end', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--align-center', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-popover--top', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '--pt-popover-shadow', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-dot--sm', count: 1 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-meter__marker', count: 2 },
-  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.pt-meter__track', count: 1 },
-];
+// Empty allowlist following Issue #200 (all phantom APIs retracted and documentation reconciled).
+export const TEMPORARY_ALLOWLIST = [];
 
 test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs/RELEASE_NOTES_*.md against dist/picotol.css', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
@@ -114,23 +84,27 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
   ]);
 
   // 5. File-scoped allowlist isolation: a token allowlisted in CHANGELOG.md fails if introduced in README.md
-  const crossFileLeak = validateDocTokens('See `.pt-popover__surface` in README.', distCss, 'README.md', TEMPORARY_ALLOWLIST);
+  const mockAllowlist = [
+    { file: 'CHANGELOG.md', token: '.pt-mock-scoped', count: 1 },
+    { file: 'README.md', token: '.pt-mock-pinned', count: 1 },
+  ];
+  const crossFileLeak = validateDocTokens('See `.pt-mock-scoped` in README.', distCss, 'README.md', mockAllowlist);
   assert.deepEqual(
     crossFileLeak.missing,
-    ['.pt-popover__surface'],
+    ['.pt-mock-scoped'],
     'Allowlisted token for CHANGELOG.md must fail if referenced in README.md'
   );
 
   // 6. Count-scoped allowlist isolation: a new additional use of an allowlisted phantom in the same file is caught
   const extraSameFileUse = validateDocTokens(
-    'First `.pt-meter-pin` and second `.pt-meter-pin` in README.',
+    'First `.pt-mock-pinned` and second `.pt-mock-pinned` in README.',
     distCss,
     'README.md',
-    TEMPORARY_ALLOWLIST
+    mockAllowlist
   );
   assert.deepEqual(
     extraSameFileUse.missing,
-    ['.pt-meter-pin'],
+    ['.pt-mock-pinned'],
     'Additional use of allowlisted token beyond its pinned count in the same file must fail'
   );
 });
@@ -138,8 +112,23 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
 test('doc-lint: parser handles compound selectors, wildcard/brace validation, fenced blocks, HTML class attributes, multi-line code spans, and usage-vs-definition checks', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
 
-  // Compound selectors extract all classes
-  assert.deepEqual(extractTokensFromMarkdown('Use `.pt-a.pt-b` together.'), ['.pt-a', '.pt-b']);
+  // Compound selectors and combinators (child >, descendant, sibling) extract all classes
+  assert.deepEqual(
+    extractTokensFromMarkdown('Use `.pt-a.pt-b`, `.pt-parent > .pt-child`, and `.segmented-fill > *` together.'),
+    ['.pt-a', '.pt-b', '.pt-parent', '.pt-child', '.segmented-fill']
+  );
+
+  // Phantom compound selectors with child combinator (>) fail closed against dist/picotol.css
+  const phantomCompoundResult = validateDocTokens(
+    'Use `.segmented-control--fill > .segmented-item` in markup.',
+    distCss,
+    'README.md',
+    TEMPORARY_ALLOWLIST
+  );
+  assert.deepEqual(phantomCompoundResult.missing, [
+    '.segmented-control--fill',
+    '.segmented-item',
+  ]);
 
   // Backticks with * or { outside the token name still extract the token
   assert.deepEqual(extractTokensFromMarkdown('Selector `.pt-phantom *` and `.pt-x{color:red}`.'), [
@@ -149,10 +138,12 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
 
   // Wildcard and brace-expansion patterns are extracted and validated against dist/picotol.css (never silently skipped)
   assert.deepEqual(
-    extractTokensFromMarkdown('Patterns `--pt-*`, `.pt-meter-mark--*`, and `--pt-status-{ok,warning}-{fg,bg}`.'),
+    extractTokensFromMarkdown('Patterns `--pt-*`, `.pt-meter-mark--*`, `.segmented-{fill,equal}`, and `--pt-status-{ok,warning}-{fg,bg}`.'),
     [
       '--pt-*',
       '.pt-meter-mark--*',
+      '.segmented-fill',
+      '.segmented-equal',
       '--pt-status-ok-fg',
       '--pt-status-ok-bg',
       '--pt-status-warning-fg',
@@ -162,7 +153,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
 
   // Valid wildcard and brace patterns pass against dist/picotol.css
   const validPatternsResult = validateDocTokens(
-    'Valid `--pt-*`, `--pt-status-*-fg`, `.pt-meter-mark--*`, and `--pt-status-{ok,warning}-{fg,bg}`.',
+    'Valid `--pt-*`, `--pt-status-*-fg`, `.pt-meter-mark--*`, `.segmented-{fill,equal}`, and `--pt-status-{ok,warning}-{fg,bg}`.',
     distCss,
     'README.md',
     TEMPORARY_ALLOWLIST
@@ -171,7 +162,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
 
   // Phantom wildcard and phantom brace branches fail closed against dist/picotol.css
   const phantomPatternsResult = validateDocTokens(
-    'Invalid `--pt-phantom-*-fg`, `.pt-phantom--*`, and `--pt-status-{ok,phantom}-fg`.',
+    'Invalid `--pt-phantom-*-fg`, `.pt-phantom--*`, `.segmented-{fill,phantom}`, and `--pt-status-{ok,phantom}-fg`.',
     distCss,
     'README.md',
     TEMPORARY_ALLOWLIST
@@ -179,6 +170,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
   assert.deepEqual(phantomPatternsResult.missing, [
     '--pt-phantom-*-fg',
     '.pt-phantom--*',
+    '.segmented-phantom',
     '--pt-status-phantom-fg',
   ]);
 
@@ -259,7 +251,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
   assert.equal(tokenExistsInCss('.pt-in-single-quoted-string', sampleCss), false, 'Class inside string value must not count as selector definition');
 });
 
-test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, match their exact pinned count in their scoped file section, and be guarded by adjacent REMOVE-BY: #200', () => {
+test('doc-lint: TEMPORARY_ALLOWLIST must remain empty following Issue #200 and historical allowlist isolation semantics remain enforced', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const currentVersion = pkg.version;
@@ -281,6 +273,17 @@ test('doc-lint: TEMPORARY_ALLOWLIST entries must be strictly phantom, match thei
     '// REMOVE-BY: #200\nconst other = 1;\nexport const TEMPORARY_ALLOWLIST = [];',
     REMOVE_BY_ANCHORED_RE,
     'Code statement between // REMOVE-BY: #200 and export const TEMPORARY_ALLOWLIST must be rejected'
+  );
+
+  assert.equal(
+    TEMPORARY_ALLOWLIST.length,
+    0,
+    'TEMPORARY_ALLOWLIST must be empty following Issue #200'
+  );
+  assert.doesNotMatch(
+    selfSource,
+    REMOVE_BY_ANCHORED_RE,
+    '// REMOVE-BY: #200 marker must be removed once TEMPORARY_ALLOWLIST is emptied'
   );
 
   if (TEMPORARY_ALLOWLIST.length > 0) {

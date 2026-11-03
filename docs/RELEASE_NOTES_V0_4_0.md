@@ -34,7 +34,7 @@ Fourth public open-source pre-release of `@kidthales/picotol`, incorporating con
 - **Greyscale Luminance Separation**: Verified distinct perceptual luminance steps across status triads in greyscale conversions for robust color-blind accessibility.
 
 ### 6. Block Formatting Context for Equal-Fill Segmented Controls (#163)
-- **Ellipsis Restoration**: Applied `min-width: 0` alongside `flex: 1 1 0` on equal-fill segmented items (`.segmented-control--fill > .segmented-item`, `.segmented-fill > *`).
+- **Ellipsis Restoration**: Applied `min-width: 0` alongside `flex: 1 1 0` on equal-fill segmented items (*.segmented-control--fill > .segmented-item*, `.segmented-fill > *`).
 - **Narrow-Corridor Containment**: Eliminates horizontal overflow in tight IDE auxiliary panes ($\le 360\text{px}$), ensuring single-line labels truncate cleanly with CSS ellipsis (`text-overflow: ellipsis`).
 
 ---

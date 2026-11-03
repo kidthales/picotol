@@ -120,11 +120,11 @@ export function extractTokenOccurrencesFromMarkdown(content) {
   flushProseParagraphs();
 
   const occurrences = [];
-  const tokenRe = /(\.pt-[a-zA-Z0-9_*-]+|(?<![\w-])--pt-[a-zA-Z0-9_*-]+)(?![\w*-])/g;
+  const tokenRe = /(\.(?:pt|segmented)-[a-zA-Z0-9_*-]+|(?<![\w-])--pt-[a-zA-Z0-9_*-]+)(?![\w*-])/g;
   const braceTokenRe =
-    /(?:\.pt|--pt|(?<=[\s"'=])pt)-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
+    /(?:\.(?:pt|segmented)|--pt|(?<=[\s"'=])(?:pt|segmented))-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
   const htmlClassAttrRe = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g;
-  const bareClassTokenRe = /^pt-[a-zA-Z0-9_*-]+$/;
+  const bareClassTokenRe = /^(?:pt|segmented)-[a-zA-Z0-9_*-]+$/;
 
   for (const rawSegment of codeSegments) {
     const expandedSegment = rawSegment.replace(braceTokenRe, (match) =>
