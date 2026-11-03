@@ -32,7 +32,7 @@
     & li { margin-bottom: 0.25rem; }
   }
   dt { font-weight: 700; }
-  dd { margin: 0 0 0.5rem 1.5rem; }
+  dd { margin: 0 0 0.5rem; margin-inline-start: 1.5rem; }
 
   small { font-size: 0.875em; }
   mark { padding: 0.125em 0.25em; border-radius: var(--pt-border-radius); background: var(--pt-mark-bg); color: var(--pt-color); }

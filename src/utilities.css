@@ -1,6 +1,6 @@
 @layer utilities {
   :where(.pt-tabular--align-end) {
-    text-align: right;
+    text-align: end;
     justify-content: flex-end;
   }
 }

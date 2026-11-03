@@ -200,6 +200,7 @@ export function generateDemoHtml(fullMinCss, stats) {
         <li><a href="#tables">Tables</a></li>
         <li><a href="#components">Components</a></li>
         <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#rtl">RTL</a></li>
         <li><a href="#palettes">Palettes</a></li>
       </ul>
       <ul>
@@ -1156,8 +1157,43 @@ ${rowsHtml}
 
     <hr>
 
+    <section id="rtl" dir="rtl">
+      <h2>9. Right-to-Left (RTL) Logical Layout</h2>
+      <p>Native RTL layout support using CSS Logical Properties (<code>inset-inline-*</code>, <code>margin-inline-*</code>, <code>text-align: end</code>, <code>float: inline-start</code>, and <code>:dir(rtl)</code> overrides).</p>
+      <div class="grid">
+        <article class="card">
+          <header><strong>RTL Form Controls</strong></header>
+          <label for="rtl-select">Select with Logical Chevron</label>
+          <select id="rtl-select" class="mb-0">
+            <option>Option 1 (RTL Chevron)</option>
+            <option>Option 2</option>
+          </select>
+          <label>
+            <input type="checkbox" checked>
+            Checkbox with logical inline-end margin
+          </label>
+        </article>
+        <article class="card">
+          <header><strong>RTL Badges &amp; Breadcrumb</strong></header>
+          <nav aria-label="breadcrumb">
+            <ul>
+              <li><a href="#">Home</a></li>
+              <li><a href="#">Docs</a></li>
+              <li><a href="#rtl" aria-current="page">RTL</a></li>
+            </ul>
+          </nav>
+          <div class="flex">
+            <span class="pt-badge pt-badge--numeric">#42</span>
+            <span class="pt-tabular pt-tabular--align-end">1,234.50</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <hr>
+
     <section id="palettes">
-      <h2>9. Paul Tol Canonical Palette Explorer</h2>
+      <h2>10. Paul Tol Canonical Palette Explorer</h2>
       <p>Explore canonical color-blind safe palettes authored by Dr. Paul Tol. Click any swatch or token to copy its CSS custom property to the clipboard.</p>
       <div role="search">
         <input type="search" id="palette-search" placeholder="Search by scheme (e.g. vibrant), name (e.g. cyan), token, or hex..." aria-label="Search Paul Tol palettes">

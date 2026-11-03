@@ -40,6 +40,7 @@
   :where(select) {
     background: var(--pt-bg) var(--pt-icon-chevron) no-repeat right 0.75rem center / 0.75rem;
     padding-inline-end: 2.25rem;
+    &:dir(rtl) { background-position: left 0.75rem center; }
   }
 
   [type="search"] { border-radius: 99px; }
@@ -54,7 +55,8 @@
   :where([type="checkbox"], [type="radio"]) {
     width: 1.5rem;
     height: 1.5rem;
-    margin: -2px 0.5rem 0 0;
+    margin: -2px 0 0;
+    margin-inline-end: 0.5rem;
     vertical-align: middle;
     accent-color: var(--pt-primary);
     cursor: pointer;
