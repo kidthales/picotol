@@ -1030,7 +1030,7 @@
 
     :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) & {
       --pt-btn-padding-block: 1px;
-      padding-block: var(--pt-btn-padding-block);
+      padding-block: var(--pt-btn-padding-block, var(--pt-form-y));
     }
 
     &:hover {

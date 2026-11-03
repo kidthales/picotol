@@ -13,9 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the duplicate nested `.pt-meter:has(...)` `overflow: visible` rule (already covered by `:where(.pt-meter, .pt-progress):has(...)`) and the no-op `justify-content: center` declaration on `display: block` `.segmented-fill > *` items (#220).
 
 ### Deprecated
+- Deprecated derived :root density tokens (`--pt-form-element-spacing-vertical`, `--pt-form-element-spacing-horizontal`, `--pt-btn-padding-block`) in favor of scoped base-token overrides; retained as compatibility aliases marked `/* @deprecated: removed in v0.6.0 */` (#203).
 - Deprecated `.toast[aria-hidden="false"]` as a standalone toast activation selector in favor of `.toast.show`; retained as a compatibility alias scheduled for removal in v0.7.0 (#220).
 
 ### Fixed
+- Late-bound button and form control density tokens through fallback chains (`var(--pt-btn-padding-block, var(--pt-form-y))`, `var(--pt-form-element-spacing-vertical, var(--pt-form-y))`, `var(--pt-form-element-spacing-horizontal, var(--pt-form-x))`) so `.small`/`.sm` and nested `[data-density="compact"]` successfully shrink vertical padding, enforced via AST static cascade linter (#203).
 - Hid inactive `.toast` elements from the accessibility tree and sequential focus navigation with `visibility: hidden` (delayed via `visibility 0s linear 0.2s` until opacity fade-out completes) (#220).
 
 ## [0.5.0] - 2026-10-30

@@ -71,7 +71,7 @@
 
   :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"], .button, .btn) {
     display: inline-block;
-    padding: var(--pt-btn-padding-block) var(--pt-form-x);
+    padding: var(--pt-btn-padding-block, var(--pt-form-y)) var(--pt-form-x);
     border: 1px solid var(--pt-primary);
     border-radius: var(--pt-border-radius);
     background: var(--pt-primary-bg);
