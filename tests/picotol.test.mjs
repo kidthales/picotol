@@ -3929,14 +3929,18 @@ test("Toast production bundles set visibility:hidden when hidden, reset transiti
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
   const changelog = fs.readFileSync(path.join(ROOT, "CHANGELOG.md"), "utf8");
 
-  assert.match(readme, /transition-delay:\s*0s/, "README must document toast transition-delay: 0s entrance reset");
-  assert.match(readme, /aria-hidden="true"/, "README must warn against combining .show with aria-hidden=\"true\"");
-  assert.match(readme, /aria-live/, "README must document live-region announcement behavior with visibility: hidden");
+  const toastSectionMatch = readme.match(/6\.\s+\*\*Accessible Toasts[\s\S]*?(?=\n---|\n## )/);
+  assert.ok(toastSectionMatch, "README must contain section 6. Accessible Toasts");
+  const toastReadme = toastSectionMatch[0];
+
+  assert.match(toastReadme, /transition-delay:\s*0s/, "README toast section must document transition-delay: 0s entrance reset");
+  assert.match(toastReadme, /never pair `\.show` with `aria-hidden="true"`/, "README toast section must warn against pairing .show with aria-hidden=\"true\"");
+  assert.match(toastReadme, /role="status"[\s\S]*?role="alert"[\s\S]*?aria-live/, "README toast section must document role=\"status\", role=\"alert\", and aria-live announcement behavior");
   assert.match(changelog, /### Deprecated[\s\S]*?\[aria-hidden="false"\][\s\S]*?v0\.7\.0/, "CHANGELOG must include a ### Deprecated entry for [aria-hidden=\"false\"] removal in v0.7.0");
   assert.match(changelog, /### Fixed[\s\S]*?visibility:\s*hidden/, "CHANGELOG must include a ### Fixed entry for hiding inactive toasts with visibility: hidden");
 });
 
-test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-events:auto and a zero-gap ::after hover bridge (Issue #220)", () => {
+test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-events:auto and a full-overhang ::after hover bridge (Issue #220)", () => {
   const bundles = [
     "dist/picotol.min.css",
     "dist/picotol.layer.min.css",
@@ -3952,6 +3956,20 @@ test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-e
       values.push(...collectPointerEventsValues(child));
     }
     return values;
+  }
+
+  function resolvePseudoDeclarations(activeRule, pseudoName) {
+    const pseudoRe = new RegExp(`^&::?${pseudoName}$`);
+    const merged = {};
+    let matchedCount = 0;
+    for (const r of activeRule.rules) {
+      const parts = splitSelectors(r.selector);
+      if (parts.some((p) => pseudoRe.test(p))) {
+        matchedCount++;
+        Object.assign(merged, r.declarations);
+      }
+    }
+    return { matchedCount, declarations: merged };
   }
 
   for (const relPath of bundles) {
@@ -3971,7 +3989,7 @@ test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-e
       `${relPath}: [data-tooltip] must not contain pointer-events: none (found: ${allPointerEvents.join(", ")})`
     );
 
-    // Locate hover/focus-visible container rule and its ::before (bubble) and ::after (hover bridge) rules
+    // Locate hover/focus-visible container rule and resolve effective ::before (bubble) and ::after (hover bridge) declarations
     const activeRules = tooltipRule.rules.filter((r) =>
       /^&:is\(\s*:hover\s*,\s*:focus-visible\s*\)$/.test(r.selector)
     );
@@ -3982,23 +4000,37 @@ test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-e
     );
     const activeRule = activeRules[0];
 
-    const beforeRules = activeRule.rules.filter((r) => /^&::?before$/.test(r.selector));
-    const afterRules = activeRule.rules.filter((r) => /^&::?after$/.test(r.selector));
-    assert.equal(beforeRules.length, 1, `${relPath}: [data-tooltip] active rule must define &::before bubble`);
-    assert.equal(afterRules.length, 1, `${relPath}: [data-tooltip] active rule must define &::after hover bridge`);
+    const beforeRes = resolvePseudoDeclarations(activeRule, "before");
+    const afterRes = resolvePseudoDeclarations(activeRule, "after");
+    assert.ok(beforeRes.matchedCount >= 1, `${relPath}: [data-tooltip] active rule must define &::before bubble`);
+    assert.ok(afterRes.matchedCount >= 1, `${relPath}: [data-tooltip] active rule must define &::after hover bridge`);
 
-    const beforeDecl = beforeRules[0].declarations;
-    const afterDecl = afterRules[0].declarations;
+    const beforeDecl = beforeRes.declarations;
+    const afterDecl = afterRes.declarations;
 
     assert.equal(beforeDecl.content, "attr(data-tooltip)", `${relPath}: ::before must render attr(data-tooltip)`);
     assert.equal(beforeDecl.position, "absolute", `${relPath}: ::before must be position: absolute`);
     assert.equal(beforeDecl["pointer-events"], "auto", `${relPath}: ::before must set pointer-events: auto`);
+    assert.equal(beforeDecl.left, "50%", `${relPath}: ::before must center at left: 50%`);
+    assert.match(beforeDecl.transform ?? "", /^translateX?\(-50%\)$/, `${relPath}: ::before must center with translateX(-50%)`);
+    assert.equal(beforeDecl["z-index"], "99", `${relPath}: ::before must set z-index: 99`);
 
     assert.equal(afterDecl.content, '""', `${relPath}: ::after hover bridge must set content: ""`);
     assert.equal(afterDecl.position, "absolute", `${relPath}: ::after hover bridge must be position: absolute`);
     assert.equal(afterDecl["pointer-events"], "auto", `${relPath}: ::after hover bridge must set pointer-events: auto`);
     assert.equal(afterDecl.bottom, "100%", `${relPath}: ::after hover bridge must start at bottom: 100% (top edge of trigger)`);
-    assert.equal(afterDecl["inset-inline"], "0", `${relPath}: ::after hover bridge must span full trigger width (inset-inline: 0)`);
+    assert.equal(afterDecl.left, "50%", `${relPath}: ::after hover bridge must center at left: 50%`);
+    assert.match(afterDecl.transform ?? "", /^translateX?\(-50%\)$/, `${relPath}: ::after hover bridge must center with translateX(-50%)`);
+    assert.equal(
+      afterDecl["z-index"],
+      beforeDecl["z-index"],
+      `${relPath}: ::after hover bridge must share z-index (${beforeDecl["z-index"]}) with ::before bubble`
+    );
+    assert.equal(
+      afterDecl.width,
+      beforeDecl["max-width"],
+      `${relPath}: ::after hover bridge width (${afterDecl.width}) must cover ::before max-width (${beforeDecl["max-width"]}) for diagonal overhang travel`
+    );
 
     // Geometric continuity check: bridge height must cover the exact vertical gap below the bubble
     const gapMatch = (beforeDecl.bottom ?? "").match(/^calc\(100%\s*\+\s*(0?\.\d+|\d+(?:\.\d+)?)rem\)$/);
@@ -4013,17 +4045,69 @@ test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-e
       bridgeHeightRem >= bubbleGapRem && bubbleGapRem > 0,
       `${relPath}: ::after bridge height (${bridgeHeightRem}rem) must bridge the full ::before offset (${bubbleGapRem}rem) with zero dead zone`
     );
+
+    // Verify restored .sheet:has(> article), [role="progressbar"]:not(progress):has(...), and deduplicated .pt-meter / .segmented-fill
+    const sheetRule = parsed.rules.find((r) => r.selector.startsWith(":where(.sheet"));
+    assert.ok(sheetRule, `${relPath}: must define .sheet rule`);
+    const sheetHasArticle = sheetRule.rules.find((r) => /^&:has\(\s*>\s*article\s*\)$/.test(r.selector));
+    assert.ok(sheetHasArticle, `${relPath}: .sheet must nest &:has(> article)`);
+    assert.equal(sheetHasArticle.declarations["align-items"], "stretch", `${relPath}: .sheet:has(> article) must preserve align-items: stretch`);
+    assert.equal(sheetHasArticle.declarations["justify-content"], "flex-start", `${relPath}: .sheet:has(> article) must preserve justify-content: flex-start`);
+
+    const progressRoleRule = parsed.rules.find((r) => r.selector.includes('[role="progressbar"]:not(progress)') || r.selector.includes("[role=progressbar]:not(progress)"));
+    assert.ok(progressRoleRule, `${relPath}: must define [role=progressbar]:not(progress) rule`);
+    const progressHasMarker = progressRoleRule.rules.find((r) => r.selector.startsWith("&:has(.pt-gauge-marker"));
+    assert.ok(progressHasMarker, `${relPath}: [role=progressbar]:not(progress) must nest &:has(.pt-gauge-marker, ...) rule`);
+    assert.equal(progressHasMarker.declarations.overflow, "visible", `${relPath}: [role=progressbar]:not(progress) with markers must set overflow: visible`);
+
+    const meterProgressHasMarker = parsed.rules.find((r) => r.selector.startsWith(":where(.pt-meter") && r.selector.includes(":has(.pt-gauge-marker"));
+    assert.ok(meterProgressHasMarker, `${relPath}: must define :where(.pt-meter, .pt-progress):has(...) rule`);
+    assert.equal(meterProgressHasMarker.declarations.overflow, "visible", `${relPath}: :where(.pt-meter, .pt-progress):has(...) must set overflow: visible`);
+
+    const meterRule = parsed.rules.find((r) => r.selector === ":where(.pt-meter)");
+    assert.ok(meterRule, `${relPath}: must define :where(.pt-meter) rule`);
+    assert.ok(
+      !meterRule.rules.some((r) => r.selector.startsWith("&:has(.pt-gauge-marker")),
+      `${relPath}: :where(.pt-meter) must not duplicate nested &:has(.pt-gauge-marker) rule`
+    );
+
+    const tablistRule = parsed.rules.find((r) => r.selector.includes("tablist") && r.selector.includes(".segmented"));
+    assert.ok(tablistRule, `${relPath}: must define :where([role="tablist"], .segmented) rule`);
+    const segGroupRule = tablistRule.rules.find((r) => r.selector.includes("segmented-fill"));
+    assert.ok(segGroupRule, `${relPath}: must define nested .segmented / .segmented-fill rule`);
+    const segFillRule = segGroupRule.rules.find((r) => r.selector.includes("segmented-fill"));
+    assert.ok(segFillRule, `${relPath}: must define &:is(.segmented-fill, .segmented-equal, .fill) rule`);
+    const segFillChildRule = segFillRule.rules.find((r) => /^&\s*>\s*\*$/.test(r.selector));
+    assert.ok(segFillChildRule, `${relPath}: .segmented-fill must define & > * child rule`);
+    assert.equal(segFillChildRule.declarations.display, "block", `${relPath}: .segmented-fill > * must set display: block`);
+    assert.equal(segFillChildRule.declarations["text-align"], "center", `${relPath}: .segmented-fill > * must set text-align: center`);
+    assert.ok(
+      !Object.hasOwn(segFillChildRule.declarations, "justify-content"),
+      `${relPath}: display: block .segmented-fill > * must omit no-op justify-content`
+    );
   }
 
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const changelog = fs.readFileSync(path.join(ROOT, "CHANGELOG.md"), "utf8");
   const compSource = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
 
-  assert.match(readme, /aria-describedby/, "README must require pairing non-decorative tooltips with aria-describedby or aria-label");
-  assert.match(readme, /Escape/, "README must document pure-CSS Escape dismissal limitation under WCAG 2.1 SC 1.4.13");
-  assert.match(readme, /Nov 2026/, "README must date-stamp the interestfor evaluation");
-  assert.match(readme, /open-ui\.org\/components\/interest-invokers/, "README must link a source for the interestfor evaluation");
-  assert.match(readme, /overflow:\s*hidden/, "README must call out overflow: hidden ancestor clipping on tooltips");
-  assert.match(compSource, /Escape/, "src/components.css comment must note pure-CSS Escape dismissal limitation");
+  const tooltipSectionMatch = readme.match(/3\.\s+\*\*Accessible Tooltips[\s\S]*?(?=\n4\.\s+\*\*)/);
+  assert.ok(tooltipSectionMatch, "README must contain section 3. Accessible Tooltips");
+  const tooltipReadme = tooltipSectionMatch[0];
+
+  const tooltipCommentMatch = compSource.match(/\/\*\s*9\.\s*Tooltip[\s\S]*?\*\/\s*\[data-tooltip\]/);
+  assert.ok(tooltipCommentMatch, "src/components.css must have a section 9 comment immediately preceding [data-tooltip]");
+  const tooltipComment = tooltipCommentMatch[0];
+
+  assert.match(tooltipReadme, /aria-describedby/, "README tooltip section must require pairing non-decorative tooltips with aria-describedby or aria-label");
+  assert.match(tooltipReadme, /SC 1\.4\.13[\s\S]*?Escape/, "README tooltip section must document pure-CSS Escape dismissal limitation under WCAG 2.1 SC 1.4.13");
+  assert.match(tooltipReadme, /not supported on hosts with their own `::before` or `::after`/, "README tooltip section must document ::before / ::after host collision limitation");
+  assert.match(tooltipReadme, /Nov 2026/, "README tooltip section must date-stamp the interestfor evaluation");
+  assert.match(tooltipReadme, /open-ui\.org\/components\/interest-invokers/, "README tooltip section must link a source for the interestfor evaluation");
+  assert.match(tooltipReadme, /overflow:\s*hidden/, "README tooltip section must call out overflow: hidden ancestor clipping on tooltips");
+  assert.match(tooltipComment, /Escape/, "src/components.css section 9 comment must note pure-CSS Escape dismissal limitation");
+  assert.match(tooltipComment, /::before\/::after/, "src/components.css section 9 comment must note host ::before/::after limitation");
+  assert.match(changelog, /\.pt-meter:has\(\.\.\.\)[\s\S]*?justify-content:\s*center/, "CHANGELOG must document the .pt-meter:has(...) and .segmented-fill justify-content dedupes");
 });
 
 

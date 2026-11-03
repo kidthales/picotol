@@ -1112,6 +1112,8 @@
     }
 
     &:has( > article) {
+      justify-content: flex-start;
+      align-items: stretch;
       padding: 0;
     }
 
@@ -1263,6 +1265,10 @@
     display: block;
     position: relative;
     overflow: hidden;
+
+    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+      overflow: visible;
+    }
   }
 
   :where(.pt-progress-fill, .pt-meter-fill) {
@@ -1517,9 +1523,16 @@
     }
 
     &:is(:hover, :focus-visible) {
+      &:before, &:after {
+        z-index: 99;
+        pointer-events: auto;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
       &:before {
         content: attr(data-tooltip);
-        z-index: 99;
         border-radius: var(--pt-border-radius);
         background-color: var(--pt-color);
         width: max-content;
@@ -1527,22 +1540,16 @@
         color: var(--pt-bg);
         text-align: center;
         white-space: normal;
-        pointer-events: auto;
         padding: .25rem .5rem;
         font-size: .875rem;
-        position: absolute;
         bottom: calc(100% + .375rem);
-        left: 50%;
-        transform: translateX(-50%);
       }
 
       &:after {
         content: "";
-        bottom: 100%;
-        pointer-events: auto;
+        width: min(16rem, 80vw);
         height: .375rem;
-        position: absolute;
-        inset-inline: 0;
+        bottom: 100%;
       }
     }
   }

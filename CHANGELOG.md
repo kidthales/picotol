@@ -8,8 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Standardized toast activation on the `.show` class (`visibility: visible; transition-delay: 0s;`) and documented live-region (`role="status"` / `aria-live`) and `aria-hidden` state pairing (#220).
-- Made pure CSS tooltips (`[data-tooltip]`) hoverable per WCAG 2.1 SC 1.4.13 with `pointer-events: auto` on `::before` and a `0.375rem` `::after` hover buffer bridging the trigger-to-bubble gap, and documented `aria-describedby` pairing, pure-CSS `Escape` dismissal limits, hit-testing/clipping caveats, and the Nov 2026 `interestfor` evaluation (#220).
+- Standardized toast activation on the `.show` class (`visibility: visible; transition-delay: 0s;`) and documented live-region (`role="status"`, `role="alert"`, `aria-live`) and `aria-hidden` state pairing (#220).
+- Made pure CSS tooltips (`[data-tooltip]`) hoverable per WCAG 2.1 SC 1.4.13 with `pointer-events: auto` on `::before` and a centered `min(16rem, 80vw)` by `0.375rem` `::after` hover bridge spanning the trigger-to-bubble overhang and gap, and documented `aria-describedby` pairing, pure-CSS `Escape` dismissal limits, unsupported host `::before`/`::after` collisions, hit-testing/clipping caveats, and the Nov 2026 `interestfor` evaluation (#220).
+- Removed the duplicate nested `.pt-meter:has(...)` `overflow: visible` rule (already covered by `:where(.pt-meter, .pt-progress):has(...)`) and the no-op `justify-content: center` declaration on `display: block` `.segmented-fill > *` items (#220).
 
 ### Deprecated
 - Deprecated `.toast[aria-hidden="false"]` as a standalone toast activation selector in favor of `.toast.show`; retained as a compatibility alias scheduled for removal in v0.7.0 (#220).

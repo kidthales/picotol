@@ -392,6 +392,8 @@
 
     &:has(> article) {
       padding: 0;
+      align-items: stretch;
+      justify-content: flex-start;
     }
 
     & > article {
@@ -540,6 +542,10 @@
     border-radius: var(--pt-progress-radius);
     background-color: var(--pt-progress-bg);
     vertical-align: middle;
+
+    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
+      overflow: visible;
+    }
   }
 
   :where(.pt-progress-fill, .pt-meter-fill) {
@@ -758,9 +764,9 @@
 
   @keyframes pt-spin { to { transform: rotate(360deg); } }
 
-  /* 9. Tooltip ([data-tooltip]) - WCAG 1.4.13: ::before (pointer-events: auto) + 0.375rem
-   * ::after bridge keep :hover across the gap; pure CSS cannot dismiss on Escape (use JS
-   * or Popover API). Pair with aria-describedby; interestfor (Nov 2026) is non-baseline.
+  /* 9. Tooltip ([data-tooltip]) - WCAG 1.4.13: ::before + 0.375rem ::after bridge keep
+   * :hover; no CSS Escape dismissal (use JS/Popover) or host ::before/::after support.
+   * Pair with aria-describedby; interestfor (Nov 2026) is non-baseline.
    */
   [data-tooltip] {
     position: relative;
@@ -770,31 +776,31 @@
       cursor: help;
     }
     &:is(:hover, :focus-visible) {
-      &::before {
-        content: attr(data-tooltip);
+      &::before, &::after {
         position: absolute;
-        bottom: calc(100% + 0.375rem);
         left: 50%;
         z-index: 99;
+        transform: translateX(-50%);
+        pointer-events: auto;
+      }
+      &::before {
+        content: attr(data-tooltip);
+        bottom: calc(100% + 0.375rem);
         width: max-content;
         max-width: min(16rem, 80vw);
         padding: 0.25rem 0.5rem;
-        transform: translateX(-50%);
         border-radius: var(--pt-border-radius);
         background-color: var(--pt-color);
         color: var(--pt-bg);
         font-size: 0.875rem;
         text-align: center;
         white-space: normal;
-        pointer-events: auto;
       }
       &::after {
         content: "";
-        position: absolute;
         bottom: 100%;
-        inset-inline: 0;
+        width: min(16rem, 80vw);
         height: 0.375rem;
-        pointer-events: auto;
       }
     }
   }
