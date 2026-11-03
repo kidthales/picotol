@@ -774,7 +774,7 @@
    * :hover; no CSS Escape dismissal (use JS/Popover) or host ::before/::after support.
    * Pair with aria-describedby; interestfor (Nov 2026) is non-baseline.
    */
-  [data-tooltip]:not([aria-busy="true"], summary, [role="switch"]) {
+  [data-tooltip]:not([aria-busy="true"], summary, [role="switch"], .close, dialog button:is([aria-label="Close" i], [rel="prev"])) {
     position: relative;
     &:not(a, button, input, [role="button"]) {
       border-bottom: 1px dotted;

@@ -1536,7 +1536,7 @@
       }
     }
 
-    [data-tooltip]:not([aria-busy="true"], summary, [role="switch"]) {
+    [data-tooltip]:not([aria-busy="true"], summary, [role="switch"], .close, dialog button:is([aria-label="Close" i], [rel="prev"])) {
       position: relative;
 
       &:not(a, button, input, [role="button"]) {

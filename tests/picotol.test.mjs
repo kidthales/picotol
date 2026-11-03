@@ -4445,8 +4445,12 @@ test("CSS pseudo-element conflicts, z-index tokens, hidden/fieldset, sheet speci
     "src/components.css must exclude summary from [aria-busy=\"true\"]::before spinner"
   );
   assert.ok(
-    compCss.includes('[data-tooltip]:not([aria-busy="true"], summary, [role="switch"])'),
-    "src/components.css must guard [data-tooltip] against aria-busy, summary, and role=switch"
+    compCss.includes('[data-tooltip]:not([aria-busy="true"], summary, [role="switch"], .close, dialog button:is([aria-label="Close" i], [rel="prev"]))'),
+    "src/components.css must guard [data-tooltip] against aria-busy, summary, role=switch, and dialog close buttons"
+  );
+  assert.ok(
+    !compCss.includes('[data-tooltip]:not([aria-busy="true"], summary, [role="switch"]) {'),
+    "src/components.css must not use incomplete [data-tooltip] guard omitting dialog close buttons"
   );
 
   // C10: --pt-z-* tokens replace hard-coded 98/99/100/999/9999; toast and skip-link no longer share 9999
@@ -4490,15 +4494,18 @@ test("CSS pseudo-element conflicts, z-index tokens, hidden/fieldset, sheet speci
     "src/components.css dialog / sheet must declare z-index: var(--pt-z-modal, 999)"
   );
 
-  // Negative assertion: no bare numeric z-index declarations remain across src/
-  const srcFiles = ["src/base.css", "src/content.css", "src/components.css", "src/layout.css"];
+  // Negative assertion: no bare numeric z-index declarations remain across src/ (excluding tokens.css)
+  const srcFiles = fs
+    .readdirSync(path.join(ROOT, "src"))
+    .filter((f) => f.endsWith(".css") && f !== "tokens.css")
+    .map((f) => path.join("src", f));
   for (const f of srcFiles) {
     const src = fs.readFileSync(path.join(ROOT, f), "utf8");
-    const bareZMatch = src.match(/(?<![a-zA-Z0-9_-])z-index\s*:\s*(?:98|99|100|999|9999)\s*;/g);
+    const bareZMatch = src.match(/(?<![a-zA-Z0-9_-])z-index\s*:\s*-?\d+\s*;/g);
     assert.equal(
       bareZMatch,
       null,
-      `${f} must contain zero bare numeric z-index (98|99|100|999|9999) declarations, found: ${bareZMatch?.join(", ")}`
+      `${f} must contain zero bare numeric z-index declarations, found: ${bareZMatch?.join(", ")}`
     );
   }
 
@@ -4511,6 +4518,10 @@ test("CSS pseudo-element conflicts, z-index tokens, hidden/fieldset, sheet speci
   assert.ok(
     baseCss.includes(':where([hidden]:not([hidden="until-found" i]))'),
     "src/base.css must scope [hidden] with case-insensitive :not([hidden=\"until-found\" i])"
+  );
+  assert.ok(
+    !baseCss.includes(":where([hidden]) {"),
+    "src/base.css must not contain un-scoped :where([hidden]) {"
   );
   assert.ok(
     contentCss.includes("fieldset[disabled] > :not(legend)"),
@@ -4560,9 +4571,20 @@ test("CSS pseudo-element conflicts, z-index tokens, hidden/fieldset, sheet speci
     compCss.includes('vertical-align: middle;'),
     "src/components.css [role=\"switch\"] must set vertical-align: middle"
   );
+  const switchCheckedMatches = compCss.match(/&:is\(:checked,\s*\[aria-checked="true"\]\)/g);
+  assert.equal(
+    switchCheckedMatches?.length,
+    2,
+    "src/components.css [role=\"switch\"] must style &:is(:checked, [aria-checked=\"true\"]) in both standard and forced-colors blocks"
+  );
+  const forcedColorsBlock = compCss.match(/@media\s*\(forced-colors:\s*active\)\s*\{([\s\S]*?)\n\s{2}\}/)?.[1] || "";
   assert.ok(
-    compCss.includes('&:is(:checked, [aria-checked="true"])'),
-    "src/components.css [role=\"switch\"] must style &:is(:checked, [aria-checked=\"true\"])"
+    forcedColorsBlock.includes('&:is(:checked, [aria-checked="true"])'),
+    "src/components.css must style &:is(:checked, [aria-checked=\"true\"]) within @media (forced-colors: active)"
+  );
+  assert.ok(
+    !compCss.includes("&:checked"),
+    "src/components.css [role=\"switch\"] must not use bare &:checked"
   );
   const normTokens = tokensCss.replace(/\r\n/g, "\n");
   assert.ok(
