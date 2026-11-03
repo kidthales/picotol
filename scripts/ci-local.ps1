@@ -322,15 +322,28 @@ try {
         if ($ciJobs.ContainsKey('verify') -and $ciJobs['verify'] -match 'gitleaks/gitleaks-action') {
             $DriftErrors.Add("ci.yml verify matrix job must not run gitleaks (must run once in security job).")
         }
-        if ($ciJobs.ContainsKey('notify') -and $ciJobs['notify'] -notmatch 'if:\s*always\(\)\s*&&\s*github\.event_name\s*!=\s*\x27workflow_call\x27') {
-            $DriftErrors.Add("ci.yml notify job must skip execution under workflow_call via 'if: always() && github.event_name != ''workflow_call'''.")
+        if ($ciJobs.ContainsKey('notify') -and $ciJobs['notify'] -notmatch 'if:\s*always\(\)\s*&&\s*github\.event_name\s*!=\s*\x27workflow_call\x27\s*&&\s*github\.workflow\s*==\s*\x27CI\x27') {
+            $DriftErrors.Add("ci.yml notify job must skip execution under workflow_call via 'if: always() && github.event_name != ''workflow_call'' && github.workflow == ''CI'''.")
         }
     }
 
     # Verify all actions/checkout steps enforce persist-credentials: false
+    $expectedCheckoutCounts = @{
+        'ci.yml'      = 2
+        'release.yml' = 4
+        'pages.yml'   = 1
+    }
     foreach ($wf in $WorkflowFiles) {
         $rawWf = (Get-Content -Path $wf.FullName -Raw) -replace "\r\n", "`n"
-        $checkoutMatches = [regex]::Matches($rawWf, '(?s)-\s*uses:\s*actions/checkout@[^\n]+\n(?<step>(?: {8,}[^\n]+\n)*)')
+        $checkoutMatches = [regex]::Matches($rawWf, '(?m)^\s*(?:-\s*)?uses:\s*actions/checkout@[^\n]+\n(?<step>(?: {8,}[^\n]+\n)*)')
+        if ($expectedCheckoutCounts.ContainsKey($wf.Name)) {
+            $expectedCount = $expectedCheckoutCounts[$wf.Name]
+            if ($checkoutMatches.Count -ne $expectedCount) {
+                $DriftErrors.Add("$($wf.Name) has $($checkoutMatches.Count) actions/checkout step(s), expected $expectedCount.")
+            }
+        } elseif ($checkoutMatches.Count -eq 0) {
+            $DriftErrors.Add("$($wf.Name) has zero actions/checkout steps matched; expected at least one.")
+        }
         foreach ($m in $checkoutMatches) {
             $stepText = $m.Groups['step'].Value
             if ($stepText -notmatch 'persist-credentials:\s*false') {

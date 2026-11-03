@@ -561,7 +561,7 @@ test("GitHub Actions CI and release hygiene: duplicate notify skip, credential p
   assert.ok(ciParsed.jobs.notify, "ci.yml must define a notify job");
   assert.match(
     ciParsed.jobs.notify,
-    /if:\s*always\(\)\s*&&\s*github\.event_name\s*!=\s*['"]workflow_call['"]/,
+    /if:\s*always\(\)\s*&&\s*github\.event_name\s*!=\s*['"]workflow_call['"]\s*&&\s*github\.workflow\s*==\s*['"]CI['"]/,
     "ci.yml notify job must skip execution under workflow_call"
   );
   assert.match(
@@ -589,24 +589,49 @@ test("GitHub Actions CI and release hygiene: duplicate notify skip, credential p
   );
 
   // A9: actions/checkout uses persist-credentials: false across all workflows
+  const extractCheckoutSteps = (content) => [
+    ...content.replace(/\r\n/g, "\n").matchAll(/(?:^|\n)[ \t]*(?:-[ \t]*)?uses:[ \t]*actions\/checkout@[^\n]*\n(?<step>(?: {8,}[^\n]*\n)*)/g)
+  ].map((m) => m.groups.step);
+
   const allWorkflows = [
-    { name: "ci.yml", content: ciYml },
-    { name: "release.yml", content: releaseYml },
-    { name: "pages.yml", content: pagesYml }
+    { name: "ci.yml", content: ciYml, expectedCount: 2 },
+    { name: "release.yml", content: releaseYml, expectedCount: 4 },
+    { name: "pages.yml", content: pagesYml, expectedCount: 1 }
   ];
   for (const wf of allWorkflows) {
-    const checkoutStepMatches = [
-      ...wf.content.matchAll(/-\s*name:\s*Checkout repository\s*\n\s*uses:\s*actions\/checkout@[^\n]+\n(?<step>(?:\s+[^\n]+\n)*)/g)
-    ];
-    assert.ok(checkoutStepMatches.length > 0, `${wf.name} must have at least one checkout step`);
-    for (const match of checkoutStepMatches) {
+    const checkoutSteps = extractCheckoutSteps(wf.content);
+    assert.strictEqual(
+      checkoutSteps.length,
+      wf.expectedCount,
+      `${wf.name} must have exactly ${wf.expectedCount} actions/checkout step(s)`
+    );
+    for (const stepText of checkoutSteps) {
       assert.match(
-        match.groups.step,
+        stepText,
         /persist-credentials:\s*false/,
         `${wf.name} checkout step must specify persist-credentials: false`
       );
     }
   }
+
+  // Negative test: verify multi-checkout workflow where one step omits persist-credentials: false is detected
+  const badMultiCheckoutWf = `
+jobs:
+  job1:
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+  job2:
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+`;
+  const badSteps = extractCheckoutSteps(badMultiCheckoutWf);
+  assert.strictEqual(badSteps.length, 2, "Negative test fixture must yield 2 checkout steps");
+  assert.match(badSteps[0], /persist-credentials:\s*false/);
+  assert.doesNotMatch(badSteps[1], /persist-credentials:\s*false/, "Missing persist-credentials: false must be detectable per step");
 
   // A9: release jobs don't use shared npm cache
   const releasePubJobs = ["publish-npm", "publish-gpr", "attach-assets"];

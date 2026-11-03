@@ -66,7 +66,7 @@ jobs:
   notify:
     name: Discord CI Notification
     needs: [security, verify]
-    if: always() && github.event_name != 'workflow_call'
+    if: always() && github.event_name != 'workflow_call' && github.workflow == 'CI'
     runs-on: ubuntu-latest
     env:
       WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK }}
