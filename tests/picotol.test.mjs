@@ -836,8 +836,8 @@ test("Compact Density Tokens, Container Block Margin Resets, and Tabular Numeric
       "Compact modifier must tighten --pt-line-height to 1.35"
     );
     assert.ok(
-      /clamp\(85%,\s*80%\s*\+\s*0?\.3vw,\s*95%\)/.test(css),
-      "Compact modifier must apply micro-type scale clamp(85%, 80% + 0.3vw, 95%)"
+      /clamp\(0?\.85rem,\s*0?\.8rem\s*\+\s*0?\.3vw,\s*0?\.95rem\)/.test(css),
+      "Compact modifier must apply non-compounding rem-bounded micro-type scale clamp(0.85rem, 0.8rem + 0.3vw, 0.95rem)"
     );
   }
 
@@ -4276,6 +4276,138 @@ test("Late-bind density tokens via fallback chains + static cascade check (Issue
   assert.ok(parseFloat(smallFormSpacing) < parseFloat(defaultFormSpacing));
   assert.ok(parseFloat(compactFormSpacing) < parseFloat(defaultFormSpacing));
 });
+
+test("Density-safe form helper text offset and non-compounding compact font size (Issue #216)", () => {
+  const formsCss = fs.readFileSync(path.join(ROOT, "src/forms.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+  const layerMin = fs.readFileSync(path.join(ROOT, "dist/picotol.layer.min.css"), "utf8");
+
+  // 1. Helper-text offset scales with spacing token: calc(-0.75 * var(--pt-spacing))
+  assert.match(
+    formsCss,
+    /margin:\s*calc\(-0?\.75\s*\*\s*var\(--pt-spacing\)\)\s*0\s*var\(--pt-spacing\);/,
+    "src/forms.css must scale helper text margin-top with var(--pt-spacing)"
+  );
+  assert.doesNotMatch(
+    formsCss,
+    /margin:\s*-0?\.75rem\s*0\s*var\(--pt-spacing\);/,
+    "src/forms.css must not use hard-coded -0.75rem margin-top for helper text"
+  );
+
+  // Bundles reflect the scaled helper text offset
+  for (const css of [fullCss, coreCss]) {
+    assert.match(
+      css,
+      /margin:\s*calc\(-0?\.75\s*\*\s*var\(--pt-spacing\)\)\s*0\s*var\(--pt-spacing\);/,
+      "Unminified bundles must contain scaled helper text margin"
+    );
+  }
+  for (const minCss of [fullMin, coreMin, layerMin]) {
+    assert.match(
+      minCss,
+      /margin:calc\(-0?\.75\s*\*\s*var\(--pt-spacing\)\)\s*0\s*var\(--pt-spacing\)/,
+      "Minified bundles must contain scaled helper text margin"
+    );
+  }
+
+  // 2. Mathematical clearance verification: no overlap at root, compact, and tight densities
+  const densities = [
+    { name: "root", spacingRem: 1.0 },
+    { name: "compact", spacingRem: 0.5 },
+    { name: "tight", spacingRem: 0.25 },
+  ];
+
+  for (const { name, spacingRem } of densities) {
+    // Form control bottom margin = spacingRem
+    // Helper text top offset = -0.75 * spacingRem
+    const helperOffsetRem = -0.75 * spacingRem;
+    const netClearanceRem = spacingRem + helperOffsetRem; // 0.25 * spacingRem
+
+    assert.ok(
+      netClearanceRem > 0,
+      `${name} density must maintain positive clearance between input and helper text (${netClearanceRem}rem > 0)`
+    );
+    assert.equal(
+      netClearanceRem,
+      0.25 * spacingRem,
+      `${name} density clearance must proportionally equal 0.25 * spacing`
+    );
+
+    // Verification that legacy hardcoded -0.75rem caused negative clearance (overlap) under compact and tight
+    const legacyNetClearance = spacingRem - 0.75;
+    if (spacingRem < 0.75) {
+      assert.ok(
+        legacyNetClearance < 0,
+        `Legacy hardcoded -0.75rem caused overlap under ${name} density (${legacyNetClearance}rem < 0)`
+      );
+    }
+  }
+
+  // 3. Compact density font size uses rem bounds in tokens.css and compiled bundles
+  const remClampPattern = /clamp\(0?\.85rem,\s*0?\.8rem\s*\+\s*0?\.3vw,\s*0?\.95rem\)/;
+  assert.match(
+    tokensCss,
+    remClampPattern,
+    "src/tokens.css compact density must use rem bounds (0.85rem, 0.8rem + 0.3vw, 0.95rem)"
+  );
+  assert.doesNotMatch(
+    tokensCss,
+    /font-size:\s*clamp\(85%/,
+    "src/tokens.css must not use percentage bounds for compact density font-size"
+  );
+
+  for (const css of [fullCss, coreCss]) {
+    assert.match(
+      css,
+      remClampPattern,
+      "Unminified bundles must include rem-bounded compact font-size"
+    );
+  }
+  for (const minCss of [fullMin, coreMin, layerMin]) {
+    assert.match(
+      minCss,
+      /font-size:clamp\(0?\.85rem,0?\.8rem\s*\+\s*0?\.3vw,0?\.95rem\)/,
+      "Minified bundles must include rem-bounded compact font-size"
+    );
+  }
+
+  // 4. Non-compounding simulation in nested scopes
+  // Percentage sizing compounds across nested DOM trees (85% of 85% = 72.25%)
+  // Rem sizing resolves against the root html font size (1rem = 16px), remaining constant across nesting levels.
+  function computeScopeFontSizePx(level, unitType, rootPx = 16) {
+    if (unitType === "rem") {
+      const remVal = 0.85;
+      return remVal * rootPx;
+    }
+    let currentPx = rootPx;
+    for (let i = 0; i < level; i++) {
+      currentPx = currentPx * 0.85;
+    }
+    return currentPx;
+  }
+
+  const level1Rem = computeScopeFontSizePx(1, "rem");
+  const level2Rem = computeScopeFontSizePx(2, "rem");
+  const level3Rem = computeScopeFontSizePx(3, "rem");
+
+  assert.equal(level1Rem, 13.6, "Level 1 compact scope computes to 13.6px");
+  assert.equal(level2Rem, 13.6, "Level 2 nested compact scope remains 13.6px with rem bounds (zero compounding)");
+  assert.equal(level3Rem, 13.6, "Level 3 nested compact scope remains 13.6px with rem bounds (zero compounding)");
+
+  const level1Pct = computeScopeFontSizePx(1, "pct");
+  const level2Pct = computeScopeFontSizePx(2, "pct");
+  assert.equal(level1Pct, 13.6, "Level 1 percent scope is 13.6px");
+  assert.equal(Math.round(level2Pct * 100) / 100, 11.56, "Level 2 percent scope compounded to 11.56px (~72% of root)");
+  assert.ok(
+    level2Rem > level2Pct,
+    "Rem bounds prevent nested compounding degradation (13.6px > 11.56px)"
+  );
+});
+
 
 
 

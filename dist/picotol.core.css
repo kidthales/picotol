@@ -111,7 +111,7 @@
     --pt-table-cell-padding-inline: .5rem;
     --pt-grid-gap: var(--pt-gap-compact);
     --pt-line-height: 1.35;
-    font-size: clamp(85%, 80% + .3vw, 95%);
+    font-size: clamp(.85rem, .8rem + .3vw, .95rem);
   }
 
   [data-density="tight"], .pt-tight, :where([data-density="tight"], .pt-tight) {
@@ -568,7 +568,7 @@
     }
 
     & + small {
-      margin: -.75rem 0 var(--pt-spacing);
+      margin: calc(-.75 * var(--pt-spacing)) 0 var(--pt-spacing);
       color: var(--pt-muted-color);
       display: block;
     }

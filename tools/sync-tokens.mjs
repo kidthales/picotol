@@ -236,7 +236,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     '    --pt-table-cell-padding-inline: 0.5rem;',
     '    --pt-grid-gap: var(--pt-gap-compact);',
     '    --pt-line-height: 1.35;',
-    '    font-size: clamp(85%, 80% + 0.3vw, 95%);',
+    '    font-size: clamp(0.85rem, 0.8rem + 0.3vw, 0.95rem);',
     '  }',
     '  [data-density="tight"], .pt-tight, :where([data-density="tight"], .pt-tight) {',
     '    --pt-spacing: 0.25rem;',
