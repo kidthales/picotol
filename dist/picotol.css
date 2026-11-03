@@ -1428,6 +1428,7 @@
       background-color: var(--pt-bg);
       width: 1.25rem;
       height: 1.25rem;
+      box-shadow: 0 0 0 1px var(--pt-color);
       transition: margin var(--pt-transition);
       border-radius: 50%;
       margin: .0625rem;
@@ -1439,6 +1440,7 @@
       border-color: var(--pt-primary);
 
       &:before {
+        box-shadow: none;
         margin-inline-start: 1.3125rem;
       }
     }
@@ -1587,26 +1589,30 @@
 
     &:is(.primary, [data-accent]) {
       border-color: var(--pt-primary);
-      color: var(--pt-primary);
+      --pt-icon-color: var(--pt-primary);
     }
 
     &:is([role="alert"], .invalid) {
       border-color: var(--pt-invalid);
-      color: var(--pt-invalid);
+      --pt-icon-color: var(--pt-invalid);
     }
 
     &.warning {
       border-color: var(--pt-warning);
-      color: var(--pt-warning);
+      --pt-icon-color: var(--pt-warning);
     }
 
     &.valid {
       border-color: var(--pt-valid);
-      color: var(--pt-valid);
+      --pt-icon-color: var(--pt-valid);
     }
 
     & > :where(svg, .status-dot, .pt-status-dot, .pt-dot) {
       margin: 0;
+    }
+
+    & > :where(svg, [data-icon]) {
+      color: var(--pt-icon-color, currentColor);
     }
   }
 
@@ -1619,25 +1625,29 @@
   }
 
   .pt-badge[data-status="ok"], .pt-badge.ok, .pt-badge.success, .pt-indicator[data-status="ok"], .pt-indicator.ok, .pt-indicator.success, .pt-chip[data-status="ok"], .pt-chip.ok, .pt-chip.success {
-    color: var(--pt-status-ok-fg);
+    --pt-icon-color: var(--pt-status-ok-fg);
+    color: var(--pt-color);
     background-color: var(--pt-status-ok-bg);
     border-color: var(--pt-status-ok-border);
   }
 
   .pt-badge[data-status="warning"], .pt-badge.warning, .pt-indicator[data-status="warning"], .pt-indicator.warning, .pt-chip[data-status="warning"], .pt-chip.warning {
-    color: var(--pt-status-warning-fg);
+    --pt-icon-color: var(--pt-status-warning-fg);
+    color: var(--pt-color);
     background-color: var(--pt-status-warning-bg);
     border-color: var(--pt-status-warning-border);
   }
 
   .pt-badge[data-status="critical"], .pt-badge.critical, .pt-badge[data-status="danger"], .pt-badge.danger, .pt-indicator[data-status="critical"], .pt-indicator.critical, .pt-indicator[data-status="danger"], .pt-indicator.danger, .pt-chip[data-status="critical"], .pt-chip.critical, .pt-chip[data-status="danger"], .pt-chip.danger {
-    color: var(--pt-status-critical-fg);
+    --pt-icon-color: var(--pt-status-critical-fg);
+    color: var(--pt-color);
     background-color: var(--pt-status-critical-bg);
     border-color: var(--pt-status-critical-border);
   }
 
   .pt-badge[data-status="info"], .pt-badge.info, .pt-indicator[data-status="info"], .pt-indicator.info, .pt-chip[data-status="info"], .pt-chip.info {
-    color: var(--pt-status-info-fg);
+    --pt-icon-color: var(--pt-status-info-fg);
+    color: var(--pt-color);
     background-color: var(--pt-status-info-bg);
     border-color: var(--pt-status-info-border);
   }

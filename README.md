@@ -523,6 +523,8 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 
 These tokens automatically power `.pt-status-dot`, `.status-dot`, `.pt-badge`, `.pt-indicator`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
 
+> **Status Contrast Policy**: In accordance with WCAG 2.2 §1.4.1 (Use of Color), Paul Tol semantic status hues carry only non-text signals (borders, dots, and icons). Status callout and badge text uses the high-contrast body foreground token (`--pt-color`), certifying $\ge 4.5:1$ text contrast on 8% alpha washes across both light and dark themes. Every documented status callout and badge requires a descriptive status word or icon so colour is never the sole carrier of state.
+
 ### 4b. Status Badges, Indicators & Dots
 
 Ready-to-use component primitives (`.pt-badge` and `.pt-indicator`) map natively to calibrated `--pt-status-{ok,warning,critical,info}-{fg,border,bg}` triads via `[data-status]` attributes or semantic modifier classes (`.ok`, `.success`, `.warning`, `.critical`, `.danger`, `.info`):
@@ -727,6 +729,16 @@ For highly constrained embedding contexts—such as IDE auxiliary toolbars, webv
   </main>
   <footer><small>Status: Ready</small></footer>
 </article>
+```
+
+### 4i. Accessible Switches & Boundary Contrast
+
+Toggle switches (`[role="switch"]`) provide native zero-JS toggle semantics with certified WCAG 2.2 §1.4.11 boundary contrast ($\ge 3:1$). The switch thumb (`[role="switch"]::before`) incorporates a foreground-token outline/shadow (`box-shadow: 0 0 0 1px var(--pt-color)`), eliminating low-contrast boundaries against the inactive track (`--pt-surface`) in both light and dark modes:
+
+```html
+<!-- Accessible Toggle Switch with Certified Thumb Boundary -->
+<label><input type="checkbox" role="switch"> Inactive Toggle</label>
+<label><input type="checkbox" role="switch" checked> Active Toggle</label>
 ```
 
 ### 5. Interactive Operational Showcase & Palette Explorer
