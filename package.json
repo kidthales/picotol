@@ -11,7 +11,6 @@
   },
   "main": "./dist/picotol.min.css",
   "style": "./dist/picotol.min.css",
-  "types": "./types/index.d.ts",
   "unpkg": "./dist/picotol.min.css",
   "jsdelivr": "./dist/picotol.min.css",
   "repository": {
@@ -47,43 +46,35 @@
   ],
   "exports": {
     ".": {
-      "types": "./types/index.d.ts",
       "default": "./dist/picotol.min.css"
     },
     "./css": {
-      "types": "./types/index.d.ts",
       "default": "./dist/picotol.css"
     },
     "./core": {
-      "types": "./types/index.d.ts",
       "default": "./dist/picotol.core.min.css"
     },
     "./core/css": {
-      "types": "./types/index.d.ts",
       "default": "./dist/picotol.core.css"
     },
     "./layer": {
-      "types": "./types/index.d.ts",
       "default": "./dist/picotol.layer.min.css"
     },
     "./layer/css": {
-      "types": "./types/index.d.ts",
       "default": "./dist/picotol.layer.css"
     },
     "./tokens": {
-      "types": "./types/index.d.ts",
       "default": "./src/tokens.css"
     },
     "./palettes": {
-      "types": "./types/index.d.ts",
       "default": "./src/palettes.css"
     },
     "./palette-data": {
-      "types": "./types/index.d.ts",
+      "types": "./types/palette-data.d.ts",
       "default": "./data/tol-qualitative.json"
     },
     "./sri": {
-      "types": "./types/index.d.ts",
+      "types": "./types/sri.d.ts",
       "default": "./dist/sri.json"
     },
     "./package.json": "./package.json"
@@ -101,11 +92,13 @@
     "build": "node tools/build.mjs",
     "lint": "node tools/lint.mjs",
     "check:budgets": "node tools/check-budgets.mjs",
+    "check:types": "tsc -p tests/fixtures/tsc/tsconfig.bundler.json --noEmit && tsc -p tests/fixtures/tsc/tsconfig.node16.json --noEmit",
     "generate": "npm run sync:tokens && npm run build",
     "test": "npm run lint && npm run check:budgets && node --test",
     "ci:local": "pwsh -NoProfile -ExecutionPolicy Bypass ./scripts/ci-local.ps1"
   },
   "devDependencies": {
-    "lightningcss": "^1.30.1"
+    "lightningcss": "^1.30.1",
+    "typescript": "^7.0.2"
   }
 }
