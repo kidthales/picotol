@@ -208,12 +208,15 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 2. **Screen-Reader-Only & Focusable Utilities**:
    - `.sr-only` / `.visually-hidden`: Visually hides text via `clip-path: inset(50%)` while keeping it in the accessibility tree (e.g. `<a href="..." target="_blank">Docs<span class="sr-only"> (opens in a new tab)</span></a>`).
    - `.sr-only-focusable` / `.visually-hidden-focusable`: Remains visually clipped until focused via keyboard (`:focus` / `:focus-visible`).
-3. **Accessible Tooltips (`[data-tooltip]`)**:
-   Because CSS `::before { content: attr(data-tooltip) }` is not announced consistently across all screen readers and Braille displays, pair non-decorative tooltips with `aria-label` or `aria-describedby` and add `tabindex="0"` when attached to non-interactive inline elements.
+3. **Accessible Tooltips (`[data-tooltip]`) & WCAG 1.4.13**:
+   `[data-tooltip]` provides a zero-JS supplementary visual hint. Tooltip content is hoverable (`pointer-events: auto`) per WCAG 2.1 SC 1.4.13 (*Content on Hover or Focus*). Because CSS `::before { content: attr(data-tooltip) }` is not announced reliably across all screen readers, non-decorative tooltips **must** be paired with `aria-describedby` or `aria-label`, plus `tabindex="0"` on non-interactive inline triggers.
+   *Popover / `interestfor` Evaluation*: Native `interestfor` (`popover="hint"`) is an experimental draft lacking baseline cross-browser support. Picotol provides pure-CSS `[data-tooltip]` for lightweight use; recommend Popover API with JS for mission-critical disclosures.
 4. **Native Table Semantics Preservation**:
    Wrap wide tables in `<div class="overflow-auto table-container"><table>...</table></div>` or semantic `<figure><table>...</table></figure>`. Unlike frameworks that apply `display: block` to `<table>` (which strips table coordinate semantics in WebKit/VoiceOver and Chromium), `@kidthales/picotol` preserves native `display: table` while providing touch-momentum horizontal scrolling.
 5. **Theme-Reactive Selection Contrast (`::selection`)**:
    `::selection` binds dynamically to `background-color: var(--pt-primary-bg); color: var(--pt-color);`. This guarantees WCAG AA/AAA text contrast ($\ge 4.5:1$ across all four accent palettes) in both light mode and dark mode without translucent washout, preserving crisp text legibility during copy-paste and text inspection.
+6. **Accessible Toasts (`.toast`) & Accessibility Tree**:
+   Hidden toasts use `visibility: hidden` (delayed until fade-out ends via `transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;`) so inactive toasts leave the accessibility tree. Activate toasts with `.show`. The legacy `[aria-hidden="false"]` selector is retained as a deprecated alias until v0.7.0.
 
 ---
 

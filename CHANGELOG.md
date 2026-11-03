@@ -5,6 +5,13 @@ All notable changes to `@kidthales/picotol` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Hid inactive toasts with `visibility: hidden` (delayed until opacity fade-out completes) so they leave the accessibility tree and cannot be focused while hidden (#220).
+- Standardized toast activation on the `.show` class, retaining `[aria-hidden="false"]` as a deprecated compatibility hook until v0.7.0 (#220).
+- Made pure CSS tooltips (`[data-tooltip]`) hoverable per WCAG 2.1 1.4.13 with `pointer-events: auto` and a hover buffer, and documented supplementary use paired with `aria-describedby` (#220).
+
 ## [0.5.0] - 2026-10-30
 
 Sixth public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.5.0](docs/RELEASE_NOTES_V0_5_0.md).

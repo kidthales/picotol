@@ -392,8 +392,6 @@
 
     &:has(> article) {
       padding: 0;
-      align-items: stretch;
-      justify-content: flex-start;
     }
 
     & > article {
@@ -768,7 +766,12 @@
 
   @keyframes pt-spin { to { transform: rotate(360deg); } }
 
-  /* 9. Tooltip ([data-tooltip]) */
+  /* 9. Tooltip ([data-tooltip])
+   * WCAG 1.4.13 Hoverable: pointer-events: auto on ::before allows pointer traversal.
+   * A11y note: CSS attr() tooltips are supplementary; pair with aria-describedby for AT.
+   * Popover / interestfor evaluation: Native interestfor is experimental (non-baseline);
+   * use [data-tooltip] for zero-JS hints, or Popover API with JS for complex cases.
+   */
   [data-tooltip] {
     position: relative;
     &:not(a, button, input, [role="button"]) {
@@ -792,7 +795,7 @@
       font-size: 0.875rem;
       text-align: center;
       white-space: normal;
-      pointer-events: none;
+      pointer-events: auto;
     }
   }
 
@@ -1124,7 +1127,6 @@
           text-overflow: ellipsis;
           white-space: nowrap;
           text-align: center;
-          justify-content: center;
         }
       }
     }
@@ -1238,13 +1240,17 @@
     background: var(--pt-color);
     color: var(--pt-bg);
     box-shadow: var(--pt-box-shadow);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
     transform: translateY(1rem);
 
+    /* [aria-hidden="false"] is a deprecated show alias, removed in v0.7.0 */
     &:is(.show, [aria-hidden="false"]) {
       opacity: 1;
+      visibility: visible;
+      transition-delay: 0s;
       pointer-events: auto;
       transform: translateY(0);
     }

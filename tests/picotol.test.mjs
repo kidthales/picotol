@@ -3839,4 +3839,34 @@ test("Anti-Tautology Guard: tests/picotol.test.mjs contains zero vacuous include
   );
 });
 
+test("Toast CSS source sets visibility:hidden when hidden and visibility:visible when shown (Issue #220)", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const { code } = transform({ code: Buffer.from(css), minify: true });
+  const rules = code.toString("utf8");
+
+  const toast = rules.match(/:where\(\.toast\)\{([\s\S]*?)\}\}/)?.[1] ?? "";
+  assert.ok(toast, "src/components.css must define a :where(.toast) rule");
+  const [hidden, shown] = toast.split("&:is(");
+
+  assert.match(hidden, /visibility:hidden/, "Hidden .toast must use visibility:hidden in src/components.css");
+  assert.match(hidden, /visibility 0s linear \.2s/, "Hidden .toast must delay the visibility change until the fade ends");
+  assert.match(shown, /^\.show,\[aria-hidden=false\]\)\{[^}]*visibility:visible/, "Shown .toast must restore visibility:visible for .show and the deprecated aria-hidden alias");
+});
+
+test("Tooltip CSS satisfies WCAG 1.4.13 hoverability with pointer-events:auto (Issue #220)", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const { code } = transform({ code: Buffer.from(css), minify: true });
+  const rules = code.toString("utf8");
+
+  const tooltipBlock = rules.match(/\[data-tooltip\]\{([\s\S]*?)\}\}/)?.[1] ?? "";
+  assert.ok(tooltipBlock, "src/components.css must define [data-tooltip]");
+
+  assert.match(
+    tooltipBlock,
+    /&:is\(:hover,:focus-visible\)::?before\{[^}]*pointer-events:auto/,
+    "[data-tooltip]::before must specify pointer-events:auto on hover/focus for WCAG 1.4.13 hoverability"
+  );
+});
+
+
 
