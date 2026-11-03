@@ -96,6 +96,7 @@
   },
   "scripts": {
     "sync:tokens": "node tools/sync-tokens.mjs",
+    "sync:upstream": "node tools/sync-tokens.mjs --upstream",
     "package:assets": "node tools/package-assets.mjs",
     "build": "node tools/build.mjs",
     "lint": "node tools/lint.mjs",

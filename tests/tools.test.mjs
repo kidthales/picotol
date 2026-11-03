@@ -10,6 +10,9 @@ import { fileURLToPath } from 'node:url';
 import {
   expandHex,
   isTransparentHex,
+  CSS_NAMED_COLORS,
+  extractDeclarationValues,
+  findForbiddenNamedColors,
   lintCssSnippet,
   lintBundledCss,
   lintDistAccessibilityRules,
@@ -19,6 +22,8 @@ import {
 } from '../tools/lint.mjs';
 import {
   loadSnapshot,
+  refreshFromUpstream,
+  parseCliArgs,
   buildTokensCss,
   buildPalettesCss,
   syncTokens,
@@ -101,7 +106,7 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   const badPropErrors = lintCssSnippet(badPropSnippet, 'fixtures/bad-prop.css');
   assert.ok(badPropErrors.some((e) => e.includes('Invalid custom property name "--custom-color"')));
 
-  // 4. Forbidden color functions rejected (rgb, rgba, hsl, hsla, oklch, lab, lch)
+  // 4. Forbidden color functions rejected (rgb, rgba, hsl, hsla, oklch, lab, lch, oklab, hwb, color)
   for (const fn of [
     'rgb(0, 0, 0)',
     'rgba(0, 0, 0, 0.5)',
@@ -110,11 +115,55 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
     'oklch(0.5 0.1 30)',
     'lab(50% 20 30)',
     'lch(50% 40 180)',
+    'oklab(0.5 0.1 0.1)',
+    'hwb(120 10% 20%)',
+    'color(display-p3 1 0 0)',
   ]) {
     const fnSnippet = `body { color: ${fn}; }`;
     const fnErrors = lintCssSnippet(fnSnippet, `fixtures/forbidden-${fn.split('(')[0]}.css`);
     assert.ok(fnErrors.some((e) => e.includes('Forbidden color function')), `Should reject ${fn}`);
   }
+
+  // 4b. CSS named colors rejected in declarations (keywords transparent, currentColor, and inherit stay allowed)
+  for (const named of ['red', 'blue', 'green', 'white', 'black', 'yellow', 'cyan', 'magenta', 'orange', 'purple']) {
+    const namedSnippet = `body { color: ${named}; }`;
+    const namedErrors = lintCssSnippet(namedSnippet, `fixtures/named-${named}.css`);
+    assert.ok(
+      namedErrors.some((e) => e.includes('Forbidden CSS named color') && e.includes(named)),
+      `Should reject CSS named color "${named}"`
+    );
+  }
+
+  // Keywords transparent, currentColor, and inherit are allowed in declarations
+  const allowedKeywordsSnippet = `
+    .badge {
+      background-color: transparent;
+      color: currentColor;
+      outline-color: inherit;
+      border: 1px solid currentColor;
+    }
+  `;
+  const allowedKeywordErrors = lintCssSnippet(allowedKeywordsSnippet, 'fixtures/allowed-keywords.css');
+  assert.equal(
+    allowedKeywordErrors.length,
+    0,
+    `Keywords transparent, currentColor, and inherit must be accepted, got: ${allowedKeywordErrors.join('; ')}`
+  );
+
+  // Selectors, class names, and custom property names containing color names are not falsely flagged
+  const falsePositiveGuardSnippet = `
+    .badge-red, [data-accent="blue"] {
+      --pt-red: #EE6677;
+      color: var(--pt-color);
+      border: 1px solid var(--pt-border);
+    }
+  `;
+  const falsePositiveErrors = lintCssSnippet(falsePositiveGuardSnippet, 'fixtures/fp-guard.css');
+  assert.equal(
+    falsePositiveErrors.length,
+    0,
+    `Color names in selectors, classes, and custom property names must not be flagged, got: ${falsePositiveErrors.join('; ')}`
+  );
 
   // 5. Non-Paul-Tol hex colors rejected (including 3-digit #123 and 8-digit #4477AAFF)
   const badHexSnippet = `body { color: #123456; background-color: #ff0000; border-color: #123; fill: #4477AAFF; }`;
@@ -609,6 +658,110 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
     committedTokens,
     'ROOT/src/tokens.css content must remain byte-identical after junction cleanup'
   );
+});
+
+test('tools/sync-tokens.mjs: upstream refresh isolation, explicit path enforcement, CI rejection, and CLI argument parsing', () => {
+  // 1. loadSnapshot() defaults strictly to committed snapshot file and never silently searches ../tol-palettes
+  const snapshot = loadSnapshot();
+  assert.ok(snapshot.schemes, 'Snapshot must have schemes');
+  assert.throws(() => loadSnapshot(path.join(ROOT, 'nonexistent-snapshot.json')), /Committed token snapshot .* does not exist/);
+
+  // 2. refreshFromUpstream() requires an explicit non-empty path
+  assert.throws(() => refreshFromUpstream(''), /An explicit upstream path is required to refresh tokens/);
+  assert.throws(() => refreshFromUpstream('   '), /An explicit upstream path is required to refresh tokens/);
+  assert.throws(() => refreshFromUpstream(null), /An explicit upstream path is required to refresh tokens/);
+  assert.throws(() => refreshFromUpstream(undefined), /An explicit upstream path is required to refresh tokens/);
+
+  // 3. refreshFromUpstream() fails closed when upstream directory does not exist
+  assert.throws(
+    () => refreshFromUpstream(path.join(ROOT, 'fixtures/nonexistent-upstream')),
+    /Upstream schemes directory does not exist/
+  );
+
+  // 4. refreshFromUpstream() is strictly forbidden in CI environments
+  const origCi = process.env.CI;
+  try {
+    process.env.CI = 'true';
+    assert.throws(
+      () => refreshFromUpstream(path.join(ROOT, 'data')),
+      /Refreshing tokens from upstream is forbidden in CI environments/
+    );
+  } finally {
+    if (origCi === undefined) {
+      delete process.env.CI;
+    } else {
+      process.env.CI = origCi;
+    }
+  }
+
+  // 5. parseCliArgs() correctly handles diverse argument styles
+  assert.deepEqual(parseCliArgs([]), { isUpstream: false, upstreamPath: null });
+  assert.deepEqual(parseCliArgs(['--upstream']), { isUpstream: true, upstreamPath: null });
+  assert.deepEqual(parseCliArgs(['--upstream', '/custom/path']), { isUpstream: true, upstreamPath: '/custom/path' });
+  assert.deepEqual(parseCliArgs(['--upstream', '--upstream', '/custom/path']), {
+    isUpstream: true,
+    upstreamPath: '/custom/path',
+  });
+  assert.deepEqual(parseCliArgs(['--upstream=/custom/path']), { isUpstream: true, upstreamPath: '/custom/path' });
+
+  // 6. Isolated refresh execution with mock upstream scheme files
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-upstream-test-'));
+  try {
+    const mockUpstream = path.join(tempDir, 'mock-upstream', 'data', 'schemes');
+    fs.mkdirSync(mockUpstream, { recursive: true });
+
+    const realData = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/tol-qualitative.json'), 'utf8'));
+    for (const [id, s] of Object.entries(realData.schemes)) {
+      const schemeCopy = JSON.parse(JSON.stringify(s));
+      if (id === 'bright') schemeCopy.extras = [{ name: 'black', hex: '#000000' }];
+      if (id === 'ylorbr') {
+        schemeCopy.bad = '#888888';
+        schemeCopy.colors = [...Array(7).fill({ hex: '#000000', name: 'pad' }), ...s.colors];
+      }
+      if (id === 'prgn') {
+        schemeCopy.colors = [...s.colors, ...Array(5).fill({ hex: '#000000', name: 'pad' })];
+      }
+      fs.writeFileSync(path.join(mockUpstream, `${id}.json`), JSON.stringify(schemeCopy), 'utf8');
+    }
+    fs.writeFileSync(
+      path.join(mockUpstream, 'sunset.json'),
+      JSON.stringify({ id: 'sunset', bad: '#FFFFFF' }),
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(mockUpstream, 'iridescent.json'),
+      JSON.stringify({ id: 'iridescent', bad: '#999999' }),
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(mockUpstream, 'rainbow-discrete.json'),
+      JSON.stringify({ id: 'rainbow-discrete', lutBad: { '23': '#777777' } }),
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(mockUpstream, 'rainbow-smooth.json'),
+      JSON.stringify({ id: 'rainbow-smooth', bad: '#666666' }),
+      'utf8'
+    );
+
+    const tempSnapshotPath = path.join(tempDir, 'out-snapshot.json');
+    const tempSrcDir = path.join(tempDir, 'out-src');
+    fs.mkdirSync(tempSrcDir, { recursive: true });
+
+    const result = refreshFromUpstream(path.join(tempDir, 'mock-upstream'), {
+      snapshotPath: tempSnapshotPath,
+      outSrcDir: tempSrcDir,
+    });
+
+    assert.ok(fs.existsSync(tempSnapshotPath), 'Refreshed snapshot must be written to snapshotPath');
+    assert.ok(fs.existsSync(result.tokensCssPath), 'tokens.css must be written to outSrcDir');
+    assert.ok(fs.existsSync(result.palettesCssPath), 'palettes.css must be written to outSrcDir');
+    const refreshed = JSON.parse(fs.readFileSync(tempSnapshotPath, 'utf8'));
+    assert.equal(Object.keys(refreshed.schemes).length, 10);
+    assert.equal(refreshed.achromatic.length, 9);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 });
 
 // Concurrency note: No other test file in tests/*.test.mjs imports or calls buildAll(),
