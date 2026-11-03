@@ -4,6 +4,7 @@
 //   - tokens/ (tokens.css, palettes.css, tol-qualitative.json)
 //   - sri.json
 //   - index.html (self-contained offline kitchen-sink showcase)
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -19,7 +20,26 @@ export const MAX_ZIP_ENTRIES = 128;
 export const MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES = 10 * 1024 * 1024;
 export const MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES = 25 * 1024 * 1024;
 
-export function resolveDefaultZipMtime() {
+export function resolveLastCommitDate(cwd = root) {
+  try {
+    const raw = execFileSync('git', ['log', '-1', '--pretty=%ct'], {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (raw !== '') {
+      const seconds = Number(raw);
+      if (Number.isInteger(seconds) && seconds >= 0) {
+        return new Date(seconds * 1000);
+      }
+    }
+  } catch {
+    // git unavailable, not a repository, or invalid directory
+  }
+  return null;
+}
+
+export function resolveDefaultZipMtime(opts = {}) {
   const rawEpoch = process.env.SOURCE_DATE_EPOCH;
   if (rawEpoch !== undefined && rawEpoch.trim() !== '') {
     const seconds = Number(rawEpoch);
@@ -28,11 +48,21 @@ export function resolveDefaultZipMtime() {
     }
     return new Date(seconds * 1000);
   }
+  if (
+    (opts && (opts.fallbackToGit || opts.fallbackToLastCommit)) ||
+    process.env.SOURCE_DATE_EPOCH_FALLBACK_GIT === '1' ||
+    process.env.SOURCE_DATE_EPOCH_FALLBACK_GIT === 'true'
+  ) {
+    const gitDate = resolveLastCommitDate(opts?.cwd);
+    if (gitDate !== null) {
+      return gitDate;
+    }
+  }
   return DEFAULT_ZIP_MTIME;
 }
 
-export function toDosDateTime(date) {
-  const d = date === undefined ? resolveDefaultZipMtime() : date;
+export function toDosDateTime(date, opts = {}) {
+  const d = date === undefined ? resolveDefaultZipMtime(opts) : date;
   if (!(d instanceof Date) || Number.isNaN(d.getTime())) {
     throw new Error('Invalid mtime: must be a valid Date instance');
   }
@@ -249,7 +279,7 @@ export function parsePkZipEntries(zipBuf) {
 export function packageAssets(opts = {}) {
   const targetDist = resolveOutDir(opts);
   const validatedMtime = assertValidMtimeOption(opts);
-  const effectiveMtime = validatedMtime !== undefined ? validatedMtime : resolveDefaultZipMtime();
+  const effectiveMtime = validatedMtime !== undefined ? validatedMtime : resolveDefaultZipMtime(opts);
   const assetsDir = join(targetDist, 'assets');
   mkdirSync(assetsDir, { recursive: true });
 
