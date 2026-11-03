@@ -19,6 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
 import { isTransparentHex, lintDerivedTokenFallbacks, DERIVED_TOKENS, parseVarCalls } from "../tools/lint.mjs";
+import { buildTokensCss } from "../tools/sync-tokens.mjs";
 import {
   tolData,
   expandHex,
@@ -3979,7 +3980,7 @@ test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-e
     assert.ok(componentsBlock, `${relPath} must contain @layer components`);
     const parsed = parseCssBlock(componentsBlock);
 
-    const tooltipRules = parsed.rules.filter((r) => r.selector === "[data-tooltip]");
+    const tooltipRules = parsed.rules.filter((r) => r.selector.startsWith("[data-tooltip]"));
     assert.equal(tooltipRules.length, 1, `${relPath} must define a single [data-tooltip] rule`);
     const tooltipRule = tooltipRules[0];
 
@@ -4014,7 +4015,11 @@ test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-e
     assert.equal(beforeDecl["pointer-events"], "auto", `${relPath}: ::before must set pointer-events: auto`);
     assert.equal(beforeDecl.left, "50%", `${relPath}: ::before must center at left: 50%`);
     assert.match(beforeDecl.transform ?? "", /^translateX?\(-50%\)$/, `${relPath}: ::before must center with translateX(-50%)`);
-    assert.equal(beforeDecl["z-index"], "99", `${relPath}: ::before must set z-index: 99`);
+    assert.match(
+      beforeDecl["z-index"] ?? "",
+      /^var\(--pt-z-tooltip,\s*99\)$/,
+      `${relPath}: ::before must set z-index: var(--pt-z-tooltip, 99)`
+    );
 
     assert.equal(afterDecl.content, '""', `${relPath}: ::after hover bridge must set content: ""`);
     assert.equal(afterDecl.position, "absolute", `${relPath}: ::after hover bridge must be position: absolute`);
@@ -4417,6 +4422,199 @@ test("CSS logical properties and RTL support (Issue #217)", async () => {
   const allowed = lintPhysicalDirectionProperties("select:dir(rtl) { background-position: left 0.75rem center; }", "src/forms.css");
   assert.equal(allowed.length, 0, "lintPhysicalDirectionProperties must permit allowlisted select chevron in src/forms.css");
 });
+
+test("CSS pseudo-element conflicts, z-index tokens, hidden/fieldset, sheet specificity, switch aria (Issue #218)", () => {
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const baseCss = fs.readFileSync(path.join(ROOT, "src/base.css"), "utf8");
+  const contentCss = fs.readFileSync(path.join(ROOT, "src/content.css"), "utf8");
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  // C9: Host pseudo-element collision limitation documented and guarded in CSS
+  assert.match(
+    readme,
+    /not supported on hosts with their own `::before` or `::after`/,
+    "README must document [data-tooltip] host pseudo-element limitations"
+  );
+  assert.ok(
+    readme.includes('[aria-busy="true"]'),
+    "README must list [aria-busy=\"true\"] as an unsupported tooltip host"
+  );
+  assert.ok(
+    compCss.includes('[aria-busy="true"]:not(input, select, textarea, html, form, summary)::before'),
+    "src/components.css must exclude summary from [aria-busy=\"true\"]::before spinner"
+  );
+  assert.ok(
+    compCss.includes('[data-tooltip]:not([aria-busy="true"], summary, [role="switch"], .close, dialog button:is([aria-label="Close" i], [rel="prev"]))'),
+    "src/components.css must guard [data-tooltip] against aria-busy, summary, role=switch, and dialog close buttons"
+  );
+  assert.ok(
+    !compCss.includes('[data-tooltip]:not([aria-busy="true"], summary, [role="switch"]) {'),
+    "src/components.css must not use incomplete [data-tooltip] guard omitting dialog close buttons"
+  );
+
+  // C10: --pt-z-* tokens replace hard-coded 98/99/100/999/9999; toast and skip-link no longer share 9999
+  const expectedZTokens = [
+    "--pt-z-backdrop: 98;",
+    "--pt-z-tooltip: 99;",
+    "--pt-z-dropdown: 100;",
+    "--pt-z-modal: 999;",
+    "--pt-z-toast: 9990;",
+    "--pt-z-skip-link: 10000;",
+  ];
+  for (const token of expectedZTokens) {
+    assert.ok(tokensCss.includes(token), `src/tokens.css must declare "${token}"`);
+  }
+
+  // Ensure early-binding derived-token antipattern is avoided on :root
+  assert.ok(
+    !tokensCss.includes("--pt-z-dropdown-backdrop:"),
+    "src/tokens.css must not declare early-bound --pt-z-dropdown-backdrop on :root"
+  );
+  assert.ok(
+    compCss.includes("z-index: var(--pt-z-backdrop, 98);"),
+    "src/components.css dropdown backdrop must declare z-index: var(--pt-z-backdrop, 98)"
+  );
+
+  // Verify toast and skip-link use distinct z-index tokens
+  assert.ok(
+    baseCss.includes("z-index: var(--pt-z-skip-link, 10000);"),
+    "src/base.css skip-to-content must declare z-index: var(--pt-z-skip-link, 10000)"
+  );
+  assert.ok(
+    compCss.includes("z-index: var(--pt-z-toast, 9990);"),
+    "src/components.css toast must declare z-index: var(--pt-z-toast, 9990)"
+  );
+  assert.ok(
+    compCss.includes("z-index: var(--pt-z-tooltip, 99);"),
+    "src/components.css tooltip must declare z-index: var(--pt-z-tooltip, 99)"
+  );
+  assert.ok(
+    compCss.includes("z-index: var(--pt-z-modal, 999);"),
+    "src/components.css dialog / sheet must declare z-index: var(--pt-z-modal, 999)"
+  );
+
+  // Negative assertion: no bare numeric z-index declarations remain across src/ (excluding tokens.css)
+  const srcFiles = fs
+    .readdirSync(path.join(ROOT, "src"))
+    .filter((f) => f.endsWith(".css") && f !== "tokens.css")
+    .map((f) => path.join("src", f));
+  for (const f of srcFiles) {
+    const src = fs.readFileSync(path.join(ROOT, f), "utf8");
+    const bareZMatch = src.match(/(?<![a-zA-Z0-9_-])z-index\s*:\s*-?\d+\s*;/g);
+    assert.equal(
+      bareZMatch,
+      null,
+      `${f} must contain zero bare numeric z-index declarations, found: ${bareZMatch?.join(", ")}`
+    );
+  }
+
+  // Token generator sync parity
+  const generatedTokens = buildTokensCss().replace(/\r\n/g, "\n");
+  const fileTokens = tokensCss.replace(/\r\n/g, "\n");
+  assert.equal(fileTokens, generatedTokens, "src/tokens.css must match buildTokensCss() generator byte-for-byte");
+
+  // C11: [hidden]:not([hidden="until-found" i]); fieldset[disabled] > :not(legend)
+  assert.ok(
+    baseCss.includes(':where([hidden]:not([hidden="until-found" i]))'),
+    "src/base.css must scope [hidden] with case-insensitive :not([hidden=\"until-found\" i])"
+  );
+  assert.ok(
+    !baseCss.includes(":where([hidden]) {"),
+    "src/base.css must not contain un-scoped :where([hidden]) {"
+  );
+  assert.ok(
+    contentCss.includes("fieldset[disabled] > :not(legend)"),
+    "src/content.css must exempt legend from fieldset[disabled] opacity and pointer-events"
+  );
+  assert.ok(
+    contentCss.includes("[disabled]:not(fieldset[disabled] *)"),
+    "src/content.css must exempt nested controls inside disabled fieldsets from double-compounding opacity"
+  );
+  assert.ok(
+    !/,\s*fieldset\[disabled\]\s+\*/.test(contentCss),
+    "src/content.css must not apply stacked opacity across arbitrary descendants (fieldset[disabled] *)"
+  );
+
+  // C12: explicit .sheet overrides instead of relying on source order; dialog > article uses dvh
+  assert.ok(
+    compCss.includes(":where(dialog:not(.sheet, .sheet-right, .sheet-left))"),
+    "src/components.css dialog rule must explicitly exclude .sheet modifiers"
+  );
+  assert.ok(
+    compCss.includes("&:where(:not(.sheet, .sheet-right, .sheet-left)):has(> article)"),
+    "src/components.css modal dialog rule must wrap .sheet exclusions inside :where() to preserve base specificity"
+  );
+  assert.ok(
+    !compCss.includes("&:not(.sheet, .sheet-right, .sheet-left):has(> article)"),
+    "src/components.css must not escalate modal dialog specificity with un-wrapped :not(.sheet, ...)"
+  );
+  assert.ok(
+    compCss.includes("max-height: 90dvh;"),
+    "src/components.css dialog > article must declare max-height: 90dvh"
+  );
+  assert.ok(
+    !compCss.includes("max-height: 90vh;"),
+    "src/components.css dialog > article must not use legacy 90vh unit"
+  );
+
+  // C13: [role=switch][aria-checked=true] is styled; tight density selector deduplicated; button padding reset
+  assert.ok(
+    compCss.includes('padding: 0;'),
+    "src/components.css [role=\"switch\"] must reset padding: 0 for button switches"
+  );
+  assert.ok(
+    compCss.includes('cursor: pointer;'),
+    "src/components.css [role=\"switch\"] must set cursor: pointer"
+  );
+  assert.ok(
+    compCss.includes('vertical-align: middle;'),
+    "src/components.css [role=\"switch\"] must set vertical-align: middle"
+  );
+  const switchCheckedMatches = compCss.match(/&:is\(:checked,\s*\[aria-checked="true"\]\)/g);
+  assert.equal(
+    switchCheckedMatches?.length,
+    2,
+    "src/components.css [role=\"switch\"] must style &:is(:checked, [aria-checked=\"true\"]) in both standard and forced-colors blocks"
+  );
+  const forcedColorsBlock = compCss.match(/@media\s*\(forced-colors:\s*active\)\s*\{([\s\S]*?)\n\s{2}\}/)?.[1] || "";
+  assert.ok(
+    forcedColorsBlock.includes('&:is(:checked, [aria-checked="true"])'),
+    "src/components.css must style &:is(:checked, [aria-checked=\"true\"]) within @media (forced-colors: active)"
+  );
+  assert.ok(
+    !compCss.includes("&:checked"),
+    "src/components.css [role=\"switch\"] must not use bare &:checked"
+  );
+  const normTokens = tokensCss.replace(/\r\n/g, "\n");
+  assert.ok(
+    normTokens.includes('[data-density="tight"], .pt-tight {\n    --pt-spacing: 0.25rem;'),
+    "src/tokens.css tight density selector must not duplicate :where([data-density=\"tight\"], .pt-tight)"
+  );
+  assert.ok(
+    !normTokens.includes(':where([data-density="tight"], .pt-tight)'),
+    "src/tokens.css must not duplicate tight density selector"
+  );
+
+  // C14: components.css section numbering fixed across multi-line comment headers
+  const sectionHeaders = [...compCss.matchAll(/\/\*\s*(\d+[a-z]?)\.\s*([\s\S]*?)\*\//g)].map((m) => ({
+    num: m[1],
+    title: m[2].trim(),
+  }));
+  const nums = sectionHeaders.map((s) => s.num);
+  const expectedSections = [
+    "1", "2", "3", "4", "5", "5b", "6", "7", "8", "9",
+    "10", "11", "11a", "11b", "11c", "12", "13", "14", "15", "16", "17"
+  ];
+  assert.deepEqual(
+    nums,
+    expectedSections,
+    `Section numbers must match expected sequential list exactly: ${expectedSections.join(", ")}`
+  );
+  const uniqueNums = new Set(nums);
+  assert.equal(uniqueNums.size, nums.length, `Section numbers must be unique, found duplicates in: ${nums.join(", ")}`);
+});
+
 
 
 

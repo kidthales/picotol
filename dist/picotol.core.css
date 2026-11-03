@@ -45,7 +45,12 @@
     --pt-invalid: light-dark(#c31, #e67);
     --pt-mark-bg: light-dark(#eeb, #750);
     --pt-box-shadow: 0 2px 8px color-mix(in srgb, var(--pt-color) 12%, transparent);
+    --pt-z-backdrop: 98;
+    --pt-z-tooltip: 99;
     --pt-z-dropdown: 100;
+    --pt-z-modal: 999;
+    --pt-z-toast: 9990;
+    --pt-z-skip-link: 10000;
     --pt-status-ok-fg: light-dark(#283, #4a9);
     --pt-status-ok-border: var(--pt-status-ok-fg);
     --pt-status-ok-bg: color-mix(in srgb, var(--pt-status-ok-border) 8%, transparent);
@@ -111,7 +116,7 @@
     font-size: clamp(.85rem, .8rem + .3vw, .95rem);
   }
 
-  [data-density="tight"], .pt-tight, :where([data-density="tight"], .pt-tight) {
+  [data-density="tight"], .pt-tight {
     --pt-spacing: .25rem;
     --pt-card-padding: .25rem;
     --pt-form-y: .125rem;
@@ -146,7 +151,7 @@
     margin: 0;
   }
 
-  :where([hidden]) {
+  :where([hidden]:not([hidden="until-found" i])) {
     display: none !important;
   }
 }
@@ -413,7 +418,7 @@
     display: inline-block;
   }
 
-  :where([disabled], fieldset[disabled] *) {
+  :where([disabled]:not(fieldset[disabled] *), fieldset[disabled] > :not(legend)) {
     opacity: .5;
     pointer-events: none;
   }
@@ -699,7 +704,7 @@
 @layer utilities {
   .skip-to-content:is(:focus, :focus-visible) {
     top: .5rem;
-    z-index: 9999;
+    z-index: var(--pt-z-skip-link, 10000);
     border: 2px solid var(--pt-primary);
     border-radius: var(--pt-border-radius);
     background: var(--pt-bg);
