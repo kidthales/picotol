@@ -548,6 +548,98 @@ test("GitHub Actions workflows enforce tag guard, script-injection hygiene, and 
   );
 });
 
+test("GitHub Actions CI and release hygiene: duplicate notify skip, credential persistence, cache isolation, single-run gitleaks, zizmor, and downstream privacy (Issue #212)", () => {
+  const workflowDir = path.join(ROOT, ".github", "workflows");
+  const ciYml = fs.readFileSync(path.join(workflowDir, "ci.yml"), "utf8");
+  const ciParsed = parseWorkflowJobs(ciYml);
+  const releaseYml = fs.readFileSync(path.join(workflowDir, "release.yml"), "utf8");
+  const releaseParsed = parseWorkflowJobs(releaseYml);
+  const pagesYml = fs.readFileSync(path.join(workflowDir, "pages.yml"), "utf8");
+  const pagesParsed = parseWorkflowJobs(pagesYml);
+
+  // A8: ci.yml notify skipped under workflow_call
+  assert.ok(ciParsed.jobs.notify, "ci.yml must define a notify job");
+  assert.match(
+    ciParsed.jobs.notify,
+    /if:\s*always\(\)\s*&&\s*github\.event_name\s*!=\s*['"]workflow_call['"]/,
+    "ci.yml notify job must skip execution under workflow_call"
+  );
+  assert.match(
+    ciParsed.jobs.notify,
+    /needs:\s*\[security,\s*verify\]/,
+    "ci.yml notify job must depend on security and verify"
+  );
+
+  // A9: gitleaks runs once outside matrix in security job, and zizmor is added
+  assert.ok(ciParsed.jobs.security, "ci.yml must define a dedicated security job");
+  assert.match(
+    ciParsed.jobs.security,
+    /uses:\s*gitleaks\/gitleaks-action@[a-f0-9]{40}/,
+    "ci.yml security job must run gitleaks-action pinned to SHA"
+  );
+  assert.match(
+    ciParsed.jobs.security,
+    /uses:\s*zizmorcore\/zizmor-action@[a-f0-9]{40}/,
+    "ci.yml security job must run zizmor-action pinned to SHA"
+  );
+  assert.doesNotMatch(
+    ciParsed.jobs.verify,
+    /gitleaks\/gitleaks-action/,
+    "ci.yml verify matrix job must not run gitleaks"
+  );
+
+  // A9: actions/checkout uses persist-credentials: false across all workflows
+  const allWorkflows = [
+    { name: "ci.yml", content: ciYml },
+    { name: "release.yml", content: releaseYml },
+    { name: "pages.yml", content: pagesYml }
+  ];
+  for (const wf of allWorkflows) {
+    const checkoutStepMatches = [
+      ...wf.content.matchAll(/-\s*name:\s*Checkout repository\s*\n\s*uses:\s*actions\/checkout@[^\n]+\n(?<step>(?:\s+[^\n]+\n)*)/g)
+    ];
+    assert.ok(checkoutStepMatches.length > 0, `${wf.name} must have at least one checkout step`);
+    for (const match of checkoutStepMatches) {
+      assert.match(
+        match.groups.step,
+        /persist-credentials:\s*false/,
+        `${wf.name} checkout step must specify persist-credentials: false`
+      );
+    }
+  }
+
+  // A9: release jobs don't use shared npm cache
+  const releasePubJobs = ["publish-npm", "publish-gpr", "attach-assets"];
+  for (const jobName of releasePubJobs) {
+    assert.ok(releaseParsed.jobs[jobName], `release.yml must define ${jobName} job`);
+    assert.doesNotMatch(
+      releaseParsed.jobs[jobName],
+      /cache:\s*["']?npm["']?/,
+      `release.yml job ${jobName} must not use shared npm cache`
+    );
+  }
+
+  // A10: release notify card reports skipped when attach-assets is skipped
+  assert.match(
+    releaseParsed.jobs.notify,
+    /ASSETS_STATUS:\s*\$\{\{\s*needs\.attach-assets\.result\s*\|\|\s*'skipped'\s*\}\}/,
+    "release.yml notify job must fallback to 'skipped' for ASSETS_STATUS"
+  );
+  assert.match(
+    releaseParsed.jobs.notify,
+    /--arg\s+assets\s+"(?:\$\{ASSETS_STATUS:-skipped\}|\$ASSETS_STATUS)"/,
+    "release.yml notify card must format assets parameter with skipped fallback"
+  );
+
+  // A11: README example no longer names private downstream (kidthales/foundation)
+  const readmeContent = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  assert.doesNotMatch(
+    readmeContent,
+    /kidthales\/foundation/,
+    "README.md must not reference private downstream repository 'kidthales/foundation'"
+  );
+});
+
 test("GitHub Actions script-injection detection helper correctly flags unescaped expressions in run steps", () => {
   const badInline = `
 jobs:
