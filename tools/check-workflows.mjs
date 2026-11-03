@@ -79,7 +79,12 @@ export function auditWorkflows(rootDir = ROOT) {
     const rootPerms = doc.permissions;
     if (rootPerms === 'write-all') {
       errors.push(`${file} grants root-level write permission '${rootPerms}'. All workflows must default to least-privilege read permissions at root.`);
-    } else if (rootPerms && typeof rootPerms === 'object') {
+    } else if (!rootPerms || (rootPerms !== 'read-all' && typeof rootPerms !== 'object')) {
+      errors.push(`${file} must explicitly declare root-level least-privilege 'permissions: { contents: read }'.`);
+    } else if (typeof rootPerms === 'object') {
+      if (rootPerms.contents !== 'read') {
+        errors.push(`${file} must explicitly declare root-level 'contents: read' permission.`);
+      }
       for (const [permKey, permVal] of Object.entries(rootPerms)) {
         if (permVal === 'write') {
           errors.push(`${file} grants root-level write permission '${permKey}: write'. All workflows must default to least-privilege read permissions at root.`);
@@ -173,13 +178,13 @@ export function auditWorkflows(rootDir = ROOT) {
     // 3. Workflow-specific architectural contracts
     if (file === 'release.yml') {
       const verifyJob = jobs.verify;
-      if (!verifyJob || verifyJob.uses !== './.github/workflows/ci.yml') {
+      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== './.github/workflows/ci.yml') {
         errors.push("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.");
       }
-      if (!verifyJob || !verifyJob.permissions || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
+      if (!verifyJob || typeof verifyJob !== 'object' || !verifyJob.permissions || typeof verifyJob.permissions !== 'object' || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
         errors.push("release.yml verify job must explicitly scope permissions (contents: read, security-events: write).");
       }
-      if (verifyJob && verifyJob.permissions) {
+      if (verifyJob && typeof verifyJob === 'object' && verifyJob.permissions && typeof verifyJob.permissions === 'object') {
         for (const [pKey, pVal] of Object.entries(verifyJob.permissions)) {
           if (pKey !== 'security-events' && pVal === 'write') {
             errors.push("release.yml verify job must not grant unauthorized write permissions.");
@@ -188,15 +193,15 @@ export function auditWorkflows(rootDir = ROOT) {
       }
 
       const tagGuardJob = jobs['tag-guard'];
-      if (!tagGuardJob) {
+      if (!tagGuardJob || typeof tagGuardJob !== 'object') {
         errors.push("release.yml must define a 'tag-guard' job.");
       } else {
-        const tgPerms = tagGuardJob.permissions;
+        const tgPerms = (tagGuardJob.permissions && typeof tagGuardJob.permissions === 'object') ? tagGuardJob.permissions : null;
         if (!tgPerms || tgPerms.contents !== 'read' || Object.values(tgPerms).includes('write')) {
           errors.push("release.yml tag-guard job must explicitly define 'permissions: contents: read' and no write permissions.");
         }
         const tgSteps = Array.isArray(tagGuardJob.steps) ? tagGuardJob.steps : [];
-        const tgScript = tgSteps.map((s) => s.run || '').join('\n');
+        const tgScript = tgSteps.map((s) => (s && typeof s === 'object' && typeof s.run === 'string' ? s.run : '')).join('\n');
         if (!tgScript.includes('EXPECTED_TAG="v${PKG_VER}"')) {
           errors.push('release.yml tag-guard must construct expected tag as EXPECTED_TAG="v${PKG_VER}".');
         }
@@ -211,7 +216,7 @@ export function auditWorkflows(rootDir = ROOT) {
         }
       }
 
-      if (verifyJob) {
+      if (verifyJob && typeof verifyJob === 'object') {
         const verifyNeeds = Array.isArray(verifyJob.needs) ? verifyJob.needs : [verifyJob.needs];
         if (!verifyNeeds.includes('tag-guard')) {
           errors.push('release.yml verify job must depend on tag-guard (needs: [tag-guard]).');
@@ -220,7 +225,7 @@ export function auditWorkflows(rootDir = ROOT) {
 
       for (const pubJob of ['publish-npm', 'publish-gpr', 'attach-assets']) {
         const j = jobs[pubJob];
-        if (!j) {
+        if (!j || typeof j !== 'object') {
           errors.push(`release.yml ${pubJob} job must exist.`);
         } else {
           const jNeeds = Array.isArray(j.needs) ? j.needs : [j.needs];
@@ -229,6 +234,7 @@ export function auditWorkflows(rootDir = ROOT) {
           }
           const jSteps = Array.isArray(j.steps) ? j.steps : [];
           for (const s of jSteps) {
+            if (!s || typeof s !== 'object') continue;
             if (s.with && s.with.cache && /npm/i.test(String(s.with.cache))) {
               errors.push(`release.yml ${pubJob} job must not use shared npm cache.`);
             }
@@ -237,14 +243,14 @@ export function auditWorkflows(rootDir = ROOT) {
       }
 
       const notifyJob = jobs.notify;
-      if (notifyJob) {
+      if (notifyJob && typeof notifyJob === 'object') {
         const notifPerms = notifyJob.permissions;
-        if (notifPerms && (notifPerms === 'write-all' || Object.values(notifPerms).includes('write'))) {
+        if (notifPerms && (notifPerms === 'write-all' || (typeof notifPerms === 'object' && Object.values(notifPerms).includes('write')))) {
           errors.push('release.yml notify job must not grant write permissions.');
         }
         const notifySteps = Array.isArray(notifyJob.steps) ? notifyJob.steps : [];
         const hasSkippedCheck = notifySteps.some(
-          (s) => s.env && typeof s.env.ASSETS_STATUS === 'string' && s.env.ASSETS_STATUS.includes('attach-assets.result') && s.env.ASSETS_STATUS.includes('skipped')
+          (s) => s && typeof s === 'object' && s.env && typeof s.env.ASSETS_STATUS === 'string' && s.env.ASSETS_STATUS.includes('attach-assets.result') && s.env.ASSETS_STATUS.includes('skipped')
         );
         if (!hasSkippedCheck) {
           errors.push('release.yml notify job must report skipped status when attach-assets is skipped.');
@@ -287,6 +293,11 @@ export function auditWorkflows(rootDir = ROOT) {
         const deployPerms = (deployJob.permissions && typeof deployJob.permissions === 'object') ? deployJob.permissions : {};
         if (deployPerms.pages !== 'write' || deployPerms['id-token'] !== 'write') {
           errors.push('pages.yml deploy job must explicitly scope permissions (pages: write, id-token: write).');
+        }
+        for (const [pKey, pVal] of Object.entries(deployPerms)) {
+          if (pKey !== 'pages' && pKey !== 'id-token' && pVal === 'write') {
+            errors.push('pages.yml deploy job must not grant unauthorized write permissions.');
+          }
         }
       } else {
         errors.push('pages.yml must define a deploy job.');

@@ -477,7 +477,8 @@ test('build constants: named constants for Pico CSS v2.1.1 header and upstream b
 });
 
 test('tools/check-workflows.mjs: real YAML parser workflow drift auditor (B6)', () => {
-  // 1. Clean run on repository root
+  // 1. Clean run on repository root and package.json script check
+  assert.equal(pkg.scripts['check:workflows'], 'node tools/check-workflows.mjs');
   const rootErrors = auditWorkflows(ROOT);
   assert.deepEqual(rootErrors, [], `auditWorkflows must pass cleanly on root repository workflows, got: ${rootErrors.join('; ')}`);
 
@@ -565,6 +566,37 @@ jobs:
   }, (tempRoot) => {
     const errs = auditWorkflows(tempRoot);
     assert.ok(errs.some((e) => e.includes("grants root-level write permission 'contents: write'")));
+  });
+
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps: []
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("must explicitly declare root-level least-privilege 'permissions: { contents: read }'")));
+  });
+
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+permissions:
+  issues: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps: []
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("must explicitly declare root-level 'contents: read' permission")));
+    assert.ok(errs.some((e) => e.includes("grants root-level write permission 'issues: write'")));
   });
 
   // 6. Negative test: ${{ ... }} script injection in run: step
@@ -662,6 +694,93 @@ concurrency:
   cancel-in-progress: \${{ github.workflow == 'CI' }}
 jobs:
   placeholder:
+`
+  }, (tempRoot) => {
+    assert.doesNotThrow(() => auditWorkflows(tempRoot));
+  });
+
+  // 12. Negative test: pages.yml deploy job unauthorized write permissions
+  withTempWorkflows({
+    'pages.yml': `
+name: Deploy
+on: [push]
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  build:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps: []
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+      contents: write
+    steps: []
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes('pages.yml deploy job must not grant unauthorized write permissions.')));
+  });
+
+  // 13. Edge case: release.yml with null / scalar steps does not throw TypeError
+  withTempWorkflows({
+    'release.yml': `
+name: Release
+on: [push]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      -
+      - null
+      - name: Guard
+        run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - null
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - null
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - null
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - null
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
 `
   }, (tempRoot) => {
     assert.doesNotThrow(() => auditWorkflows(tempRoot));

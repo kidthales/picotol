@@ -91,6 +91,7 @@
     "package:assets": "node tools/package-assets.mjs",
     "build": "node tools/build.mjs",
     "lint": "node tools/lint.mjs",
+    "check:workflows": "node tools/check-workflows.mjs",
     "check:budgets": "node tools/check-budgets.mjs",
     "check:types": "tsc -p tests/fixtures/tsc/tsconfig.bundler.json --noEmit && tsc -p tests/fixtures/tsc/tsconfig.node16.json --noEmit",
     "generate": "npm run sync:tokens && npm run build",
