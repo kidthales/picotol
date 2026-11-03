@@ -5,7 +5,7 @@
   :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"], [type="reset"]), select, textarea) {
     width: 100%;
     margin-bottom: var(--pt-spacing);
-    padding: var(--pt-form-element-spacing-vertical) var(--pt-form-element-spacing-horizontal);
+    padding: var(--pt-form-element-spacing-vertical, var(--pt-form-y)) var(--pt-form-element-spacing-horizontal, var(--pt-form-x));
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
     background: var(--pt-bg);

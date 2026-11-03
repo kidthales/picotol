@@ -2,11 +2,12 @@
 //   1. Strict CSS syntax & nesting validation (errorRecovery: false, 0 warnings)
 //   2. Paul Tol hex purity & forbidden color function gate (rgb/hsl/oklch/lab/lch)
 //   3. Custom property naming (--pt-* / --tol-*) & undefined var(--*) detection
-//   4. Accessibility CSS rules: prohibits outline:none/0 and px font-size; requires
+//   4. Late-bound density tokens & derived token fallback chain static cascade check
+//   5. Accessibility CSS rules: prohibits outline:none/0 and px font-size; requires
 //      :focus-visible, .skip-to-content, .sr-only, forced-colors, reduced-motion, print
-//   5. Demo HTML linter: verifies all classes, #hash anchors, aria-describedby,
+//   6. Demo HTML linter: verifies all classes, #hash anchors, aria-describedby,
 //      aria-labelledby, and keyboard tabindex on non-interactive [data-tooltip] nodes.
-//   6. Node.js syntax check (`node --check`), git agent-file guard, and export resolution.
+//   7. Node.js syntax check (`node --check`), git agent-file guard, and export resolution.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -37,6 +38,81 @@ export function expandHex(raw) {
 export function isTransparentHex(normHex) {
   const upper = normHex.toUpperCase();
   return upper === '#0000' || upper === '#00000000';
+}
+
+export const DERIVED_TOKENS = new Map([
+  ['--pt-form-element-spacing-vertical', '--pt-form-y'],
+  ['--pt-form-element-spacing-horizontal', '--pt-form-x'],
+  ['--pt-btn-padding-block', '--pt-form-y'],
+]);
+
+export function parseVarCalls(css) {
+  const calls = [];
+  let i = 0;
+  while (i < css.length) {
+    if (css.startsWith('var(', i)) {
+      const start = i;
+      let depth = 1;
+      let commaIdx = -1;
+      let quote = null;
+      let j = i + 4;
+      while (j < css.length && depth > 0) {
+        const ch = css[j];
+        if (quote) {
+          if (ch === '\\' && j + 1 < css.length) {
+            j += 2;
+            continue;
+          }
+          if (ch === quote) quote = null;
+          j++;
+          continue;
+        }
+        if (ch === '"' || ch === "'") {
+          quote = ch;
+          j++;
+          continue;
+        }
+        if (ch === '(') depth++;
+        else if (ch === ')') depth--;
+        else if (ch === ',' && depth === 1 && commaIdx === -1) commaIdx = j;
+        j++;
+      }
+      let varName = '';
+      let fallback = null;
+      if (commaIdx !== -1) {
+        varName = css.slice(start + 4, commaIdx).trim();
+        fallback = css.slice(commaIdx + 1, j - 1).trim();
+      } else {
+        varName = css.slice(start + 4, j - 1).trim();
+      }
+      calls.push({ raw: css.slice(start, j), varName, fallback, start, end: j });
+      i = start + 4;
+      continue;
+    }
+    i++;
+  }
+  return calls;
+}
+
+export function lintDerivedTokenFallbacks(content, filename = 'src/components.css') {
+  const errors = [];
+  const cleanContent = stripCssComments(content);
+  const calls = parseVarCalls(cleanContent);
+  for (const c of calls) {
+    if (DERIVED_TOKENS.has(c.varName)) {
+      const baseToken = DERIVED_TOKENS.get(c.varName);
+      if (!c.fallback) {
+        errors.push(
+          `[${filename}] Derived token "${c.varName}" read without fallback to base token (expected fallback containing "${baseToken}")`
+        );
+      } else if (!c.fallback.includes(baseToken)) {
+        errors.push(
+          `[${filename}] Derived token "${c.varName}" has fallback "${c.fallback}" that does not resolve to base token "${baseToken}"`
+        );
+      }
+    }
+  }
+  return errors;
 }
 
 function scanCssCommentsAndLiterals(css, { replaceStrings = false } = {}) {
@@ -186,6 +262,13 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
   }
   if (/\bfont-size\s*:\s*[0-9.]+px\b/i.test(cleanContent)) {
     errors.push(`[${filename}] Scalable typography violation: fixed "px" font-size found (use rem, em, %, or clamp)`);
+  }
+
+  // 5. Late-bound density tokens & derived token fallback chain static cascade check
+  const normFilename = filename.replaceAll('\\', '/');
+  const isTokenFile = normFilename.endsWith('tokens.css') || normFilename.endsWith('palettes.css');
+  if (!isTokenFile) {
+    errors.push(...lintDerivedTokenFallbacks(cleanContent, filename));
   }
 
   return errors;

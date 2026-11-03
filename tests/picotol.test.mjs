@@ -18,7 +18,7 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
-import { isTransparentHex } from "../tools/lint.mjs";
+import { isTransparentHex, lintDerivedTokenFallbacks, DERIVED_TOKENS, parseVarCalls } from "../tools/lint.mjs";
 import {
   tolData,
   expandHex,
@@ -1659,8 +1659,8 @@ test("Compact Density Cascading into Form Controls, Tables, Buttons, and Layout 
     "Tokens CSS must expose --pt-form-element-spacing-vertical and --pt-form-element-spacing-horizontal"
   );
   assert.ok(
-    formsCss.includes("var(--pt-form-element-spacing-vertical) var(--pt-form-element-spacing-horizontal)"),
-    "Forms CSS must wire input, select, textarea padding to spacing custom properties"
+    formsCss.includes("var(--pt-form-element-spacing-vertical, var(--pt-form-y)) var(--pt-form-element-spacing-horizontal, var(--pt-form-x))"),
+    "Forms CSS must wire input, select, textarea padding to spacing custom properties with base fallbacks"
   );
   assert.ok(
     coreCss.includes("--pt-form-element-spacing-vertical") &&
@@ -1684,18 +1684,18 @@ test("Compact Density Cascading into Form Controls, Tables, Buttons, and Layout 
     "Core bundle must include table cell padding custom properties"
   );
 
-  // 3. Button and micro-action vertical padding wired to --pt-btn-padding-block
+  // 3. Button and micro-action vertical padding wired to --pt-btn-padding-block with base fallback
   assert.ok(
     tokensCss.includes("--pt-btn-padding-block:"),
     "Tokens CSS must declare --pt-btn-padding-block"
   );
   assert.ok(
-    contentCss.includes("padding: var(--pt-btn-padding-block) var(--pt-form-x);"),
-    "Content CSS must wire button padding to --pt-btn-padding-block"
+    contentCss.includes("padding: var(--pt-btn-padding-block, var(--pt-form-y)) var(--pt-form-x);"),
+    "Content CSS must wire button padding to --pt-btn-padding-block with --pt-form-y fallback"
   );
   assert.ok(
     compCss.includes("--pt-btn-padding-block: 1px;") &&
-    compCss.includes("padding-block: var(--pt-btn-padding-block);"),
+    compCss.includes("padding-block: var(--pt-btn-padding-block, var(--pt-form-y));"),
     "Components CSS must tighten .pt-copy-pill and .pt-chip padding-block in compact context"
   );
 
@@ -4153,6 +4153,128 @@ test("Component deduplications preserve .sheet and progressbar markers while rem
 
   const changelog = fs.readFileSync(path.join(ROOT, "CHANGELOG.md"), "utf8");
   assert.match(changelog, /\.pt-meter:has\(\.\.\.\)[\s\S]*?justify-content:\s*center/, "CHANGELOG must document the .pt-meter:has(...) and .segmented-fill justify-content dedupes");
+});
+
+test("Late-bind density tokens via fallback chains + static cascade check (Issue #203)", () => {
+  const tokensCss = fs.readFileSync(path.join(ROOT, "src/tokens.css"), "utf8");
+  const formsCss = fs.readFileSync(path.join(ROOT, "src/forms.css"), "utf8");
+  const contentCss = fs.readFileSync(path.join(ROOT, "src/content.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+
+  // 1. Deprecated derived :root declarations marked with /* @deprecated: removed in v0.6.0 */
+  const deprecatedTokens = [
+    "--pt-form-element-spacing-vertical",
+    "--pt-form-element-spacing-horizontal",
+    "--pt-btn-padding-block",
+  ];
+  for (const token of deprecatedTokens) {
+    const re = new RegExp(`${token}:[^;]+;\\s*/\\*\\s*@deprecated:\\s*removed in v0\\.6\\.0\\s*\\*/`);
+    assert.match(
+      tokensCss,
+      re,
+      `tokens.css :root must declare ${token} with deprecation comment /* @deprecated: removed in v0.6.0 */`
+    );
+  }
+
+  // 2. Components consume derived tokens through base-token fallback chains
+  assert.match(
+    formsCss,
+    /padding:\s*var\(--pt-form-element-spacing-vertical,\s*var\(--pt-form-y\)\)\s*var\(--pt-form-element-spacing-horizontal,\s*var\(--pt-form-x\)\)/,
+    "forms.css must consume spacing tokens with fallback to base tokens (--pt-form-y, --pt-form-x)"
+  );
+  assert.match(
+    contentCss,
+    /padding:\s*var\(--pt-btn-padding-block,\s*var\(--pt-form-y\)\)\s*var\(--pt-form-x\)/,
+    "content.css button padding must consume --pt-btn-padding-block with fallback to var(--pt-form-y)"
+  );
+  assert.match(
+    compCss,
+    /padding-block:\s*var\(--pt-btn-padding-block,\s*var\(--pt-form-y\)\)/,
+    "components.css must consume --pt-btn-padding-block with fallback to var(--pt-form-y)"
+  );
+
+  // 3. Static cascade check: negative tests (fails if a component reads a derived token without fallback)
+  const badSnippet1 = "button { padding: var(--pt-btn-padding-block); }";
+  const errors1 = lintDerivedTokenFallbacks(badSnippet1, "test-bad1.css");
+  assert.ok(errors1.length > 0, "Static cascade check must fail on var(--pt-btn-padding-block) without fallback");
+  assert.match(errors1[0], /--pt-btn-padding-block.*--pt-form-y/, "Error must cite expected base token");
+
+  const badSnippet2 = "input { padding-block: var(--pt-form-element-spacing-vertical); }";
+  const errors2 = lintDerivedTokenFallbacks(badSnippet2, "test-bad2.css");
+  assert.ok(errors2.length > 0, "Static cascade check must fail on var(--pt-form-element-spacing-vertical) without fallback");
+  assert.match(errors2[0], /--pt-form-element-spacing-vertical.*--pt-form-y/, "Error must cite expected base token");
+
+  const badSnippet3 = "input { padding-inline: var(--pt-form-element-spacing-horizontal); }";
+  const errors3 = lintDerivedTokenFallbacks(badSnippet3, "test-bad3.css");
+  assert.ok(errors3.length > 0, "Static cascade check must fail on var(--pt-form-element-spacing-horizontal) without fallback");
+  assert.match(errors3[0], /--pt-form-element-spacing-horizontal.*--pt-form-x/, "Error must cite expected base token");
+
+  // Static cascade check: positive test (passes with fallback)
+  const goodSnippet = "button { padding-block: var(--pt-btn-padding-block, var(--pt-form-y)); }";
+  const goodErrors = lintDerivedTokenFallbacks(goodSnippet, "test-good.css");
+  assert.deepEqual(goodErrors, [], "Static cascade check must pass when fallback is supplied");
+
+  // Static cascade check: all src/ component files pass cleanly
+  const srcFiles = fs.readdirSync(path.join(ROOT, "src")).filter((f) => f.endsWith(".css") && f !== "tokens.css" && f !== "palettes.css");
+  for (const file of srcFiles) {
+    const fileContent = fs.readFileSync(path.join(ROOT, "src", file), "utf8");
+    const fileErrors = lintDerivedTokenFallbacks(fileContent, `src/${file}`);
+    assert.deepEqual(fileErrors, [], `src/${file} must have 0 static cascade check errors`);
+  }
+
+  // 4. Static assertion on the resolved chain: Compact density and .small demonstrably change vertical padding
+  function resolveFallbackChain(chainString, env) {
+    const calls = parseVarCalls(chainString);
+    if (calls.length === 0) return chainString;
+    const { varName, fallback } = calls[0];
+    if (env[varName] !== undefined) {
+      return env[varName];
+    }
+    if (fallback) {
+      return resolveFallbackChain(fallback, env);
+    }
+    return undefined;
+  }
+
+  const btnPaddingChain = "var(--pt-btn-padding-block, var(--pt-form-y))";
+  const formSpacingChain = "var(--pt-form-element-spacing-vertical, var(--pt-form-y))";
+
+  const rootEnv = { "--pt-form-y": "0.5rem" };
+  const smallEnv = { "--pt-form-y": "0.25rem" };
+  const compactEnv = { "--pt-form-y": "0.25rem" };
+  const tightEnv = { "--pt-form-y": "0.125rem" };
+
+  const defaultBtnPadding = resolveFallbackChain(btnPaddingChain, rootEnv);
+  const smallBtnPadding = resolveFallbackChain(btnPaddingChain, smallEnv);
+  const compactBtnPadding = resolveFallbackChain(btnPaddingChain, compactEnv);
+  const tightBtnPadding = resolveFallbackChain(btnPaddingChain, tightEnv);
+
+  assert.equal(defaultBtnPadding, "0.5rem", "Default button vertical padding resolves to 0.5rem");
+  assert.equal(smallBtnPadding, "0.25rem", ".small button vertical padding resolves to 0.25rem");
+  assert.equal(compactBtnPadding, "0.25rem", "Compact button vertical padding resolves to 0.25rem");
+  assert.equal(tightBtnPadding, "0.125rem", "Tight button vertical padding resolves to 0.125rem");
+
+  assert.ok(
+    parseFloat(smallBtnPadding) < parseFloat(defaultBtnPadding),
+    ".small demonstrably shrinks button vertical padding (0.25rem < 0.5rem)"
+  );
+  assert.ok(
+    parseFloat(compactBtnPadding) < parseFloat(defaultBtnPadding),
+    "Compact density demonstrably shrinks button vertical padding (0.25rem < 0.5rem)"
+  );
+  assert.ok(
+    parseFloat(tightBtnPadding) < parseFloat(compactBtnPadding),
+    "Tight density demonstrably shrinks button vertical padding (0.125rem < 0.25rem)"
+  );
+
+  const defaultFormSpacing = resolveFallbackChain(formSpacingChain, rootEnv);
+  const smallFormSpacing = resolveFallbackChain(formSpacingChain, smallEnv);
+  const compactFormSpacing = resolveFallbackChain(formSpacingChain, compactEnv);
+  assert.equal(defaultFormSpacing, "0.5rem");
+  assert.equal(smallFormSpacing, "0.25rem");
+  assert.equal(compactFormSpacing, "0.25rem");
+  assert.ok(parseFloat(smallFormSpacing) < parseFloat(defaultFormSpacing));
+  assert.ok(parseFloat(compactFormSpacing) < parseFloat(defaultFormSpacing));
 });
 
 

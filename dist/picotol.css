@@ -119,9 +119,6 @@
     --pt-card-padding: .25rem;
     --pt-form-y: .125rem;
     --pt-form-x: .375rem;
-    --pt-form-element-spacing-vertical: var(--pt-form-y);
-    --pt-form-element-spacing-horizontal: var(--pt-form-x);
-    --pt-btn-padding-block: var(--pt-form-y);
     --pt-table-cell-padding-block: .125rem;
     --pt-table-cell-padding-inline: .375rem;
     --pt-grid-gap: var(--pt-spacing);
@@ -373,7 +370,7 @@
   }
 
   :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"], .button, .btn) {
-    padding: var(--pt-btn-padding-block) var(--pt-form-x);
+    padding: var(--pt-btn-padding-block, var(--pt-form-y)) var(--pt-form-x);
     border: 1px solid var(--pt-primary);
     border-radius: var(--pt-border-radius);
     background: var(--pt-primary-bg);
@@ -526,7 +523,7 @@
   :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"], [type="reset"]), select, textarea) {
     width: 100%;
     margin-bottom: var(--pt-spacing);
-    padding: var(--pt-form-element-spacing-vertical) var(--pt-form-element-spacing-horizontal);
+    padding: var(--pt-form-element-spacing-vertical, var(--pt-form-y)) var(--pt-form-element-spacing-horizontal, var(--pt-form-x));
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
     background: var(--pt-bg);
@@ -1783,7 +1780,7 @@
 
     :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) & {
       --pt-btn-padding-block: 1px;
-      padding-block: var(--pt-btn-padding-block);
+      padding-block: var(--pt-btn-padding-block, var(--pt-form-y));
     }
 
     &:hover {
