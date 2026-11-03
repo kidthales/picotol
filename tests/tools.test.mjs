@@ -45,6 +45,7 @@ import {
   isSameOrSubpath,
   resolveOutDir,
   resolveRealPath,
+  resolveRefreshOptions,
   resolveSyncOptions,
   stripWin32DeviceNamespacePrefix,
 } from '../tools/path-jail.mjs';
@@ -477,6 +478,38 @@ test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pur
     () => syncTokens({ snapshot }),
     /custom snapshot requires outSrcDir or both tokensCssPath and palettesCssPath/
   );
+
+  // Pure validator tests for resolveRefreshOptions
+  assert.throws(() => resolveRefreshOptions(null), /Invalid options/);
+  assert.throws(() => resolveRefreshOptions({ snapshotPath: '' }), /Invalid snapshotPath/);
+  assert.throws(() => resolveRefreshOptions({ snapshotPath: '   ' }), /Invalid snapshotPath/);
+  assert.throws(
+    () => resolveRefreshOptions({ outSrcDir: path.join(os.tmpdir(), 'some-dir') }),
+    /custom output targets .* and snapshotPath must be provided together/
+  );
+  assert.throws(
+    () => resolveRefreshOptions({ snapshotPath: path.join(os.tmpdir(), 'snap.json') }),
+    /custom output targets .* and snapshotPath must be provided together/
+  );
+  assert.throws(
+    () =>
+      resolveRefreshOptions({
+        snapshotPath: path.join(ROOT, 'data/tol-qualitative.json'),
+        outSrcDir: path.join(os.tmpdir(), 'some-dir'),
+      }),
+    /refusing to write custom sync target inside repository/
+  );
+  assert.throws(
+    () =>
+      resolveRefreshOptions({
+        snapshotPath: path.join(os.tmpdir(), 'snap.json'),
+        outSrcDir: path.join(ROOT, 'src'),
+      }),
+    /refusing to write custom sync target inside repository/
+  );
+  const defRefresh = resolveRefreshOptions({});
+  assert.equal(defRefresh.targetSnapshotPath, path.join(ROOT, 'data', 'tol-qualitative.json'));
+  assert.equal(defRefresh.isCustom, false);
   assert.throws(() => assertSafeCustomSyncTarget(ROOT, 'outSrcDir'), /refusing to write custom sync target inside repository/);
   assert.throws(() => assertSafeCustomSyncTarget(path.join(ROOT, 'src'), 'outSrcDir'), /refusing to write custom sync target inside repository/);
   assert.throws(() => assertSafeCustomSyncTarget(path.join(ROOT, 'data'), 'outSrcDir'), /refusing to write custom sync target inside repository/);
@@ -755,6 +788,52 @@ test('tools/sync-tokens.mjs: upstream refresh isolation, explicit path enforceme
     const refreshed = JSON.parse(fs.readFileSync(tempSnapshotPath, 'utf8'));
     assert.equal(Object.keys(refreshed.schemes).length, 10);
     assert.equal(refreshed.achromatic.length, 9);
+
+    // 7. Symmetrical options and path jail enforcement on refreshFromUpstream
+    assert.throws(
+      () => refreshFromUpstream(path.join(tempDir, 'mock-upstream'), { outSrcDir: tempSrcDir }),
+      /custom output targets .* and snapshotPath must be provided together/
+    );
+    assert.throws(
+      () => refreshFromUpstream(path.join(tempDir, 'mock-upstream'), { snapshotPath: tempSnapshotPath }),
+      /custom output targets .* and snapshotPath must be provided together/
+    );
+    assert.throws(
+      () =>
+        refreshFromUpstream(path.join(tempDir, 'mock-upstream'), {
+          snapshotPath: path.join(ROOT, 'data/tol-qualitative.json'),
+          outSrcDir: tempSrcDir,
+        }),
+      /refusing to write custom sync target inside repository/
+    );
+
+    // 8. Default CLI and function execution refreshes committed files without tripping custom-snapshot output guard
+    const committedSnapshotContent = fs.readFileSync(path.join(ROOT, 'data/tol-qualitative.json'), 'utf8');
+    const committedTokensContent = fs.readFileSync(path.join(ROOT, 'src/tokens.css'), 'utf8');
+    const committedPalettesContent = fs.readFileSync(path.join(ROOT, 'src/palettes.css'), 'utf8');
+
+    try {
+      const defaultResult = refreshFromUpstream(path.join(tempDir, 'mock-upstream'));
+      assert.equal(defaultResult.snapshotPath, path.join(ROOT, 'data/tol-qualitative.json'));
+      assert.equal(defaultResult.tokensCssPath, path.join(ROOT, 'src/tokens.css'));
+      assert.equal(defaultResult.palettesCssPath, path.join(ROOT, 'src/palettes.css'));
+      assert.equal(Object.keys(defaultResult.snapshot.schemes).length, 10);
+      assert.equal(defaultResult.snapshot.achromatic.length, 9);
+
+      // Verify CLI entrypoint execution via child process
+      const childEnv = { ...process.env };
+      delete childEnv.CI;
+      const cliOut = execFileSync(
+        process.execPath,
+        [path.join(ROOT, 'tools/sync-tokens.mjs'), '--upstream', path.join(tempDir, 'mock-upstream')],
+        { env: childEnv, encoding: 'utf8' }
+      );
+      assert.match(cliOut, /Refreshed 10 schemes/);
+    } finally {
+      fs.writeFileSync(path.join(ROOT, 'data/tol-qualitative.json'), committedSnapshotContent, 'utf8');
+      fs.writeFileSync(path.join(ROOT, 'src/tokens.css'), committedTokensContent, 'utf8');
+      fs.writeFileSync(path.join(ROOT, 'src/palettes.css'), committedPalettesContent, 'utf8');
+    }
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }

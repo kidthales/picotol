@@ -5,7 +5,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveSyncOptions } from './path-jail.mjs';
+import { resolveRefreshOptions, resolveSyncOptions } from './path-jail.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dataDir = join(root, 'data');
@@ -63,6 +63,7 @@ export function refreshFromUpstream(rawUpstreamPath, opts = {}) {
   if (!rawUpstreamPath || typeof rawUpstreamPath !== 'string' || rawUpstreamPath.trim() === '') {
     throw new Error('An explicit upstream path is required to refresh tokens: provide --upstream <path>');
   }
+  const { targetSnapshotPath, isCustom } = resolveRefreshOptions(opts);
   const resolvedUpstream = resolve(rawUpstreamPath);
   const schemesDir = existsSync(join(resolvedUpstream, 'data', 'schemes'))
     ? join(resolvedUpstream, 'data', 'schemes')
@@ -125,11 +126,11 @@ export function refreshFromUpstream(rawUpstreamPath, opts = {}) {
     allowedHexes: [...allowedHexSet].sort(),
   };
 
-  const targetSnapshotPath = opts.snapshotPath || snapshotPath;
   mkdirSync(dirname(targetSnapshotPath), { recursive: true });
   writeFileSync(targetSnapshotPath, JSON.stringify(snapshot, null, 2) + '\n', 'utf8');
 
-  const syncResult = syncTokens({ ...opts, snapshot });
+  const syncOpts = isCustom ? { ...opts, snapshot } : {};
+  const syncResult = syncTokens(syncOpts);
   return {
     ...syncResult,
     snapshot,
