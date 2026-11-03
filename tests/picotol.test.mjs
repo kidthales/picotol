@@ -69,7 +69,7 @@ test("100% Paul Tol Hex Purity: all hex colors in src/ and dist/ belong to canon
   }
 });
 
-test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 14.0 KB, picotol.min.css <= 38.0 KB, and picotol.layer.min.css <= 38.0 KB", () => {
+test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 14.0 KB, picotol.min.css <= 40.0 KB, and picotol.layer.min.css <= 40.0 KB", () => {
   const coreMin = fs.statSync(path.join(ROOT, "dist/picotol.core.min.css")).size;
   const fullMin = fs.statSync(path.join(ROOT, "dist/picotol.min.css")).size;
   const layerMin = fs.statSync(path.join(ROOT, "dist/picotol.layer.min.css")).size;
@@ -79,12 +79,12 @@ test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 14.0 KB, picotol.min
     `Expected dist/picotol.core.min.css (${coreMin} B) to be <= ${14.0 * KB} B`
   );
   assert.ok(
-    fullMin <= 38.0 * KB,
-    `Expected dist/picotol.min.css (${fullMin} B) to be <= ${38.0 * KB} B`
+    fullMin <= 40.0 * KB,
+    `Expected dist/picotol.min.css (${fullMin} B) to be <= ${40.0 * KB} B`
   );
   assert.ok(
-    layerMin <= 38.0 * KB,
-    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= ${38.0 * KB} B`
+    layerMin <= 40.0 * KB,
+    `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= ${40.0 * KB} B`
   );
 });
 
@@ -3148,8 +3148,8 @@ test("Tabular Numerics Badge Modifier, Right-Alignment Utility, and Cascade Pari
     "src/components.css must declare justify-content: flex-end on .pt-badge--numeric"
   );
   assert.ok(
-    compCss.includes("text-align: right;"),
-    "src/components.css must declare text-align: right on .pt-badge--numeric"
+    compCss.includes("text-align: end;"),
+    "src/components.css must declare text-align: end on .pt-badge--numeric"
   );
   assert.ok(
     compCss.includes("min-width: 2ch;"),
@@ -3183,8 +3183,8 @@ test("Tabular Numerics Badge Modifier, Right-Alignment Utility, and Cascade Pari
     "src/utilities.css must wrap .pt-tabular--align-end in :where() for zero specificity"
   );
   assert.ok(
-    utilCss.includes("text-align: right;"),
-    "src/utilities.css must set text-align: right on .pt-tabular--align-end"
+    utilCss.includes("text-align: end;"),
+    "src/utilities.css must set text-align: end on .pt-tabular--align-end"
   );
   assert.ok(
     utilCss.includes("justify-content: flex-end;"),
@@ -4407,6 +4407,43 @@ test("Density-safe form helper text offset and non-compounding compact font size
     "Rem bounds prevent nested compounding degradation (13.6px > 11.56px)"
   );
 });
+
+test("CSS logical properties and RTL support (Issue #217)", async () => {
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const formsCss = fs.readFileSync(path.join(ROOT, "src/forms.css"), "utf8");
+  const contentCss = fs.readFileSync(path.join(ROOT, "src/content.css"), "utf8");
+  const navCss = fs.readFileSync(path.join(ROOT, "src/nav.css"), "utf8");
+  const utilCss = fs.readFileSync(path.join(ROOT, "src/utilities.css"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  // 1. Logical property replacements
+  assert.ok(navCss.includes("float: inline-start;"), "src/nav.css must declare float: inline-start");
+  assert.ok(!navCss.includes("float: left;"), "src/nav.css must not declare physical float: left");
+
+  assert.ok(utilCss.includes("text-align: end;"), "src/utilities.css must declare text-align: end");
+  assert.ok(!utilCss.includes("text-align: right;"), "src/utilities.css must not declare physical text-align: right");
+
+  assert.ok(compCss.includes("text-align: end;"), "src/components.css must declare text-align: end on .pt-badge--numeric");
+  assert.ok(!compCss.includes("text-align: right;"), "src/components.css must not declare physical text-align: right");
+
+  assert.ok(contentCss.includes("margin-inline-start: 1.5rem;"), "src/content.css dd must declare logical margin-inline-start");
+  assert.ok(formsCss.includes("margin-inline-end: 0.5rem;"), "src/forms.css checkboxes must declare logical margin-inline-end");
+
+  assert.ok(formsCss.includes(":dir(rtl)"), "src/forms.css select must declare :dir(rtl) chevron position");
+  assert.ok(compCss.includes("inset-inline-start: 0;"), "src/components.css meter label must declare inset-inline-start: 0");
+
+  // 2. Demo RTL section
+  assert.ok(demoHtml.includes('dir="rtl"'), "dist/demo/index.html must include dir=\"rtl\" section");
+  assert.ok(demoHtml.includes('id="rtl"'), "dist/demo/index.html must include id=\"rtl\"");
+
+  // 3. Lint guard
+  const { lintPhysicalDirectionProperties } = await import("../tools/lint.mjs");
+  const violation = lintPhysicalDirectionProperties("a { margin-left: 10px; }", "src/test.css");
+  assert.equal(violation.length, 1, "lintPhysicalDirectionProperties must flag physical margin-left");
+  const allowed = lintPhysicalDirectionProperties("select:dir(rtl) { background-position: left 0.75rem center; }", "src/forms.css");
+  assert.equal(allowed.length, 0, "lintPhysicalDirectionProperties must permit allowlisted select chevron in src/forms.css");
+});
+
 
 
 

@@ -35,7 +35,7 @@
   }
 
   :where(nav li)::before {
-    float: left;
+    float: inline-start;
     content: "\200B";
   }
 

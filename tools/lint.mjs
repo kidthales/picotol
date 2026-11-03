@@ -133,6 +133,61 @@ export function findForbiddenNamedColors(cleanCss) {
   return found;
 }
 
+// 5. Explicit allowlist with justification for physical left/right in src/
+export const PHYSICAL_DIRECTION_ALLOWLIST = [
+  {
+    file: 'src/forms.css',
+    prop: 'background',
+    valPattern: /\bright\s+0?\.75rem\b/,
+    justification: 'CSS background-position shorthand lacks logical inline-end property; required for select chevron position in LTR.',
+  },
+  {
+    file: 'src/forms.css',
+    prop: 'background-position',
+    valPattern: /\bleft\s+0?\.75rem\b/,
+    justification: 'CSS background-position lacks logical inline-start property; required for select chevron position under :dir(rtl).',
+  },
+  {
+    file: 'src/components.css',
+    prop: 'left',
+    valPattern: /^50%$/,
+    justification: 'Tooltip horizontal centering (left: 50%; transform: translateX(-50%)) centers symmetrically over the element in both LTR and RTL without direction bias.',
+  },
+];
+
+export function lintPhysicalDirectionProperties(cleanCss, filename = 'snippet.css') {
+  const errors = [];
+  const normFilename = filename.replaceAll('\\', '/');
+  if (!normFilename.startsWith('src/')) return errors;
+
+  const decls = extractDeclarationValues(cleanCss);
+  for (const { prop, val } of decls) {
+    const isPhysicalProp = /^(?:margin|padding|border|inset)-(?:left|right)(?:-[a-z0-9_-]+)?$|^(?:left|right)$/i.test(prop);
+    const hasPhysicalKeyword = /(?<![a-zA-Z0-9_$-])\b(left|right)\b(?![a-zA-Z0-9_$-])/i.test(val);
+
+    if (isPhysicalProp || hasPhysicalKeyword) {
+      const allowed = PHYSICAL_DIRECTION_ALLOWLIST.some(
+        (entry) =>
+          normFilename === entry.file &&
+          prop.toLowerCase() === entry.prop.toLowerCase() &&
+          entry.valPattern.test(val)
+      );
+      if (!allowed) {
+        if (isPhysicalProp) {
+          errors.push(
+            `[${filename}] Physical property "${prop}" is forbidden in src/ (use logical equivalent, e.g. inset-inline-*, margin-inline-*, padding-inline-*, border-inline-*)`
+          );
+        } else {
+          errors.push(
+            `[${filename}] Physical keyword in "${prop}: ${val}" is forbidden in src/ (use logical keyword e.g. start/end, inline-start/inline-end, or request explicit allowlist with justification)`
+          );
+        }
+      }
+    }
+  }
+  return errors;
+}
+
 export const DERIVED_TOKENS = new Map([
   ['--pt-form-element-spacing-vertical', '--pt-form-y'],
   ['--pt-form-element-spacing-horizontal', '--pt-form-x'],
@@ -378,6 +433,9 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
   if (!isTokenFile) {
     errors.push(...lintDerivedTokenFallbacks(cleanContent, filename));
   }
+
+  // 6. Logical properties and physical direction keyword linter (Issue #217)
+  errors.push(...lintPhysicalDirectionProperties(strippedForDecls, filename));
 
   return errors;
 }
