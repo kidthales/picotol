@@ -234,6 +234,12 @@ try {
         if (-not $releaseJobs.ContainsKey('verify') -or $releaseJobs['verify'] -notmatch '(?m)^ {4}uses:\s*\./\.github/workflows/ci\.yml\s*$') {
             $DriftErrors.Add("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
         }
+        if (-not $releaseJobs.ContainsKey('verify') -or $releaseJobs['verify'] -notmatch '(?m)^ {4}permissions:\s*\n {6}contents:\s*read\s*\n {6}security-events:\s*write\s*$') {
+            $DriftErrors.Add("release.yml verify job must explicitly scope permissions (contents: read, security-events: write).")
+        }
+        if ($releaseJobs.ContainsKey('verify') -and $releaseJobs['verify'] -match '(?m)^ {6}(?!security-events:\s*write\b)[a-z-]+\s*:\s*write\b|\bwrite-all\b') {
+            $DriftErrors.Add("release.yml verify job must not grant unauthorized write permissions.")
+        }
         if (-not $releaseJobs.ContainsKey('tag-guard')) {
             $DriftErrors.Add("release.yml must define a 'tag-guard' job.")
         } else {
@@ -280,6 +286,9 @@ try {
         if (-not $pagesJobs.ContainsKey('verify') -or $pagesJobs['verify'] -notmatch '(?m)^ {4}uses:\s*\./\.github/workflows/ci\.yml\s*$') {
             $DriftErrors.Add("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.")
         }
+        if (-not $pagesJobs.ContainsKey('verify') -or $pagesJobs['verify'] -notmatch '(?m)^ {4}permissions:\s*\n {6}contents:\s*read\s*\n {6}security-events:\s*write\s*$') {
+            $DriftErrors.Add("pages.yml verify job must explicitly scope permissions (contents: read, security-events: write).")
+        }
         if (-not $pagesJobs.ContainsKey('build') -or $pagesJobs['build'] -notmatch '(?m)^ {4}needs:\s*\[verify\]\s*$') {
             $DriftErrors.Add("pages.yml build job must depend on verify (needs: [verify]).")
         }
@@ -290,9 +299,12 @@ try {
             $DriftErrors.Add("pages.yml deploy job must explicitly scope permissions (pages: write, id-token: write).")
         }
         foreach ($jobKey in $pagesJobs.Keys) {
-            if ($jobKey -ne 'deploy' -and $pagesJobs[$jobKey] -match '\b[a-z-]+\s*:\s*write\b|\bwrite-all\b') {
+            if ($jobKey -notin @('deploy', 'verify') -and $pagesJobs[$jobKey] -match '\b[a-z-]+\s*:\s*write\b|\bwrite-all\b') {
                 $DriftErrors.Add("pages.yml job '$jobKey' must not grant any write permissions.")
             }
+        }
+        if ($pagesJobs.ContainsKey('verify') -and $pagesJobs['verify'] -match '(?m)^ {6}(?!security-events:\s*write\b)[a-z-]+\s*:\s*write\b|\bwrite-all\b') {
+            $DriftErrors.Add("pages.yml verify job must not grant unauthorized write permissions.")
         }
     }
 
@@ -312,12 +324,23 @@ try {
         if (-not $ciJobs.ContainsKey('security')) {
             $DriftErrors.Add("ci.yml must define a dedicated 'security' job to run gitleaks and zizmor once rather than per matrix leg.")
         } else {
+            if ($ciJobs['security'] -notmatch '(?m)^ {4}permissions:\s*\n {6}contents:\s*read\s*\n {6}security-events:\s*write\s*$') {
+                $DriftErrors.Add("ci.yml security job must explicitly scope permissions (contents: read, security-events: write).")
+            }
             if ($ciJobs['security'] -notmatch 'gitleaks/gitleaks-action') {
                 $DriftErrors.Add("ci.yml security job must run gitleaks secret detection.")
             }
             if ($ciJobs['security'] -notmatch 'zizmorcore/zizmor-action') {
                 $DriftErrors.Add("ci.yml security job must run zizmor workflow analysis.")
             }
+        }
+        foreach ($jobKey in $ciJobs.Keys) {
+            if ($jobKey -ne 'security' -and $ciJobs[$jobKey] -match '\b[a-z-]+\s*:\s*write\b|\bwrite-all\b') {
+                $DriftErrors.Add("ci.yml job '$jobKey' must not grant any write permissions.")
+            }
+        }
+        if ($ciJobs.ContainsKey('security') -and $ciJobs['security'] -match '(?m)^ {6}(?!security-events:\s*write\b)[a-z-]+\s*:\s*write\b|\bwrite-all\b') {
+            $DriftErrors.Add("ci.yml security job must not grant unauthorized write permissions.")
         }
         if ($ciJobs.ContainsKey('verify') -and $ciJobs['verify'] -match 'gitleaks/gitleaks-action') {
             $DriftErrors.Add("ci.yml verify matrix job must not run gitleaks (must run once in security job).")

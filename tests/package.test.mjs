@@ -480,6 +480,16 @@ test("GitHub Actions workflows enforce tag guard, script-injection hygiene, and 
   );
   assert.match(
     releaseParsed.jobs.verify,
+    /^ {4}permissions:\s*\n {6}contents:\s*read\s*\n {6}security-events:\s*write\s*$/m,
+    "release.yml verify job must explicitly scope permissions: contents: read and security-events: write"
+  );
+  assert.doesNotMatch(
+    releaseParsed.jobs.verify,
+    /^ {6}(?!security-events:\s*write\b)[a-z-]+\s*:\s*write\b|\bwrite-all\b/m,
+    "release.yml verify job must not grant unauthorized write permissions"
+  );
+  assert.match(
+    releaseParsed.jobs.verify,
     /^ {4}uses:\s*\.\/*\.github\/workflows\/ci\.yml\s*$/m,
     "release.yml verify job must delegate to ci.yml"
   );
@@ -517,8 +527,13 @@ test("GitHub Actions workflows enforce tag guard, script-injection hygiene, and 
     /^ {4}permissions:\s*\n {6}pages:\s*write\s*\n {6}id-token:\s*write\s*$/m,
     "pages.yml deploy job must explicitly scope pages: write and id-token: write"
   );
+  assert.match(
+    pagesParsed.jobs.verify,
+    /^ {4}permissions:\s*\n {6}contents:\s*read\s*\n {6}security-events:\s*write\s*$/m,
+    "pages.yml verify job must explicitly scope permissions: contents: read and security-events: write"
+  );
   for (const [jobName, jobText] of Object.entries(pagesParsed.jobs)) {
-    if (jobName !== "deploy") {
+    if (jobName !== "deploy" && jobName !== "verify") {
       assert.doesNotMatch(
         jobText,
         /\b[a-z-]+\s*:\s*write\b|\bwrite-all\b/,
@@ -526,6 +541,11 @@ test("GitHub Actions workflows enforce tag guard, script-injection hygiene, and 
       );
     }
   }
+  assert.doesNotMatch(
+    pagesParsed.jobs.verify,
+    /^ {6}(?!security-events:\s*write\b)[a-z-]+\s*:\s*write\b|\bwrite-all\b/m,
+    "pages.yml verify job must not grant unauthorized write permissions"
+  );
 
   assert.match(pagesParsed.jobs.verify, /^ {4}uses:\s*\.\/*\.github\/workflows\/ci\.yml\s*$/m, "pages.yml verify job must delegate to ci.yml");
   assert.match(pagesParsed.jobs.build, /^ {4}needs:\s*\[verify\]\s*$/m, "pages.yml build job must depend on verify");
@@ -538,6 +558,25 @@ test("GitHub Actions workflows enforce tag guard, script-injection hygiene, and 
     ciParsed.root,
     /:\s*write\b|\bwrite-all\b/,
     "ci.yml must not declare write permissions at root level"
+  );
+  assert.match(
+    ciParsed.jobs.security,
+    /^ {4}permissions:\s*\n {6}contents:\s*read\s*\n {6}security-events:\s*write\s*$/m,
+    "ci.yml security job must explicitly scope permissions: contents: read and security-events: write"
+  );
+  for (const [jobName, jobText] of Object.entries(ciParsed.jobs)) {
+    if (jobName !== "security") {
+      assert.doesNotMatch(
+        jobText,
+        /\b[a-z-]+\s*:\s*write\b|\bwrite-all\b/,
+        `ci.yml job '${jobName}' must not have any write permissions`
+      );
+    }
+  }
+  assert.doesNotMatch(
+    ciParsed.jobs.security,
+    /^ {6}(?!security-events:\s*write\b)[a-z-]+\s*:\s*write\b|\bwrite-all\b/m,
+    "ci.yml security job must not grant unauthorized write permissions"
   );
   assert.match(ciParsed.root, /^name:\s*CI\s*$/m, "ci.yml must be named 'CI' so cancel-in-progress expression matches");
   assert.match(ciParsed.root, /^\s*workflow_call:\s*$/m, "ci.yml must declare on: workflow_call for reusable workflow execution");
