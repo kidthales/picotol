@@ -72,7 +72,7 @@ Download from [GitHub Releases](https://github.com/kidthales/picotol/releases).
 
 #### Downstream Vendoring & Verification
 
-Downstream consumers (e.g. Terminus in `kidthales/foundation`) vendor `@kidthales/picotol` stylesheets with cryptographic verification:
+Downstream consumers vendor `@kidthales/picotol` stylesheets with cryptographic verification:
 
 ```bash
 # Bash: download bundle and verify with sha256sum

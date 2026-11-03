@@ -261,9 +261,15 @@ try {
             if (-not $releaseJobs.ContainsKey($pubJob) -or $releaseJobs[$pubJob] -notmatch '(?m)^ {4}needs:\s*\[verify\]\s*$') {
                 $DriftErrors.Add("release.yml $pubJob job must depend on verify (needs: [verify]).")
             }
+            if ($releaseJobs.ContainsKey($pubJob) -and $releaseJobs[$pubJob] -match 'cache:\s*["\x27]?npm["\x27]?') {
+                $DriftErrors.Add("release.yml $pubJob job must not use shared npm cache.")
+            }
         }
         if ($releaseJobs.ContainsKey('notify') -and $releaseJobs['notify'] -match '\b[a-z-]+\s*:\s*write\b|\bwrite-all\b') {
             $DriftErrors.Add("release.yml notify job must not grant write permissions.")
+        }
+        if ($releaseJobs.ContainsKey('notify') -and $releaseJobs['notify'] -notmatch 'ASSETS_STATUS:\s*\$\{\{\s*needs\.attach-assets\.result\s*\|\|\s*\x27skipped\x27\s*\}\}') {
+            $DriftErrors.Add("release.yml notify job must report skipped status when attach-assets is skipped.")
         }
     }
 
@@ -301,6 +307,48 @@ try {
         }
         if ($ciContent -notmatch '(?m)^concurrency:\s*\n {2}group:\s*\$\{\{\s*github\.workflow\s*\}\}-\$\{\{\s*github\.ref\s*\}\}\s*\n {2}cancel-in-progress:\s*\$\{\{\s*github\.workflow\s*==\s*\x27CI\x27\s*\}\}') {
             $DriftErrors.Add("ci.yml concurrency block must isolate callers via github.workflow and scope cancel-in-progress to github.workflow == 'CI'.")
+        }
+        $ciJobs = Get-WorkflowJobs $ciContent
+        if (-not $ciJobs.ContainsKey('security')) {
+            $DriftErrors.Add("ci.yml must define a dedicated 'security' job to run gitleaks and zizmor once rather than per matrix leg.")
+        } else {
+            if ($ciJobs['security'] -notmatch 'gitleaks/gitleaks-action') {
+                $DriftErrors.Add("ci.yml security job must run gitleaks secret detection.")
+            }
+            if ($ciJobs['security'] -notmatch 'zizmorcore/zizmor-action') {
+                $DriftErrors.Add("ci.yml security job must run zizmor workflow analysis.")
+            }
+        }
+        if ($ciJobs.ContainsKey('verify') -and $ciJobs['verify'] -match 'gitleaks/gitleaks-action') {
+            $DriftErrors.Add("ci.yml verify matrix job must not run gitleaks (must run once in security job).")
+        }
+        if ($ciJobs.ContainsKey('notify') -and $ciJobs['notify'] -notmatch 'if:\s*always\(\)\s*&&\s*github\.event_name\s*!=\s*\x27workflow_call\x27\s*&&\s*github\.workflow\s*==\s*\x27CI\x27') {
+            $DriftErrors.Add("ci.yml notify job must skip execution under workflow_call via 'if: always() && github.event_name != ''workflow_call'' && github.workflow == ''CI'''.")
+        }
+    }
+
+    # Verify all actions/checkout steps enforce persist-credentials: false
+    $expectedCheckoutCounts = @{
+        'ci.yml'      = 2
+        'release.yml' = 4
+        'pages.yml'   = 1
+    }
+    foreach ($wf in $WorkflowFiles) {
+        $rawWf = (Get-Content -Path $wf.FullName -Raw) -replace "\r\n", "`n"
+        $checkoutMatches = [regex]::Matches($rawWf, '(?m)^\s*(?:-\s*)?uses:\s*actions/checkout@[^\n]+\n(?<step>(?: {8,}[^\n]+\n)*)')
+        if ($expectedCheckoutCounts.ContainsKey($wf.Name)) {
+            $expectedCount = $expectedCheckoutCounts[$wf.Name]
+            if ($checkoutMatches.Count -ne $expectedCount) {
+                $DriftErrors.Add("$($wf.Name) has $($checkoutMatches.Count) actions/checkout step(s), expected $expectedCount.")
+            }
+        } elseif ($checkoutMatches.Count -eq 0) {
+            $DriftErrors.Add("$($wf.Name) has zero actions/checkout steps matched; expected at least one.")
+        }
+        foreach ($m in $checkoutMatches) {
+            $stepText = $m.Groups['step'].Value
+            if ($stepText -notmatch 'persist-credentials:\s*false') {
+                $DriftErrors.Add("$($wf.Name) contains actions/checkout step missing 'persist-credentials: false'.")
+            }
         }
     }
 
@@ -348,8 +396,18 @@ try {
         $HasLeak = $true
     }
 
+    # Check for private downstream repository references in public documentation
+    $ReadmeFile = Join-Path $RootDir "README.md"
+    if (Test-Path $ReadmeFile) {
+        $readmeText = Get-Content -Path $ReadmeFile -Raw
+        if ($readmeText -match 'kidthales/foundation') {
+            Write-Fail "README.md references private downstream 'kidthales/foundation' (A11 violation)."
+            $HasLeak = $true
+        }
+    }
+
     if ($HasLeak) {
-        throw "Gate 1 Failed: Agent or scratch files must not exist or be tracked in the repository."
+        throw "Gate 1 Failed: Agent files, scratch artifacts, or private repository references detected."
     }
 
     $Gate1Status = "pass"
