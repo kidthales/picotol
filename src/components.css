@@ -540,10 +540,6 @@
     border-radius: var(--pt-progress-radius);
     background-color: var(--pt-progress-bg);
     vertical-align: middle;
-
-    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
-      overflow: visible;
-    }
   }
 
   :where(.pt-progress-fill, .pt-meter-fill) {
@@ -564,10 +560,6 @@
 
     & > :where(progress, .pt-progress) {
       margin-bottom: 0;
-    }
-
-    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
-      overflow: visible;
     }
   }
 
@@ -766,11 +758,9 @@
 
   @keyframes pt-spin { to { transform: rotate(360deg); } }
 
-  /* 9. Tooltip ([data-tooltip])
-   * WCAG 1.4.13 Hoverable: pointer-events: auto on ::before allows pointer traversal.
-   * A11y note: CSS attr() tooltips are supplementary; pair with aria-describedby for AT.
-   * Popover / interestfor evaluation: Native interestfor is experimental (non-baseline);
-   * use [data-tooltip] for zero-JS hints, or Popover API with JS for complex cases.
+  /* 9. Tooltip ([data-tooltip]) - WCAG 1.4.13: ::before (pointer-events: auto) + 0.375rem
+   * ::after bridge keep :hover across the gap; pure CSS cannot dismiss on Escape (use JS
+   * or Popover API). Pair with aria-describedby; interestfor (Nov 2026) is non-baseline.
    */
   [data-tooltip] {
     position: relative;
@@ -779,23 +769,33 @@
       text-decoration: none;
       cursor: help;
     }
-    &:is(:hover, :focus-visible)::before {
-      content: attr(data-tooltip);
-      position: absolute;
-      bottom: calc(100% + 0.375rem);
-      left: 50%;
-      z-index: 99;
-      width: max-content;
-      max-width: min(16rem, 80vw);
-      padding: 0.25rem 0.5rem;
-      transform: translateX(-50%);
-      border-radius: var(--pt-border-radius);
-      background-color: var(--pt-color);
-      color: var(--pt-bg);
-      font-size: 0.875rem;
-      text-align: center;
-      white-space: normal;
-      pointer-events: auto;
+    &:is(:hover, :focus-visible) {
+      &::before {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: calc(100% + 0.375rem);
+        left: 50%;
+        z-index: 99;
+        width: max-content;
+        max-width: min(16rem, 80vw);
+        padding: 0.25rem 0.5rem;
+        transform: translateX(-50%);
+        border-radius: var(--pt-border-radius);
+        background-color: var(--pt-color);
+        color: var(--pt-bg);
+        font-size: 0.875rem;
+        text-align: center;
+        white-space: normal;
+        pointer-events: auto;
+      }
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 100%;
+        inset-inline: 0;
+        height: 0.375rem;
+        pointer-events: auto;
+      }
     }
   }
 
@@ -1229,7 +1229,7 @@
     }
   }
 
-  /* 8. Toast Notification */
+  /* 8. Toast Notification (.show; [aria-hidden="false"] deprecated alias until v0.7.0) */
   :where(.toast) {
     position: fixed;
     bottom: 1.5rem;
@@ -1246,7 +1246,6 @@
     pointer-events: none;
     transform: translateY(1rem);
 
-    /* [aria-hidden="false"] is a deprecated show alias, removed in v0.7.0 */
     &:is(.show, [aria-hidden="false"]) {
       opacity: 1;
       visibility: visible;

@@ -1263,10 +1263,6 @@
     display: block;
     position: relative;
     overflow: hidden;
-
-    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
-      overflow: visible;
-    }
   }
 
   :where(.pt-progress-fill, .pt-meter-fill) {
@@ -1287,10 +1283,6 @@
 
     & > :where(progress, .pt-progress) {
       margin-bottom: 0;
-    }
-
-    &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
-      overflow: visible;
     }
   }
 
@@ -1524,23 +1516,34 @@
       text-decoration: none;
     }
 
-    &:is(:hover, :focus-visible):before {
-      content: attr(data-tooltip);
-      z-index: 99;
-      border-radius: var(--pt-border-radius);
-      background-color: var(--pt-color);
-      width: max-content;
-      max-width: min(16rem, 80vw);
-      color: var(--pt-bg);
-      text-align: center;
-      white-space: normal;
-      pointer-events: auto;
-      padding: .25rem .5rem;
-      font-size: .875rem;
-      position: absolute;
-      bottom: calc(100% + .375rem);
-      left: 50%;
-      transform: translateX(-50%);
+    &:is(:hover, :focus-visible) {
+      &:before {
+        content: attr(data-tooltip);
+        z-index: 99;
+        border-radius: var(--pt-border-radius);
+        background-color: var(--pt-color);
+        width: max-content;
+        max-width: min(16rem, 80vw);
+        color: var(--pt-bg);
+        text-align: center;
+        white-space: normal;
+        pointer-events: auto;
+        padding: .25rem .5rem;
+        font-size: .875rem;
+        position: absolute;
+        bottom: calc(100% + .375rem);
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      &:after {
+        content: "";
+        bottom: 100%;
+        pointer-events: auto;
+        height: .375rem;
+        position: absolute;
+        inset-inline: 0;
+      }
     }
   }
 

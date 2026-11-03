@@ -28,6 +28,7 @@ import {
   schemeColor,
   extractLayerBlock,
   parseCssBlock,
+  splitSelectors,
   getPicotolTokens,
 } from "./helpers/tokens.mjs";
 
@@ -3839,34 +3840,192 @@ test("Anti-Tautology Guard: tests/picotol.test.mjs contains zero vacuous include
   );
 });
 
-test("Toast CSS source sets visibility:hidden when hidden and visibility:visible when shown (Issue #220)", () => {
-  const css = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
-  const { code } = transform({ code: Buffer.from(css), minify: true });
-  const rules = code.toString("utf8");
+test("Toast production bundles set visibility:hidden when hidden, reset transition-delay:0s when shown, and preserve deprecated aria-hidden alias parity (Issue #220)", () => {
+  const bundles = [
+    "dist/picotol.min.css",
+    "dist/picotol.layer.min.css",
+    "dist/picotol.css",
+  ];
 
-  const toast = rules.match(/:where\(\.toast\)\{([\s\S]*?)\}\}/)?.[1] ?? "";
-  assert.ok(toast, "src/components.css must define a :where(.toast) rule");
-  const [hidden, shown] = toast.split("&:is(");
+  for (const relPath of bundles) {
+    const css = fs.readFileSync(path.join(ROOT, relPath), "utf8");
+    const componentsBlock = extractLayerBlock(css, "components");
+    assert.ok(componentsBlock, `${relPath} must contain @layer components`);
+    const parsed = parseCssBlock(componentsBlock);
 
-  assert.match(hidden, /visibility:hidden/, "Hidden .toast must use visibility:hidden in src/components.css");
-  assert.match(hidden, /visibility 0s linear \.2s/, "Hidden .toast must delay the visibility change until the fade ends");
-  assert.match(shown, /^\.show,\[aria-hidden=false\]\)\{[^}]*visibility:visible/, "Shown .toast must restore visibility:visible for .show and the deprecated aria-hidden alias");
+    const toastRules = parsed.rules.filter((r) => r.selector === ":where(.toast)");
+    assert.equal(toastRules.length, 1, `${relPath} must define a single :where(.toast) rule`);
+    const toastRule = toastRules[0];
+
+    // Hidden state assertions (including negative pointer-events guard)
+    assert.equal(
+      toastRule.declarations.visibility,
+      "hidden",
+      `${relPath}: hidden .toast must set visibility: hidden`
+    );
+    assert.equal(
+      toastRule.declarations.opacity,
+      "0",
+      `${relPath}: hidden .toast must set opacity: 0`
+    );
+    assert.equal(
+      toastRule.declarations["pointer-events"],
+      "none",
+      `${relPath}: hidden .toast must keep pointer-events: none`
+    );
+    assert.match(
+      toastRule.declarations.transition ?? "",
+      /visibility\s+0s\s+linear\s+0?\.2s/,
+      `${relPath}: hidden .toast must delay visibility: hidden until the 0.2s fade-out completes`
+    );
+
+    // Shown state assertions (.show and deprecated [aria-hidden="false"] alias parity)
+    assert.equal(
+      toastRule.rules.length,
+      1,
+      `${relPath}: :where(.toast) must nest a single shown-state rule shared by .show and [aria-hidden="false"]`
+    );
+    const shownRule = toastRule.rules[0];
+    const isMatch = shownRule.selector.match(/^&:is\(([\s\S]+)\)$/);
+    assert.ok(isMatch, `${relPath}: shown toast selector must use &:is(...)`);
+    const selectorParts = splitSelectors(isMatch[1]).map((s) => s.replace(/["']/g, ""));
+    assert.deepEqual(
+      selectorParts.sort(),
+      [".show", "[aria-hidden=false]"].sort(),
+      `${relPath}: .show and [aria-hidden="false"] must share the exact same rule block for 1:1 declaration parity`
+    );
+
+    assert.equal(
+      shownRule.declarations.visibility,
+      "visible",
+      `${relPath}: shown .toast must set visibility: visible`
+    );
+    assert.equal(
+      shownRule.declarations["transition-delay"],
+      "0s",
+      `${relPath}: shown .toast must reset transition-delay: 0s as an entrance guard`
+    );
+    assert.equal(
+      shownRule.declarations.opacity,
+      "1",
+      `${relPath}: shown .toast must set opacity: 1`
+    );
+    assert.equal(
+      shownRule.declarations["pointer-events"],
+      "auto",
+      `${relPath}: shown .toast must restore pointer-events: auto`
+    );
+
+    // Verify @layer base prefers-reduced-motion transition: none !important overrides component transitions
+    const baseBlock = extractLayerBlock(css, "base");
+    assert.ok(baseBlock, `${relPath} must contain @layer base`);
+    assert.match(
+      baseBlock,
+      /@media\s*\(\s*prefers-reduced-motion:\s*reduce\s*\)[\s\S]*?transition:\s*none\s*!important/,
+      `${relPath}: @layer base must disable transitions with !important under prefers-reduced-motion: reduce`
+    );
+  }
+
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const changelog = fs.readFileSync(path.join(ROOT, "CHANGELOG.md"), "utf8");
+
+  assert.match(readme, /transition-delay:\s*0s/, "README must document toast transition-delay: 0s entrance reset");
+  assert.match(readme, /aria-hidden="true"/, "README must warn against combining .show with aria-hidden=\"true\"");
+  assert.match(readme, /aria-live/, "README must document live-region announcement behavior with visibility: hidden");
+  assert.match(changelog, /### Deprecated[\s\S]*?\[aria-hidden="false"\][\s\S]*?v0\.7\.0/, "CHANGELOG must include a ### Deprecated entry for [aria-hidden=\"false\"] removal in v0.7.0");
+  assert.match(changelog, /### Fixed[\s\S]*?visibility:\s*hidden/, "CHANGELOG must include a ### Fixed entry for hiding inactive toasts with visibility: hidden");
 });
 
-test("Tooltip CSS satisfies WCAG 1.4.13 hoverability with pointer-events:auto (Issue #220)", () => {
-  const css = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
-  const { code } = transform({ code: Buffer.from(css), minify: true });
-  const rules = code.toString("utf8");
+test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-events:auto and a zero-gap ::after hover bridge (Issue #220)", () => {
+  const bundles = [
+    "dist/picotol.min.css",
+    "dist/picotol.layer.min.css",
+    "dist/picotol.css",
+  ];
 
-  const tooltipBlock = rules.match(/\[data-tooltip\]\{([\s\S]*?)\}\}/)?.[1] ?? "";
-  assert.ok(tooltipBlock, "src/components.css must define [data-tooltip]");
+  function collectPointerEventsValues(ruleNode) {
+    const values = [];
+    if (Object.hasOwn(ruleNode.declarations, "pointer-events")) {
+      values.push(ruleNode.declarations["pointer-events"]);
+    }
+    for (const child of ruleNode.rules) {
+      values.push(...collectPointerEventsValues(child));
+    }
+    return values;
+  }
 
-  assert.match(
-    tooltipBlock,
-    /&:is\(:hover,:focus-visible\)::?before\{[^}]*pointer-events:auto/,
-    "[data-tooltip]::before must specify pointer-events:auto on hover/focus for WCAG 1.4.13 hoverability"
-  );
+  for (const relPath of bundles) {
+    const css = fs.readFileSync(path.join(ROOT, relPath), "utf8");
+    const componentsBlock = extractLayerBlock(css, "components");
+    assert.ok(componentsBlock, `${relPath} must contain @layer components`);
+    const parsed = parseCssBlock(componentsBlock);
+
+    const tooltipRules = parsed.rules.filter((r) => r.selector === "[data-tooltip]");
+    assert.equal(tooltipRules.length, 1, `${relPath} must define a single [data-tooltip] rule`);
+    const tooltipRule = tooltipRules[0];
+
+    // Negative assertion: pointer-events: none must never appear anywhere inside [data-tooltip]
+    const allPointerEvents = collectPointerEventsValues(tooltipRule);
+    assert.ok(
+      !allPointerEvents.includes("none"),
+      `${relPath}: [data-tooltip] must not contain pointer-events: none (found: ${allPointerEvents.join(", ")})`
+    );
+
+    // Locate hover/focus-visible container rule and its ::before (bubble) and ::after (hover bridge) rules
+    const activeRules = tooltipRule.rules.filter((r) =>
+      /^&:is\(\s*:hover\s*,\s*:focus-visible\s*\)$/.test(r.selector)
+    );
+    assert.equal(
+      activeRules.length,
+      1,
+      `${relPath}: [data-tooltip] must nest &:is(:hover, :focus-visible) container rule`
+    );
+    const activeRule = activeRules[0];
+
+    const beforeRules = activeRule.rules.filter((r) => /^&::?before$/.test(r.selector));
+    const afterRules = activeRule.rules.filter((r) => /^&::?after$/.test(r.selector));
+    assert.equal(beforeRules.length, 1, `${relPath}: [data-tooltip] active rule must define &::before bubble`);
+    assert.equal(afterRules.length, 1, `${relPath}: [data-tooltip] active rule must define &::after hover bridge`);
+
+    const beforeDecl = beforeRules[0].declarations;
+    const afterDecl = afterRules[0].declarations;
+
+    assert.equal(beforeDecl.content, "attr(data-tooltip)", `${relPath}: ::before must render attr(data-tooltip)`);
+    assert.equal(beforeDecl.position, "absolute", `${relPath}: ::before must be position: absolute`);
+    assert.equal(beforeDecl["pointer-events"], "auto", `${relPath}: ::before must set pointer-events: auto`);
+
+    assert.equal(afterDecl.content, '""', `${relPath}: ::after hover bridge must set content: ""`);
+    assert.equal(afterDecl.position, "absolute", `${relPath}: ::after hover bridge must be position: absolute`);
+    assert.equal(afterDecl["pointer-events"], "auto", `${relPath}: ::after hover bridge must set pointer-events: auto`);
+    assert.equal(afterDecl.bottom, "100%", `${relPath}: ::after hover bridge must start at bottom: 100% (top edge of trigger)`);
+    assert.equal(afterDecl["inset-inline"], "0", `${relPath}: ::after hover bridge must span full trigger width (inset-inline: 0)`);
+
+    // Geometric continuity check: bridge height must cover the exact vertical gap below the bubble
+    const gapMatch = (beforeDecl.bottom ?? "").match(/^calc\(100%\s*\+\s*(0?\.\d+|\d+(?:\.\d+)?)rem\)$/);
+    assert.ok(gapMatch, `${relPath}: ::before bottom must be calc(100% + <gap>rem), got "${beforeDecl.bottom}"`);
+    const bubbleGapRem = parseFloat(gapMatch[1]);
+
+    const heightMatch = (afterDecl.height ?? "").match(/^(0?\.\d+|\d+(?:\.\d+)?)rem$/);
+    assert.ok(heightMatch, `${relPath}: ::after height must be <height>rem, got "${afterDecl.height}"`);
+    const bridgeHeightRem = parseFloat(heightMatch[1]);
+
+    assert.ok(
+      bridgeHeightRem >= bubbleGapRem && bubbleGapRem > 0,
+      `${relPath}: ::after bridge height (${bridgeHeightRem}rem) must bridge the full ::before offset (${bubbleGapRem}rem) with zero dead zone`
+    );
+  }
+
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const compSource = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+
+  assert.match(readme, /aria-describedby/, "README must require pairing non-decorative tooltips with aria-describedby or aria-label");
+  assert.match(readme, /Escape/, "README must document pure-CSS Escape dismissal limitation under WCAG 2.1 SC 1.4.13");
+  assert.match(readme, /Nov 2026/, "README must date-stamp the interestfor evaluation");
+  assert.match(readme, /open-ui\.org\/components\/interest-invokers/, "README must link a source for the interestfor evaluation");
+  assert.match(readme, /overflow:\s*hidden/, "README must call out overflow: hidden ancestor clipping on tooltips");
+  assert.match(compSource, /Escape/, "src/components.css comment must note pure-CSS Escape dismissal limitation");
 });
+
 
 
 

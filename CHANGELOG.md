@@ -8,9 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Hid inactive toasts with `visibility: hidden` (delayed until opacity fade-out completes) so they leave the accessibility tree and cannot be focused while hidden (#220).
-- Standardized toast activation on the `.show` class, retaining `[aria-hidden="false"]` as a deprecated compatibility hook until v0.7.0 (#220).
-- Made pure CSS tooltips (`[data-tooltip]`) hoverable per WCAG 2.1 1.4.13 with `pointer-events: auto` and a hover buffer, and documented supplementary use paired with `aria-describedby` (#220).
+- Standardized toast activation on the `.show` class (`visibility: visible; transition-delay: 0s;`) and documented live-region (`role="status"` / `aria-live`) and `aria-hidden` state pairing (#220).
+- Made pure CSS tooltips (`[data-tooltip]`) hoverable per WCAG 2.1 SC 1.4.13 with `pointer-events: auto` on `::before` and a `0.375rem` `::after` hover buffer bridging the trigger-to-bubble gap, and documented `aria-describedby` pairing, pure-CSS `Escape` dismissal limits, hit-testing/clipping caveats, and the Nov 2026 `interestfor` evaluation (#220).
+
+### Deprecated
+- Deprecated `.toast[aria-hidden="false"]` as a standalone toast activation selector in favor of `.toast.show`; retained as a compatibility alias scheduled for removal in v0.7.0 (#220).
+
+### Fixed
+- Hid inactive `.toast` elements from the accessibility tree and sequential focus navigation with `visibility: hidden` (delayed via `visibility 0s linear 0.2s` until opacity fade-out completes) (#220).
 
 ## [0.5.0] - 2026-10-30
 
