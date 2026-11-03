@@ -190,3 +190,44 @@ export function resolveSyncOptions(opts = {}) {
 
   return { targetTokensPath, targetPalettesPath, hasSnapshot };
 }
+
+export function resolveRefreshOptions(opts = {}) {
+  if (opts === null || typeof opts !== 'object') {
+    throw new Error('Invalid options: must be an object');
+  }
+  const hasSnapshotPath = 'snapshotPath' in opts;
+  const hasOutSrcDir = 'outSrcDir' in opts;
+  const hasTokensPath = 'tokensCssPath' in opts;
+  const hasPalettesPath = 'palettesCssPath' in opts;
+  const hasCustomOutput = hasOutSrcDir || hasTokensPath || hasPalettesPath;
+
+  if (hasSnapshotPath && (typeof opts.snapshotPath !== 'string' || opts.snapshotPath.trim() === '')) {
+    throw new Error('Invalid snapshotPath: must be a non-empty string path');
+  }
+
+  if (hasCustomOutput !== hasSnapshotPath) {
+    throw new Error(
+      'Invalid refresh options: custom output targets (outSrcDir, tokensCssPath, palettesCssPath) and snapshotPath must be provided together to prevent partial writes to committed repository files'
+    );
+  }
+
+  let targetSnapshotPath = join(dataDir, 'tol-qualitative.json');
+  if (hasSnapshotPath) {
+    targetSnapshotPath = assertSafeCustomSyncTarget(opts.snapshotPath, 'snapshotPath');
+    const { targetTokensPath, targetPalettesPath } = resolveSyncOptions(opts);
+    if (
+      normCase(targetSnapshotPath) === normCase(targetTokensPath) ||
+      normCase(targetSnapshotPath) === normCase(targetPalettesPath)
+    ) {
+      throw new Error(
+        'Invalid token output path: snapshotPath must be distinct from tokensCssPath and palettesCssPath'
+      );
+    }
+  }
+
+  return {
+    targetSnapshotPath,
+    isCustom: hasSnapshotPath,
+  };
+}
+

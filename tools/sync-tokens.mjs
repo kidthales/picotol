@@ -1,14 +1,14 @@
 // Synchronizes the 8 Paul Tol qualitative schemes + canonical achromatic stops
-// from ../tol-palettes/data/schemes/*.json (when available locally) into
-// data/tol-qualitative.json and generates src/tokens.css + src/palettes.css.
+// from committed data/tol-qualitative.json into src/tokens.css + src/palettes.css.
+// Refreshing data/tol-qualitative.json from upstream tol-palettes requires explicit
+// invocation via npm run sync:upstream -- --upstream <path>.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveSyncOptions } from './path-jail.mjs';
+import { resolveRefreshOptions, resolveSyncOptions } from './path-jail.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dataDir = join(root, 'data');
-const upstreamDir = join(root, '..', 'tol-palettes', 'data', 'schemes');
 const snapshotPath = join(dataDir, 'tol-qualitative.json');
 
 const QUALITATIVE_IDS = [
@@ -49,61 +49,94 @@ const ACHROMATIC_SOURCES = [
   { name: 'black', scheme: 'bright', extra: 'black' }, // #000000
 ];
 
-export function loadSnapshot() {
-  if (existsSync(upstreamDir)) {
-    const schemes = {};
-    const allowedHexSet = new Set();
+export function loadSnapshot(customSnapshotPath = snapshotPath) {
+  if (!existsSync(customSnapshotPath)) {
+    throw new Error(`Committed token snapshot ${customSnapshotPath} does not exist.`);
+  }
+  return JSON.parse(readFileSync(customSnapshotPath, 'utf8'));
+}
 
-    for (const id of QUALITATIVE_IDS) {
-      const raw = JSON.parse(readFileSync(join(upstreamDir, `${id}.json`), 'utf8'));
-      const colors =
-        id === 'prgn'
-          ? raw.colors.slice(0, 4)
-          : id === 'ylorbr'
-            ? raw.colors.slice(7, 9)
-            : raw.colors;
-      schemes[id] = {
-        id: raw.id,
-        kind: raw.kind,
-        colors,
-        ...(raw.extras ? { extras: raw.extras } : {}),
-        ...(raw.bad ? { bad: raw.bad } : {}),
-      };
-      for (const c of colors) allowedHexSet.add(c.hex.toUpperCase());
-      for (const c of raw.extras ?? []) allowedHexSet.add(c.hex.toUpperCase());
-      if (raw.bad) allowedHexSet.add(raw.bad.toUpperCase());
+export function refreshFromUpstream(rawUpstreamPath, opts = {}) {
+  if (process.env.CI) {
+    throw new Error('Refreshing tokens from upstream is forbidden in CI environments.');
+  }
+  if (!rawUpstreamPath || typeof rawUpstreamPath !== 'string' || rawUpstreamPath.trim() === '') {
+    throw new Error('An explicit upstream path is required to refresh tokens: provide --upstream <path>');
+  }
+  const { targetSnapshotPath, isCustom } = resolveRefreshOptions(opts);
+  const resolvedUpstream = resolve(rawUpstreamPath);
+  const schemesDir = existsSync(join(resolvedUpstream, 'data', 'schemes'))
+    ? join(resolvedUpstream, 'data', 'schemes')
+    : resolvedUpstream;
+
+  if (!existsSync(schemesDir)) {
+    throw new Error(`Upstream schemes directory does not exist: ${schemesDir}`);
+  }
+
+  const schemes = {};
+  const allowedHexSet = new Set();
+
+  for (const id of QUALITATIVE_IDS) {
+    const schemeFile = join(schemesDir, `${id}.json`);
+    if (!existsSync(schemeFile)) {
+      throw new Error(`Required upstream scheme file missing: ${schemeFile}`);
     }
-
-    const achromatic = [];
-    for (const item of ACHROMATIC_SOURCES) {
-      const raw = JSON.parse(readFileSync(join(upstreamDir, `${item.scheme}.json`), 'utf8'));
-      let hex;
-      if (item.field === 'bad') hex = raw.bad;
-      else if (typeof item.index === 'number') hex = raw.colors[item.index].hex;
-      else if (item.lutBad) hex = raw.lutBad[item.lutBad];
-      else if (item.extra) hex = raw.extras.find((e) => e.name === item.extra).hex;
-      allowedHexSet.add(hex.toUpperCase());
-      achromatic.push({
-        name: item.name,
-        hex,
-        sourceScheme: item.scheme,
-      });
-    }
-
-    const snapshot = {
-      schemes,
-      achromatic,
-      allowedHexes: [...allowedHexSet].sort(),
+    const raw = JSON.parse(readFileSync(schemeFile, 'utf8'));
+    const colors =
+      id === 'prgn'
+        ? raw.colors.slice(0, 4)
+        : id === 'ylorbr'
+          ? raw.colors.slice(7, 9)
+          : raw.colors;
+    schemes[id] = {
+      id: raw.id,
+      kind: raw.kind,
+      colors,
+      ...(raw.extras ? { extras: raw.extras } : {}),
+      ...(raw.bad ? { bad: raw.bad } : {}),
     };
-    mkdirSync(dirname(snapshotPath), { recursive: true });
-    writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2) + '\n', 'utf8');
-    return snapshot;
+    for (const c of colors) allowedHexSet.add(c.hex.toUpperCase());
+    for (const c of raw.extras ?? []) allowedHexSet.add(c.hex.toUpperCase());
+    if (raw.bad) allowedHexSet.add(raw.bad.toUpperCase());
   }
 
-  if (!existsSync(snapshotPath)) {
-    throw new Error(`Neither upstream ${upstreamDir} nor ${snapshotPath} exists.`);
+  const achromatic = [];
+  for (const item of ACHROMATIC_SOURCES) {
+    const achFile = join(schemesDir, `${item.scheme}.json`);
+    if (!existsSync(achFile)) {
+      throw new Error(`Required upstream scheme file missing: ${achFile}`);
+    }
+    const raw = JSON.parse(readFileSync(achFile, 'utf8'));
+    let hex;
+    if (item.field === 'bad') hex = raw.bad;
+    else if (typeof item.index === 'number') hex = raw.colors[item.index].hex;
+    else if (item.lutBad) hex = raw.lutBad[item.lutBad];
+    else if (item.extra) hex = raw.extras.find((e) => e.name === item.extra).hex;
+    allowedHexSet.add(hex.toUpperCase());
+    achromatic.push({
+      name: item.name,
+      hex,
+      sourceScheme: item.scheme,
+    });
   }
-  return JSON.parse(readFileSync(snapshotPath, 'utf8'));
+
+  const snapshot = {
+    schemes,
+    achromatic,
+    allowedHexes: [...allowedHexSet].sort(),
+  };
+
+  mkdirSync(dirname(targetSnapshotPath), { recursive: true });
+  writeFileSync(targetSnapshotPath, JSON.stringify(snapshot, null, 2) + '\n', 'utf8');
+
+  const syncOpts = isCustom ? { ...opts, snapshot } : {};
+  const syncResult = syncTokens(syncOpts);
+  return {
+    ...syncResult,
+    snapshot,
+    snapshotPath: targetSnapshotPath,
+    schemesDir,
+  };
 }
 
 export function buildTokensCss(snapshot = loadSnapshot()) {
@@ -273,7 +306,63 @@ export function syncTokens(opts = {}) {
   };
 }
 
+export function parseCliArgs(argv = process.argv.slice(2)) {
+  let isUpstream = false;
+  let upstreamPath = null;
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--upstream') {
+      isUpstream = true;
+      const next = argv[i + 1];
+      if (next && !next.startsWith('-')) {
+        upstreamPath = next;
+        i++;
+      }
+    } else if (arg.startsWith('--upstream=')) {
+      isUpstream = true;
+      upstreamPath = arg.slice('--upstream='.length);
+    } else {
+      throw new Error(`Unrecognized argument: ${arg}`);
+    }
+  }
+
+  return { isUpstream, upstreamPath };
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { snapshot } = syncTokens();
-  console.log(`Synced ${Object.keys(snapshot.schemes).length} Paul Tol qualitative schemes -> src/tokens.css & src/palettes.css`);
+  let isUpstream = false;
+  let upstreamPath = null;
+  try {
+    const parsed = parseCliArgs();
+    isUpstream = parsed.isUpstream;
+    upstreamPath = parsed.upstreamPath;
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
+
+  if (isUpstream) {
+    if (!upstreamPath) {
+      console.error('Error: An explicit upstream path is required to refresh tokens: provide --upstream <path>');
+      process.exit(1);
+    }
+    try {
+      const { snapshot, schemesDir } = refreshFromUpstream(upstreamPath);
+      console.log(
+        `Refreshed ${Object.keys(snapshot.schemes).length} schemes from ${schemesDir} -> data/tol-qualitative.json + src/tokens.css & src/palettes.css`
+      );
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+  } else {
+    try {
+      const { snapshot } = syncTokens();
+      console.log(`Synced ${Object.keys(snapshot.schemes).length} Paul Tol qualitative schemes -> src/tokens.css & src/palettes.css`);
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+  }
 }

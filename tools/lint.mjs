@@ -1,6 +1,7 @@
 // Zero-dependency CSS, Accessibility, HTML & Hygiene Linter powered by LightningCSS AST:
 //   1. Strict CSS syntax & nesting validation (errorRecovery: false, 0 warnings)
-//   2. Paul Tol hex purity & forbidden color function gate (rgb/hsl/oklch/lab/lch)
+//   2. Paul Tol hex purity, forbidden color functions (rgb/hsl/oklch/lab/lch/oklab/hwb/color),
+//      and forbidden CSS named colors (keywords transparent, currentColor, inherit stay allowed)
 //   3. Custom property naming (--pt-* / --tol-*) & undefined var(--*) detection
 //   4. Late-bound density tokens & derived token fallback chain static cascade check
 //   5. Accessibility CSS rules: prohibits outline:none/0 and px font-size; requires
@@ -38,6 +39,98 @@ export function expandHex(raw) {
 export function isTransparentHex(normHex) {
   const upper = normHex.toUpperCase();
   return upper === '#0000' || upper === '#00000000';
+}
+
+export const CSS_NAMED_COLORS = new Set([
+  'aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
+  'beige', 'bisque', 'black', 'blanchedalmond', 'blue',
+  'blueviolet', 'brown', 'burlywood', 'cadetblue', 'chartreuse',
+  'chocolate', 'coral', 'cornflowerblue', 'cornsilk', 'crimson',
+  'cyan', 'darkblue', 'darkcyan', 'darkgoldenrod', 'darkgray',
+  'darkgreen', 'darkgrey', 'darkkhaki', 'darkmagenta', 'darkolivegreen',
+  'darkorange', 'darkorchid', 'darkred', 'darksalmon', 'darkseagreen',
+  'darkslateblue', 'darkslategray', 'darkslategrey', 'darkturquoise', 'darkviolet',
+  'deeppink', 'deepskyblue', 'dimgray', 'dimgrey', 'dodgerblue',
+  'firebrick', 'floralwhite', 'forestgreen', 'fuchsia', 'gainsboro',
+  'ghostwhite', 'gold', 'goldenrod', 'gray', 'green',
+  'greenyellow', 'grey', 'honeydew', 'hotpink', 'indianred',
+  'indigo', 'ivory', 'khaki', 'lavender', 'lavenderblush',
+  'lawngreen', 'lemonchiffon', 'lightblue', 'lightcoral', 'lightcyan',
+  'lightgoldenrodyellow', 'lightgray', 'lightgreen', 'lightgrey', 'lightpink',
+  'lightsalmon', 'lightseagreen', 'lightskyblue', 'lightslategray', 'lightslategrey',
+  'lightsteelblue', 'lightyellow', 'lime', 'limegreen', 'linen',
+  'magenta', 'maroon', 'mediumaquamarine', 'mediumblue', 'mediumorchid',
+  'mediumpurple', 'mediumseagreen', 'mediumslateblue', 'mediumspringgreen', 'mediumturquoise',
+  'mediumvioletred', 'midnightblue', 'mintcream', 'mistyrose', 'moccasin',
+  'navajowhite', 'navy', 'oldlace', 'olive', 'olivedrab',
+  'orange', 'orangered', 'orchid', 'palegoldenrod', 'palegreen',
+  'paleturquoise', 'palevioletred', 'papayawhip', 'peachpuff', 'peru',
+  'pink', 'plum', 'powderblue', 'purple', 'rebeccapurple',
+  'red', 'rosybrown', 'royalblue', 'saddlebrown', 'salmon',
+  'sandybrown', 'seagreen', 'seashell', 'sienna', 'silver',
+  'skyblue', 'slateblue', 'slategray', 'slategrey', 'snow',
+  'springgreen', 'steelblue', 'tan', 'teal', 'thistle',
+  'tomato', 'turquoise', 'violet', 'wheat', 'white',
+  'whitesmoke', 'yellow', 'yellowgreen',
+]);
+
+export function extractDeclarationValues(cleanCss) {
+  const decls = [];
+  let braceDepth = 0;
+  let parenDepth = 0;
+  let inDecl = false;
+  let prop = '';
+  let valStart = -1;
+
+  for (let i = 0; i < cleanCss.length; i++) {
+    const ch = cleanCss[i];
+    if (ch === '(') parenDepth++;
+    else if (ch === ')') parenDepth = Math.max(0, parenDepth - 1);
+    else if (parenDepth === 0) {
+      if (ch === '{') {
+        braceDepth++;
+        inDecl = false;
+      } else if (ch === '}') {
+        if (inDecl && valStart !== -1) {
+          decls.push({ prop: prop.trim(), val: cleanCss.slice(valStart, i).trim() });
+          inDecl = false;
+        }
+        braceDepth = Math.max(0, braceDepth - 1);
+      } else if (braceDepth > 0) {
+        if (ch === ':' && !inDecl) {
+          const before = cleanCss.slice(0, i);
+          const lastDelim = Math.max(before.lastIndexOf(';'), before.lastIndexOf('{'), before.lastIndexOf('}'));
+          const candidateProp = cleanCss.slice(lastDelim + 1, i).trim();
+          if (/^(?:--|-?[a-zA-Z])[a-zA-Z0-9_-]*$/.test(candidateProp)) {
+            prop = candidateProp;
+            inDecl = true;
+            valStart = i + 1;
+          }
+        } else if (ch === ';' && inDecl) {
+          decls.push({ prop: prop.trim(), val: cleanCss.slice(valStart, i).trim() });
+          inDecl = false;
+        }
+      }
+    }
+  }
+  return decls;
+}
+
+export function findForbiddenNamedColors(cleanCss) {
+  const decls = extractDeclarationValues(cleanCss);
+  const found = [];
+  for (const { prop, val } of decls) {
+    const withoutUrls = val.replace(/url\([^)]*\)/gi, '');
+    for (const match of withoutUrls.matchAll(/(?<![a-zA-Z0-9_$-])([a-zA-Z][a-zA-Z0-9_-]*)(?![a-zA-Z0-9_$-])/g)) {
+      const word = match[1].toLowerCase();
+      const after = withoutUrls.slice(match.index + match[0].length).trimStart();
+      if (after.startsWith('(')) continue;
+      if (CSS_NAMED_COLORS.has(word)) {
+        found.push({ prop, color: match[1] });
+      }
+    }
+  }
+  return found;
 }
 
 export const DERIVED_TOKENS = new Map([
@@ -235,10 +328,25 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
     }
   }
 
-  // 3. Forbidden color functions & non-Paul-Tol hex codes
-  if (/\b(?:rgb|rgba|hsl|hsla|oklch|lab|lch)\s*\(/i.test(cleanContent)) {
-    errors.push(`[${filename}] Forbidden color function (rgb/hsl/oklch/lab/lch) found`);
+  // 3. Forbidden color functions (rgb, rgba, hsl, hsla, hwb, lab, lch, oklab, oklch, color)
+  const forbiddenFns = new Set();
+  for (const m of cleanContent.matchAll(/\b(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\s*\(/gi)) {
+    forbiddenFns.add(m[1].toLowerCase());
   }
+  for (const fn of forbiddenFns) {
+    errors.push(`[${filename}] Forbidden color function (${fn}) found`);
+  }
+
+  // 4. Forbidden CSS named colors (keywords transparent, currentColor, inherit stay allowed)
+  const strippedForDecls = stripCssCommentsAndStrings(content);
+  const namedColors = findForbiddenNamedColors(strippedForDecls);
+  for (const { prop, color } of namedColors) {
+    errors.push(
+      `[${filename}] Forbidden CSS named color "${color}" found in property "${prop}" (use Paul Tol tokens or hex only)`
+    );
+  }
+
+  // 5. Non-Paul-Tol hex codes
   const withoutDataUris = cleanContent.replace(/url\("data:[^"]*"\)/g, '');
   for (const match of withoutDataUris.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
     const norm = expandHex(match[0]);

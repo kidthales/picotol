@@ -6,7 +6,7 @@
     0. Workflow single-source-of-truth drift audit (.github/workflows/*.yml)
     1. Agent & scratch file leak audit (tracked & untracked)
     2. PowerShell AST parse validation (*.ps1)
-    3. Generated distribution drift audit (npm run generate -> git status --porcelain dist)
+    3. Generated distribution drift audit (npm run generate -> git status --porcelain dist src data README.md)
     4. Composite test suite (npm test: lint + budgets + node --test) & packaging dry-run (npm pack --dry-run)
 .PARAMETER Quick
     Runs without Gate 3 distribution regeneration and Gate 4 npm pack --dry-run. Forbidden in -CI mode.
@@ -393,12 +393,13 @@ try {
             throw "Gate 3 Failed: Distribution generation failed."
         }
 
-        $DistStatus = & git status --porcelain dist
+        $DriftPaths = @('dist', 'src', 'data', 'README.md')
+        $DistStatus = & git status --porcelain -- $DriftPaths
         if ($DistStatus) {
-            Write-Fail "dist/ differs from a fresh generation. Run 'npm run generate' and commit the result."
+            Write-Fail "Generated files ($($DriftPaths -join ', ')) differ from a fresh generation. Run 'npm run generate' and commit the result."
             Write-Host "Drift details:" -ForegroundColor Red
-            & git status --porcelain dist
-            & git diff --stat dist
+            & git status --porcelain -- $DriftPaths
+            & git diff --stat -- $DriftPaths
             throw "Gate 3 Failed: Generated distribution drift detected."
         }
 
