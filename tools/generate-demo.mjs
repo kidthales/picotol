@@ -1166,7 +1166,7 @@ ${rowsHtml}
 ${swatchCardsHtml}
       </div>
       <p id="palette-empty" hidden>No matching Paul Tol color tokens found.</p>
-      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <div role="status" aria-live="polite"><div id="toast" class="toast"></div></div>
     </section>
   </main>
 
@@ -1372,8 +1372,8 @@ ${swatchCardsHtml}
 
     function showToast(msg) {
       if (!toast) return;
-      toast.textContent = msg;
       toast.classList.add('show');
+      toast.textContent = msg;
       clearTimeout(toastTimeout);
       toastTimeout = setTimeout(() => {
         toast.classList.remove('show');

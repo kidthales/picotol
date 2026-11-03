@@ -1293,10 +1293,6 @@
       & > :where(progress, .pt-progress) {
         margin-bottom: 0;
       }
-
-      &:has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
-        overflow: visible;
-      }
     }
 
     :where(.pt-meter, .pt-progress):has(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end) {
@@ -1529,23 +1525,35 @@
         text-decoration: none;
       }
 
-      &:is(:hover, :focus-visible):before {
-        content: attr(data-tooltip);
-        z-index: 99;
-        border-radius: var(--pt-border-radius);
-        background-color: var(--pt-color);
-        width: max-content;
-        max-width: min(16rem, 80vw);
-        color: var(--pt-bg);
-        text-align: center;
-        white-space: normal;
-        pointer-events: none;
-        padding: .25rem .5rem;
-        font-size: .875rem;
-        position: absolute;
-        bottom: calc(100% + .375rem);
-        left: 50%;
-        transform: translateX(-50%);
+      &:is(:hover, :focus-visible) {
+        &:before, &:after {
+          z-index: 99;
+          pointer-events: auto;
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        &:before {
+          content: attr(data-tooltip);
+          border-radius: var(--pt-border-radius);
+          background-color: var(--pt-color);
+          width: max-content;
+          max-width: min(16rem, 80vw);
+          color: var(--pt-bg);
+          text-align: center;
+          white-space: normal;
+          padding: .25rem .5rem;
+          font-size: .875rem;
+          bottom: calc(100% + .375rem);
+        }
+
+        &:after {
+          content: "";
+          width: min(16rem, 80vw);
+          height: .375rem;
+          bottom: 100%;
+        }
       }
     }
 
@@ -1878,7 +1886,6 @@
             white-space: nowrap;
             text-align: center;
             flex: 1 1 0;
-            justify-content: center;
             min-width: 0;
             display: block;
             overflow: hidden;
@@ -1989,17 +1996,20 @@
       color: var(--pt-bg);
       box-shadow: var(--pt-box-shadow);
       opacity: 0;
+      visibility: hidden;
       pointer-events: none;
       bottom: 1.5rem;
       padding: .75rem 1.25rem;
-      transition: opacity .2s, transform .2s;
+      transition: opacity .2s, transform .2s, visibility 0s linear .2s;
       position: fixed;
       inset-inline-end: 1.5rem;
       transform: translateY(1rem);
 
       &:is(.show, [aria-hidden="false"]) {
         opacity: 1;
+        visibility: visible;
         pointer-events: auto;
+        transition-delay: 0s;
         transform: translateY(0);
       }
     }

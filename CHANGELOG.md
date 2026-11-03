@@ -5,6 +5,19 @@ All notable changes to `@kidthales/picotol` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Standardized toast activation on the `.show` class (`visibility: visible; transition-delay: 0s;`) and documented live-region (`role="status"`, `role="alert"`, `aria-live`) and `aria-hidden` state pairing (#220).
+- Made pure CSS tooltips (`[data-tooltip]`) hoverable (partial WCAG 2.1 SC 1.4.13: *Hoverable* & *Persistent*) with `pointer-events: auto` on `::before` and a centered `min(16rem, 80vw)` by `0.375rem` `::after` hover bridge spanning the trigger-to-bubble overhang and gap, and documented `aria-describedby` pairing, pure-CSS `Escape` dismissal limits, unsupported host `::before`/`::after` collisions, hit-testing/clipping caveats, and the Nov 2026 `interestfor` evaluation (#220).
+- Removed the duplicate nested `.pt-meter:has(...)` `overflow: visible` rule (already covered by `:where(.pt-meter, .pt-progress):has(...)`) and the no-op `justify-content: center` declaration on `display: block` `.segmented-fill > *` items (#220).
+
+### Deprecated
+- Deprecated `.toast[aria-hidden="false"]` as a standalone toast activation selector in favor of `.toast.show`; retained as a compatibility alias scheduled for removal in v0.7.0 (#220).
+
+### Fixed
+- Hid inactive `.toast` elements from the accessibility tree and sequential focus navigation with `visibility: hidden` (delayed via `visibility 0s linear 0.2s` until opacity fade-out completes) (#220).
+
 ## [0.5.0] - 2026-10-30
 
 Sixth public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.5.0](docs/RELEASE_NOTES_V0_5_0.md).

@@ -28,6 +28,7 @@ import {
   schemeColor,
   extractLayerBlock,
   parseCssBlock,
+  splitSelectors,
   getPicotolTokens,
 } from "./helpers/tokens.mjs";
 
@@ -3838,5 +3839,322 @@ test("Anti-Tautology Guard: tests/picotol.test.mjs contains zero vacuous include
     `tests/picotol.test.mjs must not use vacuous includes-OR-includes disjunction assertions: ${matches.join(" | ")}`
   );
 });
+
+test("Toast production bundles set visibility:hidden when hidden, reset transition-delay:0s when shown, and preserve deprecated aria-hidden alias parity (Issue #220)", () => {
+  const bundles = [
+    "dist/picotol.min.css",
+    "dist/picotol.layer.min.css",
+    "dist/picotol.css",
+  ];
+
+  for (const relPath of bundles) {
+    const css = fs.readFileSync(path.join(ROOT, relPath), "utf8");
+    const componentsBlock = extractLayerBlock(css, "components");
+    assert.ok(componentsBlock, `${relPath} must contain @layer components`);
+    const parsed = parseCssBlock(componentsBlock);
+
+    const toastRules = parsed.rules.filter((r) => r.selector === ":where(.toast)");
+    assert.equal(toastRules.length, 1, `${relPath} must define a single :where(.toast) rule`);
+    const toastRule = toastRules[0];
+
+    // Hidden state assertions (including negative pointer-events guard)
+    assert.equal(
+      toastRule.declarations.visibility,
+      "hidden",
+      `${relPath}: hidden .toast must set visibility: hidden`
+    );
+    assert.equal(
+      toastRule.declarations.opacity,
+      "0",
+      `${relPath}: hidden .toast must set opacity: 0`
+    );
+    assert.equal(
+      toastRule.declarations["pointer-events"],
+      "none",
+      `${relPath}: hidden .toast must keep pointer-events: none`
+    );
+    assert.match(
+      toastRule.declarations.transition ?? "",
+      /visibility\s+0s\s+linear\s+0?\.2s/,
+      `${relPath}: hidden .toast must delay visibility: hidden until the 0.2s fade-out completes`
+    );
+
+    // Shown state assertions (.show and deprecated [aria-hidden="false"] alias parity)
+    assert.equal(
+      toastRule.rules.length,
+      1,
+      `${relPath}: :where(.toast) must nest a single shown-state rule shared by .show and [aria-hidden="false"]`
+    );
+    const shownRule = toastRule.rules[0];
+    const isMatch = shownRule.selector.match(/^&:is\(([\s\S]+)\)$/);
+    assert.ok(isMatch, `${relPath}: shown toast selector must use &:is(...)`);
+    const selectorParts = splitSelectors(isMatch[1]).map((s) => s.replace(/["']/g, ""));
+    assert.deepEqual(
+      selectorParts.sort(),
+      [".show", "[aria-hidden=false]"].sort(),
+      `${relPath}: .show and [aria-hidden="false"] must share the exact same rule block for 1:1 declaration parity`
+    );
+
+    assert.equal(
+      shownRule.declarations.visibility,
+      "visible",
+      `${relPath}: shown .toast must set visibility: visible`
+    );
+    assert.equal(
+      shownRule.declarations["transition-delay"],
+      "0s",
+      `${relPath}: shown .toast must reset transition-delay: 0s as an entrance guard`
+    );
+    assert.equal(
+      shownRule.declarations.opacity,
+      "1",
+      `${relPath}: shown .toast must set opacity: 1`
+    );
+    assert.equal(
+      shownRule.declarations["pointer-events"],
+      "auto",
+      `${relPath}: shown .toast must restore pointer-events: auto`
+    );
+
+    // Verify @layer base prefers-reduced-motion rule targets * with transition: none !important
+    const baseBlock = extractLayerBlock(css, "base");
+    assert.ok(baseBlock, `${relPath} must contain @layer base`);
+    const parsedBase = parseCssBlock(baseBlock);
+    const reducedMotionMedia = parsedBase.rules.find((r) =>
+      /^@media\s*\(\s*prefers-reduced-motion:\s*reduce\s*\)$/.test(r.selector)
+    );
+    assert.ok(reducedMotionMedia, `${relPath}: @layer base must define @media (prefers-reduced-motion: reduce)`);
+    const universalTransitionRule = reducedMotionMedia.rules.find((r) =>
+      splitSelectors(r.selector).includes("*")
+    );
+    assert.ok(
+      universalTransitionRule,
+      `${relPath}: @media (prefers-reduced-motion: reduce) must include universal (*) selector rule`
+    );
+    assert.match(
+      universalTransitionRule.declarations.transition ?? "",
+      /^none\s*!important$/,
+      `${relPath}: universal (*) rule under prefers-reduced-motion: reduce must set transition: none !important`
+    );
+  }
+
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const changelog = fs.readFileSync(path.join(ROOT, "CHANGELOG.md"), "utf8");
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+
+  const toastSectionMatch = readme.match(/6\.\s+\*\*Accessible Toasts[\s\S]*?(?=\n---|\n## )/);
+  assert.ok(toastSectionMatch, "README must contain section 6. Accessible Toasts");
+  const toastReadme = toastSectionMatch[0];
+
+  assert.match(toastReadme, /transition-delay:\s*0s/, "README toast section must document transition-delay: 0s entrance reset");
+  assert.match(
+    toastReadme,
+    /never pair `\.show` with `aria-hidden="true"`\s*\(which hides visible toasts from assistive tech\)/,
+    "README toast section must warn against pairing .show with aria-hidden=\"true\" and explain why"
+  );
+  assert.match(toastReadme, /role="status"[\s\S]*?role="alert"[\s\S]*?aria-live/, "README toast section must document role=\"status\", role=\"alert\", and aria-live announcement behavior");
+  assert.match(
+    demoHtml,
+    /<div role="status" aria-live="polite"><div id="toast" class="toast"><\/div><\/div>/,
+    "Demo HTML must wrap #toast inside a persistent role=\"status\" aria-live=\"polite\" live region"
+  );
+  assert.match(
+    demoHtml,
+    /function showToast\(msg\)\s*\{\s*if\s*\(!toast\)\s*return;\s*toast\.classList\.add\('show'\);\s*toast\.textContent\s*=\s*msg;/,
+    "Demo showToast() must add .show before setting textContent"
+  );
+  assert.match(changelog, /### Deprecated[\s\S]*?\[aria-hidden="false"\][\s\S]*?v0\.7\.0/, "CHANGELOG must include a ### Deprecated entry for [aria-hidden=\"false\"] removal in v0.7.0");
+  assert.match(changelog, /### Fixed[\s\S]*?visibility:\s*hidden/, "CHANGELOG must include a ### Fixed entry for hiding inactive toasts with visibility: hidden");
+});
+
+test("Tooltip production bundles satisfy WCAG 1.4.13 hoverability with pointer-events:auto and a full-overhang ::after hover bridge (Issue #220)", () => {
+  const bundles = [
+    "dist/picotol.min.css",
+    "dist/picotol.layer.min.css",
+    "dist/picotol.css",
+  ];
+
+  function collectPointerEventsValues(ruleNode) {
+    const values = [];
+    if (Object.hasOwn(ruleNode.declarations, "pointer-events")) {
+      values.push(ruleNode.declarations["pointer-events"]);
+    }
+    for (const child of ruleNode.rules) {
+      values.push(...collectPointerEventsValues(child));
+    }
+    return values;
+  }
+
+  function resolvePseudoDeclarations(activeRule, pseudoName) {
+    const pseudoRe = new RegExp(`^&::?${pseudoName}$`);
+    const merged = {};
+    let matchedCount = 0;
+    for (const r of activeRule.rules) {
+      const parts = splitSelectors(r.selector);
+      if (parts.some((p) => pseudoRe.test(p))) {
+        matchedCount++;
+        Object.assign(merged, r.declarations);
+      }
+    }
+    return { matchedCount, declarations: merged };
+  }
+
+  for (const relPath of bundles) {
+    const css = fs.readFileSync(path.join(ROOT, relPath), "utf8");
+    const componentsBlock = extractLayerBlock(css, "components");
+    assert.ok(componentsBlock, `${relPath} must contain @layer components`);
+    const parsed = parseCssBlock(componentsBlock);
+
+    const tooltipRules = parsed.rules.filter((r) => r.selector === "[data-tooltip]");
+    assert.equal(tooltipRules.length, 1, `${relPath} must define a single [data-tooltip] rule`);
+    const tooltipRule = tooltipRules[0];
+
+    // Negative assertion: pointer-events: none must never appear anywhere inside [data-tooltip]
+    const allPointerEvents = collectPointerEventsValues(tooltipRule);
+    assert.ok(
+      !allPointerEvents.includes("none"),
+      `${relPath}: [data-tooltip] must not contain pointer-events: none (found: ${allPointerEvents.join(", ")})`
+    );
+
+    // Locate hover/focus-visible container rule and resolve effective ::before (bubble) and ::after (hover bridge) declarations
+    const activeRules = tooltipRule.rules.filter((r) =>
+      /^&:is\(\s*:hover\s*,\s*:focus-visible\s*\)$/.test(r.selector)
+    );
+    assert.equal(
+      activeRules.length,
+      1,
+      `${relPath}: [data-tooltip] must nest &:is(:hover, :focus-visible) container rule`
+    );
+    const activeRule = activeRules[0];
+
+    const beforeRes = resolvePseudoDeclarations(activeRule, "before");
+    const afterRes = resolvePseudoDeclarations(activeRule, "after");
+    assert.ok(beforeRes.matchedCount >= 1, `${relPath}: [data-tooltip] active rule must define &::before bubble`);
+    assert.ok(afterRes.matchedCount >= 1, `${relPath}: [data-tooltip] active rule must define &::after hover bridge`);
+
+    const beforeDecl = beforeRes.declarations;
+    const afterDecl = afterRes.declarations;
+
+    assert.equal(beforeDecl.content, "attr(data-tooltip)", `${relPath}: ::before must render attr(data-tooltip)`);
+    assert.equal(beforeDecl.position, "absolute", `${relPath}: ::before must be position: absolute`);
+    assert.equal(beforeDecl["pointer-events"], "auto", `${relPath}: ::before must set pointer-events: auto`);
+    assert.equal(beforeDecl.left, "50%", `${relPath}: ::before must center at left: 50%`);
+    assert.match(beforeDecl.transform ?? "", /^translateX?\(-50%\)$/, `${relPath}: ::before must center with translateX(-50%)`);
+    assert.equal(beforeDecl["z-index"], "99", `${relPath}: ::before must set z-index: 99`);
+
+    assert.equal(afterDecl.content, '""', `${relPath}: ::after hover bridge must set content: ""`);
+    assert.equal(afterDecl.position, "absolute", `${relPath}: ::after hover bridge must be position: absolute`);
+    assert.equal(afterDecl["pointer-events"], "auto", `${relPath}: ::after hover bridge must set pointer-events: auto`);
+    assert.equal(afterDecl.bottom, "100%", `${relPath}: ::after hover bridge must start at bottom: 100% (top edge of trigger)`);
+    assert.equal(afterDecl.left, "50%", `${relPath}: ::after hover bridge must center at left: 50%`);
+    assert.match(afterDecl.transform ?? "", /^translateX?\(-50%\)$/, `${relPath}: ::after hover bridge must center with translateX(-50%)`);
+    assert.equal(
+      afterDecl["z-index"],
+      beforeDecl["z-index"],
+      `${relPath}: ::after hover bridge must share z-index (${beforeDecl["z-index"]}) with ::before bubble`
+    );
+    assert.equal(
+      afterDecl.width,
+      beforeDecl["max-width"],
+      `${relPath}: ::after hover bridge width (${afterDecl.width}) must cover ::before max-width (${beforeDecl["max-width"]}) for diagonal overhang travel`
+    );
+
+    // Geometric continuity check: bridge height must cover the exact vertical gap below the bubble
+    const gapMatch = (beforeDecl.bottom ?? "").match(/^calc\(100%\s*\+\s*(0?\.\d+|\d+(?:\.\d+)?)rem\)$/);
+    assert.ok(gapMatch, `${relPath}: ::before bottom must be calc(100% + <gap>rem), got "${beforeDecl.bottom}"`);
+    const bubbleGapRem = parseFloat(gapMatch[1]);
+
+    const heightMatch = (afterDecl.height ?? "").match(/^(0?\.\d+|\d+(?:\.\d+)?)rem$/);
+    assert.ok(heightMatch, `${relPath}: ::after height must be <height>rem, got "${afterDecl.height}"`);
+    const bridgeHeightRem = parseFloat(heightMatch[1]);
+
+    assert.ok(
+      bridgeHeightRem >= bubbleGapRem && bubbleGapRem > 0,
+      `${relPath}: ::after bridge height (${bridgeHeightRem}rem) must bridge the full ::before offset (${bubbleGapRem}rem) with zero dead zone`
+    );
+  }
+
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const changelog = fs.readFileSync(path.join(ROOT, "CHANGELOG.md"), "utf8");
+  const compSource = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+
+  const tooltipSectionMatch = readme.match(/3\.\s+\*\*Accessible Tooltips[\s\S]*?(?=\n4\.\s+\*\*)/);
+  assert.ok(tooltipSectionMatch, "README must contain section 3. Accessible Tooltips");
+  const tooltipReadme = tooltipSectionMatch[0];
+
+  const tooltipCommentMatch = compSource.match(/\/\*\s*9\.\s*Tooltip[\s\S]*?\*\/\s*\[data-tooltip\]/);
+  assert.ok(tooltipCommentMatch, "src/components.css must have a section 9 comment immediately preceding [data-tooltip]");
+  const tooltipComment = tooltipCommentMatch[0];
+
+  assert.match(tooltipReadme, /aria-describedby/, "README tooltip section must require pairing non-decorative tooltips with aria-describedby or aria-label");
+  assert.match(tooltipReadme, /SC 1\.4\.13[\s\S]*?Escape/, "README tooltip section must document pure-CSS Escape dismissal limitation under WCAG 2.1 SC 1.4.13");
+  assert.match(tooltipReadme, /not supported on hosts with their own `::before` or `::after`/, "README tooltip section must document ::before / ::after host collision limitation");
+  assert.match(tooltipReadme, /full-width `0\.375rem` `::after` bridge strip[\s\S]*?narrower than `16rem`/, "README tooltip section must document ::after bridge strip pointer interception on narrow bubbles");
+  assert.match(tooltipReadme, /Nov 2026/, "README tooltip section must date-stamp the interestfor evaluation");
+  assert.match(tooltipReadme, /open-ui\.org\/components\/interest-invokers/, "README tooltip section must link a source for the interestfor evaluation");
+  assert.match(tooltipReadme, /overflow:\s*hidden/, "README tooltip section must call out overflow: hidden ancestor clipping on tooltips");
+  assert.match(tooltipComment, /Escape/, "src/components.css section 9 comment must note pure-CSS Escape dismissal limitation");
+  assert.match(tooltipComment, /::before\/::after/, "src/components.css section 9 comment must note host ::before/::after limitation");
+  assert.match(changelog, /partial WCAG 2\.1 SC 1\.4\.13/, "CHANGELOG must clarify partial WCAG 2.1 SC 1.4.13 compliance for pure CSS tooltips");
+});
+
+test("Component deduplications preserve .sheet and progressbar markers while removing redundant .pt-meter and .segmented-fill declarations (Issue #220)", () => {
+  const bundles = [
+    "dist/picotol.min.css",
+    "dist/picotol.layer.min.css",
+    "dist/picotol.css",
+  ];
+
+  for (const relPath of bundles) {
+    const css = fs.readFileSync(path.join(ROOT, relPath), "utf8");
+    const componentsBlock = extractLayerBlock(css, "components");
+    assert.ok(componentsBlock, `${relPath} must contain @layer components`);
+    const parsed = parseCssBlock(componentsBlock);
+
+    const sheetRule = parsed.rules.find((r) => r.selector.startsWith(":where(.sheet"));
+    assert.ok(sheetRule, `${relPath}: must define .sheet rule`);
+    const sheetHasArticle = sheetRule.rules.find((r) => /^&:has\(\s*>\s*article\s*\)$/.test(r.selector));
+    assert.ok(sheetHasArticle, `${relPath}: .sheet must nest &:has(> article)`);
+    assert.equal(sheetHasArticle.declarations["align-items"], "stretch", `${relPath}: .sheet:has(> article) must preserve align-items: stretch`);
+    assert.equal(sheetHasArticle.declarations["justify-content"], "flex-start", `${relPath}: .sheet:has(> article) must preserve justify-content: flex-start`);
+
+    const progressRoleRule = parsed.rules.find((r) => /\[role=["']?progressbar["']?\]:not\(progress\)/.test(r.selector));
+    assert.ok(progressRoleRule, `${relPath}: must define [role=progressbar]:not(progress) rule`);
+    const progressHasMarker = progressRoleRule.rules.find((r) => r.selector.startsWith("&:has(.pt-gauge-marker"));
+    assert.ok(progressHasMarker, `${relPath}: [role=progressbar]:not(progress) must nest &:has(.pt-gauge-marker, ...) rule`);
+    assert.equal(progressHasMarker.declarations.overflow, "visible", `${relPath}: [role=progressbar]:not(progress) with markers must set overflow: visible`);
+
+    const meterProgressHasMarker = parsed.rules.find((r) => r.selector.startsWith(":where(.pt-meter") && r.selector.includes(":has(.pt-gauge-marker"));
+    assert.ok(meterProgressHasMarker, `${relPath}: must define :where(.pt-meter, .pt-progress):has(...) rule`);
+    assert.equal(meterProgressHasMarker.declarations.overflow, "visible", `${relPath}: :where(.pt-meter, .pt-progress):has(...) must set overflow: visible`);
+
+    const meterRule = parsed.rules.find((r) => r.selector === ":where(.pt-meter)");
+    assert.ok(meterRule, `${relPath}: must define :where(.pt-meter) rule`);
+    assert.ok(
+      !meterRule.rules.some((r) => r.selector.startsWith("&:has(.pt-gauge-marker")),
+      `${relPath}: :where(.pt-meter) must not duplicate nested &:has(.pt-gauge-marker) rule`
+    );
+
+    const tablistRule = parsed.rules.find((r) => r.selector.includes("tablist") && r.selector.includes(".segmented"));
+    assert.ok(tablistRule, `${relPath}: must define :where([role="tablist"], .segmented) rule`);
+    const segGroupRule = tablistRule.rules.find((r) => r.selector.includes("segmented-fill"));
+    assert.ok(segGroupRule, `${relPath}: must define nested .segmented / .segmented-fill rule`);
+    const segFillRule = segGroupRule.rules.find((r) => r.selector.includes("segmented-fill"));
+    assert.ok(segFillRule, `${relPath}: must define &:is(.segmented-fill, .segmented-equal, .fill) rule`);
+    const segFillChildRule = segFillRule.rules.find((r) => /^&\s*>\s*\*$/.test(r.selector));
+    assert.ok(segFillChildRule, `${relPath}: .segmented-fill must define & > * child rule`);
+    assert.equal(segFillChildRule.declarations.display, "block", `${relPath}: .segmented-fill > * must set display: block`);
+    assert.equal(segFillChildRule.declarations["text-align"], "center", `${relPath}: .segmented-fill > * must set text-align: center`);
+    assert.ok(
+      !Object.hasOwn(segFillChildRule.declarations, "justify-content"),
+      `${relPath}: display: block .segmented-fill > * must omit no-op justify-content`
+    );
+  }
+
+  const changelog = fs.readFileSync(path.join(ROOT, "CHANGELOG.md"), "utf8");
+  assert.match(changelog, /\.pt-meter:has\(\.\.\.\)[\s\S]*?justify-content:\s*center/, "CHANGELOG must document the .pt-meter:has(...) and .segmented-fill justify-content dedupes");
+});
+
+
 
 
