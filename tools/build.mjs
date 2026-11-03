@@ -18,7 +18,8 @@ import { assertValidMtimeOption, resolveOutDir } from './path-jail.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
-const HEADER = `/*! ${pkg.name} v${pkg.version} | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */\n`;
+export const UPSTREAM_PICO_HEADER_ATTRIBUTION = 'Pico CSS v2.1.1 (MIT)';
+export const HEADER = `/*! ${pkg.name} v${pkg.version} | MIT | Paul Tol colours (BSD-3) | ${UPSTREAM_PICO_HEADER_ATTRIBUTION} */\n`;
 
 // Modern baseline matching CSS light-dark(), color-mix(), @layer, and native CSS Nesting
 const OPTS = {

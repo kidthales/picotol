@@ -14,6 +14,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bundle, transform, Features } from 'lightningcss';
+import { expandHex } from './color-utils.mjs';
+import { auditWorkflows } from './check-workflows.mjs';
+
+export { expandHex, auditWorkflows };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -27,14 +31,6 @@ const OPTS = {
   exclude: Features.VendorPrefixes,
   errorRecovery: false,
 };
-
-export function expandHex(raw) {
-  const upper = raw.toUpperCase();
-  if (/^#[0-9A-F]{3}$/.test(upper)) {
-    return `#${upper[1]}${upper[1]}${upper[2]}${upper[2]}${upper[3]}${upper[3]}`;
-  }
-  return upper;
-}
 
 export function isTransparentHex(normHex) {
   const upper = normHex.toUpperCase();
@@ -629,6 +625,9 @@ export function runLint() {
   const demoPath = path.join(ROOT, 'dist/demo/index.html');
   const demoHtml = fs.readFileSync(demoPath, 'utf8');
   errors.push(...lintDemoHtml(demoHtml, fullDistCss, 'dist/demo/index.html'));
+
+  // 7. GitHub Actions workflow AST & security validation (real YAML parser)
+  errors.push(...auditWorkflows(ROOT));
 
   return errors;
 }

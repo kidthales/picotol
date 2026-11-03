@@ -1,28 +1,11 @@
 // Generates a self-contained, offline-capable interactive HTML5 kitchen-sink
 // showcase of picotol into dist/demo/index.html.
 import { loadSnapshot } from './sync-tokens.mjs';
+import { expandHex, hexToRgb, relativeLuminance, contrastRatio } from './color-utils.mjs';
 
-export function hexToRgb(hex) {
-  const clean = hex.replace('#', '');
-  const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
-  const num = parseInt(full, 16);
-  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
-}
+export { expandHex, hexToRgb, relativeLuminance, contrastRatio };
 
-export function relativeLuminance(hex) {
-  const [r, g, b] = hexToRgb(hex).map((v) => {
-    const c = v / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-export function contrastRatio(hexA, hexB) {
-  const l1 = relativeLuminance(hexA);
-  const l2 = relativeLuminance(hexB);
-  const [hi, lo] = l1 >= l2 ? [l1, l2] : [l2, l1];
-  return (hi + 0.05) / (lo + 0.05);
-}
+export const UPSTREAM_PICO_MIN_BYTES = 83319;
 
 export const ACCENT_TABLE = [
   {
@@ -255,7 +238,7 @@ export function generateDemoHtml(fullMinCss, stats) {
           <main>
             <p><strong>${stats.fullMinBytes} bytes</strong> (${(stats.fullMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.fullGzipBytes} B</strong> gzip)</p>
           </main>
-          <footer><small>${((1 - stats.fullMinBytes / 83319) * 100).toFixed(1)}% smaller than upstream pico.min.css (83.3 KB)</small></footer>
+          <footer><small>${((1 - stats.fullMinBytes / UPSTREAM_PICO_MIN_BYTES) * 100).toFixed(1)}% smaller than upstream pico.min.css (83.3 KB)</small></footer>
         </article>
         <article>
           <header><strong>Layer Build (<code>picotol.layer.min.css</code>)</strong></header>

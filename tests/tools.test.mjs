@@ -8,7 +8,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  expandHex,
   isTransparentHex,
   CSS_NAMED_COLORS,
   extractDeclarationValues,
@@ -21,6 +20,14 @@ import {
   stripCssCommentsAndStrings,
 } from '../tools/lint.mjs';
 import {
+  expandHex,
+  hexToRgb,
+  srgbToLinear,
+  relativeLuminance,
+  contrastRatio,
+  mixSrgb,
+} from '../tools/color-utils.mjs';
+import {
   loadSnapshot,
   refreshFromUpstream,
   parseCliArgs,
@@ -28,7 +35,9 @@ import {
   buildPalettesCss,
   syncTokens,
 } from '../tools/sync-tokens.mjs';
-import { buildAll } from '../tools/build.mjs';
+import { UPSTREAM_PICO_HEADER_ATTRIBUTION, buildAll } from '../tools/build.mjs';
+import { UPSTREAM_PICO_MIN_BYTES } from '../tools/generate-demo.mjs';
+import { auditWorkflows, hasUnescapedExpression } from '../tools/check-workflows.mjs';
 import {
   DEFAULT_ZIP_MTIME,
   MAX_ZIP_ENTRIES,
@@ -336,7 +345,7 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   `;
   const demoErrors = lintDemoHtml(
     badDemoHtml,
-    `.a { background: url(https://example.com/it's-here.svg); } .styled-class { content: 'ok'; color: #000000; } .card-foo:not(.negated-only) { color: #000000; }`,
+    `.a { background: url(https://example.com/it's-here.svg); } .styled-class { content: 'ok'; color: #000000; } .card-header:not(.negated-only) .card-foo { color: #000000; }`,
     'fixtures/demo.html'
   );
   assert.ok(
@@ -348,7 +357,7 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
     '.a { background: url(); } .styled-class { content: ""; }'
   );
   assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".unstyled-phantom-class"')));
-  assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".card"')), '.card must not false-pass against .card-foo');
+  assert.ok(demoErrors.some((e) => e.includes('Unstyled class ".card"')), '.card must not false-pass against .card-header or .card-foo');
   assert.ok(
     demoErrors.some((e) => e.includes('Unstyled class ".negated-only"')),
     'Class appearing only inside :not(.negated-only) must not count as styled'
@@ -375,15 +384,407 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   assert.equal(projectErrors.length, 0, `Expected runLint() to return 0 errors, got: ${projectErrors.join('; ')}`);
 });
 
-test('tools/lint.mjs: expandHex utility expands 3-digit hex without turning transparent #0000 into black', () => {
+test('tools/color-utils.mjs: shared color and contrast utilities (B7)', () => {
+  // expandHex
   assert.equal(expandHex('#47A'), '#4477AA');
   assert.equal(expandHex('#0000'), '#0000');
   assert.equal(expandHex('#00000000'), '#00000000');
   assert.equal(expandHex('#4477AA'), '#4477AA');
   assert.equal(expandHex('#4477AAFF'), '#4477AAFF');
+  assert.equal(expandHex('  #47a  '), '#4477AA');
+  assert.equal(expandHex('  #4477aa  '), '#4477AA');
+  assert.equal(expandHex(null), null);
+  assert.equal(expandHex(123), 123);
   assert.equal(isTransparentHex('#0000'), true);
   assert.equal(isTransparentHex('#00000000'), true);
   assert.equal(isTransparentHex('#000000'), false);
+
+  // hexToRgb
+  assert.deepEqual(hexToRgb('#4477AA'), [0x44, 0x77, 0xAA]);
+  assert.deepEqual(hexToRgb('#000000'), [0, 0, 0]);
+  assert.deepEqual(hexToRgb('#FFFFFF'), [255, 255, 255]);
+  assert.deepEqual(hexToRgb('#47A'), [0x44, 0x77, 0xAA]);
+  assert.deepEqual(hexToRgb('  #47a  '), [0x44, 0x77, 0xAA]);
+  assert.deepEqual(hexToRgb('  #4477aa  '), [0x44, 0x77, 0xAA]);
+  assert.throws(() => hexToRgb('#0000'), /Invalid 6-digit opaque hex color/);
+  assert.throws(() => hexToRgb('not-a-color'), /Invalid 6-digit opaque hex color/);
+  assert.throws(() => hexToRgb(null), /Invalid 6-digit opaque hex color/);
+  assert.throws(() => hexToRgb(undefined), /Invalid 6-digit opaque hex color/);
+  assert.throws(() => hexToRgb(123456), /Invalid 6-digit opaque hex color/);
+
+  // srgbToLinear threshold and boundary checks (channel 10 linear vs 11 power curve)
+  assert.equal(srgbToLinear(0), 0);
+  assert.equal(srgbToLinear(255), 1);
+  assert.equal(srgbToLinear(10), (10 / 255) / 12.92);
+  assert.equal(srgbToLinear(11), Math.pow((11 / 255 + 0.055) / 1.055, 2.4));
+
+  // relativeLuminance
+  assert.equal(relativeLuminance('#000000'), 0);
+  assert.equal(relativeLuminance('#FFFFFF'), 1);
+  assert.equal(relativeLuminance('  #ffffff  '), 1);
+  assert.equal(relativeLuminance('  #000000  '), 0);
+  assert.equal(relativeLuminance('  #4477aa  '), relativeLuminance('#4477AA'));
+  assert.throws(() => relativeLuminance('#0000'), /Invalid 6-digit opaque hex color/);
+  assert.throws(() => relativeLuminance('invalid'), /Invalid 6-digit opaque hex color/);
+  assert.throws(() => relativeLuminance(null), /Invalid 6-digit opaque hex color/);
+  assert.throws(() => relativeLuminance(undefined), /Invalid 6-digit opaque hex color/);
+
+  // contrastRatio
+  assert.equal(contrastRatio('#000000', '#FFFFFF'), 21);
+  assert.equal(contrastRatio('#FFFFFF', '#FFFFFF'), 1);
+  assert.equal(contrastRatio('  #000000  ', '  #ffffff  '), 21);
+  assert.equal(contrastRatio('  #4477aa  ', '  #4477AA  '), 1);
+
+  // mixSrgb
+  assert.equal(mixSrgb('#000000', 50, '#FFFFFF'), '#808080');
+  assert.equal(mixSrgb('#4477AA', 0, '#FFFFFF'), '#FFFFFF');
+  assert.equal(mixSrgb('#4477AA', 100, '#FFFFFF'), '#4477AA');
+  assert.equal(mixSrgb('  #000000  ', 50, '  #ffffff  '), '#808080');
+  assert.equal(mixSrgb('  #4477aa  ', 100, '  #ffffff  '), '#4477AA');
+  assert.throws(() => mixSrgb('#0000', 8, '#FFFFFF'), /Invalid 6-digit opaque hex color for borderHex/);
+  assert.throws(() => mixSrgb('#4477AA', 8, 'transparent'), /Invalid 6-digit opaque hex color for bgHex/);
+  assert.throws(() => mixSrgb('#4477AA', -1, '#FFFFFF'), /Invalid alphaPct in mixSrgb/);
+  assert.throws(() => mixSrgb('#4477AA', 101, '#FFFFFF'), /Invalid alphaPct in mixSrgb/);
+  assert.throws(() => mixSrgb(null, 50, '#FFFFFF'), /Invalid hex input to mixSrgb/);
+  assert.throws(() => mixSrgb('#000000', 50, null), /Invalid hex input to mixSrgb/);
+  assert.throws(() => mixSrgb('#000000', 50, 42), /Invalid hex input to mixSrgb/);
+});
+
+test('tools/lint.mjs: lintDemoHtml matches whole selector tokens (.card not satisfied by .card-header) (B3)', () => {
+  const html = '<div class="card">Card</div>';
+  const cssWithCardHeader = '.card-header { color: red; }';
+  const errors = lintDemoHtml(html, cssWithCardHeader, 'fixtures/card-header.html');
+  assert.equal(errors.length, 1);
+  assert.ok(errors[0].includes('Unstyled class ".card" used in demo HTML but missing from dist/picotol.css'));
+
+  const cssWithCard = '.card { color: red; }';
+  const noErrors = lintDemoHtml(html, cssWithCard, 'fixtures/card.html');
+  assert.equal(noErrors.length, 0);
+
+  // Additional boundary checks: .card-title, .card_body, .card2, article.card
+  const boundaryCss = '.card-title, .card_body, .card2 { color: blue; }';
+  const boundaryErrors = lintDemoHtml(html, boundaryCss, 'fixtures/boundary.html');
+  assert.equal(boundaryErrors.length, 1);
+  assert.ok(boundaryErrors[0].includes('Unstyled class ".card"'));
+
+  const compoundCss = 'article.card { color: green; }';
+  assert.equal(lintDemoHtml(html, compoundCss, 'fixtures/compound.html').length, 0);
+});
+
+test('build constants: named constants for Pico CSS v2.1.1 header and upstream byte count (B5)', () => {
+  assert.equal(UPSTREAM_PICO_HEADER_ATTRIBUTION, 'Pico CSS v2.1.1 (MIT)');
+  assert.equal(UPSTREAM_PICO_MIN_BYTES, 83319);
+});
+
+test('tools/check-workflows.mjs: real YAML parser workflow drift auditor (B6)', () => {
+  // 1. Clean run on repository root and package.json script check
+  assert.equal(pkg.scripts['check:workflows'], 'node tools/check-workflows.mjs');
+  const rootErrors = auditWorkflows(ROOT);
+  assert.deepEqual(rootErrors, [], `auditWorkflows must pass cleanly on root repository workflows, got: ${rootErrors.join('; ')}`);
+
+  // 2. hasUnescapedExpression helper
+  assert.equal(hasUnescapedExpression('${{ github.workflow }}'), true);
+  assert.equal(hasUnescapedExpression('echo "${{ github.event.issue.title }}"'), true);
+  assert.equal(hasUnescapedExpression('${{ matrix.node }}'), true);
+  assert.equal(hasUnescapedExpression('echo "plain text"'), false);
+  assert.equal(hasUnescapedExpression('npm run build'), false);
+  assert.equal(hasUnescapedExpression('pwsh ./scripts/ci-local.ps1 -CI'), false);
+  assert.equal(hasUnescapedExpression(null), false);
+  assert.equal(hasUnescapedExpression(undefined), false);
+  assert.equal(hasUnescapedExpression(42), false);
+
+  // Helper for isolated workflow test fixtures
+  const withTempWorkflows = (filesObj, fn) => {
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-wf-test-'));
+    const wfDir = path.join(tempRoot, '.github', 'workflows');
+    fs.mkdirSync(wfDir, { recursive: true });
+    try {
+      for (const [name, content] of Object.entries(filesObj)) {
+        fs.writeFileSync(path.join(wfDir, name), content, 'utf8');
+      }
+      return fn(tempRoot);
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+  };
+
+  // 3. Negative test: missing directory / empty workflow files
+  const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-wf-empty-'));
+  try {
+    assert.deepEqual(auditWorkflows(emptyDir), ['No workflow files found in .github/workflows/.']);
+  } finally {
+    fs.rmSync(emptyDir, { recursive: true, force: true });
+  }
+
+  // 4. Negative test: unpinned third-party actions
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("third-party action 'actions/checkout@v4' is not pinned to a 40-character commit SHA")));
+    assert.ok(errs.some((e) => e.includes("third-party action 'actions/setup-node' is missing a commit SHA pin")));
+  });
+
+  // 5. Negative test: root write permissions
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+permissions: write-all
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps: []
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("grants root-level write permission 'write-all'")));
+  });
+
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps: []
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("grants root-level write permission 'contents: write'")));
+  });
+
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps: []
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("must explicitly declare root-level least-privilege 'permissions: { contents: read }'")));
+  });
+
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+permissions:
+  issues: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps: []
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("must explicitly declare root-level 'contents: read' permission")));
+    assert.ok(errs.some((e) => e.includes("grants root-level write permission 'issues: write'")));
+  });
+
+  // 6. Negative test: ${{ ... }} script injection in run: step
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inject
+        run: echo "\${{ github.event.issue.title }}"
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("contains unescaped ${{ ... }} expression inside 'run:' script block (potential script injection)")));
+  });
+
+  // 7. Negative test: forbidden test commands in run: step
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm test
+      - run: node --test
+      - run: npm run test
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("invokes forbidden verification command in 'run:': 'npm test'")));
+    assert.ok(errs.some((e) => e.includes("invokes forbidden verification command in 'run:': 'node --test'")));
+    assert.ok(errs.some((e) => e.includes("invokes forbidden verification command in 'run:': 'npm run test'")));
+  });
+
+  // 8. Negative test: missing persist-credentials: false
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("contains actions/checkout step missing 'persist-credentials: false'")));
+  });
+
+  // 9. Negative test: invalid YAML syntax and empty root
+  withTempWorkflows({
+    'broken.yml': 'name: CI\n  bad-indent: [}'
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes('Failed to parse YAML')));
+  });
+
+  withTempWorkflows({
+    'empty.yml': ''
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes('Empty or non-object YAML workflow root')));
+  });
+
+  // 10. Negative test: ci.yml invalid concurrency block
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on:
+  workflow_call:
+concurrency:
+  group: wrong-group
+  cancel-in-progress: true
+jobs: {}
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("ci.yml concurrency block must isolate callers via github.workflow and scope cancel-in-progress to github.workflow == 'CI'")));
+  });
+
+  // 11. Edge case: empty job entry does not throw TypeError on null access
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on:
+  workflow_call:
+concurrency:
+  group: \${{ github.workflow }}-\${{ github.ref }}
+  cancel-in-progress: \${{ github.workflow == 'CI' }}
+jobs:
+  placeholder:
+`
+  }, (tempRoot) => {
+    assert.doesNotThrow(() => auditWorkflows(tempRoot));
+  });
+
+  // 12. Negative test: pages.yml deploy job unauthorized write permissions
+  withTempWorkflows({
+    'pages.yml': `
+name: Deploy
+on: [push]
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  build:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps: []
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+      contents: write
+    steps: []
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes('pages.yml deploy job must not grant unauthorized write permissions.')));
+  });
+
+  // 13. Edge case: release.yml with null / scalar steps does not throw TypeError
+  withTempWorkflows({
+    'release.yml': `
+name: Release
+on: [push]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      -
+      - null
+      - name: Guard
+        run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - null
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - null
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - null
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - null
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+`
+  }, (tempRoot) => {
+    assert.doesNotThrow(() => auditWorkflows(tempRoot));
+  });
 });
 
 test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pure path-jail/symlink/dot-dir validation, and isolated syncTokens write path', (t) => {

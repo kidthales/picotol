@@ -964,17 +964,17 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
   const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
   const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
 
-  // 1. Canonical Paul Tol severity color tokens (--pt-red, --pt-yellow, --pt-cyan) in compiled bundle
+  // 1. Dead tokens (--pt-red, --pt-yellow, --pt-cyan) removed from compiled bundle (Issue #213 / B5)
   assert.ok(
-    fullCss.includes("--pt-red") &&
-    fullCss.includes("--pt-yellow") &&
-    fullCss.includes("--pt-cyan"),
-    "Full bundle must contain canonical severity color tokens"
+    !fullCss.includes("--pt-red:") &&
+    !fullCss.includes("--pt-yellow:") &&
+    !fullCss.includes("--pt-cyan:"),
+    "Dead tokens (--pt-red, --pt-yellow, --pt-cyan) must be removed from compiled bundle"
   );
   const tokens = getPicotolTokens();
-  assert.equal(tokens.getToken("--pt-red", "light"), schemeColor("bright", "red"), "--pt-red must map to Tol bright red");
-  assert.equal(tokens.getToken("--pt-yellow", "light"), schemeColor("bright", "yellow"), "--pt-yellow must map to Tol bright yellow");
-  assert.equal(tokens.getToken("--pt-cyan", "light"), schemeColor("bright", "cyan"), "--pt-cyan must map to Tol bright cyan");
+  assert.equal(tokens.rootDecls["--pt-red"], undefined, "--pt-red must not be defined in tokens");
+  assert.equal(tokens.rootDecls["--pt-yellow"], undefined, "--pt-yellow must not be defined in tokens");
+  assert.equal(tokens.rootDecls["--pt-cyan"], undefined, "--pt-cyan must not be defined in tokens");
 
   // 2. .pt-callout component and severity variants
   assert.ok(
@@ -999,26 +999,8 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
     "Callouts must use 8% alpha washes"
   );
 
-  // 3. Contrast verification across Light/Dark surfaces and greyscale simulation
+  // 3. Contrast verification across Light/Dark surfaces
   for (const mode of ["light", "dark"]) {
-    const redHex = tokens.getToken("--pt-red", mode);
-    const yellowHex = tokens.getToken("--pt-yellow", mode);
-    const cyanHex = tokens.getToken("--pt-cyan", mode);
-
-    const redLuminance = relativeLuminance(redHex);
-    const yellowLuminance = relativeLuminance(yellowHex);
-    const cyanLuminance = relativeLuminance(cyanHex);
-
-    // In greyscale, luminance values are preserved and distinct in both light and dark modes
-    assert.ok(
-      Math.abs(redLuminance - yellowLuminance) > 0.15,
-      `[${mode}] Red and yellow must be distinguishable in greyscale`
-    );
-    assert.ok(
-      redLuminance < yellowLuminance && yellowLuminance < cyanLuminance,
-      `[${mode}] Severity ladder has monotonic greyscale separation`
-    );
-
     // Normal typography inside callout uses var(--pt-color) against 8% wash of var(--pt-callout-border) over var(--pt-bg)
     const bgHex = tokens.getToken("--pt-bg", mode);
     const textColorHex = tokens.getToken("--pt-color", mode);
@@ -1032,14 +1014,6 @@ test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #
         `[${mode}] Callout (${variant}) text contrast (${calloutTextContrast.toFixed(2)}:1) against 8% --pt-callout-border (${calloutBorderHex}) wash must meet WCAG 2.2 AA`
       );
     }
-
-    // Also verify 8% wash of mode-resolved --pt-red against mode-resolved --pt-bg
-    const redBgWash = mixSrgb(redHex, 8, bgHex);
-    const redTextContrast = contrastRatio(textColorHex, redBgWash);
-    assert.ok(
-      redTextContrast >= 4.5,
-      `[${mode}] Callout text contrast (${redTextContrast.toFixed(2)}:1) against 8% --pt-red (${redHex}) wash must meet WCAG 2.2 AA`
-    );
   }
 
   // 4. Standalone .pt-status-dot utility with variants and pulse animation
