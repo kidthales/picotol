@@ -112,7 +112,17 @@ export function auditWorkflows(rootDir = ROOT) {
         // Uses: action pin check
         if (typeof step.uses === 'string') {
           const actionRef = step.uses.trim();
-          if (!actionRef.startsWith('./')) {
+          if (actionRef.startsWith('.') || actionRef.startsWith('$')) {
+            const segments = actionRef.split('/');
+            if (
+              !/^(\.|\$)\/\.github\/actions\/[a-zA-Z0-9._-]+(\/[a-zA-Z0-9._-]+)*$/.test(actionRef) ||
+              segments.slice(1).some((seg) => seg === '.' || seg === '..') ||
+              actionRef.includes('..') ||
+              actionRef.includes('@')
+            ) {
+              errors.push(`${file} step action '${actionRef}' is not a valid canonical local action path.`);
+            }
+          } else {
             const atIndex = actionRef.lastIndexOf('@');
             if (atIndex === -1) {
               errors.push(`${file} third-party action '${actionRef}' is missing a commit SHA pin.`);
@@ -178,8 +188,9 @@ export function auditWorkflows(rootDir = ROOT) {
     // 3. Workflow-specific architectural contracts
     if (file === 'release.yml') {
       const verifyJob = jobs.verify;
-      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== './.github/workflows/ci.yml') {
-        errors.push("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.");
+      const validCiUses = ['./.github/workflows/ci.yml', '$/.github/workflows/ci.yml'];
+      if (!verifyJob || typeof verifyJob !== 'object' || !validCiUses.includes(verifyJob.uses)) {
+        errors.push("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.");
       }
       if (!verifyJob || typeof verifyJob !== 'object' || !verifyJob.permissions || typeof verifyJob.permissions !== 'object' || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
         errors.push("release.yml verify job must explicitly scope permissions (contents: read, security-events: write).");
@@ -214,6 +225,17 @@ export function auditWorkflows(rootDir = ROOT) {
         if (!/if\s*\[\s*"\$TAG"\s*!=\s*"\$EXPECTED_TAG"\s*\];\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(tgScript)) {
           errors.push('release.yml tag-guard must fail closed (exit 1) inside the tag-mismatch branch.');
         }
+        for (const s of tgSteps) {
+          if (!s || typeof s !== 'object') continue;
+          if (s.with && s.with.cache && /npm/i.test(String(s.with.cache))) {
+            errors.push('release.yml tag-guard job must not use shared npm cache.');
+          }
+          if (typeof s.uses === 'string' && s.uses.startsWith('actions/setup-node')) {
+            if (!s.with || s.with['package-manager-cache'] !== false) {
+              errors.push("release.yml tag-guard job actions/setup-node step must set 'package-manager-cache: false'.");
+            }
+          }
+        }
       }
 
       if (verifyJob && typeof verifyJob === 'object') {
@@ -238,6 +260,11 @@ export function auditWorkflows(rootDir = ROOT) {
             if (s.with && s.with.cache && /npm/i.test(String(s.with.cache))) {
               errors.push(`release.yml ${pubJob} job must not use shared npm cache.`);
             }
+            if (typeof s.uses === 'string' && s.uses.startsWith('actions/setup-node')) {
+              if (!s.with || s.with['package-manager-cache'] !== false) {
+                errors.push(`release.yml ${pubJob} job actions/setup-node step must set 'package-manager-cache: false'.`);
+              }
+            }
           }
         }
       }
@@ -260,8 +287,9 @@ export function auditWorkflows(rootDir = ROOT) {
 
     if (file === 'pages.yml') {
       const verifyJob = jobs.verify;
-      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== './.github/workflows/ci.yml') {
-        errors.push("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.");
+      const validCiUses = ['./.github/workflows/ci.yml', '$/.github/workflows/ci.yml'];
+      if (!verifyJob || typeof verifyJob !== 'object' || !validCiUses.includes(verifyJob.uses)) {
+        errors.push("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.");
       }
       if (!verifyJob || typeof verifyJob !== 'object' || !verifyJob.permissions || typeof verifyJob.permissions !== 'object' || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
         errors.push("pages.yml verify job must explicitly scope permissions (contents: read, security-events: write).");
