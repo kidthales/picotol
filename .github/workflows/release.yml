@@ -136,7 +136,6 @@ jobs:
             echo "::notice ::Version ${PKG_VER} of ${PKG_NAME} is already published on GitHub Packages. Skipping publish step."
           else
             echo "Publishing ${PKG_NAME}@${PKG_VER} to GitHub Packages..."
-            # zizmor: ignore[use-trusted-publishing] GitHub Packages authenticates via GITHUB_TOKEN packages:write, not OIDC trusted publishing
             npm publish --registry=https://npm.pkg.github.com/
             echo "Successfully published ${PKG_NAME}@${PKG_VER} to GitHub Packages."
           fi

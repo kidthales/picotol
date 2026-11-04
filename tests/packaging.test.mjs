@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import YAML from "yaml";
 import { parsePkZipEntries } from "../tools/package-assets.mjs";
 import {
   BUNDLE_BUDGETS,
@@ -1078,15 +1079,40 @@ jobs:
     assert.match(badSteps[0], /persist-credentials:\s*false/);
     assert.doesNotMatch(badSteps[1], /persist-credentials:\s*false/, "Missing persist-credentials: false must be detectable per step");
 
-    const releasePubJobs = ["publish-npm", "publish-gpr", "attach-assets"];
-    for (const jobName of releasePubJobs) {
+    const releaseJobsWithSetupNode = ["tag-guard", "publish-npm", "publish-gpr", "attach-assets"];
+    for (const jobName of releaseJobsWithSetupNode) {
       assert.ok(releaseParsed.jobs[jobName], `release.yml must define ${jobName} job`);
       assert.doesNotMatch(
         releaseParsed.jobs[jobName],
         /cache:\s*["']?npm["']?/,
         `release.yml job ${jobName} must not use shared npm cache`
       );
+      assert.match(
+        releaseParsed.jobs[jobName],
+        /package-manager-cache:\s*false/,
+        `release.yml job ${jobName} must explicitly set package-manager-cache: false`
+      );
     }
+
+    const dependabotPath = path.join(ROOT, ".github", "dependabot.yml");
+    assert.ok(fs.existsSync(dependabotPath), "dependabot.yml must exist");
+    const dependabotDoc = YAML.parse(fs.readFileSync(dependabotPath, "utf8"));
+    assert.strictEqual(dependabotDoc.version, 2, "dependabot.yml must be version 2");
+    const updates = Array.isArray(dependabotDoc.updates) ? dependabotDoc.updates : [];
+    const ghActionsEco = updates.find((u) => u["package-ecosystem"] === "github-actions");
+    assert.ok(ghActionsEco, "dependabot.yml must configure github-actions package-ecosystem");
+    assert.strictEqual(
+      ghActionsEco?.cooldown?.["default-days"],
+      7,
+      "github-actions package-ecosystem must configure cooldown default-days: 7"
+    );
+    const npmEco = updates.find((u) => u["package-ecosystem"] === "npm");
+    assert.ok(npmEco, "dependabot.yml must configure npm package-ecosystem");
+    assert.strictEqual(
+      npmEco?.cooldown?.["default-days"],
+      7,
+      "npm package-ecosystem must configure cooldown default-days: 7"
+    );
 
     assert.match(
       releaseParsed.jobs.notify,

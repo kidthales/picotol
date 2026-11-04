@@ -970,7 +970,7 @@ jobs:
     assert.deepEqual(errs, [], `auditWorkflows must accept $/ self-repository references, got: ${errs.join('; ')}`);
   });
 
-  // 15. Negative test: verify job delegating to invalid workflow path is rejected
+  // 15. Negative test: verify job delegating to invalid or near-miss workflow path is rejected
   withTempWorkflows({
     'release.yml': `
 name: Release
@@ -990,7 +990,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: other-org/other-repo/.github/workflows/ci.yml@main
+    uses: $/.github/workflows/other.yml
     permissions:
       contents: read
       security-events: write
@@ -1019,7 +1019,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    uses: invalid/path.yml
+    uses: $/.github/workflows/ci.yml@main
     permissions:
       contents: read
       security-events: write
@@ -1039,6 +1039,89 @@ jobs:
     const errs = auditWorkflows(tempRoot);
     assert.ok(errs.some((e) => e.includes("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.")));
     assert.ok(errs.some((e) => e.includes("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.")));
+  });
+
+  // 16. Negative test: malformed $/ and ./ step action references are rejected
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: $/
+      - uses: $/../evil
+      - uses: $invalid/action
+      - uses: $/.github/actions/foo@unpinned
+`,
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("step action '$/' is not a valid canonical local action path")));
+    assert.ok(errs.some((e) => e.includes("step action '$/../evil' is not a valid canonical local action path")));
+    assert.ok(errs.some((e) => e.includes("step action '$invalid/action' is not a valid canonical local action path")));
+    assert.ok(errs.some((e) => e.includes("step action '$/.github/actions/foo@unpinned' is not a valid canonical local action path")));
+  });
+
+  // 17. Negative test: release.yml actions/setup-node steps omitting package-manager-cache: false are rejected
+  withTempWorkflows({
+    'release.yml': `
+name: Release
+on: [release]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+      - run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          cache: "npm"
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps: []
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps: []
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+`,
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("release.yml tag-guard job actions/setup-node step must set 'package-manager-cache: false'.")));
+    assert.ok(errs.some((e) => e.includes("release.yml publish-npm job actions/setup-node step must set 'package-manager-cache: false'.")));
+    assert.ok(errs.some((e) => e.includes("release.yml publish-npm job must not use shared npm cache.")));
   });
 });
 });

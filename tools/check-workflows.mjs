@@ -112,7 +112,11 @@ export function auditWorkflows(rootDir = ROOT) {
         // Uses: action pin check
         if (typeof step.uses === 'string') {
           const actionRef = step.uses.trim();
-          if (!actionRef.startsWith('./') && !actionRef.startsWith('$/')) {
+          if (actionRef.startsWith('./') || actionRef.startsWith('$')) {
+            if (!/^(\.|\$)\/\.github\/actions\/[a-zA-Z0-9._-]+(\/[a-zA-Z0-9._-]+)*$/.test(actionRef) || actionRef.includes('..') || actionRef.includes('@')) {
+              errors.push(`${file} step action '${actionRef}' is not a valid canonical local action path.`);
+            }
+          } else {
             const atIndex = actionRef.lastIndexOf('@');
             if (atIndex === -1) {
               errors.push(`${file} third-party action '${actionRef}' is missing a commit SHA pin.`);
@@ -215,6 +219,17 @@ export function auditWorkflows(rootDir = ROOT) {
         if (!/if\s*\[\s*"\$TAG"\s*!=\s*"\$EXPECTED_TAG"\s*\];\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(tgScript)) {
           errors.push('release.yml tag-guard must fail closed (exit 1) inside the tag-mismatch branch.');
         }
+        for (const s of tgSteps) {
+          if (!s || typeof s !== 'object') continue;
+          if (s.with && s.with.cache && /npm/i.test(String(s.with.cache))) {
+            errors.push('release.yml tag-guard job must not use shared npm cache.');
+          }
+          if (typeof s.uses === 'string' && s.uses.startsWith('actions/setup-node')) {
+            if (!s.with || s.with['package-manager-cache'] !== false) {
+              errors.push("release.yml tag-guard job actions/setup-node step must set 'package-manager-cache: false'.");
+            }
+          }
+        }
       }
 
       if (verifyJob && typeof verifyJob === 'object') {
@@ -238,6 +253,11 @@ export function auditWorkflows(rootDir = ROOT) {
             if (!s || typeof s !== 'object') continue;
             if (s.with && s.with.cache && /npm/i.test(String(s.with.cache))) {
               errors.push(`release.yml ${pubJob} job must not use shared npm cache.`);
+            }
+            if (typeof s.uses === 'string' && s.uses.startsWith('actions/setup-node')) {
+              if (!s.with || s.with['package-manager-cache'] !== false) {
+                errors.push(`release.yml ${pubJob} job actions/setup-node step must set 'package-manager-cache: false'.`);
+              }
             }
           }
         }
