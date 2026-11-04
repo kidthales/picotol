@@ -44,9 +44,8 @@ Please report security vulnerabilities privately via GitHub Security Advisories:
 Do **not** open public GitHub issues or discussions for undisclosed security vulnerabilities.
 
 ### Fallback Contact
-If you cannot use GitHub Security Advisories or need to reach maintainers directly, email our security contact:
-- **Email**: [security@agogpixel.com](mailto:security@agogpixel.com)
-- **Secondary / Administrative**: [admin@agogpixel.com](mailto:admin@agogpixel.com)
+If you cannot use GitHub Security Advisories or need to reach maintainers directly, email our contact:
+- **Email**: [admin@agogpixel.com](mailto:admin@agogpixel.com)
 
 Please include:
 1. A clear description of the vulnerability and potential impact.

@@ -363,12 +363,12 @@ describe("Packaging & npm Distribution Metadata", () => {
       "SECURITY.md must link to GitHub Private Vulnerability Reporting"
     );
     assert.ok(
-      secContent.includes("security@agogpixel.com"),
-      "SECURITY.md must provide security contact email"
+      secContent.includes("admin@agogpixel.com"),
+      "SECURITY.md must provide contact email"
     );
     assert.ok(
-      secContent.includes("admin@agogpixel.com"),
-      "SECURITY.md must provide administrative fallback email"
+      !secContent.includes("security@agogpixel.com"),
+      "SECURITY.md must not reference security@agogpixel.com"
     );
 
     // 2. CONTRIBUTING.md
