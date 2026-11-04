@@ -1386,6 +1386,7 @@ describe("Pre-release Documentation and Versioning Standards", () => {
     { version: "0.4.0", fileVersion: "0_4_0", date: "2026-10-29" },
     { version: "0.4.1", fileVersion: "0_4_1", date: "2026-10-29" },
     { version: "0.5.0", fileVersion: "0_5_0", date: "2026-10-30" },
+    { version: "0.5.1", fileVersion: "0_5_1", date: "2026-11-03" },
   ];
 
   for (const { version, fileVersion, date } of RELEASE_VERSIONS) {

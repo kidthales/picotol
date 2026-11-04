@@ -7,14 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-03
+
+Seventh public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.5.1](docs/RELEASE_NOTES_V0_5_1.md).
+
 ### Added
 - Added `TolSchemeKind` (`'qualitative' | 'diverging' | 'sequential'`), `TolSchemeId`, and backward-compatible aliases `TolPaletteData` and `TolQualitativeSchemeId` to `@kidthales/picotol/palette-data` declarations (#219).
 - Documented Dr. Paul Tol's SRON/EPS/TN/09-002 guidance on cross-scheme mixing and explained the WCAG 2.2 AA monotonic lightness progression justifying cross-scheme accent ladder composition in `README.md` (#219).
+- Added accessible high-contrast fallback borders under `forced-colors: active` for status badges, tags, and inputs; visually silenced breadcrumb navigation separators from assistive technology (`aria-hidden="true"`); and respected `prefers-reduced-motion` on indeterminate progress and loading spinners (#221).
+- Shipped raw unminified CSS bundles (`dist/picotol.css`, `dist/picotol.core.css`, `dist/picotol.layer.css`) alongside minified stylesheets and included `LICENSE` and `NOTICE` in release assets and offline bundles (#197).
+- Standalone offline bundle packaging producing `dist/assets/picotol-v0.5.1.zip` with deterministic entry timestamps via `SOURCE_DATE_EPOCH` and git commit fallback (#211).
 
 ### Changed
+- Standardized status callout and badge text to the high-contrast body foreground token (`--pt-color`), reserving Paul Tol hues exclusively for non-text signals (borders, dots, and icons via `--pt-icon-color`) for full WCAG 2.2 AA text contrast compliance, and added foreground outline/shadow (`box-shadow: 0 0 0 1px var(--pt-color)`) on the switch thumb (`[role="switch"]::before`) for $\ge 3:1$ boundary contrast against the track in light and dark modes (#202).
 - Standardized toast activation on the `.show` class (`visibility: visible; transition-delay: 0s;`) and documented live-region (`role="status"`, `role="alert"`, `aria-live`) and `aria-hidden` state pairing (#220).
 - Made pure CSS tooltips (`[data-tooltip]`) hoverable (partial WCAG 2.1 SC 1.4.13: *Hoverable* & *Persistent*) with `pointer-events: auto` on `::before` and a centered `min(16rem, 80vw)` by `0.375rem` `::after` hover bridge spanning the trigger-to-bubble overhang and gap, and documented `aria-describedby` pairing, pure-CSS `Escape` dismissal limits, unsupported host `::before`/`::after` collisions, hit-testing/clipping caveats, and the Nov 2026 `interestfor` evaluation (#220).
 - Removed the duplicate nested `.pt-meter:has(...)` `overflow: visible` rule (already covered by `:where(.pt-meter, .pt-progress):has(...)`) and the no-op `justify-content: center` declaration on `display: block` `.segmented-fill > *` items (#220).
+- Transitioned physical layout properties to logical properties (`margin-inline`, `padding-inline`, `inset-inline-start/end`, `border-inline`) across all components for full bidirectional (RTL) layout support, enforced by static AST linting, while preserving the bundle ceiling (#217).
+- Narrowed root and subpath TypeScript type definitions (`types/index.d.ts`) to exact JSON schema exports with automated dual-tsconfig smoke testing in CI (#204).
+- Restructured monolithic test suite by domain (`tokens`, `components`, `a11y`, `packaging`, `tools`) with shared cached fixtures and closed static CSS property coverage gaps (#224).
+- Refactored test assertions and CI tooling to be version-agnostic and side-effect-free, unblocking release version bumps (#223).
+- Hardened test suite against vacuous disjunction assertions, added token-driven contrast checks, and expanded coverage for build tools, path-jail security bounds, and documentation linting (#199).
+- Updated `README.md` documentation, canonical demo URL, pinned CDN examples with Subresource Integrity (SRI) hashes, browser support matrix, and APA citation version (`0.5.1`) (#225).
+- Rewrote repository governance documentation (`SECURITY.md` and `CONTRIBUTING.md`) with explicit Coordinated Vulnerability Disclosure (CVD) timelines and security contact (#226).
 
 ### Deprecated
 - Deprecated derived :root density tokens (`--pt-form-element-spacing-vertical`, `--pt-form-element-spacing-horizontal`, `--pt-btn-padding-block`) in favor of scoped base-token overrides; retained as compatibility aliases marked `/* @deprecated: removed in v0.6.0 */` (#203).
@@ -27,7 +42,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced hard-coded z-index values (98, 99, 100, 999, 9999) with `--pt-z-*` design tokens (`--pt-z-backdrop`, `--pt-z-tooltip`, `--pt-z-dropdown`, `--pt-z-modal`, `--pt-z-toast`, `--pt-z-skip-link`), decoupling toast (`9990`) and skip-link (`10000`) z-indices (#218).
 - Excluded slide-over sheet drawers explicitly from dialog modal constraints (`:where(dialog:not(.sheet, .sheet-right, .sheet-left))` and `&:where(:not(.sheet, .sheet-right, .sheet-left)):has(> article)`) to eliminate source order reliance and preserve base specificity, transitioned `dialog > article` to dynamic viewport units (`90dvh`), styled `[role="switch"][aria-checked="true"]` across standard and forced-colors modes with `padding: 0` reset for `<button role="switch">`, guarded `[data-tooltip]` against `aria-busy="true"`, deduplicated the tight density selector, and normalized section numbering in `components.css` (#218).
 - Late-bound button and form control density tokens through fallback chains (`var(--pt-btn-padding-block, var(--pt-form-y))`, `var(--pt-form-element-spacing-vertical, var(--pt-form-y))`, `var(--pt-form-element-spacing-horizontal, var(--pt-form-x))`) so `.small`/`.sm` and nested `[data-density="compact"]` successfully shrink vertical padding, enforced via AST static cascade linter (#203).
+- Fixed density-safe helper text offset to prevent vertical collisions and ensured compact form control typography scales without double-compounding font size (#216).
 - Hid inactive `.toast` elements from the accessibility tree and sequential focus navigation with `visibility: hidden` (delayed via `visibility 0s linear 0.2s` until opacity fade-out completes) (#220).
+- Established deterministic token generation pipeline with sorted keys, automated snapshot synchronization, and closed lint purity holes (#201).
+- Enhanced build tool precision with dead token detection, shared sRGB/luminance color utilities, and YAML AST gate validation in workflow audits (#213).
+
+### Security
+- Remediated zizmor code scanning alerts across GitHub Actions workflows, mitigating cache-poisoning risks on setup-node, adding Dependabot cooldown periods, and fixing repository reference scoping (#253).
+- Hardened GitHub Actions release and pages deployment workflows with tag-to-package-version assertion gates, eliminated script injection vulnerabilities in workflow steps, and enforced least-privilege permissions (#198).
+- Improved CI workflow hygiene by eliminating duplicate notification hooks, scoping run conditions, tightening checkout regexes, and enforcing OIDC provenance hygiene (#212).
 
 ## [0.5.0] - 2026-10-30
 
@@ -44,7 +67,6 @@ Sixth public open-source pre-release of `@kidthales/picotol`. For detailed narra
 - Standalone offline bundle packaging producing `dist/assets/picotol-v0.5.0.zip`.
 
 ### Changed
-- Standardized status callout and badge text to the high-contrast body foreground token (`--pt-color`), reserving Paul Tol hues exclusively for non-text signals (borders, dots, and icons via `--pt-icon-color`) for full WCAG 2.2 AA text contrast compliance, and added foreground outline/shadow (`box-shadow: 0 0 0 1px var(--pt-color)`) on the switch thumb (`[role="switch"]::before`) for $\ge 3:1$ boundary contrast against the track in light and dark modes (#202).
 - Calibrated dark mode selection contrast and adjusted demo meter label clearances (#188).
 - Updated `README.md` documentation, CDN and vendoring URLs, and APA citation version (`0.5.0`) (#192).
 
