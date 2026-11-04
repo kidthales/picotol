@@ -185,15 +185,10 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      :not([aria-busy="true"]) {
-        &, &:before, &:after {
-          animation: none !important;
-        }
-      }
-
       *, :before, :after {
         scroll-behavior: auto !important;
         transition: none !important;
+        animation: none !important;
       }
     }
 
@@ -685,7 +680,7 @@
         justify-content: flex-start;
 
         & li:not(:last-child):after {
-          content: ">";
+          content: ">" / "";
           color: var(--pt-muted-color);
           margin-inline-start: .75rem;
         }
@@ -1487,8 +1482,21 @@
         border: 1px solid canvastext;
       }
 
-      :where(.pt-progress-fill) {
+      progress::-webkit-progress-value {
         background-color: highlight;
+      }
+
+      progress::-moz-progress-bar {
+        background-color: highlight;
+      }
+
+      :where(.pt-progress-fill, .pt-meter-fill) {
+        background-color: highlight;
+      }
+
+      :where(.pt-meter-range) {
+        outline-offset: -1px;
+        outline: 1px solid canvastext;
       }
 
       :where(.pt-gauge-marker, .pt-meter-mark):before {
@@ -1533,6 +1541,12 @@
     @keyframes pt-spin {
       to {
         transform: rotate(360deg);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      [aria-busy="true"]:not(input, select, textarea, html, form, summary):before {
+        animation: none;
       }
     }
 
@@ -1894,6 +1908,15 @@
             background: var(--pt-bg);
             color: var(--pt-color);
             box-shadow: var(--pt-box-shadow);
+          }
+        }
+
+        @media (forced-colors: active) {
+          & > :is([aria-selected="true"], [aria-current="page"], .active) {
+            outline-offset: -2px;
+            color: highlighttext;
+            background-color: highlight;
+            outline: 2px solid highlight;
           }
         }
 

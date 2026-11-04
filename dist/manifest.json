@@ -3,28 +3,28 @@
   "version": "0.5.0",
   "artifacts": {
     "picotol.core.css": {
-      "sha256": "b130fc8ed768ad9935074b002b0ea660296e20e53e22271396b60e15fa7338f2",
-      "size_bytes": 17495
+      "sha256": "e1a70bf06eb75ded6ea73ea3c2a9313f03eba3316ab58a457dfb05b5d999ccb0",
+      "size_bytes": 17423
     },
     "picotol.core.min.css": {
-      "sha256": "d07862808f6ab947b24d619ef471b9034b7c4f5d67f1dd9b40b0ec3120742a48",
-      "size_bytes": 13425
+      "sha256": "018184f3853b35c0e6043b052a4355c8a08cebe3748e65318fc965e491990f31",
+      "size_bytes": 13387
     },
     "picotol.css": {
-      "sha256": "465b2da301a5172c43dbb870637158b190498672dd9e2b6545f76d981a2272ef",
-      "size_bytes": 52016
+      "sha256": "d2eac7a6cf18598be3f143dc7212eb3c5651c14e41030177f5a384938446a960",
+      "size_bytes": 52654
     },
     "picotol.layer.css": {
-      "sha256": "770639de8cbfd4bc049989d16cea73ad3723bab46a153753fb8647330eee3e01",
-      "size_bytes": 55735
+      "sha256": "d7fbbc3156fe420cb4fe64e2408fa173ee9a650a635c1839b449bb13cca38d90",
+      "size_bytes": 56411
     },
     "picotol.layer.min.css": {
-      "sha256": "e9741988066a0b3db7d62d426bfbc8404f9bf476cd9002f31f66ce077215e740",
-      "size_bytes": 39537
+      "sha256": "d1e26bba6317b14108f7f86c89e7e33539559d00dc247d57d3c355ff63e7ee57",
+      "size_bytes": 40008
     },
     "picotol.min.css": {
-      "sha256": "6e2565f83ddd95601cc26d0db8b42d397917762a3df39d718bbc4f56cd846d09",
-      "size_bytes": 39435
+      "sha256": "1e1d3b2e7a1d77bd870fe9b2ded8f3096c1ed6114302b480f7ea38b2480b0a9b",
+      "size_bytes": 39906
     }
   }
 }
