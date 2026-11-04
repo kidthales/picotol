@@ -295,17 +295,9 @@ try {
                 "gate0_workflow_contract=$Gate0Status",
                 "gate1_action_pins=$Gate1ActionPinsStatus",
                 "gate1_agent_leaks=$Gate1Status",
-                "gate2_go_vet=not-applicable",
                 "gate2_pwsh_ast=$Gate2Status",
                 "gate3_dist_drift=$Gate3Status",
-                "gate3_unit_coverage=not-applicable",
-                "gate4_govulncheck=not-applicable",
-                "gate4_npm_test_and_pack=$Gate4Status",
-                "gate5_race_detector=not-applicable",
-                "gate6_pwsh_ast=not-applicable",
-                "gate7_knowledge_budget=not-applicable",
-                "gate8_secret_leaks=not-applicable",
-                "gate9_cross_compile=not-applicable"
+                "gate4_npm_test_and_pack=$Gate4Status"
             )
             $ReceiptArgs = @(
                 "ci", "receipt",

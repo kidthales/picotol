@@ -651,6 +651,31 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
       ciLocalPs1.includes("git status --porcelain"),
       "scripts/ci-local.ps1 must assert a clean working tree after tests and distribution generation"
     );
+    assert.ok(
+      !ciLocalPs1.includes("gate2_go_vet") &&
+        !ciLocalPs1.includes("gate3_unit_coverage") &&
+        !ciLocalPs1.includes("gate4_govulncheck") &&
+        !ciLocalPs1.includes("gate5_race_detector") &&
+        !ciLocalPs1.includes("gate6_pwsh_ast") &&
+        !ciLocalPs1.includes("gate7_knowledge_budget") &&
+        !ciLocalPs1.includes("gate8_secret_leaks") &&
+        !ciLocalPs1.includes("gate9_cross_compile"),
+      "scripts/ci-local.ps1 must not leak foundry Go gates into receipt generation"
+    );
+    const expectedNativeGates = [
+      "gate0_workflow_contract=$Gate0Status",
+      "gate1_action_pins=$Gate1ActionPinsStatus",
+      "gate1_agent_leaks=$Gate1Status",
+      "gate2_pwsh_ast=$Gate2Status",
+      "gate3_dist_drift=$Gate3Status",
+      "gate4_npm_test_and_pack=$Gate4Status",
+    ];
+    for (const gate of expectedNativeGates) {
+      assert.ok(
+        ciLocalPs1.includes(`"${gate}"`),
+        `scripts/ci-local.ps1 must record native gate "${gate}"`
+      );
+    }
 
     const readme = getReadme();
     const badgeRegex = /\[!\[(?<alt>[^\]]*)\]\((?<src>[^)]+)\)\]\((?<href>[^)]+)\)/g;
