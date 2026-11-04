@@ -3916,6 +3916,7 @@ test("Toast production bundles set visibility:hidden when hidden, reset transiti
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
   const changelog = fs.readFileSync(path.join(ROOT, "CHANGELOG.md"), "utf8");
   const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const demoJs = fs.readFileSync(path.join(ROOT, "dist/demo/demo.js"), "utf8");
 
   const toastSectionMatch = readme.match(/6\.\s+\*\*Accessible Toasts[\s\S]*?(?=\n---|\n## )/);
   assert.ok(toastSectionMatch, "README must contain section 6. Accessible Toasts");
@@ -3934,7 +3935,7 @@ test("Toast production bundles set visibility:hidden when hidden, reset transiti
     "Demo HTML must wrap #toast inside a persistent role=\"status\" aria-live=\"polite\" live region"
   );
   assert.match(
-    demoHtml,
+    demoJs,
     /function showToast\(msg\)\s*\{\s*if\s*\(!toast\)\s*return;\s*toast\.classList\.add\('show'\);\s*toast\.textContent\s*=\s*msg;/,
     "Demo showToast() must add .show before setting textContent"
   );
@@ -4710,6 +4711,104 @@ test("a11y: forced-colors fallbacks, silent breadcrumb separator, reduced-motion
       fullMin.includes('background-color:highlight'),
     'dist/picotol.min.css must compile Highlight outline and background for segmented selected items in forced-colors mode'
   );
+});
+
+test("Demo accessibility and CSP compliance (Issue #222)", () => {
+  const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
+  const demoJs = fs.readFileSync(path.join(ROOT, "dist/demo/demo.js"), "utf8");
+
+  // 1. External script and strict CSP meta
+  assert.match(
+    demoHtml,
+    /<script src="demo\.js"><\/script>/,
+    "dist/demo/index.html must load demo.js externally"
+  );
+  assert.ok(
+    !demoHtml.includes("<script>"),
+    "dist/demo/index.html must not contain inline <script> tags"
+  );
+  assert.match(
+    demoHtml,
+    /http-equiv="Content-Security-Policy"[^>]*script-src 'self'/,
+    "dist/demo/index.html must declare script-src 'self' Content-Security-Policy"
+  );
+
+  // 2. Zero inline event handlers (on*)
+  const cleanMarkup = demoHtml
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '');
+  const inlineHandlers = cleanMarkup.match(/\b(on[a-z]+)\s*=/gi);
+  assert.equal(
+    inlineHandlers,
+    null,
+    `dist/demo/index.html must contain zero inline event handlers, found: ${inlineHandlers?.join(', ')}`
+  );
+
+  // 3. No invalid role="menu" on details or other elements
+  const detailsRoleMenu = cleanMarkup.match(/<details\b[^>]*\brole=["']?menu\b/gi);
+  assert.equal(
+    detailsRoleMenu,
+    null,
+    "dist/demo/index.html must not use role=\"menu\" on <details>"
+  );
+
+  // 4. Decorative SVGs have aria-hidden="true"
+  const svgTags = [...cleanMarkup.matchAll(/<svg\b((?:[^>"']|"[^"]*"|'[^']*')*)>/gi)];
+  assert.ok(svgTags.length >= 8, `Expected at least 8 SVGs in demo, found ${svgTags.length}`);
+  for (const [, attrs] of svgTags) {
+    assert.match(
+      attrs,
+      /\baria-hidden=["']true["']/i,
+      "Every SVG in demo must have aria-hidden=\"true\""
+    );
+  }
+
+  // 5. Every input has an accessible name
+  const openTags = [...cleanMarkup.matchAll(/<([a-zA-Z][a-zA-Z0-9:-]*)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/g)];
+  const labelForIds = new Set();
+  for (const [, tag, attrs] of openTags) {
+    if (tag.toLowerCase() === 'label') {
+      const m = attrs.match(/\bfor\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
+      if (m) labelForIds.add(m[1] ?? m[2] ?? m[3]);
+    }
+  }
+  const allTags = [...cleanMarkup.matchAll(/<(\/)?([a-zA-Z][a-zA-Z0-9:-]*)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/g)];
+  let labelDepth = 0;
+  let inputCount = 0;
+  for (const [, isClose, tag, attrs] of allTags) {
+    const lowerTag = tag.toLowerCase();
+    if (isClose) {
+      if (lowerTag === 'label') labelDepth = Math.max(0, labelDepth - 1);
+      continue;
+    }
+    if (lowerTag === 'label') {
+      labelDepth++;
+      continue;
+    }
+    if (lowerTag === 'input') {
+      inputCount++;
+      const isHidden = /\btype\s*=\s*(?:"hidden"|'hidden'|hidden\b)/i.test(attrs);
+      const isButtonType = /\btype\s*=\s*(?:"submit"|'submit'|"button"|'button'|"reset"|'reset')/i.test(attrs);
+      const hasValue = /\bvalue\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
+      const hasAriaLabel = /\baria-label\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
+      const hasAriaLabelledby = /\baria-labelledby\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
+      const idMatch = attrs.match(/\bid\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
+      const inputId = idMatch ? (idMatch[1] ?? idMatch[2] ?? idMatch[3]) : null;
+      const hasAssociatedLabel = inputId ? labelForIds.has(inputId) : false;
+      const isEnclosedInLabel = labelDepth > 0;
+      const isAccessible = isHidden || (isButtonType && hasValue) || hasAriaLabel || hasAriaLabelledby || hasAssociatedLabel || isEnclosedInLabel;
+      assert.ok(
+        isAccessible,
+        `Input #${inputCount} (${attrs}) in dist/demo/index.html must have an accessible name`
+      );
+    }
+  }
+  assert.ok(inputCount >= 20, `Expected at least 20 inputs in demo HTML, found ${inputCount}`);
+
+  // 6. demo.js provides modal, drawer, and form event handling
+  assert.match(demoJs, /data-dialog-open/, "demo.js must handle [data-dialog-open]");
+  assert.match(demoJs, /data-dialog-close/, "demo.js must handle [data-dialog-close]");
+  assert.match(demoJs, /preventDefault/, "demo.js must handle form submit event prevention");
 });
 
 

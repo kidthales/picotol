@@ -484,6 +484,16 @@ export function lintDistAccessibilityRules(fullDistCss, filename = 'dist/picotol
 
 export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.html') {
   const errors = [];
+
+  // Strict CSP: reject inline <script> tags with content (must use external script file)
+  const scriptTags = [...demoHtml.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+  for (const [, scriptAttrs, scriptBody] of scriptTags) {
+    const hasSrc = /\bsrc\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(scriptAttrs);
+    if (!hasSrc && scriptBody.trim().length > 0) {
+      errors.push(`[${filename}] Inline <script> tag forbidden under strict CSP (script-src 'self')`);
+    }
+  }
+
   const cleanHtml = demoHtml
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -492,7 +502,12 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
 
   const demoIds = new Set();
   const demoClasses = new Set();
-  for (const [, , attrs] of openTags) {
+  const labelForIds = new Set();
+  for (const [, tag, attrs] of openTags) {
+    if (tag.toLowerCase() === 'label') {
+      const m = attrs.match(/\bfor\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
+      if (m) labelForIds.add(m[1] ?? m[2] ?? m[3]);
+    }
     for (const m of attrs.matchAll(/\bid\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/g)) {
       demoIds.add(m[1] ?? m[2] ?? m[3]);
     }
@@ -514,6 +529,22 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
   }
 
   for (const [, tagName, attrs] of openTags) {
+    // Strict CSP: reject inline on* event handlers (e.g. onclick, onsubmit)
+    const handlerMatch = attrs.match(/\b(on[a-z]+)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+)/i);
+    if (handlerMatch) {
+      errors.push(`[${filename}] Inline event handler "${handlerMatch[1]}" forbidden under strict CSP (script-src 'self')`);
+    }
+
+    // Reject invalid role="menu" on <details>
+    if (tagName.toLowerCase() === 'details' && /\brole\s*=\s*(?:"menu"|'menu'|menu\b)/i.test(attrs)) {
+      errors.push(`[${filename}] Invalid role="menu" on <details> element (use proper menu semantics or remove role)`);
+    }
+
+    // Decorative <svg> elements must have aria-hidden="true"
+    if (tagName.toLowerCase() === 'svg' && !/\baria-hidden\s*=\s*(?:"true"|'true')/i.test(attrs)) {
+      errors.push(`[${filename}] Decorative <svg> is missing aria-hidden="true"`);
+    }
+
     for (const match of attrs.matchAll(/\bhref\s*=\s*(?:"#([^"]*)"|'#([^']*)'|#([^\s"'=<>`]*))/g)) {
       const targetId = match[1] ?? match[2] ?? match[3];
       if (targetId && !demoIds.has(targetId)) {
@@ -543,6 +574,40 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
     }
   }
 
+  // Ensure every <input> element has an accessible name
+  const allTags = [...cleanHtml.matchAll(/<(\/)?([a-zA-Z][a-zA-Z0-9:-]*)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/g)];
+  let labelDepth = 0;
+  for (const [, isClose, tag, attrs] of allTags) {
+    const lowerTag = tag.toLowerCase();
+    if (isClose) {
+      if (lowerTag === 'label') labelDepth = Math.max(0, labelDepth - 1);
+      continue;
+    }
+    if (lowerTag === 'label') {
+      labelDepth++;
+      continue;
+    }
+    if (lowerTag === 'input') {
+      const isHidden = /\btype\s*=\s*(?:"hidden"|'hidden'|hidden\b)/i.test(attrs);
+      if (isHidden) continue;
+
+      const isButtonType = /\btype\s*=\s*(?:"submit"|'submit'|"button"|'button'|"reset"|'reset')/i.test(attrs);
+      const hasValue = /\bvalue\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
+      if (isButtonType && hasValue) continue;
+
+      const hasAriaLabel = /\baria-label\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
+      const hasAriaLabelledby = /\baria-labelledby\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
+      const idMatch = attrs.match(/\bid\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
+      const inputId = idMatch ? (idMatch[1] ?? idMatch[2] ?? idMatch[3]) : null;
+      const hasAssociatedLabel = inputId ? labelForIds.has(inputId) : false;
+      const isEnclosedInLabel = labelDepth > 0;
+
+      if (!hasAriaLabel && !hasAriaLabelledby && !hasAssociatedLabel && !isEnclosedInLabel) {
+        errors.push(`[${filename}] Input element lacks an accessible name (missing <label>, <label for="...">, aria-label, or aria-labelledby)`);
+      }
+    }
+  }
+
   return errors;
 }
 
@@ -551,7 +616,7 @@ export function runLint() {
   const tolData = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/tol-qualitative.json'), 'utf8'));
   const allowedHexSet = new Set(tolData.allowedHexes.map((h) => h.toUpperCase()));
 
-  // 0. Node.js syntax check on tools/*.mjs and tests/*.mjs
+  // 0. Node.js syntax check on tools/*.mjs, tests/*.mjs, and dist/demo/demo.js
   for (const dirName of ['tools', 'tests']) {
     const dirPath = path.join(ROOT, dirName);
     if (!fs.existsSync(dirPath)) continue;
@@ -562,6 +627,14 @@ export function runLint() {
       } catch (err) {
         errors.push(`[syntax] ${dirName}/${file}: ${err.stderr?.toString() || err.message}`);
       }
+    }
+  }
+  const demoJsPath = path.join(ROOT, 'dist/demo/demo.js');
+  if (fs.existsSync(demoJsPath)) {
+    try {
+      execFileSync(process.execPath, ['--check', demoJsPath], { stdio: 'pipe' });
+    } catch (err) {
+      errors.push(`[syntax] dist/demo/demo.js: ${err.stderr?.toString() || err.message}`);
     }
   }
 

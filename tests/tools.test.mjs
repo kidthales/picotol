@@ -379,6 +379,58 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   assert.ok(demoErrors.some((e) => e.includes('Non-interactive <abbr data-tooltip> is missing tabindex="0"')));
   assert.equal(demoErrors.length, 12);
 
+  // 10b. Negative and positive fixture tests for demo a11y & CSP linting (Issue #222)
+  const a11yBadDemoHtml = `
+    <div>
+      <input type="text" placeholder="unlabeled">
+      <details class="pt-popover" role="menu"><summary>Menu</summary></details>
+      <button type="button"><svg class="icon" viewBox="0 0 24 24"><path d="M0 0"/></svg></button>
+      <button type="button" onclick="alert(1)">Click</button>
+      <form onsubmit="return false"><input type="text" aria-label="Valid"></form>
+      <script>console.log('inline');</script>
+    </div>
+  `;
+  const a11yDemoErrors = lintDemoHtml(a11yBadDemoHtml, '', 'fixtures/a11y-bad.html');
+  assert.ok(
+    a11yDemoErrors.some((e) => e.includes('Input element lacks an accessible name')),
+    'Unlabeled input must fail lintDemoHtml'
+  );
+  assert.ok(
+    a11yDemoErrors.some((e) => e.includes('Invalid role="menu" on <details> element')),
+    'Invalid role="menu" on details must fail lintDemoHtml'
+  );
+  assert.ok(
+    a11yDemoErrors.some((e) => e.includes('Decorative <svg> is missing aria-hidden="true"')),
+    'Decorative SVG without aria-hidden="true" must fail lintDemoHtml'
+  );
+  assert.ok(
+    a11yDemoErrors.some((e) => e.includes('Inline event handler "onclick" forbidden')),
+    'Inline onclick handler must fail lintDemoHtml'
+  );
+  assert.ok(
+    a11yDemoErrors.some((e) => e.includes('Inline event handler "onsubmit" forbidden')),
+    'Inline onsubmit handler must fail lintDemoHtml'
+  );
+  assert.ok(
+    a11yDemoErrors.some((e) => e.includes('Inline <script> tag forbidden under strict CSP')),
+    'Inline <script> tag must fail lintDemoHtml'
+  );
+
+  const a11yGoodDemoHtml = `
+    <label for="labeled-id">Label</label>
+    <input id="labeled-id" type="text">
+    <label><input type="checkbox"> Wrapped</label>
+    <input type="text" aria-label="Aria Label">
+    <input type="text" aria-labelledby="labeled-id">
+    <input type="hidden" name="csrf" value="123">
+    <input type="submit" value="Submit">
+    <details><summary>Options</summary></details>
+    <button type="button" data-dialog-open="modal"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M0 0"/></svg></button>
+    <script src="demo.js"></script>
+  `;
+  const a11yGoodErrors = lintDemoHtml(a11yGoodDemoHtml, '', 'fixtures/a11y-good.html');
+  assert.equal(a11yGoodErrors.length, 0, `Expected 0 errors on accessible, CSP-safe demo HTML, got: ${a11yGoodErrors.join('; ')}`);
+
   // 11. Full runLint() verification
   const projectErrors = runLint();
   assert.equal(projectErrors.length, 0, `Expected runLint() to return 0 errors, got: ${projectErrors.join('; ')}`);
@@ -1399,6 +1451,7 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
       'manifest.json',
       'SHA256SUMS.txt',
       'demo/index.html',
+      'demo/demo.js',
       'demo/CNAME',
     ];
 

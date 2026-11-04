@@ -166,6 +166,7 @@ export function generateDemoHtml(fullMinCss, stats) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
   <title>picotol — Pure-CSS Semantic Framework Powered by Paul Tol Colour Schemes</title>
   <style>${fullMinCss}</style>
 </head>
@@ -379,19 +380,19 @@ ${rowsHtml}
       <h3>Dedicated Square Icon Buttons (<code>.btn-icon</code>, <code>.icon-btn</code>)</h3>
       <p style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
         <button type="button" class="btn-icon" aria-label="Search" title="Search">
-          <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         </button>
         <button type="button" class="btn-icon secondary" aria-label="Settings" title="Settings">
-          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
         <button type="button" class="icon-btn outline" aria-label="Refresh" title="Refresh">
-          <svg class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
         </button>
         <button type="button" class="icon-btn contrast" aria-label="Bookmark" title="Bookmark">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
         </button>
         <button type="button" class="btn-icon small outline secondary" aria-label="Filter (Compact)" title="Filter">
-          <svg class="icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
         </button>
       </p>
     </section>
@@ -400,7 +401,7 @@ ${rowsHtml}
 
     <section id="forms">
       <h2>5. Native Forms &amp; Extended Controls</h2>
-      <form onsubmit="event.preventDefault()">
+      <form>
         <div class="grid">
           <label>
             Project Name
@@ -456,7 +457,7 @@ ${rowsHtml}
           <button type="button" class="outline contrast">Cancel</button>
         </div>
         <div role="search">
-          <input type="search" placeholder="Search Paul Tol tokens...">
+          <input type="search" placeholder="Search Paul Tol tokens..." aria-label="Search Paul Tol tokens">
           <button type="submit">Search</button>
         </div>
         <h3>Horizontal Form Row Alignment (.form-row, .inline-form)</h3>
@@ -637,12 +638,12 @@ ${rowsHtml}
                 <li><a href="#components">Pale (7 colours)</a></li>
               </ul>
             </details>
-            <button type="button" class="secondary" onclick="document.getElementById('demo-modal').showModal()">Open Modal</button>
+            <button type="button" class="secondary" data-dialog-open="demo-modal">Open Modal</button>
           </div>
           <p><strong>Slide-Over Drawers (&lt;dialog class="sheet"&gt;)</strong></p>
           <div class="grid">
-            <button type="button" class="outline" onclick="document.getElementById('demo-sheet-right').showModal()">Open Right Drawer</button>
-            <button type="button" class="outline" onclick="document.getElementById('demo-sheet-left').showModal()">Open Left Drawer</button>
+            <button type="button" class="outline" data-dialog-open="demo-sheet-right">Open Right Drawer</button>
+            <button type="button" class="outline" data-dialog-open="demo-sheet-left">Open Left Drawer</button>
           </div>
         </div>
       </div>
@@ -650,37 +651,37 @@ ${rowsHtml}
         <article>
           <header>
             <strong id="modal-title">Paul Tol Colour Verification Modal</strong>
-            <button type="button" aria-label="Close" class="close" onclick="document.getElementById('demo-modal').close()"></button>
+            <button type="button" aria-label="Close" class="close" data-dialog-close="demo-modal"></button>
           </header>
           <p>This native HTML5 <code>&lt;dialog&gt;</code> element is styled purely with <code>picotol.min.css</code>.</p>
           <footer>
-            <button type="button" onclick="document.getElementById('demo-modal').close()">Close</button>
+            <button type="button" data-dialog-close="demo-modal">Close</button>
           </footer>
         </article>
       </dialog>
       <dialog id="demo-sheet-right" class="sheet sheet-right" aria-labelledby="sheet-right-title">
         <div class="sheet-header">
           <strong id="sheet-right-title">Telemetry &amp; Audit Drawer</strong>
-          <button type="button" aria-label="Close" class="close" onclick="document.getElementById('demo-sheet-right').close()"></button>
+          <button type="button" aria-label="Close" class="close" data-dialog-close="demo-sheet-right"></button>
         </div>
         <div class="sheet-body">
           <p>Edge-anchored native <code>&lt;dialog class="sheet"&gt;</code> primitive with scrollable content.</p>
           <p>Features pure CSS slide transition, native <code>::backdrop</code>, and responsive full-width collapse on viewports &le; 600px.</p>
         </div>
         <div class="sheet-footer">
-          <button type="button" onclick="document.getElementById('demo-sheet-right').close()">Close</button>
+          <button type="button" data-dialog-close="demo-sheet-right">Close</button>
         </div>
       </dialog>
       <dialog id="demo-sheet-left" class="sheet sheet-left" aria-labelledby="sheet-left-title">
         <div class="sheet-header">
           <strong id="sheet-left-title">Navigation Drawer (Left)</strong>
-          <button type="button" aria-label="Close" class="close" onclick="document.getElementById('demo-sheet-left').close()"></button>
+          <button type="button" aria-label="Close" class="close" data-dialog-close="demo-sheet-left"></button>
         </div>
         <div class="sheet-body">
           <p>Left-docked modifier <code>&lt;dialog class="sheet sheet-left"&gt;</code> for side navigation and drawers.</p>
         </div>
         <div class="sheet-footer">
-          <button type="button" onclick="document.getElementById('demo-sheet-left').close()">Close</button>
+          <button type="button" data-dialog-close="demo-sheet-left">Close</button>
         </div>
       </dialog>
       <h3>Card Component Parity (&lt;article&gt; vs .card)</h3>
@@ -745,7 +746,7 @@ ${rowsHtml}
             <p><small>Flex and grid children declare <code>min-width: 0</code> to prevent wide controls or long titles from blowing out containers.</small></p>
             <div class="form-row">
               <span class="status-dot success"></span>
-              <input type="text" value="cluster-telemetry-node-01.us-east.internal" class="small" readonly>
+              <input type="text" value="cluster-telemetry-node-01.us-east.internal" class="small" readonly aria-label="Cluster telemetry node address">
               <button type="button" class="btn small">Ping</button>
             </div>
           </main>
@@ -794,7 +795,7 @@ ${rowsHtml}
               </tbody>
             </table>
             <div class="form-row">
-              <input type="text" value="cluster-us-east" readonly>
+              <input type="text" value="cluster-us-east" readonly aria-label="Cluster name">
               <button type="button" class="btn">Deploy</button>
             </div>
           </main>
@@ -805,7 +806,7 @@ ${rowsHtml}
           <div class="card-body">
             <p>Applied via class modifier to any container or component.</p>
             <div class="form-row">
-              <input type="text" value="compact-node-01" class="small" readonly>
+              <input type="text" value="compact-node-01" class="small" readonly aria-label="Compact node address">
               <button type="button" class="btn small">Inspect</button>
             </div>
           </div>
@@ -816,7 +817,7 @@ ${rowsHtml}
           <main>
             <p>Ultra-compact 0.25rem spacing and micro-type for narrow embedded panels.</p>
             <div class="form-row">
-              <input type="text" value="worker-01.local" readonly>
+              <input type="text" value="worker-01.local" readonly aria-label="Worker host address">
               <button type="button" class="btn">Sync</button>
             </div>
             <div class="card pt-card--dense">
@@ -984,7 +985,7 @@ ${rowsHtml}
                 <button type="button" class="pt-menu-item">Trigger Sync</button>
               </div>
             </details>
-            <details class="pt-popover pt-popover--end" role="menu">
+            <details class="pt-popover pt-popover--end">
               <summary role="button" class="secondary">Options (End)</summary>
               <div class="pt-popover-content pt-popover-menu end">
                 <a href="#components">Export Config</a>
@@ -1125,15 +1126,15 @@ ${rowsHtml}
 
       <p>
         <button type="button">
-          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
           Info Action
         </button>
         <button type="button" class="outline">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
         </button>
         <button type="button" aria-label="Settings">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
       </p>
     </section>
@@ -1193,249 +1194,285 @@ ${swatchCardsHtml}
     <small><strong>picotol</strong> • MIT License • Colour values from Paul Tol (3-clause BSD) via <code>tol-palettes</code>.</small>
   </footer>
 
-  <script>
-    const root = document.documentElement;
-    const themeBtn = document.getElementById('theme-toggle');
-    const accentSelect = document.getElementById('accent-select');
-
-    function updateThemeButton(theme) {
-      if (themeBtn) {
-        themeBtn.textContent = theme === 'dark' ? '🌙 Dark' : '☀️ Light';
-        themeBtn.setAttribute('aria-label', 'Active theme: ' + theme + '. Click to toggle.');
-      }
-    }
-
-    const savedTheme = localStorage.getItem('picotol-theme');
-    if (savedTheme) {
-      root.setAttribute('data-theme', savedTheme);
-      updateThemeButton(savedTheme);
-    } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      updateThemeButton(prefersDark ? 'dark' : 'light');
-    }
-
-    if (themeBtn) {
-      themeBtn.addEventListener('click', () => {
-        const cur = root.getAttribute('data-theme');
-        const isDark = cur ? cur === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const nextTheme = isDark ? 'light' : 'dark';
-        root.setAttribute('data-theme', nextTheme);
-        localStorage.setItem('picotol-theme', nextTheme);
-        updateThemeButton(nextTheme);
-      });
-    }
-
-    function setAccent(accent) {
-      root.setAttribute('data-accent', accent);
-      if (accentSelect) accentSelect.value = accent;
-      localStorage.setItem('picotol-accent', accent);
-    }
-
-    const savedAccent = localStorage.getItem('picotol-accent');
-    if (savedAccent) {
-      setAccent(savedAccent);
-    }
-
-    if (accentSelect) {
-      accentSelect.addEventListener('change', (e) => setAccent(e.target.value));
-    }
-
-    document.querySelectorAll('[data-set-accent]').forEach((btn) => {
-      btn.addEventListener('click', () => setAccent(btn.getAttribute('data-set-accent')));
-    });
-
-    // Native modal backdrop click-to-close
-    const modal = document.getElementById('demo-modal');
-    if (modal) {
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          modal.close();
-        }
-      });
-    }
-
-    // Dashboard tab switching
-    const tabs = [
-      { tab: document.getElementById('tab-overview'), panel: document.getElementById('panel-overview') },
-      { tab: document.getElementById('tab-analytics'), panel: document.getElementById('panel-analytics') },
-      { tab: document.getElementById('tab-logs'), panel: document.getElementById('panel-logs') },
-    ];
-
-    tabs.forEach(({ tab, panel }) => {
-      if (!tab || !panel) return;
-      tab.addEventListener('click', () => {
-        tabs.forEach(({ tab: t, panel: p }) => {
-          const isSelected = t === tab;
-          t.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-          if (isSelected) {
-            p.removeAttribute('hidden');
-          } else {
-            p.setAttribute('hidden', '');
-          }
-        });
-      });
-    });
-
-    // Segmented time filter with 300ms zero-CLS skeleton loader pulse
-    const timeFilter = document.getElementById('time-filter');
-    const periodData = {
-      '1H': {
-        throughput: '124 GB',
-        clusters: '128 / 130',
-        latency: '16.2 ms',
-        errors: '0.008%',
-        cpu: '38.4%',
-        cpuVal: 38,
-        mem: '58.1%',
-        memVal: 58,
-      },
-      '24H': {
-        throughput: '1.42 TB',
-        clusters: '128 / 130',
-        latency: '18.4 ms',
-        errors: '0.012%',
-        cpu: '42.8%',
-        cpuVal: 43,
-        mem: '64.2%',
-        memVal: 64,
-      },
-      '7D': {
-        throughput: '8.94 TB',
-        clusters: '129 / 130',
-        latency: '19.1 ms',
-        errors: '0.015%',
-        cpu: '45.2%',
-        cpuVal: 45,
-        mem: '67.5%',
-        memVal: 68,
-      },
-      '30D': {
-        throughput: '38.6 TB',
-        clusters: '130 / 130',
-        latency: '17.8 ms',
-        errors: '0.011%',
-        cpu: '44.0%',
-        cpuVal: 44,
-        mem: '66.0%',
-        memVal: 66,
-      },
-    };
-
-    if (timeFilter) {
-      timeFilter.querySelectorAll('button[data-period]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const period = btn.getAttribute('data-period');
-          const data = periodData[period];
-          if (!data) return;
-
-          timeFilter.querySelectorAll('button[data-period]').forEach((b) => {
-            b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
-          });
-
-          const statEls = [
-            document.getElementById('stat-throughput'),
-            document.getElementById('stat-clusters'),
-            document.getElementById('stat-latency'),
-            document.getElementById('stat-errors'),
-            document.getElementById('stat-cpu'),
-            document.getElementById('stat-mem'),
-          ];
-
-          statEls.forEach((el) => { if (el) el.classList.add('skeleton'); });
-
-          setTimeout(() => {
-            const st = document.getElementById('stat-throughput');
-            const sc = document.getElementById('stat-clusters');
-            const sl = document.getElementById('stat-latency');
-            const se = document.getElementById('stat-errors');
-            const scpu = document.getElementById('stat-cpu');
-            const smem = document.getElementById('stat-mem');
-            const pcpu = document.getElementById('stat-cpu-progress');
-            const pmem = document.getElementById('stat-mem-progress');
-
-            if (st) st.textContent = data.throughput;
-            if (sc) sc.textContent = data.clusters;
-            if (sl) sl.textContent = data.latency;
-            if (se) se.textContent = data.errors;
-            if (scpu) scpu.textContent = data.cpu;
-            if (smem) smem.textContent = data.mem;
-            if (pcpu) pcpu.value = data.cpuVal;
-            if (pmem) pmem.value = data.memVal;
-
-            statEls.forEach((el) => { if (el) el.classList.remove('skeleton'); });
-          }, 300);
-        });
-      });
-    }
-
-    // Dynamic streaming telemetry ticker for tabular number badges
-    const liveIndicator = document.getElementById('live-indicator-count');
-    const liveBadge = document.getElementById('live-badge-count');
-    if (liveIndicator && liveBadge) {
-      let turn = 42;
-      let tok = 1842;
-      setInterval(() => {
-        turn = (turn + 1) % 1000;
-        tok = 1800 + Math.floor(Math.sin(turn * 0.2) * 50) + Math.floor(Math.random() * 20);
-        liveIndicator.textContent = 'Turn #' + String(turn).padStart(3, '0');
-        liveBadge.textContent = tok.toLocaleString() + ' tok/s';
-      }, 1500);
-    }
-
-    // Palette Explorer live search and click-to-copy
-    const paletteSearch = document.getElementById('palette-search');
-    const swatches = document.querySelectorAll('[data-swatch]');
-    const emptyMsg = document.getElementById('palette-empty');
-    const toast = document.getElementById('toast');
-    let toastTimeout;
-
-    function showToast(msg) {
-      if (!toast) return;
-      toast.classList.add('show');
-      toast.textContent = msg;
-      clearTimeout(toastTimeout);
-      toastTimeout = setTimeout(() => {
-        toast.classList.remove('show');
-      }, 2000);
-    }
-
-    if (paletteSearch) {
-      paletteSearch.addEventListener('input', (e) => {
-        const query = e.target.value.trim().toLowerCase();
-        let visibleCount = 0;
-        swatches.forEach((sw) => {
-          const haystack = (sw.getAttribute('data-search') || '').toLowerCase();
-          const matches = !query || haystack.includes(query);
-          sw.style.display = matches ? '' : 'none';
-          if (matches) visibleCount++;
-        });
-        if (emptyMsg) {
-          emptyMsg.hidden = visibleCount > 0;
-        }
-      });
-    }
-
-    swatches.forEach((sw) => {
-      const copyVal = sw.querySelector('strong code')?.textContent?.trim() || '';
-      const hexVal = sw.querySelector('div code')?.textContent?.trim() || '';
-      const copy = () => {
-        if (!copyVal) return;
-        navigator.clipboard.writeText(copyVal).then(() => {
-          showToast('Copied ' + copyVal + ' (' + hexVal + ') to clipboard!');
-        }).catch(() => {
-          showToast('Copied ' + copyVal + '!');
-        });
-      };
-      sw.addEventListener('click', copy);
-      sw.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          copy();
-        }
-      });
-    });
-  </script>
+  <script src="demo.js"></script>
 </body>
 </html>
+`;
+}
+
+export function generateDemoJs() {
+  return `// Client-side interactions for the picotol demo showcase.
+// Runs under strict Content-Security-Policy: script-src 'self'.
+(function () {
+  'use strict';
+
+  const root = document.documentElement;
+  const themeBtn = document.getElementById('theme-toggle');
+  const accentSelect = document.getElementById('accent-select');
+
+  function updateThemeButton(theme) {
+    if (themeBtn) {
+      themeBtn.textContent = theme === 'dark' ? '🌙 Dark' : '☀️ Light';
+      themeBtn.setAttribute('aria-label', 'Active theme: ' + theme + '. Click to toggle.');
+    }
+  }
+
+  const savedTheme = localStorage.getItem('picotol-theme');
+  if (savedTheme) {
+    root.setAttribute('data-theme', savedTheme);
+    updateThemeButton(savedTheme);
+  } else {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    updateThemeButton(prefersDark ? 'dark' : 'light');
+  }
+
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const cur = root.getAttribute('data-theme');
+      const isDark = cur ? cur === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const nextTheme = isDark ? 'light' : 'dark';
+      root.setAttribute('data-theme', nextTheme);
+      localStorage.setItem('picotol-theme', nextTheme);
+      updateThemeButton(nextTheme);
+    });
+  }
+
+  function setAccent(accent) {
+    root.setAttribute('data-accent', accent);
+    if (accentSelect) accentSelect.value = accent;
+    localStorage.setItem('picotol-accent', accent);
+  }
+
+  const savedAccent = localStorage.getItem('picotol-accent');
+  if (savedAccent) {
+    setAccent(savedAccent);
+  }
+
+  if (accentSelect) {
+    accentSelect.addEventListener('change', (e) => setAccent(e.target.value));
+  }
+
+  document.querySelectorAll('[data-set-accent]').forEach((btn) => {
+    btn.addEventListener('click', () => setAccent(btn.getAttribute('data-set-accent')));
+  });
+
+  // Dialog open and close controls (CSP-safe, replacing inline onclick)
+  document.querySelectorAll('[data-dialog-open]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-dialog-open');
+      const dialog = document.getElementById(targetId);
+      if (dialog && typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-dialog-close]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-dialog-close');
+      const dialog = targetId ? document.getElementById(targetId) : btn.closest('dialog');
+      if (dialog && typeof dialog.close === 'function') {
+        dialog.close();
+      }
+    });
+  });
+
+  // Native dialog backdrop click-to-close
+  document.querySelectorAll('dialog').forEach((dialog) => {
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) {
+        dialog.close();
+      }
+    });
+  });
+
+  // Prevent default submit on showcase demo forms
+  document.querySelectorAll('form').forEach((form) => {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+    });
+  });
+
+  // Dashboard tab switching
+  const tabs = [
+    { tab: document.getElementById('tab-overview'), panel: document.getElementById('panel-overview') },
+    { tab: document.getElementById('tab-analytics'), panel: document.getElementById('panel-analytics') },
+    { tab: document.getElementById('tab-logs'), panel: document.getElementById('panel-logs') },
+  ];
+
+  tabs.forEach(({ tab, panel }) => {
+    if (!tab || !panel) return;
+    tab.addEventListener('click', () => {
+      tabs.forEach(({ tab: t, panel: p }) => {
+        const isSelected = t === tab;
+        t.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+        if (isSelected) {
+          p.removeAttribute('hidden');
+        } else {
+          p.setAttribute('hidden', '');
+        }
+      });
+    });
+  });
+
+  // Segmented time filter with 300ms zero-CLS skeleton loader pulse
+  const timeFilter = document.getElementById('time-filter');
+  const periodData = {
+    '1H': {
+      throughput: '124 GB',
+      clusters: '128 / 130',
+      latency: '16.2 ms',
+      errors: '0.008%',
+      cpu: '38.4%',
+      cpuVal: 38,
+      mem: '58.1%',
+      memVal: 58,
+    },
+    '24H': {
+      throughput: '1.42 TB',
+      clusters: '128 / 130',
+      latency: '18.4 ms',
+      errors: '0.012%',
+      cpu: '42.8%',
+      cpuVal: 43,
+      mem: '64.2%',
+      memVal: 64,
+    },
+    '7D': {
+      throughput: '8.94 TB',
+      clusters: '129 / 130',
+      latency: '19.1 ms',
+      errors: '0.015%',
+      cpu: '45.2%',
+      cpuVal: 45,
+      mem: '67.5%',
+      memVal: 68,
+    },
+    '30D': {
+      throughput: '38.6 TB',
+      clusters: '130 / 130',
+      latency: '17.8 ms',
+      errors: '0.011%',
+      cpu: '44.0%',
+      cpuVal: 44,
+      mem: '66.0%',
+      memVal: 66,
+    },
+  };
+
+  if (timeFilter) {
+    timeFilter.querySelectorAll('button[data-period]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const period = btn.getAttribute('data-period');
+        const data = periodData[period];
+        if (!data) return;
+
+        timeFilter.querySelectorAll('button[data-period]').forEach((b) => {
+          b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+        });
+
+        const statEls = [
+          document.getElementById('stat-throughput'),
+          document.getElementById('stat-clusters'),
+          document.getElementById('stat-latency'),
+          document.getElementById('stat-errors'),
+          document.getElementById('stat-cpu'),
+          document.getElementById('stat-mem'),
+        ];
+
+        statEls.forEach((el) => { if (el) el.classList.add('skeleton'); });
+
+        setTimeout(() => {
+          const st = document.getElementById('stat-throughput');
+          const sc = document.getElementById('stat-clusters');
+          const sl = document.getElementById('stat-latency');
+          const se = document.getElementById('stat-errors');
+          const scpu = document.getElementById('stat-cpu');
+          const smem = document.getElementById('stat-mem');
+          const pcpu = document.getElementById('stat-cpu-progress');
+          const pmem = document.getElementById('stat-mem-progress');
+
+          if (st) st.textContent = data.throughput;
+          if (sc) sc.textContent = data.clusters;
+          if (sl) sl.textContent = data.latency;
+          if (se) se.textContent = data.errors;
+          if (scpu) scpu.textContent = data.cpu;
+          if (smem) smem.textContent = data.mem;
+          if (pcpu) pcpu.value = data.cpuVal;
+          if (pmem) pmem.value = data.memVal;
+
+          statEls.forEach((el) => { if (el) el.classList.remove('skeleton'); });
+        }, 300);
+      });
+    });
+  }
+
+  // Dynamic streaming telemetry ticker for tabular number badges
+  const liveIndicator = document.getElementById('live-indicator-count');
+  const liveBadge = document.getElementById('live-badge-count');
+  if (liveIndicator && liveBadge) {
+    let turn = 42;
+    let tok = 1842;
+    setInterval(() => {
+      turn = (turn + 1) % 1000;
+      tok = 1800 + Math.floor(Math.sin(turn * 0.2) * 50) + Math.floor(Math.random() * 20);
+      liveIndicator.textContent = 'Turn #' + String(turn).padStart(3, '0');
+      liveBadge.textContent = tok.toLocaleString() + ' tok/s';
+    }, 1500);
+  }
+
+  // Palette Explorer live search and click-to-copy
+  const paletteSearch = document.getElementById('palette-search');
+  const swatches = document.querySelectorAll('[data-swatch]');
+  const emptyMsg = document.getElementById('palette-empty');
+  const toast = document.getElementById('toast');
+  let toastTimeout;
+
+  function showToast(msg) {
+    if (!toast) return;
+    toast.classList.add('show');
+    toast.textContent = msg;
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2000);
+  }
+
+  if (paletteSearch) {
+    paletteSearch.addEventListener('input', (e) => {
+      const query = e.target.value.trim().toLowerCase();
+      let visibleCount = 0;
+      swatches.forEach((sw) => {
+        const haystack = (sw.getAttribute('data-search') || '').toLowerCase();
+        const matches = !query || haystack.includes(query);
+        sw.style.display = matches ? '' : 'none';
+        if (matches) visibleCount++;
+      });
+      if (emptyMsg) {
+        emptyMsg.hidden = visibleCount > 0;
+      }
+    });
+  }
+
+  swatches.forEach((sw) => {
+    const copyVal = sw.querySelector('strong code')?.textContent?.trim() || '';
+    const hexVal = sw.querySelector('div code')?.textContent?.trim() || '';
+    const copy = () => {
+      if (!copyVal) return;
+      navigator.clipboard.writeText(copyVal).then(() => {
+        showToast('Copied ' + copyVal + ' (' + hexVal + ') to clipboard!');
+      }).catch(() => {
+        showToast('Copied ' + copyVal + '!');
+      });
+    };
+    sw.addEventListener('click', copy);
+    sw.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        copy();
+      }
+    });
+  });
+})();
 `;
 }

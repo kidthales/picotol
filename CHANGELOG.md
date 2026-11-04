@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deprecated `.toast[aria-hidden="false"]` as a standalone toast activation selector in favor of `.toast.show`; retained as a compatibility alias scheduled for removal in v0.7.0 (#220).
 
 ### Fixed
+- Fixed demo accessibility defects by providing accessible names to all five unlabeled inputs, removing the invalid `role="menu"` on `<details>`, adding `aria-hidden="true"` to decorative SVGs, replacing inline event handlers with an external CSP-safe script (`demo.js`) working under `script-src 'self'`, and extending `lint.mjs` §6 to enforce these invariants (#222).
 - Corrected scheme kind declarations and type scoping in `@kidthales/picotol/palette-data` to accurately reflect the 10 bundled Paul Tol schemes (8 qualitative, 1 diverging `prgn`, 1 sequential `ylorbr`) without breaking legacy consumers (#219).
 - Scoped `[hidden]` with `:not([hidden="until-found" i])` to preserve search-in-page `until-found` reveal styling, and scoped `fieldset[disabled]` to direct non-legend children (`fieldset[disabled] > :not(legend)`) and exempt nested `fieldset[disabled] *` controls from `[disabled]` to prevent double-compounding opacity and preserve interactive legend toggles (#218).
 - Replaced hard-coded z-index values (98, 99, 100, 999, 9999) with `--pt-z-*` design tokens (`--pt-z-backdrop`, `--pt-z-tooltip`, `--pt-z-dropdown`, `--pt-z-modal`, `--pt-z-toast`, `--pt-z-skip-link`), decoupling toast (`9990`) and skip-link (`10000`) z-indices (#218).
