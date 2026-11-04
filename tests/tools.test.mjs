@@ -416,6 +416,45 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
     'Inline <script> tag must fail lintDemoHtml'
   );
 
+  // Negative edge-case tests: script/style on* handlers, mixed src+body script, empty src, whitespace accessible names
+  const edgeCaseScriptStyleErrors = lintDemoHtml(
+    '<script src="demo.js" onload="alert(1)"></script><style onload="alert(1)"></style>',
+    '',
+    'fixtures/script-style-handlers.html'
+  );
+  assert.ok(
+    edgeCaseScriptStyleErrors.filter((e) => e.includes('Inline event handler "onload" forbidden')).length === 2,
+    'Inline onload handlers on <script> and <style> tags must fail lintDemoHtml'
+  );
+
+  const mixedScriptErrors = lintDemoHtml(
+    '<script src="demo.js">evil()</script><script src=""></script>',
+    '',
+    'fixtures/mixed-script.html'
+  );
+  assert.equal(
+    mixedScriptErrors.filter((e) => e.includes('Inline <script> tag forbidden under strict CSP')).length,
+    2,
+    'Scripts with body despite src or empty src must fail lintDemoHtml'
+  );
+
+  const whitespaceA11yErrors = lintDemoHtml(
+    `
+      <input type="text" aria-label="   ">
+      <input type="text" aria-labelledby="   ">
+      <input type="submit" value="   ">
+      <label><input type="text"></label>
+      <label for="empty-for">   </label><input id="empty-for" type="text">
+    `,
+    '',
+    'fixtures/whitespace-a11y.html'
+  );
+  assert.equal(
+    whitespaceA11yErrors.filter((e) => e.includes('Input element lacks an accessible name')).length,
+    5,
+    'Whitespace-only accessible names and empty labels must fail lintDemoHtml'
+  );
+
   const a11yGoodDemoHtml = `
     <label for="labeled-id">Label</label>
     <input id="labeled-id" type="text">
@@ -424,8 +463,12 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
     <input type="text" aria-labelledby="labeled-id">
     <input type="hidden" name="csrf" value="123">
     <input type="submit" value="Submit">
+    <input type=submit value="Unquoted Submit">
+    <input type=button value="Unquoted Button">
+    <input type=reset value="Unquoted Reset">
     <details><summary>Options</summary></details>
     <button type="button" data-dialog-open="modal"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M0 0"/></svg></button>
+    <button type="button"><svg aria-hidden=true viewBox="0 0 24 24"><path d="M0 0"/></svg></button>
     <script src="demo.js"></script>
   `;
   const a11yGoodErrors = lintDemoHtml(a11yGoodDemoHtml, '', 'fixtures/a11y-good.html');
@@ -1481,7 +1524,7 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
     assert.ok(zipBuf.length <= 100 * 1024, `Asset bundle size ${zipBuf.length} B exceeds 100 KB budget`);
 
     const freshZipEntries = parsePkZipEntries(zipBuf);
-    assert.equal(freshZipEntries.length, 13, 'Zip bundle must contain exactly 13 entries');
+    assert.equal(freshZipEntries.length, 14, 'Zip bundle must contain exactly 14 entries');
     const foundFiles = freshZipEntries.map((e) => e.name);
 
     for (const expected of [
@@ -1496,6 +1539,7 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
       'tokens/tol-qualitative.json',
       'sri.json',
       'index.html',
+      'demo.js',
       'LICENSE',
       'NOTICE',
     ]) {

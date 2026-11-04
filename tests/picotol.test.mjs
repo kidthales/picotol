@@ -4788,10 +4788,13 @@ test("Demo accessibility and CSP compliance (Issue #222)", () => {
     if (lowerTag === 'input') {
       inputCount++;
       const isHidden = /\btype\s*=\s*(?:"hidden"|'hidden'|hidden\b)/i.test(attrs);
-      const isButtonType = /\btype\s*=\s*(?:"submit"|'submit'|"button"|'button'|"reset"|'reset')/i.test(attrs);
-      const hasValue = /\bvalue\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
-      const hasAriaLabel = /\baria-label\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
-      const hasAriaLabelledby = /\baria-labelledby\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
+      const isButtonType = /\btype\s*=\s*(?:"(?:submit|button|reset)"|'(?:submit|button|reset)'|(?:submit|button|reset)\b)/i.test(attrs);
+      const valMatch = attrs.match(/\bvalue\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+      const hasValue = !!(valMatch && (valMatch[1] ?? valMatch[2] ?? valMatch[3]).trim().length > 0);
+      const ariaLabelMatch = attrs.match(/\baria-label\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+      const hasAriaLabel = !!(ariaLabelMatch && (ariaLabelMatch[1] ?? ariaLabelMatch[2] ?? ariaLabelMatch[3]).trim().length > 0);
+      const ariaLabelledbyMatch = attrs.match(/\baria-labelledby\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+      const hasAriaLabelledby = !!(ariaLabelledbyMatch && (ariaLabelledbyMatch[1] ?? ariaLabelledbyMatch[2] ?? ariaLabelledbyMatch[3]).trim().length > 0);
       const idMatch = attrs.match(/\bid\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
       const inputId = idMatch ? (idMatch[1] ?? idMatch[2] ?? idMatch[3]) : null;
       const hasAssociatedLabel = inputId ? labelForIds.has(inputId) : false;

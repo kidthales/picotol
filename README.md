@@ -511,13 +511,13 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 ```html
 <!-- Text + icon button -->
 <button type="button">
-  <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
   Export Report
 </button>
 
 <!-- Icon-only square button -->
 <button type="button" aria-label="Settings">
-  <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>
+  <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>
 </button>
 ```
 
@@ -636,7 +636,7 @@ Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature sm
 </details>
 
 <!-- End-Aligned Dropdown / Popover -->
-<details class="pt-dropdown pt-popover--end" role="menu">
+<details class="pt-dropdown pt-popover--end">
   <summary role="button" class="secondary">Options</summary>
   <ul class="pt-popover-content">
     <li><a href="#profile">Profile</a></li>
@@ -659,10 +659,10 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
 
 <!-- Dedicated 1:1 Square Icon Buttons (Zero-Padding, Flex Centered) -->
 <button type="button" class="btn-icon" aria-label="Search">
-  <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+  <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
 </button>
 <button type="button" class="icon-btn outline" aria-label="Close">
-  <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+  <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
 </button>
 ```
 

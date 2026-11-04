@@ -4,6 +4,7 @@
 //   - tokens/ (tokens.css, palettes.css, tol-qualitative.json)
 //   - sri.json
 //   - index.html (self-contained offline kitchen-sink showcase)
+//   - demo.js (offline kitchen-sink interactive script)
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -295,6 +296,7 @@ export function packageAssets(opts = {}) {
     { archivePath: 'tokens/tol-qualitative.json', sourcePath: join(root, 'data', 'tol-qualitative.json') },
     { archivePath: 'sri.json', sourcePath: join(targetDist, 'sri.json') },
     { archivePath: 'index.html', sourcePath: join(targetDist, 'demo', 'index.html') },
+    { archivePath: 'demo.js', sourcePath: join(targetDist, 'demo', 'demo.js') },
     { archivePath: 'LICENSE', sourcePath: join(root, 'LICENSE') },
     { archivePath: 'NOTICE', sourcePath: join(root, 'NOTICE') },
   ];

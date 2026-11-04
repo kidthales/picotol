@@ -485,12 +485,27 @@ export function lintDistAccessibilityRules(fullDistCss, filename = 'dist/picotol
 export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.html') {
   const errors = [];
 
-  // Strict CSP: reject inline <script> tags with content (must use external script file)
-  const scriptTags = [...demoHtml.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+  // Strict CSP: reject inline <script> tags or scripts with inline code (must use external script file with non-empty src and empty body)
+  const scriptTags = [...demoHtml.matchAll(/<script\b((?:[^>"']|"[^"]*"|'[^']*')*)(?:>([\s\S]*?)<\/script>|\/>)/gi)];
   for (const [, scriptAttrs, scriptBody] of scriptTags) {
-    const hasSrc = /\bsrc\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(scriptAttrs);
-    if (!hasSrc && scriptBody.trim().length > 0) {
+    const srcMatch = scriptAttrs.match(/\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+    const srcVal = srcMatch ? (srcMatch[1] ?? srcMatch[2] ?? srcMatch[3]).trim() : '';
+    const body = (scriptBody ?? '').trim();
+    if (!srcVal || body.length > 0) {
       errors.push(`[${filename}] Inline <script> tag forbidden under strict CSP (script-src 'self')`);
+    }
+    const handlerMatch = scriptAttrs.match(/\b(on[a-z]+)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+)/i);
+    if (handlerMatch) {
+      errors.push(`[${filename}] Inline event handler "${handlerMatch[1]}" forbidden under strict CSP (script-src 'self')`);
+    }
+  }
+
+  // Strict CSP: reject inline on* event handlers on <style> tags
+  const styleTags = [...demoHtml.matchAll(/<style\b((?:[^>"']|"[^"]*"|'[^']*')*)(?:>([\s\S]*?)<\/style>|\/>)/gi)];
+  for (const [, styleAttrs] of styleTags) {
+    const handlerMatch = styleAttrs.match(/\b(on[a-z]+)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+)/i);
+    if (handlerMatch) {
+      errors.push(`[${filename}] Inline event handler "${handlerMatch[1]}" forbidden under strict CSP (script-src 'self')`);
     }
   }
 
@@ -503,11 +518,20 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
   const demoIds = new Set();
   const demoClasses = new Set();
   const labelForIds = new Set();
-  for (const [, tag, attrs] of openTags) {
-    if (tag.toLowerCase() === 'label') {
+  const textBearingLabelRanges = [];
+
+  for (const match of cleanHtml.matchAll(/<label\b([^>]*)>([\s\S]*?)<\/label>/gi)) {
+    const [, attrs, inner] = match;
+    const textContent = inner.replace(/<[^>]+>/g, '').trim();
+    const hasAltOrAriaInLabel = /\b(?:alt|aria-label)\s*=\s*(?:"(?=[^"]*\S)[^"]*"|'(?=[^']*\S)[^']*'|[^\s"'=<>`]+)/i.test(inner);
+    if (textContent.length > 0 || hasAltOrAriaInLabel) {
       const m = attrs.match(/\bfor\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
       if (m) labelForIds.add(m[1] ?? m[2] ?? m[3]);
+      textBearingLabelRanges.push([match.index, match.index + match[0].length]);
     }
+  }
+
+  for (const [, tag, attrs] of openTags) {
     for (const m of attrs.matchAll(/\bid\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/g)) {
       demoIds.add(m[1] ?? m[2] ?? m[3]);
     }
@@ -541,7 +565,7 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
     }
 
     // Decorative <svg> elements must have aria-hidden="true"
-    if (tagName.toLowerCase() === 'svg' && !/\baria-hidden\s*=\s*(?:"true"|'true')/i.test(attrs)) {
+    if (tagName.toLowerCase() === 'svg' && !/\baria-hidden\s*=\s*(?:"true"|'true'|true\b)/i.test(attrs)) {
       errors.push(`[${filename}] Decorative <svg> is missing aria-hidden="true"`);
     }
 
@@ -575,32 +599,30 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
   }
 
   // Ensure every <input> element has an accessible name
-  const allTags = [...cleanHtml.matchAll(/<(\/)?([a-zA-Z][a-zA-Z0-9:-]*)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/g)];
-  let labelDepth = 0;
-  for (const [, isClose, tag, attrs] of allTags) {
+  const allTagMatches = [...cleanHtml.matchAll(/<(\/)?([a-zA-Z][a-zA-Z0-9:-]*)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/g)];
+  for (const match of allTagMatches) {
+    const [, isClose, tag, attrs] = match;
+    if (isClose) continue;
     const lowerTag = tag.toLowerCase();
-    if (isClose) {
-      if (lowerTag === 'label') labelDepth = Math.max(0, labelDepth - 1);
-      continue;
-    }
-    if (lowerTag === 'label') {
-      labelDepth++;
-      continue;
-    }
     if (lowerTag === 'input') {
       const isHidden = /\btype\s*=\s*(?:"hidden"|'hidden'|hidden\b)/i.test(attrs);
       if (isHidden) continue;
 
-      const isButtonType = /\btype\s*=\s*(?:"submit"|'submit'|"button"|'button'|"reset"|'reset')/i.test(attrs);
-      const hasValue = /\bvalue\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
+      const isButtonType = /\btype\s*=\s*(?:"(?:submit|button|reset)"|'(?:submit|button|reset)'|(?:submit|button|reset)\b)/i.test(attrs);
+      const valMatch = attrs.match(/\bvalue\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+      const hasValue = !!(valMatch && (valMatch[1] ?? valMatch[2] ?? valMatch[3]).trim().length > 0);
       if (isButtonType && hasValue) continue;
 
-      const hasAriaLabel = /\baria-label\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
-      const hasAriaLabelledby = /\baria-labelledby\s*=\s*(?:"[^"]+"|'[^']+'|[^\s"'=<>`]+)/i.test(attrs);
+      const ariaLabelMatch = attrs.match(/\baria-label\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+      const hasAriaLabel = !!(ariaLabelMatch && (ariaLabelMatch[1] ?? ariaLabelMatch[2] ?? ariaLabelMatch[3]).trim().length > 0);
+
+      const ariaLabelledbyMatch = attrs.match(/\baria-labelledby\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+      const hasAriaLabelledby = !!(ariaLabelledbyMatch && (ariaLabelledbyMatch[1] ?? ariaLabelledbyMatch[2] ?? ariaLabelledbyMatch[3]).trim().length > 0);
+
       const idMatch = attrs.match(/\bid\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
       const inputId = idMatch ? (idMatch[1] ?? idMatch[2] ?? idMatch[3]) : null;
       const hasAssociatedLabel = inputId ? labelForIds.has(inputId) : false;
-      const isEnclosedInLabel = labelDepth > 0;
+      const isEnclosedInLabel = textBearingLabelRanges.some(([start, end]) => match.index >= start && match.index < end);
 
       if (!hasAriaLabel && !hasAriaLabelledby && !hasAssociatedLabel && !isEnclosedInLabel) {
         errors.push(`[${filename}] Input element lacks an accessible name (missing <label>, <label for="...">, aria-label, or aria-labelledby)`);
