@@ -37,8 +37,8 @@ export interface TolAchromaticStop {
 }
 
 export interface TolScheme {
-  id: TolSchemeId | string;
-  kind: TolSchemeKind | string;
+  id: TolSchemeId | (string & {});
+  kind: TolSchemeKind | (string & {});
   colors: TolColor[];
   extras?: TolColor[];
   bad?: string;

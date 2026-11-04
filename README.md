@@ -127,7 +127,7 @@ import "@kidthales/picotol/core";
 // Semantic design tokens (--pt-*)
 import "@kidthales/picotol/tokens";
 
-// Raw Paul Tol qualitative palette constants (--tol-*)
+// Raw Paul Tol palette constants (--tol-*)
 import "@kidthales/picotol/palettes";
 ```
 

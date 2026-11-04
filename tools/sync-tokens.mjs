@@ -11,7 +11,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dataDir = join(root, 'data');
 const snapshotPath = join(dataDir, 'tol-qualitative.json');
 
-const QUALITATIVE_IDS = [
+const SCHEME_IDS = [
   'bright',
   'dark',
   'high-contrast',
@@ -76,7 +76,7 @@ export function refreshFromUpstream(rawUpstreamPath, opts = {}) {
   const schemes = {};
   const allowedHexSet = new Set();
 
-  for (const id of QUALITATIVE_IDS) {
+  for (const id of SCHEME_IDS) {
     const schemeFile = join(schemesDir, `${id}.json`);
     if (!existsSync(schemeFile)) {
       throw new Error(`Required upstream scheme file missing: ${schemeFile}`);
@@ -267,7 +267,7 @@ export function buildPalettesCss(snapshot = loadSnapshot()) {
 
   const achromaticHexes = new Set(snapshot.achromatic.map((a) => a.hex.toUpperCase()));
 
-  for (const id of QUALITATIVE_IDS) {
+  for (const id of SCHEME_IDS) {
     const s = snapshot.schemes[id];
     const pfx = SCHEME_PREFIX[id];
     s.colors.forEach((c, i) => {

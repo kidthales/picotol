@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `TolSchemeKind` (`'qualitative' | 'diverging' | 'sequential'`), `TolSchemeId`, and backward-compatible aliases `TolPaletteData` and `TolQualitativeSchemeId` to `@kidthales/picotol/palette-data` declarations (#219).
+- Documented Dr. Paul Tol's SRON/EPS/TN/09-002 guidance on cross-scheme mixing and explained the WCAG 2.2 AA monotonic lightness progression justifying cross-scheme accent ladder composition in `README.md` (#219).
+
 ### Changed
 - Standardized toast activation on the `.show` class (`visibility: visible; transition-delay: 0s;`) and documented live-region (`role="status"`, `role="alert"`, `aria-live`) and `aria-hidden` state pairing (#220).
 - Made pure CSS tooltips (`[data-tooltip]`) hoverable (partial WCAG 2.1 SC 1.4.13: *Hoverable* & *Persistent*) with `pointer-events: auto` on `::before` and a centered `min(16rem, 80vw)` by `0.375rem` `::after` hover bridge spanning the trigger-to-bubble overhang and gap, and documented `aria-describedby` pairing, pure-CSS `Escape` dismissal limits, unsupported host `::before`/`::after` collisions, hit-testing/clipping caveats, and the Nov 2026 `interestfor` evaluation (#220).
@@ -17,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deprecated `.toast[aria-hidden="false"]` as a standalone toast activation selector in favor of `.toast.show`; retained as a compatibility alias scheduled for removal in v0.7.0 (#220).
 
 ### Fixed
+- Corrected scheme kind declarations and type scoping in `@kidthales/picotol/palette-data` to accurately reflect the 10 bundled Paul Tol schemes (8 qualitative, 1 diverging `prgn`, 1 sequential `ylorbr`) without breaking legacy consumers (#219).
 - Scoped `[hidden]` with `:not([hidden="until-found" i])` to preserve search-in-page `until-found` reveal styling, and scoped `fieldset[disabled]` to direct non-legend children (`fieldset[disabled] > :not(legend)`) and exempt nested `fieldset[disabled] *` controls from `[disabled]` to prevent double-compounding opacity and preserve interactive legend toggles (#218).
 - Replaced hard-coded z-index values (98, 99, 100, 999, 9999) with `--pt-z-*` design tokens (`--pt-z-backdrop`, `--pt-z-tooltip`, `--pt-z-dropdown`, `--pt-z-modal`, `--pt-z-toast`, `--pt-z-skip-link`), decoupling toast (`9990`) and skip-link (`10000`) z-indices (#218).
 - Excluded slide-over sheet drawers explicitly from dialog modal constraints (`:where(dialog:not(.sheet, .sheet-right, .sheet-left))` and `&:where(:not(.sheet, .sheet-right, .sheet-left)):has(> article)`) to eliminate source order reliance and preserve base specificity, transitioned `dialog > article` to dynamic viewport units (`90dvh`), styled `[role="switch"][aria-checked="true"]` across standard and forced-colors modes with `padding: 0` reset for `<button role="switch">`, guarded `[data-tooltip]` against `aria-busy="true"`, deduplicated the tight density selector, and normalized section numbering in `components.css` (#218).
