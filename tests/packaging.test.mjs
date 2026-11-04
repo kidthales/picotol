@@ -323,7 +323,7 @@ describe("Packaging & npm Distribution Metadata", () => {
     const configYml = fs.readFileSync(configYmlPath, "utf8");
     assert.ok(configYml.includes("blank_issues_enabled: false"), "Must disable blank issues");
     assert.ok(configYml.includes("discussions"), "Must link to GitHub Discussions");
-    assert.ok(configYml.includes("https://kidthales.github.io/picotol/"), "Must link to interactive showcase");
+    assert.ok(configYml.includes("https://picotol.kidthales.com/"), "Must link to interactive showcase");
 
     const readme = getReadme();
     assert.ok(readme.includes("actions/workflows/ci.yml/badge.svg"), "README must include GitHub Actions CI status badge");
@@ -331,7 +331,40 @@ describe("Packaging & npm Distribution Metadata", () => {
     assert.ok(readme.includes("img.shields.io/badge/License-MIT"), "README must include MIT License badge");
     assert.ok(readme.includes("img.shields.io/badge/bundle%20size"), "README must include LightningCSS minified bundle size badge");
     assert.ok(readme.includes("img.shields.io/badge/WCAG%202.2"), "README must include WCAG 2.2 AA / AAA badge");
-    assert.ok(readme.includes("https://kidthales.github.io/picotol/"), "README must link to interactive demo showcase");
+    assert.ok(readme.includes("https://picotol.kidthales.com/"), "README must link to interactive demo showcase");
+    assert.ok(readme.includes("## Table of Contents"), "README must include Table of Contents");
+
+    // Verify all Table of Contents anchor slugs resolve to headings in README.md
+    const tocSectionMatch = readme.match(/## Table of Contents\r?\n\r?\n([\s\S]*?)\r?\n---/);
+    assert.ok(tocSectionMatch, "README must contain formatted Table of Contents block");
+    const linkRe = /\[([^\]]+)\]\(#([^\)]+)\)/g;
+    const tocAnchors = [];
+    let match;
+    while ((match = linkRe.exec(tocSectionMatch[1])) !== null) {
+      tocAnchors.push({ label: match[1], slug: match[2] });
+    }
+    assert.ok(tocAnchors.length >= 10, "Table of Contents must contain at least 10 section links");
+
+    const headingSlugs = readme
+      .split(/\r?\n/)
+      .filter((line) => /^#{1,6}\s+/.test(line))
+      .map((line) =>
+        line
+          .replace(/^#+\s+/, "")
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/\s/g, "-")
+      );
+
+    for (const { label, slug } of tocAnchors) {
+      assert.ok(
+        headingSlugs.includes(slug),
+        `Table of Contents link "${label}" (#${slug}) must resolve to a valid heading in README.md`
+      );
+    }
+
+    assert.ok(readme.includes("## Browser Support"), "README must include Browser Support section");
     assert.ok(readme.includes("## Citation & Academic Attribution"), "README must document citation guidelines");
     assert.ok(readme.includes("CITATION.cff"), "README citation guidelines must reference CITATION.cff");
     assert.ok(readme.includes("SRON/EPS/TN/09-002"), "README citation guidelines must reference Paul Tol's technical report");

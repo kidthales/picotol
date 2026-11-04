@@ -69,7 +69,7 @@ Fifth public open-source pre-release of `@kidthales/picotol`. For detailed narra
 ### Added
 - Automated bundle size and compression budget auditor (`tools/check-budgets.mjs` / `npm run check:budgets`) enforcing raw, minified, gzip (level 9), and brotli (quality 11) byte ceilings across all 6 CSS distribution bundles (#167).
 - Automated `README.md` budget synchronization checks and `$GITHUB_STEP_SUMMARY` Markdown table reporting in CI (#167).
-- Gate 5 (`npm run check:budgets`) in `scripts/ci-local.ps1` and `.github/workflows/ci.yml` for 5-gate local and remote CI parity (#167).
+- Gate 4 (`npm run check:budgets` in `npm test`) in `scripts/ci-local.ps1` and `.github/workflows/ci.yml` for 4-gate local and remote CI parity (#167).
 - Standalone offline bundle packaging producing `dist/assets/picotol-v0.4.1.zip`.
 
 ### Changed

@@ -7,7 +7,27 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-44AA99.svg)](LICENSE)
 [![Bundle Size](https://img.shields.io/badge/bundle%20size-%E2%89%A4%2040%20KB%20min%20%7C%20%E2%89%A4%209%20KB%20gzip-117733.svg)](dist/sri.json)
 [![WCAG 2.2 AA / AAA](https://img.shields.io/badge/WCAG%202.2-AA%20%2F%20AAA-88CCEE.svg)](tests/picotol.test.mjs)
-[![Interactive Demo](https://img.shields.io/badge/demo-interactive%20showcase-AA4499.svg)](https://kidthales.github.io/picotol/)
+[![Interactive Demo](https://img.shields.io/badge/demo-interactive%20showcase-AA4499.svg)](https://picotol.kidthales.com/)
+
+---
+
+## Table of Contents
+
+- [Why `@kidthales/picotol`?](#why-kidthalespicotol)
+- [Quick Start](#quick-start)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Runtime Theme & Accent Switching](#3-runtime-theme--accent-switching)
+- [Browser Support](#browser-support)
+- [Architecture & Cascade Layers](#architecture--cascade-layers)
+- [Screen Reader & Non-Visual UX Patterns](#screen-reader--non-visual-ux-patterns)
+- [Using with CSS Cascade Layers](#using-with-css-cascade-layers)
+- [Accessible Typography & Font Integration](#accessible-typography--font-integration)
+- [Dashboard Fixtures, Universal Icons & Skeletons](#dashboard-fixtures-universal-icons--skeletons)
+- [Development & Verification](#development--verification)
+- [Community & Governance](#community--governance)
+- [Citation & Academic Attribution](#citation--academic-attribution)
+- [Attribution & License](#attribution--license)
 
 ---
 
@@ -105,7 +125,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.0/dist/picotol.min.css" integrity="sha384-hBULhyGQD4QkhixJ7n4U2w4h/hRjip//OEaG8qx1JLifZuXfUxOAo2K9zSgkVNAi" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.0/dist/picotol.min.css" integrity="sha384-EbJ4EnuzYk6UkLUN7eNEVsQhn2TUM9FgetO+Ua71rfxcRq7I9o66uwCL3lI2tze/" crossorigin="anonymous" />
 ```
 
 ---
@@ -147,7 +167,7 @@ import "@kidthales/picotol/palettes";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol/dist/picotol.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.0/dist/picotol.min.css" integrity="sha384-EbJ4EnuzYk6UkLUN7eNEVsQhn2TUM9FgetO+Ua71rfxcRq7I9o66uwCL3lI2tze/" crossorigin="anonymous" />
     <title>Semantic HTML with Paul Tol Colors</title>
   </head>
   <body>
@@ -204,6 +224,21 @@ To preserve empirical Tol purity while meeting strict contrast thresholds, `pico
 - **`magenta`**: Composed from qualitative `pale`, `light`, `dark` (stops 8, 4), and `muted` (`wine`).
 
 Every stop is an authentic, lab-measured Paul Tol hex code stepping monotonically in relative luminance.
+
+---
+
+## Browser Support
+
+`@kidthales/picotol` is bundled and AST-minified using [LightningCSS](https://lightningcss.dev/) with explicit target compilation for modern evergreen browsers. Vendor prefixes are stripped (`exclude: Features.VendorPrefixes`) in favor of standard, native CSS platform features:
+
+| Browser | Minimum Version | Baseline Requirements & Features |
+| :--- | :--- | :--- |
+| **Google Chrome** / Chromium | 130+ | `@layer`, `light-dark()`, `color-mix()`, native CSS Nesting, `:has()` |
+| **Mozilla Firefox** | 130+ | `@layer`, `light-dark()`, `color-mix()`, native CSS Nesting, `:has()` |
+| **Apple Safari** (macOS & iOS) | 18+ | `@layer`, `light-dark()`, `color-mix()`, native CSS Nesting, `:has()` |
+| **Microsoft Edge** | 130+ | Full Chromium engine parity |
+
+No JavaScript runtime, polyfills, or build steps are required downstream. Browsers meeting this modern baseline render the complete design system natively.
 
 ---
 
@@ -317,7 +352,7 @@ Downstream consumers can hook directly into specific sublayers without battling 
 <style>
   @layer picotol, app-theme, app-components, app-utilities;
 </style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol/dist/picotol.layer.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.0/dist/picotol.layer.min.css" integrity="sha384-o1xIPZsoozIToJFpoTR7E+98wTIV614zIfAwWfOPu2biFMxFK+AbNAkFKad+t/5r" crossorigin="anonymous" />
 <link rel="stylesheet" href="/css/theme.css" layer="app-theme" />
 <link rel="stylesheet" href="/css/components.css" layer="app-components" />
 <link rel="stylesheet" href="/css/utilities.css" layer="app-utilities" />

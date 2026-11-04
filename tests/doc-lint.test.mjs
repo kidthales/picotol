@@ -9,6 +9,10 @@ import {
   extractTokensFromMarkdown,
   tokenExistsInCss,
   validateDocTokens,
+  validateDocCdn,
+  extractCdnUrlsFromMarkdown,
+  isCdnUrlPinned,
+  extractCdnLinkTags,
 } from './helpers/doc-lint.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -320,4 +324,106 @@ test('doc-lint: TEMPORARY_ALLOWLIST must remain empty following Issue #200 and h
       `Allowlisted token "${token}" in ${file} expected exact count ${count}, found ${actualCount}! Update or remove stale entry from TEMPORARY_ALLOWLIST.`
     );
   }
+});
+
+test('doc-lint: validate CDN examples in README.md and current release notes are version-pinned with integrity from dist/sri.json (Issue #225)', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  const currentVersion = pkg.version;
+  const sri = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist/sri.json'), 'utf8'));
+
+  // 1. Validate README.md CDN examples
+  const readmeContent = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const readmeCdnUrls = extractCdnUrlsFromMarkdown(readmeContent);
+  assert.ok(readmeCdnUrls.length >= 3, 'README.md must contain CDN examples');
+  const readmeCdnErrors = validateDocCdn(readmeContent, sri, 'README.md', true);
+  assert.deepEqual(readmeCdnErrors, [], `README.md CDN validation errors: ${readmeCdnErrors.join(', ')}`);
+
+  // 2. Validate current release notes CDN examples
+  const currentReleaseNoteFile = `RELEASE_NOTES_V${currentVersion.replaceAll('.', '_')}.md`;
+  const currentReleaseNotePath = path.join(ROOT, 'docs', currentReleaseNoteFile);
+  const currentNoteContent = fs.readFileSync(currentReleaseNotePath, 'utf8');
+  const currentNoteErrors = validateDocCdn(currentNoteContent, sri, `docs/${currentReleaseNoteFile}`, true);
+  assert.deepEqual(currentNoteErrors, [], `Current release notes CDN validation errors: ${currentNoteErrors.join(', ')}`);
+
+  // 3. Validate all other release notes CDN URLs are version-pinned (zero unpinned CDN URLs across all docs)
+  const releaseNoteFiles = fs
+    .readdirSync(path.join(ROOT, 'docs'))
+    .filter((f) => /^RELEASE_NOTES_.*\.md$/.test(f))
+    .sort();
+
+  for (const file of releaseNoteFiles) {
+    const relPath = `docs/${file}`;
+    const noteContent = fs.readFileSync(path.join(ROOT, 'docs', file), 'utf8');
+    const noteErrors = validateDocCdn(noteContent, null, relPath, false);
+    assert.deepEqual(noteErrors, [], `${relPath} CDN URL errors: ${noteErrors.join(', ')}`);
+  }
+});
+
+test('doc-lint: negative tests: unpinned CDN URLs, missing integrity, and mismatched integrity fail closed (Issue #225)', () => {
+  const sri = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist/sri.json'), 'utf8'));
+
+  // 1. Unpinned CDN URL in doc markdown fails doc-lint
+  const unpinnedSnippet = '<link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol/dist/picotol.min.css" />';
+  const unpinnedErrors = validateDocCdn(unpinnedSnippet, sri, 'test.md', true);
+  assert.ok(
+    unpinnedErrors.some((e) => e.includes('Unpinned CDN URL found') && e.includes('https://unpkg.com/@kidthales/picotol/dist/picotol.min.css')),
+    `Expected unpinned CDN URL error, got: ${unpinnedErrors.join('; ')}`
+  );
+
+  // 2. Unpinned jsdelivr URL fails doc-lint
+  const unpinnedJsdelivr = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol/dist/picotol.layer.min.css" />';
+  const unpinnedJsdelivrErrors = validateDocCdn(unpinnedJsdelivr, sri, 'test.md', true);
+  assert.ok(
+    unpinnedJsdelivrErrors.some((e) => e.includes('Unpinned CDN URL found')),
+    `Expected unpinned jsdelivr URL error, got: ${unpinnedJsdelivrErrors.join('; ')}`
+  );
+
+  // 3. Missing integrity attribute fails doc-lint
+  const missingIntegrity = `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@${sri.version}/dist/picotol.min.css" crossorigin="anonymous" />`;
+  const missingIntegrityErrors = validateDocCdn(missingIntegrity, sri, 'test.md', true);
+  assert.ok(
+    missingIntegrityErrors.some((e) => e.includes('lacks integrity attribute')),
+    `Expected missing integrity error, got: ${missingIntegrityErrors.join('; ')}`
+  );
+
+  // 4. Missing crossorigin="anonymous" fails doc-lint
+  const missingCrossorigin = `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@${sri.version}/dist/picotol.min.css" integrity="${sri.files['dist/picotol.min.css'].integrity}" />`;
+  const missingCrossoriginErrors = validateDocCdn(missingCrossorigin, sri, 'test.md', true);
+  assert.ok(
+    missingCrossoriginErrors.some((e) => e.includes('lacks crossorigin="anonymous"')),
+    `Expected missing crossorigin error, got: ${missingCrossoriginErrors.join('; ')}`
+  );
+
+  // 5. Mismatched integrity attribute against sri.json fails doc-lint
+  const wrongIntegrity = `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@${sri.version}/dist/picotol.min.css" integrity="sha384-WRONG_HASH" crossorigin="anonymous" />`;
+  const wrongIntegrityErrors = validateDocCdn(wrongIntegrity, sri, 'test.md', true);
+  assert.ok(
+    wrongIntegrityErrors.some((e) => e.includes('integrity mismatch for "dist/picotol.min.css"')),
+    `Expected integrity mismatch error, got: ${wrongIntegrityErrors.join('; ')}`
+  );
+
+  // 6. Stale/mismatched version against sri.json fails doc-lint (fails closed against version drift)
+  const staleVersionSnippet = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.4.1/dist/picotol.min.css" integrity="sha384-EbJ4EnuzYk6UkLUN7eNEVsQhn2TUM9FgetO+Ua71rfxcRq7I9o66uwCL3lI2tze/" crossorigin="anonymous" />';
+  const staleVersionErrors = validateDocCdn(staleVersionSnippet, sri, 'test.md', true);
+  assert.ok(
+    staleVersionErrors.some((e) => e.includes('CDN <link> version mismatch for "dist/picotol.min.css"')),
+    `Expected version mismatch error, got: ${staleVersionErrors.join('; ')}`
+  );
+
+  // 7. Unknown bundle path against sri.json fails doc-lint
+  const unknownBundleSnippet = `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@${sri.version}/dist/picotol.unknown.min.css" integrity="sha384-someHash" crossorigin="anonymous" />`;
+  const unknownBundleErrors = validateDocCdn(unknownBundleSnippet, sri, 'test.md', true);
+  assert.ok(
+    unknownBundleErrors.some((e) => e.includes('references unknown bundle path in sri.json: "dist/picotol.unknown.min.css"')),
+    `Expected unknown bundle path error, got: ${unknownBundleErrors.join('; ')}`
+  );
+
+  // 8. Backtick-wrapped CDN URL parses clean URL without trailing backtick
+  const backtickMarkdown = 'Use `https://unpkg.com/@kidthales/picotol@0.5.0/dist/picotol.min.css` in your project.';
+  const extractedUrls = extractCdnUrlsFromMarkdown(backtickMarkdown);
+  assert.deepEqual(
+    extractedUrls,
+    ['https://unpkg.com/@kidthales/picotol@0.5.0/dist/picotol.min.css'],
+    'Must parse URL cleanly without trailing backtick'
+  );
 });

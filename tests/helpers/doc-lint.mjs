@@ -210,3 +210,92 @@ export function validateDocTokens(content, distCss, file = '', allowlistOrFn = [
   }
   return { tokens, missing, counts };
 }
+
+export function extractCdnUrlsFromMarkdown(content) {
+  const cdnUrlRe = /https?:\/\/(?:cdn\.jsdelivr\.net\/npm|unpkg\.com)\/@kidthales\/picotol(?:@[^\/\s"'`>\)]+)?(?:\/[^\s"'`>\)]*)?/g;
+  const urls = [];
+  let match;
+  while ((match = cdnUrlRe.exec(content)) !== null) {
+    urls.push(match[0]);
+  }
+  return urls;
+}
+
+export function isCdnUrlPinned(url) {
+  return /@kidthales\/picotol@\d+\.\d+\.\d+/.test(url);
+}
+
+export function extractCdnLinkTags(content) {
+  const linkTagRe = /<link\b([^>]*\b(?:cdn\.jsdelivr\.net\/npm|unpkg\.com)\/@kidthales\/picotol[^>]*)>/gi;
+  const links = [];
+  let match;
+  while ((match = linkTagRe.exec(content)) !== null) {
+    const rawTag = match[0];
+    const attrs = match[1];
+
+    const hrefMatch = attrs.match(/\bhref\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
+    const href = hrefMatch ? (hrefMatch[1] ?? hrefMatch[2] ?? hrefMatch[3]) : '';
+
+    const integrityMatch = attrs.match(/\bintegrity\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
+    const integrity = integrityMatch ? (integrityMatch[1] ?? integrityMatch[2] ?? integrityMatch[3]) : '';
+
+    const crossoriginMatch = attrs.match(/\bcrossorigin\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
+    const crossorigin = crossoriginMatch ? (crossoriginMatch[1] ?? crossoriginMatch[2] ?? crossoriginMatch[3]) : '';
+
+    links.push({
+      rawTag,
+      href,
+      integrity,
+      crossorigin,
+    });
+  }
+  return links;
+}
+
+export function validateDocCdn(content, sriManifest = null, file = '', requireIntegrity = true) {
+  const errors = [];
+  const cdnUrls = extractCdnUrlsFromMarkdown(content);
+
+  for (const url of cdnUrls) {
+    if (!isCdnUrlPinned(url)) {
+      errors.push(`[${file}] Unpinned CDN URL found: "${url}" (must specify explicit pinned version, e.g. @0.5.0)`);
+    }
+  }
+
+  const linkTags = extractCdnLinkTags(content);
+  for (const link of linkTags) {
+    if (requireIntegrity) {
+      if (!link.integrity) {
+        errors.push(`[${file}] CDN <link> example lacks integrity attribute: ${link.rawTag}`);
+      }
+      if (!link.crossorigin || link.crossorigin !== 'anonymous') {
+        errors.push(`[${file}] CDN <link> example lacks crossorigin="anonymous": ${link.rawTag}`);
+      }
+    }
+
+    if (sriManifest && sriManifest.files && link.href) {
+      const versionMatch = link.href.match(/@kidthales\/picotol@([0-9]+\.[0-9]+\.[0-9]+[^\/]*)\/(dist\/[^\s"'?#]+)/);
+      if (versionMatch) {
+        const [, ver, bundlePath] = versionMatch;
+        if (ver !== sriManifest.version) {
+          errors.push(
+            `[${file}] CDN <link> version mismatch for "${bundlePath}": expected "@${sriManifest.version}", found "@${ver}"`
+          );
+        } else if (!sriManifest.files[bundlePath]) {
+          errors.push(
+            `[${file}] CDN <link> references unknown bundle path in sri.json: "${bundlePath}"`
+          );
+        } else {
+          const expectedIntegrity = sriManifest.files[bundlePath].integrity;
+          if (link.integrity && link.integrity !== expectedIntegrity) {
+            errors.push(
+              `[${file}] CDN <link> integrity mismatch for "${bundlePath}": expected "${expectedIntegrity}", found "${link.integrity}"`
+            );
+          }
+        }
+      }
+    }
+  }
+
+  return errors;
+}
