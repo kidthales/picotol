@@ -1,6 +1,6 @@
 # Release Notes — `@kidthales/picotol` v0.4.1 (Pre-release)
 
-Fifth public open-source pre-release of `@kidthales/picotol`, introducing an automated bundle size and compression budget auditor across all 6 CSS distribution bundles, synchronized README documentation and badge boundaries, and 5-gate CI parity across GitHub Actions and local verification.
+Fifth public open-source pre-release of `@kidthales/picotol`, introducing an automated bundle size and compression budget auditor across all 6 CSS distribution bundles, synchronized README documentation and badge boundaries, and 4-gate CI parity across GitHub Actions and local verification.
 
 > [!NOTE]
 > **SemVer 2.0.0 Pre-release**: In accordance with SemVer 2.0.0 §4, versions in the `0.y.z` range represent initial development releases with evolving APIs. True stable major releases commence at `v1.0.0`.

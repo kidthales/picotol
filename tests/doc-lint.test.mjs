@@ -401,4 +401,29 @@ test('doc-lint: negative tests: unpinned CDN URLs, missing integrity, and mismat
     wrongIntegrityErrors.some((e) => e.includes('integrity mismatch for "dist/picotol.min.css"')),
     `Expected integrity mismatch error, got: ${wrongIntegrityErrors.join('; ')}`
   );
+
+  // 6. Stale/mismatched version against sri.json fails doc-lint (fails closed against version drift)
+  const staleVersionSnippet = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.4.1/dist/picotol.min.css" integrity="sha384-EbJ4EnuzYk6UkLUN7eNEVsQhn2TUM9FgetO+Ua71rfxcRq7I9o66uwCL3lI2tze/" crossorigin="anonymous" />';
+  const staleVersionErrors = validateDocCdn(staleVersionSnippet, sri, 'test.md', true);
+  assert.ok(
+    staleVersionErrors.some((e) => e.includes('CDN <link> version mismatch for "dist/picotol.min.css"')),
+    `Expected version mismatch error, got: ${staleVersionErrors.join('; ')}`
+  );
+
+  // 7. Unknown bundle path against sri.json fails doc-lint
+  const unknownBundleSnippet = `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@${sri.version}/dist/picotol.unknown.min.css" integrity="sha384-someHash" crossorigin="anonymous" />`;
+  const unknownBundleErrors = validateDocCdn(unknownBundleSnippet, sri, 'test.md', true);
+  assert.ok(
+    unknownBundleErrors.some((e) => e.includes('references unknown bundle path in sri.json: "dist/picotol.unknown.min.css"')),
+    `Expected unknown bundle path error, got: ${unknownBundleErrors.join('; ')}`
+  );
+
+  // 8. Backtick-wrapped CDN URL parses clean URL without trailing backtick
+  const backtickMarkdown = 'Use `https://unpkg.com/@kidthales/picotol@0.5.0/dist/picotol.min.css` in your project.';
+  const extractedUrls = extractCdnUrlsFromMarkdown(backtickMarkdown);
+  assert.deepEqual(
+    extractedUrls,
+    ['https://unpkg.com/@kidthales/picotol@0.5.0/dist/picotol.min.css'],
+    'Must parse URL cleanly without trailing backtick'
+  );
 });

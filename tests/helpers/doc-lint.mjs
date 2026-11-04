@@ -212,7 +212,7 @@ export function validateDocTokens(content, distCss, file = '', allowlistOrFn = [
 }
 
 export function extractCdnUrlsFromMarkdown(content) {
-  const cdnUrlRe = /https?:\/\/(?:cdn\.jsdelivr\.net\/npm|unpkg\.com)\/@kidthales\/picotol(?:\@[^\/\s"'>\)]+)?(?:\/[^\s"'>\)]*)?/g;
+  const cdnUrlRe = /https?:\/\/(?:cdn\.jsdelivr\.net\/npm|unpkg\.com)\/@kidthales\/picotol(?:@[^\/\s"'`>\)]+)?(?:\/[^\s"'`>\)]*)?/g;
   const urls = [];
   let match;
   while ((match = cdnUrlRe.exec(content)) !== null) {
@@ -277,7 +277,15 @@ export function validateDocCdn(content, sriManifest = null, file = '', requireIn
       const versionMatch = link.href.match(/@kidthales\/picotol@([0-9]+\.[0-9]+\.[0-9]+[^\/]*)\/(dist\/[^\s"'?#]+)/);
       if (versionMatch) {
         const [, ver, bundlePath] = versionMatch;
-        if (ver === sriManifest.version && sriManifest.files[bundlePath]) {
+        if (ver !== sriManifest.version) {
+          errors.push(
+            `[${file}] CDN <link> version mismatch for "${bundlePath}": expected "@${sriManifest.version}", found "@${ver}"`
+          );
+        } else if (!sriManifest.files[bundlePath]) {
+          errors.push(
+            `[${file}] CDN <link> references unknown bundle path in sri.json: "${bundlePath}"`
+          );
+        } else {
           const expectedIntegrity = sriManifest.files[bundlePath].integrity;
           if (link.integrity && link.integrity !== expectedIntegrity) {
             errors.push(
