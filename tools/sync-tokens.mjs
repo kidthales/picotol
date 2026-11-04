@@ -1,4 +1,4 @@
-// Synchronizes the 8 Paul Tol qualitative schemes + canonical achromatic stops
+// Synchronizes the 10 Paul Tol schemes (8 qualitative, 1 diverging, 1 sequential) + canonical achromatic stops
 // from committed data/tol-qualitative.json into src/tokens.css + src/palettes.css.
 // Refreshing data/tol-qualitative.json from upstream tol-palettes requires explicit
 // invocation via npm run sync:upstream -- --upstream <path>.
@@ -11,7 +11,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dataDir = join(root, 'data');
 const snapshotPath = join(dataDir, 'tol-qualitative.json');
 
-const QUALITATIVE_IDS = [
+const SCHEME_IDS = [
   'bright',
   'dark',
   'high-contrast',
@@ -76,7 +76,7 @@ export function refreshFromUpstream(rawUpstreamPath, opts = {}) {
   const schemes = {};
   const allowedHexSet = new Set();
 
-  for (const id of QUALITATIVE_IDS) {
+  for (const id of SCHEME_IDS) {
     const schemeFile = join(schemesDir, `${id}.json`);
     if (!existsSync(schemeFile)) {
       throw new Error(`Required upstream scheme file missing: ${schemeFile}`);
@@ -267,7 +267,7 @@ export function buildPalettesCss(snapshot = loadSnapshot()) {
 
   const achromaticHexes = new Set(snapshot.achromatic.map((a) => a.hex.toUpperCase()));
 
-  for (const id of QUALITATIVE_IDS) {
+  for (const id of SCHEME_IDS) {
     const s = snapshot.schemes[id];
     const pfx = SCHEME_PREFIX[id];
     s.colors.forEach((c, i) => {
@@ -361,7 +361,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   } else {
     try {
       const { snapshot } = syncTokens();
-      console.log(`Synced ${Object.keys(snapshot.schemes).length} Paul Tol qualitative schemes -> src/tokens.css & src/palettes.css`);
+      console.log(`Synced ${Object.keys(snapshot.schemes).length} Paul Tol schemes -> src/tokens.css & src/palettes.css`);
     } catch (err) {
       console.error(`Error: ${err.message}`);
       process.exit(1);

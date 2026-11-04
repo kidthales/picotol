@@ -1,10 +1,12 @@
 /**
- * @kidthales/picotol qualitative palette data declarations
+ * @kidthales/picotol palette data declarations
  *
  * Provides type definitions and default export matching data/tol-qualitative.json.
+ * Covers 10 Paul Tol schemes (8 qualitative, 1 diverging, 1 sequential)
+ * plus canonical achromatic stops.
  */
 
-export type TolQualitativeSchemeId =
+export type TolSchemeId =
   | 'bright'
   | 'dark'
   | 'high-contrast'
@@ -15,6 +17,13 @@ export type TolQualitativeSchemeId =
   | 'prgn'
   | 'vibrant'
   | 'ylorbr';
+
+/**
+ * Backward-compatible alias for the 10 bundled Paul Tol scheme identifiers.
+ */
+export type TolQualitativeSchemeId = TolSchemeId;
+
+export type TolSchemeKind = 'qualitative' | 'diverging' | 'sequential';
 
 export interface TolColor {
   hex: string;
@@ -28,18 +37,23 @@ export interface TolAchromaticStop {
 }
 
 export interface TolScheme {
-  id: TolQualitativeSchemeId | string;
-  kind: 'qualitative' | string;
+  id: TolSchemeId | (string & {});
+  kind: TolSchemeKind | (string & {});
   colors: TolColor[];
   extras?: TolColor[];
   bad?: string;
 }
 
 export interface TolQualitativeData {
-  schemes: Record<TolQualitativeSchemeId, TolScheme> & Record<string, TolScheme>;
+  schemes: Record<TolSchemeId, TolScheme> & Record<string, TolScheme>;
   achromatic: TolAchromaticStop[];
   allowedHexes: string[];
 }
+
+/**
+ * Backward-compatible alias for TolQualitativeData covering all 10 schemes.
+ */
+export type TolPaletteData = TolQualitativeData;
 
 declare const data: TolQualitativeData;
 export default data;

@@ -17,7 +17,7 @@
 
 `@kidthales/picotol` re-imagines semantic HTML styling from first principles:
 
-- **100% Canonical Paul Tol Palette Purity**: Every hex code in `picotol` is drawn directly from [Paul Tol's qualitative colour schemes](https://github.com/kidthales/tol-palettes) (`bright`, `vibrant`, `high-contrast`, `medium-contrast`, `muted`, `light`, `dark`, `pale`). Zero invented hex codes, zero synthetic HSL/RGB ramps.
+- **100% Canonical Paul Tol Palette Purity**: Every hex code in `picotol` is drawn directly from [Paul Tol's colour schemes](https://github.com/kidthales/tol-palettes) (10 synchronized schemes: 8 qualitative `bright`, `vibrant`, `high-contrast`, `medium-contrast`, `muted`, `light`, `dark`, `pale`; 1 diverging `prgn`; 1 sequential `ylorbr`; plus canonical achromatic stops). Zero invented hex codes, zero synthetic HSL/RGB ramps.
 - **Cross-Scheme Perceptual Lightness Ladder**: Instead of darkening colors with arbitrary math, interactive states (`hover`, `active`, `surface`, `text`) step across Paul Tol's own scientifically calibrated schemes:
   $$\text{pale} \longrightarrow \text{light} \longrightarrow \text{medium-contrast} \longrightarrow \text{bright} \longrightarrow \text{dark} \longrightarrow \text{high-contrast}$$
 - **100% Pure Modern CSS (`@layer` + `light-dark()` + `color-mix()`)**: Zero Sass/SCSS preprocessors. Native CSS `@layer` cascade, runtime `[data-theme="light|dark"]` and `[data-accent="blue|cyan|purple|magenta"]` switching in a **single stylesheet**.
@@ -127,7 +127,7 @@ import "@kidthales/picotol/core";
 // Semantic design tokens (--pt-*)
 import "@kidthales/picotol/tokens";
 
-// Raw Paul Tol qualitative palette constants (--tol-*)
+// Raw Paul Tol palette constants (--tol-*)
 import "@kidthales/picotol/palettes";
 ```
 
@@ -182,6 +182,28 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 
 - **`data-theme`**: `"light"` | `"dark"` (omit to follow OS `prefers-color-scheme`)
 - **`data-accent`**: `"blue"` (default) | `"cyan"` | `"purple"` | `"magenta"` (non-semantic 4-accent suite; `green`, `yellow`, `red` reserved for operational status; `teal`, `indigo` retired for contrast safety)
+
+#### Accent Ladders & Paul Tol Cross-Scheme Calibration
+
+`@kidthales/picotol` structures interactive accent states into 5-step monotonic lightness ladders (`--pt-p1` to `--pt-p5`):
+- `--pt-p1`: Lightest tint (light mode interactive background / dark mode hover text)
+- `--pt-p2`: Subtle tint (light mode hover background / dark mode primary text)
+- `--pt-p3`: Midtone base accent
+- `--pt-p4`: Deep tone (light mode primary text & borders / dark mode interactive background)
+- `--pt-p5`: Darkest tone (light mode hover text & borders / dark mode high-contrast accent)
+
+**Cross-Scheme Calibration vs. Tol Guidance**:
+In SRON Technical Note SRON/EPS/TN/09-002 (*"Colour schemes and templates"*), Dr. Paul Tol counsels against mixing colours from different schemes within scientific data visualizations (charts, scatter plots, maps) to avoid spurious visual groupings or perceived ordering across categorical data.
+
+In web UI systems, however, interactive states (`default`, `hover`, `active`, `focus`) fundamentally require an ordered, monotonic lightness progression to ensure WCAG 2.2 AA ($\ge 4.5:1$ text, $\ge 3:1$ UI components) contrast across `light-dark()` modes. Because Paul Tol's individual qualitative schemes provide at most a single color per hue family, building a 5-step monochromatic ladder within a single qualitative scheme is impossible without synthesizing non-Tol intermediate shades (violating 100% palette purity).
+
+To preserve empirical Tol purity while meeting strict contrast thresholds, `picotol` composes accent ladders across schemes sharing the same hue family:
+- **`blue`**: Composed from qualitative `pale`, `light`, `bright`, `dark`, and `high-contrast`.
+- **`cyan`**: Composed from qualitative `pale`, `light`, `vibrant`, `dark`, and `high-contrast`.
+- **`purple`**: Composed from diverging `PRGn` (purple stops 3, 2, 0) and qualitative `muted` (`purple`, `indigo`).
+- **`magenta`**: Composed from qualitative `pale`, `light`, `dark` (stops 8, 4), and `muted` (`wine`).
+
+Every stop is an authentic, lab-measured Paul Tol hex code stepping monotonically in relative luminance.
 
 ---
 
@@ -752,7 +774,7 @@ The interactive demonstration suite at `dist/demo/index.html` showcases:
 - **Operational Data Tables**: Responsive infrastructure monitor wrapped in `figure:has(> table)` and `.table-container` with `.tabular-nums` alignment, `.status-dot` indicators, and `table.striped`.
 - **Equal-Fill Segmented Controls & Icon Buttons**: View navigators with `flex: 1 1 0` equal distribution and 1:1 square icon buttons (`.btn-icon`, `.icon-btn`).
 - **Interactive Dashboard Console**: Tabpanel switching (`Overview`, `Analytics`, `System Logs`) and segmented time filters (`1H`, `24H`, `7D`, `30D`) with zero-CLS skeleton loading transitions (`.skeleton`).
-- **Paul Tol Canonical Palette Explorer**: Swatch grid of all canonical qualitative colours loaded from `data/tol-qualitative.json` with live search filtering and click-to-copy tokens.
+- **Paul Tol Canonical Palette Explorer**: Swatch grid of all canonical colours loaded from `data/tol-qualitative.json` with live search filtering and click-to-copy tokens.
 
 ---
 
@@ -762,7 +784,7 @@ The interactive demonstration suite at `dist/demo/index.html` showcases:
 # Install zero-vulnerability LightningCSS devDependency
 npm install
 
-# Sync Paul Tol qualitative tokens (if sibling ../tol-palettes is present) and build dist/ + demo + sri.json
+# Sync Paul Tol tokens (if sibling ../tol-palettes is present) and build dist/ + demo + sri.json
 npm run generate
 
 # Run AST CSS & Demo HTML linter
