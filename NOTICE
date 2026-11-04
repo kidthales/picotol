@@ -8,9 +8,9 @@ Paul Tol or Pico CSS.
 -----------------------------------------------
 Colour values (`--tol-*` custom properties) are sourced from:
   - Paul Tol's notes, "Colour schemes and templates"
-    https://sronpersonalpages.nl/~pault/
+    https://personal.sron.nl/~pault/
   - tol_colors.py (version 2022.10)
-    https://sronpersonalpages.nl/~pault/data/tol_colors.py
+    https://personal.sron.nl/~pault/data/tol_colors.py
 
 The name "Paul Tol" is used only to identify the source of the colour values.
 Values derived from tol_colors.py are covered by the 3-Clause BSD License below:

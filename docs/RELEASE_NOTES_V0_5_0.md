@@ -77,13 +77,13 @@ npm install @kidthales/picotol@0.5.0
 
 ```html
 <!-- Core bundle -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.0/dist/picotol.core.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.0/dist/picotol.core.min.css" integrity="sha384-j3kZ9GFKak8qN0KIfMPEwyaIHVbbtiU2oBypP5UiVgT0qOgbw+kkcUIChdXgHBNg" crossorigin="anonymous">
 
 <!-- Full bundle -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.0/dist/picotol.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.0/dist/picotol.min.css" integrity="sha384-EbJ4EnuzYk6UkLUN7eNEVsQhn2TUM9FgetO+Ua71rfxcRq7I9o66uwCL3lI2tze/" crossorigin="anonymous">
 
 <!-- Layered bundle -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.0/dist/picotol.layer.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.0/dist/picotol.layer.min.css" integrity="sha384-o1xIPZsoozIToJFpoTR7E+98wTIV614zIfAwWfOPu2biFMxFK+AbNAkFKad+t/5r" crossorigin="anonymous">
 ```
 
 ### Standalone Offline Bundle & Checksums

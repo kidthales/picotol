@@ -323,7 +323,7 @@ describe("Packaging & npm Distribution Metadata", () => {
     const configYml = fs.readFileSync(configYmlPath, "utf8");
     assert.ok(configYml.includes("blank_issues_enabled: false"), "Must disable blank issues");
     assert.ok(configYml.includes("discussions"), "Must link to GitHub Discussions");
-    assert.ok(configYml.includes("https://kidthales.github.io/picotol/"), "Must link to interactive showcase");
+    assert.ok(configYml.includes("https://picotol.kidthales.com/"), "Must link to interactive showcase");
 
     const readme = getReadme();
     assert.ok(readme.includes("actions/workflows/ci.yml/badge.svg"), "README must include GitHub Actions CI status badge");
@@ -331,7 +331,9 @@ describe("Packaging & npm Distribution Metadata", () => {
     assert.ok(readme.includes("img.shields.io/badge/License-MIT"), "README must include MIT License badge");
     assert.ok(readme.includes("img.shields.io/badge/bundle%20size"), "README must include LightningCSS minified bundle size badge");
     assert.ok(readme.includes("img.shields.io/badge/WCAG%202.2"), "README must include WCAG 2.2 AA / AAA badge");
-    assert.ok(readme.includes("https://kidthales.github.io/picotol/"), "README must link to interactive demo showcase");
+    assert.ok(readme.includes("https://picotol.kidthales.com/"), "README must link to interactive demo showcase");
+    assert.ok(readme.includes("## Table of Contents"), "README must include Table of Contents");
+    assert.ok(readme.includes("## Browser Support"), "README must include Browser Support section");
     assert.ok(readme.includes("## Citation & Academic Attribution"), "README must document citation guidelines");
     assert.ok(readme.includes("CITATION.cff"), "README citation guidelines must reference CITATION.cff");
     assert.ok(readme.includes("SRON/EPS/TN/09-002"), "README citation guidelines must reference Paul Tol's technical report");

@@ -18,8 +18,8 @@ Fifth public open-source pre-release of `@kidthales/picotol`, introducing an aut
 - **Badge & Tier Alignment**: Updated `README.md` bundle size badge (`<= 38 KB min | <= 9 KB gzip`) and Two-Tier Bundle Architecture documentation to match enforced automated budget ceilings.
 - **Documentation Drift Guard**: `tools/check-budgets.mjs` inspects `README.md` directly during every test and CI run to guarantee documented size claims remain synchronized with enforced thresholds.
 
-### 3. Five-Gate Local & Remote CI Parity (#167)
-- **Dedicated Budget Gate**: Added `npm run check:budgets` to `package.json`, `.github/workflows/ci.yml`, and Gate 5 of `scripts/ci-local.ps1`, maintaining 1:1 parity between local pre-push verification and remote GitHub Actions pipelines.
+### 3. Four-Gate Local & Remote CI Parity (#167)
+- **Dedicated Budget Gate**: Added `npm run check:budgets` to `package.json`, `.github/workflows/ci.yml`, and Gate 4 of `scripts/ci-local.ps1`, maintaining 1:1 parity between local pre-push verification and remote GitHub Actions pipelines.
 
 ---
 

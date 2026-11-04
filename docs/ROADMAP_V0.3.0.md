@@ -7,7 +7,7 @@ This roadmap specifies the v0.3.0 enhancements for `@kidthales/picotol`. It opti
 
 ## 2. Work Breakdown Structure
 
-### Phase 1: Fluid Paragraph Measure & Reading Class
+### 2.1 Phase 1: Fluid Paragraph Measure & Reading Class
 * **Target Files**: `src/content.css`, `tests/picotol.test.mjs`, `tools/generate-demo.mjs`
 * **Canonical spec**: `docs/ROADMAP_V0.3.0.md` §2.1
 * **Deliverables**:
@@ -18,7 +18,7 @@ This roadmap specifies the v0.3.0 enhancements for `@kidthales/picotol`. It opti
 
 ---
 
-### Phase 2: Modal Dialog Header Flexbox & Pinned Close Button
+### 2.2 Phase 2: Modal Dialog Header Flexbox & Pinned Close Button
 * **Target Files**: `src/components.css`, `tests/picotol.test.mjs`, `tools/generate-demo.mjs`
 * **Canonical spec**: `docs/ROADMAP_V0.3.0.md` §2.2
 * **Deliverables**:
@@ -36,7 +36,7 @@ This roadmap specifies the v0.3.0 enhancements for `@kidthales/picotol`. It opti
 
 ---
 
-### Phase 3: Non-Semantic 4-Accent Suite & Token Cleansing
+### 2.3 Phase 3: Non-Semantic 4-Accent Suite & Token Cleansing
 * **Target Files**: `tools/sync-tokens.mjs`, `src/tokens.css`, `src/palettes.css`, `tools/generate-demo.mjs`, `tests/picotol.test.mjs`, `README.md`
 * **Canonical spec**: `docs/ROADMAP_V0.3.0.md` §2.3
 * **Deliverables**:
