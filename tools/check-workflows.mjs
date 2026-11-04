@@ -112,8 +112,14 @@ export function auditWorkflows(rootDir = ROOT) {
         // Uses: action pin check
         if (typeof step.uses === 'string') {
           const actionRef = step.uses.trim();
-          if (actionRef.startsWith('./') || actionRef.startsWith('$')) {
-            if (!/^(\.|\$)\/\.github\/actions\/[a-zA-Z0-9._-]+(\/[a-zA-Z0-9._-]+)*$/.test(actionRef) || actionRef.includes('..') || actionRef.includes('@')) {
+          if (actionRef.startsWith('.') || actionRef.startsWith('$')) {
+            const segments = actionRef.split('/');
+            if (
+              !/^(\.|\$)\/\.github\/actions\/[a-zA-Z0-9._-]+(\/[a-zA-Z0-9._-]+)*$/.test(actionRef) ||
+              segments.slice(1).some((seg) => seg === '.' || seg === '..') ||
+              actionRef.includes('..') ||
+              actionRef.includes('@')
+            ) {
               errors.push(`${file} step action '${actionRef}' is not a valid canonical local action path.`);
             }
           } else {

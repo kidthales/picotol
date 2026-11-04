@@ -1059,6 +1059,8 @@ jobs:
       - uses: $/../evil
       - uses: $invalid/action
       - uses: $/.github/actions/foo@unpinned
+      - uses: ./.github/actions/.
+      - uses: ../.github/actions/foo
 `,
   }, (tempRoot) => {
     const errs = auditWorkflows(tempRoot);
@@ -1066,6 +1068,8 @@ jobs:
     assert.ok(errs.some((e) => e.includes("step action '$/../evil' is not a valid canonical local action path")));
     assert.ok(errs.some((e) => e.includes("step action '$invalid/action' is not a valid canonical local action path")));
     assert.ok(errs.some((e) => e.includes("step action '$/.github/actions/foo@unpinned' is not a valid canonical local action path")));
+    assert.ok(errs.some((e) => e.includes("step action './.github/actions/.' is not a valid canonical local action path")));
+    assert.ok(errs.some((e) => e.includes("step action '../.github/actions/foo' is not a valid canonical local action path")));
   });
 
   // 17. Negative test: release.yml actions/setup-node steps omitting package-manager-cache: false are rejected
@@ -1106,11 +1110,17 @@ jobs:
   publish-gpr:
     needs: [verify]
     runs-on: ubuntu-latest
-    steps: []
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
   attach-assets:
     needs: [verify]
     runs-on: ubuntu-latest
-    steps: []
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
   notify:
     runs-on: ubuntu-latest
     steps:
@@ -1122,6 +1132,8 @@ jobs:
     assert.ok(errs.some((e) => e.includes("release.yml tag-guard job actions/setup-node step must set 'package-manager-cache: false'.")));
     assert.ok(errs.some((e) => e.includes("release.yml publish-npm job actions/setup-node step must set 'package-manager-cache: false'.")));
     assert.ok(errs.some((e) => e.includes("release.yml publish-npm job must not use shared npm cache.")));
+    assert.ok(errs.some((e) => e.includes("release.yml publish-gpr job actions/setup-node step must set 'package-manager-cache: false'.")));
+    assert.ok(errs.some((e) => e.includes("release.yml attach-assets job actions/setup-node step must set 'package-manager-cache: false'.")));
   });
 });
 });

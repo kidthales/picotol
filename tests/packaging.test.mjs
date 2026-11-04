@@ -904,7 +904,7 @@ describe("GitHub Actions CI and Release Workflows", () => {
     );
     assert.match(
       releaseParsed.jobs.verify,
-      /^ {4}uses:\s*(\.|\$)\/\.github\/workflows\/ci\.yml\s*$/m,
+      /^ {4}uses:\s*\$\/\.github\/workflows\/ci\.yml\s*$/m,
       "release.yml verify job must delegate to ci.yml"
     );
     assert.match(
@@ -959,7 +959,7 @@ describe("GitHub Actions CI and Release Workflows", () => {
       "pages.yml verify job must not grant unauthorized write permissions"
     );
 
-    assert.match(pagesParsed.jobs.verify, /^ {4}uses:\s*(\.|\$)\/\.github\/workflows\/ci\.yml\s*$/m, "pages.yml verify job must delegate to ci.yml");
+    assert.match(pagesParsed.jobs.verify, /^ {4}uses:\s*\$\/\.github\/workflows\/ci\.yml\s*$/m, "pages.yml verify job must delegate to ci.yml");
     assert.match(pagesParsed.jobs.build, /^ {4}needs:\s*\[verify\]\s*$/m, "pages.yml build job must depend on verify");
     assert.match(pagesParsed.jobs.deploy, /^ {4}needs:\s*\[build\]\s*$/m, "pages.yml deploy job must depend on build");
 
