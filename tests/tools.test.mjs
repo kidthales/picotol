@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -86,6 +86,7 @@ function hashDirectoryTree(dirPath) {
   return result;
 }
 
+describe('Linting and Color Utilities', () => {
 test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   // 1. Valid CSS snippet returns zero errors
   const validSnippet = `
@@ -565,7 +566,9 @@ test('tools/lint.mjs: lintDemoHtml matches whole selector tokens (.card not sati
   const compoundCss = 'article.card { color: green; }';
   assert.equal(lintDemoHtml(html, compoundCss, 'fixtures/compound.html').length, 0);
 });
+});
 
+describe('Build Constants and Workflow Auditing', () => {
 test('build constants: named constants for Pico CSS v2.1.1 header and upstream byte count (B5)', () => {
   assert.equal(UPSTREAM_PICO_HEADER_ATTRIBUTION, 'Pico CSS v2.1.1 (MIT)');
   assert.equal(UPSTREAM_PICO_MIN_BYTES, 83319);
@@ -881,7 +884,9 @@ jobs:
     assert.doesNotThrow(() => auditWorkflows(tempRoot));
   });
 });
+});
 
+describe('Token Synchronization and Packaging Assets', () => {
 test('tools/sync-tokens.mjs & tools/path-jail.mjs: deterministic generation, pure path-jail/symlink/dot-dir validation, and isolated syncTokens write path', (t) => {
   const snapshot = loadSnapshot();
   assert.ok(snapshot.schemes, 'Snapshot must contain schemes');
@@ -1739,4 +1744,25 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
   } finally {
     cleanupBuildTest();
   }
+});
+});
+
+describe('Test Suite Integrity and Anti-Tautology Guard', () => {
+  test('Anti-Tautology Guard: all test suites contain zero vacuous includes-OR-includes disjunction assertions (Issue #199)', () => {
+    const testFiles = fs.readdirSync(path.join(ROOT, 'tests'))
+      .filter((f) => f.endsWith('.test.mjs'))
+      .map((f) => path.join(ROOT, 'tests', f));
+    assert.ok(testFiles.length >= 4, 'Must inspect test suite files');
+    for (const file of testFiles) {
+      const source = fs.readFileSync(file, 'utf8');
+      const strippedComments = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, '');
+      const disjunctionRe = /\.includes\([^)]+\)\s*\|\|\s*[^\n;]*\.includes\(/g;
+      const matches = [...strippedComments.matchAll(disjunctionRe)].map((m) => m[0]);
+      assert.deepEqual(
+        matches,
+        [],
+        `${path.basename(file)} must not use vacuous includes-OR-includes disjunction assertions: ${matches.join(' | ')}`
+      );
+    }
+  });
 });
