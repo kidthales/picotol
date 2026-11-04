@@ -336,6 +336,75 @@ describe("Packaging & npm Distribution Metadata", () => {
     assert.ok(readme.includes("CITATION.cff"), "README citation guidelines must reference CITATION.cff");
     assert.ok(readme.includes("SRON/EPS/TN/09-002"), "README citation guidelines must reference Paul Tol's technical report");
   });
+
+  test("Security Policy and Contributing Governance (Issue #226)", () => {
+    // 1. SECURITY.md
+    const secPath = path.join(ROOT, "SECURITY.md");
+    assert.ok(fs.existsSync(secPath), "SECURITY.md must exist in root");
+    const secContent = fs.readFileSync(secPath, "utf8");
+
+    // Supported versions: latest minor (0.5.x) + previous (0.4.x)
+    assert.match(secContent, /0\.5\.x\s*\|\s*:white_check_mark:/, "SECURITY.md must list 0.5.x as supported");
+    assert.match(secContent, /0\.4\.x\s*\|\s*:white_check_mark:/, "SECURITY.md must list 0.4.x as supported");
+    assert.match(secContent, /<\s*0\.4\s*\|\s*:x:/, "SECURITY.md must list versions < 0.4 as unsupported");
+
+    // Response SLA
+    assert.ok(secContent.includes("48 hours"), "SECURITY.md must define an initial acknowledgment SLA");
+    assert.ok(secContent.includes("5 business days"), "SECURITY.md must define a triage/severity assessment SLA");
+    assert.ok(secContent.includes("14 calendar days"), "SECURITY.md must define a critical/high target resolution SLA");
+
+    // Scope
+    assert.ok(secContent.includes("In Scope"), "SECURITY.md must define in-scope vulnerability categories");
+    assert.ok(secContent.includes("Out of Scope"), "SECURITY.md must define out-of-scope vulnerability categories");
+
+    // Reporting channels
+    assert.ok(
+      secContent.includes("https://github.com/kidthales/picotol/security/advisories/new"),
+      "SECURITY.md must link to GitHub Private Vulnerability Reporting"
+    );
+    assert.ok(
+      secContent.includes("security@agogpixel.com"),
+      "SECURITY.md must provide security contact email"
+    );
+    assert.ok(
+      secContent.includes("admin@agogpixel.com"),
+      "SECURITY.md must provide administrative fallback email"
+    );
+
+    // 2. CONTRIBUTING.md
+    const contribPath = path.join(ROOT, "CONTRIBUTING.md");
+    assert.ok(fs.existsSync(contribPath), "CONTRIBUTING.md must exist in root");
+    const contribContent = fs.readFileSync(contribPath, "utf8");
+
+    // Conventional Commits & PR conventions
+    assert.ok(contribContent.includes("Conventional Commits"), "CONTRIBUTING.md must mandate Conventional Commits");
+    assert.ok(contribContent.includes("feat") && contribContent.includes("fix"), "CONTRIBUTING.md must document commit types");
+    assert.ok(contribContent.includes("Draft PR"), "CONTRIBUTING.md must document Draft PR lifecycle");
+
+    // Code of Conduct link
+    assert.match(contribContent, /\[Code of Conduct\]\(CODE_OF_CONDUCT\.md\)/, "CONTRIBUTING.md must link to CODE_OF_CONDUCT.md");
+
+    // Inbound = outbound license & DCO statement
+    assert.ok(
+      contribContent.includes("inbound = outbound"),
+      "CONTRIBUTING.md must state inbound = outbound contribution licensing"
+    );
+    assert.ok(contribContent.includes("MIT License"), "CONTRIBUTING.md must reference MIT License");
+    assert.ok(
+      contribContent.includes("Developer Certificate of Origin (DCO 1.1)"),
+      "CONTRIBUTING.md must include DCO statement"
+    );
+
+    // Single source of truth for budgets (no hand-restated numbers)
+    assert.ok(
+      contribContent.includes("tools/check-budgets.mjs"),
+      "CONTRIBUTING.md must reference tools/check-budgets.mjs as single source of truth"
+    );
+    assert.ok(
+      !contribContent.includes("<= 14.0") && !contribContent.includes("<= 40.0"),
+      "CONTRIBUTING.md must not restate static budget numbers by hand"
+    );
+  });
 });
 
 describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
