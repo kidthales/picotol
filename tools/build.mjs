@@ -11,7 +11,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { bundle, transform, Features } from 'lightningcss';
-import { generateDemoHtml } from './generate-demo.mjs';
+import { generateDemoHtml, generateDemoJs } from './generate-demo.mjs';
 import { packageAssets } from './package-assets.mjs';
 import { assertValidMtimeOption, resolveOutDir } from './path-jail.mjs';
 
@@ -171,6 +171,7 @@ export function buildAll(opts = {}) {
 
   const demoHtml = generateDemoHtml(fullMin, stats);
   writeFileSync(join(targetDemo, 'index.html'), demoHtml, 'utf8');
+  writeFileSync(join(targetDemo, 'demo.js'), generateDemoJs(), 'utf8');
   writeFileSync(join(targetDemo, 'CNAME'), 'picotol.kidthales.com\n', 'utf8');
 
   const assetOpts = { outDir: targetDist, ...(validatedMtime !== undefined ? { mtime: validatedMtime } : {}) };

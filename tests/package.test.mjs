@@ -186,7 +186,7 @@ test("dist/assets/picotol-v*.zip offline bundle exists, stays within 100 KB budg
 
   const zipBuf = fs.readFileSync(zipPath);
   const parsedEntries = parsePkZipEntries(zipBuf);
-  assert.equal(parsedEntries.length, 13, "Zip bundle must contain exactly 13 entries");
+  assert.equal(parsedEntries.length, 14, "Zip bundle must contain exactly 14 entries");
 
   const expectedSources = [
     ["css/picotol.css", path.join(ROOT, "dist", "picotol.css")],
@@ -200,6 +200,7 @@ test("dist/assets/picotol-v*.zip offline bundle exists, stays within 100 KB budg
     ["tokens/tol-qualitative.json", path.join(ROOT, "data", "tol-qualitative.json")],
     ["sri.json", path.join(ROOT, "dist", "sri.json")],
     ["index.html", path.join(ROOT, "dist", "demo", "index.html")],
+    ["demo.js", path.join(ROOT, "dist", "demo", "demo.js")],
     ["LICENSE", path.join(ROOT, "LICENSE")],
     ["NOTICE", path.join(ROOT, "NOTICE")],
   ];
