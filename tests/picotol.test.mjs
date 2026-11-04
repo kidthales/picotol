@@ -4615,6 +4615,103 @@ test("CSS pseudo-element conflicts, z-index tokens, hidden/fieldset, sheet speci
   assert.equal(uniqueNums.size, nums.length, `Section numbers must be unique, found duplicates in: ${nums.join(", ")}`);
 });
 
+test("a11y: forced-colors fallbacks, silent breadcrumb separator, reduced-motion spinner (Issue #221)", () => {
+  const baseCss = fs.readFileSync(path.join(ROOT, "src/base.css"), "utf8");
+  const navCss = fs.readFileSync(path.join(ROOT, "src/nav.css"), "utf8");
+  const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
+  const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
+  const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");
+  const coreCss = fs.readFileSync(path.join(ROOT, "dist/picotol.core.css"), "utf8");
+  const coreMin = fs.readFileSync(path.join(ROOT, "dist/picotol.core.min.css"), "utf8");
+
+  // 1. Breadcrumb separator uses content: ">" / "" for screen reader silence
+  assert.ok(
+    navCss.includes('content: ">" / "";'),
+    'src/nav.css must declare content: ">" / "" for breadcrumb separator'
+  );
+  assert.ok(
+    fullCss.includes('content: ">" / "";') && coreCss.includes('content: ">" / "";'),
+    'dist/picotol.css and dist/picotol.core.css must preserve content: ">" / "" for breadcrumbs'
+  );
+  assert.ok(
+    fullMin.includes('content:">" / ""') && coreMin.includes('content:">" / ""'),
+    'dist/picotol.min.css and dist/picotol.core.min.css must compile content:">" / "" for breadcrumbs'
+  );
+
+  // 2. Spinner respects prefers-reduced-motion: reduce
+  // (a) base.css removes the :not([aria-busy="true"]) exemption so universal animation: none !important applies
+  assert.ok(
+    !baseCss.includes(':not([aria-busy="true"])'),
+    'src/base.css must not exempt [aria-busy="true"] from prefers-reduced-motion: reduce'
+  );
+  assert.ok(
+    baseCss.includes('animation: none !important;'),
+    'src/base.css must cancel animation: none !important universally under prefers-reduced-motion: reduce'
+  );
+  // (b) components.css explicitly halts [aria-busy="true"] spinner under prefers-reduced-motion: reduce
+  assert.ok(
+    compCss.includes('@media (prefers-reduced-motion: reduce)') &&
+      compCss.includes('[aria-busy="true"]:not(input, select, textarea, html, form, summary)::before') &&
+      /\[aria-busy="true"\][\s\S]*?animation:\s*none;/.test(compCss),
+    'src/components.css must disable spinner animation under prefers-reduced-motion: reduce'
+  );
+  assert.ok(
+    fullCss.includes('animation: none;') && fullMin.includes('animation:none'),
+    'dist/picotol.css and dist/picotol.min.css must compile reduced-motion spinner rule'
+  );
+
+  // 3. forced-colors: active fallbacks
+  // (a) native progress values receive Highlight fallback
+  assert.ok(
+    compCss.includes('progress::-webkit-progress-value') &&
+      compCss.includes('progress::-moz-progress-bar'),
+    'src/components.css must style progress::-webkit-progress-value and progress::-moz-progress-bar under forced-colors'
+  );
+  assert.ok(
+    fullCss.includes('progress::-webkit-progress-value') &&
+      fullCss.includes('progress::-moz-progress-bar') &&
+      /progress::-webkit-progress-value\s*\{\s*background-color:\s*highlight;/i.test(fullCss),
+    'dist/picotol.css must assign highlight background-color to native progress pseudo-elements in forced-colors mode'
+  );
+  assert.ok(
+    fullMin.includes('progress::-webkit-progress-value{background-color:highlight}') &&
+      fullMin.includes('progress::-moz-progress-bar{background-color:highlight}'),
+    'dist/picotol.min.css must compile highlight background-color for progress::-webkit-progress-value and progress::-moz-progress-bar'
+  );
+
+  // (b) meter ranges receive outline/CanvasText fallback
+  assert.ok(
+    compCss.includes(':where(.pt-meter-range)') &&
+      compCss.includes('outline: 1px solid CanvasText;'),
+    'src/components.css must assign CanvasText outline to :where(.pt-meter-range) in forced-colors mode'
+  );
+  assert.ok(
+    /where\(\.pt-meter-range\)\s*\{[\s\S]*?outline:\s*1px\s+solid\s+canvastext;/i.test(fullCss),
+    'dist/picotol.css must declare CanvasText outline for .pt-meter-range under forced-colors'
+  );
+  assert.ok(
+    fullMin.includes('outline:1px solid canvastext') && fullMin.includes('pt-meter-range'),
+    'dist/picotol.min.css must compile CanvasText outline for .pt-meter-range in forced-colors mode'
+  );
+
+  // (c) segmented selected items receive outline/Highlight fallbacks
+  assert.ok(
+    compCss.includes('outline: 2px solid Highlight;') &&
+      compCss.includes('background-color: Highlight;'),
+    'src/components.css must assign 2px Highlight outline and Highlight background to segmented selected items in forced-colors mode'
+  );
+  assert.ok(
+    /outline:\s*2px\s+solid\s+highlight;/i.test(fullCss) &&
+      /background-color:\s*highlight;/i.test(fullCss),
+    'dist/picotol.css must include Highlight outline and background for segmented selected items in forced-colors mode'
+  );
+  assert.ok(
+    fullMin.includes('outline:2px solid highlight') &&
+      fullMin.includes('background-color:highlight'),
+    'dist/picotol.min.css must compile Highlight outline and background for segmented selected items in forced-colors mode'
+  );
+});
+
 
 
 

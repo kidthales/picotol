@@ -3,19 +3,19 @@
   "version": "0.5.0",
   "files": {
     "dist/picotol.core.min.css": {
-      "bytes": 13425,
-      "gzipBytes": 4121,
-      "integrity": "sha384-dFniGw+nfBihHcrlcHXY/XA5DJPQ8Fro5l50yYwYjJwgpvKKlca74CJMDlJ77+fT"
+      "bytes": 13387,
+      "gzipBytes": 4102,
+      "integrity": "sha384-j3kZ9GFKak8qN0KIfMPEwyaIHVbbtiU2oBypP5UiVgT0qOgbw+kkcUIChdXgHBNg"
     },
     "dist/picotol.min.css": {
-      "bytes": 39435,
-      "gzipBytes": 8767,
-      "integrity": "sha384-Em6Q09K6WOU7WLjUI6FGRBJlIxgoUcRR0NNpgV4JffinuckOH73VChBhVYLQ9M+K"
+      "bytes": 39906,
+      "gzipBytes": 8822,
+      "integrity": "sha384-EbJ4EnuzYk6UkLUN7eNEVsQhn2TUM9FgetO+Ua71rfxcRq7I9o66uwCL3lI2tze/"
     },
     "dist/picotol.layer.min.css": {
-      "bytes": 39537,
-      "gzipBytes": 8795,
-      "integrity": "sha384-AgEotWc+pmfP4gl/OZTP8p/HxRZDj8hnXU8CEpqFqm1mqfdzPlerub329GsTMhxY"
+      "bytes": 40008,
+      "gzipBytes": 8850,
+      "integrity": "sha384-o1xIPZsoozIToJFpoTR7E+98wTIV614zIfAwWfOPu2biFMxFK+AbNAkFKad+t/5r"
     }
   }
 }

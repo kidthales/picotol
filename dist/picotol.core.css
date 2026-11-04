@@ -182,15 +182,10 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    :not([aria-busy="true"]) {
-      &, &:before, &:after {
-        animation: none !important;
-      }
-    }
-
     *, :before, :after {
       scroll-behavior: auto !important;
       transition: none !important;
+      animation: none !important;
     }
   }
 
@@ -682,7 +677,7 @@
       justify-content: flex-start;
 
       & li:not(:last-child):after {
-        content: ">";
+        content: ">" / "";
         color: var(--pt-muted-color);
         margin-inline-start: .75rem;
       }
