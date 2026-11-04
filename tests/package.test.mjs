@@ -116,11 +116,14 @@ test("package.json export types are strictly scoped to JSON subpaths with dedica
 
   // 5. Verify types/palette-data.d.ts contents
   const paletteTypesContent = fs.readFileSync(paletteDataTypesPath, "utf8");
+  assert.ok(paletteTypesContent.includes("export type TolSchemeId"), "must export TolSchemeId");
   assert.ok(paletteTypesContent.includes("export type TolQualitativeSchemeId"), "must export TolQualitativeSchemeId");
+  assert.ok(paletteTypesContent.includes("export type TolSchemeKind"), "must export TolSchemeKind");
   assert.ok(paletteTypesContent.includes("export interface TolColor"), "must export TolColor");
   assert.ok(paletteTypesContent.includes("export interface TolAchromaticStop"), "must export TolAchromaticStop");
   assert.ok(paletteTypesContent.includes("export interface TolScheme"), "must export TolScheme");
   assert.ok(paletteTypesContent.includes("export interface TolQualitativeData"), "must export TolQualitativeData");
+  assert.ok(paletteTypesContent.includes("export type TolPaletteData"), "must export TolPaletteData");
   assert.ok(paletteTypesContent.includes("export default data;"), "must export default data");
   assert.ok(!paletteTypesContent.includes("export const schemes"), "must not declare named JS data export for schemes");
 
@@ -130,6 +133,37 @@ test("package.json export types are strictly scoped to JSON subpaths with dedica
   assert.ok(sriTypesContent.includes("export interface SriManifest"), "must export SriManifest");
   assert.ok(sriTypesContent.includes("export default manifest;"), "must export default manifest");
   assert.ok(!sriTypesContent.includes("export const package"), "must not declare reserved keyword export const package");
+});
+
+test("data/tol-qualitative.json schemes declare true kinds: prgn (diverging), ylorbr (sequential), and 8 qualitative", () => {
+  const dataPath = path.join(ROOT, "data/tol-qualitative.json");
+  assert.ok(fs.existsSync(dataPath), "data/tol-qualitative.json must exist");
+  const tolData = JSON.parse(fs.readFileSync(dataPath, "utf8"));
+  const schemeIds = Object.keys(tolData.schemes);
+  assert.equal(schemeIds.length, 10, "data/tol-qualitative.json must contain exactly 10 schemes");
+
+  // Specific kind assertions for diverging and sequential schemes
+  assert.equal(tolData.schemes.prgn?.kind, "diverging", "prgn scheme kind must be 'diverging'");
+  assert.equal(tolData.schemes.ylorbr?.kind, "sequential", "ylorbr scheme kind must be 'sequential'");
+
+  // Qualitative schemes assertions
+  const qualitativeIds = [
+    "bright",
+    "dark",
+    "high-contrast",
+    "light",
+    "medium-contrast",
+    "muted",
+    "pale",
+    "vibrant",
+  ];
+  for (const qId of qualitativeIds) {
+    assert.equal(
+      tolData.schemes[qId]?.kind,
+      "qualitative",
+      `Scheme "${qId}" kind must be 'qualitative'`
+    );
+  }
 });
 
 test("package.json is configured for public npm release", () => {
