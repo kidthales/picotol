@@ -112,7 +112,7 @@ export function auditWorkflows(rootDir = ROOT) {
         // Uses: action pin check
         if (typeof step.uses === 'string') {
           const actionRef = step.uses.trim();
-          if (!actionRef.startsWith('./')) {
+          if (!actionRef.startsWith('./') && !actionRef.startsWith('$/')) {
             const atIndex = actionRef.lastIndexOf('@');
             if (atIndex === -1) {
               errors.push(`${file} third-party action '${actionRef}' is missing a commit SHA pin.`);
@@ -178,8 +178,9 @@ export function auditWorkflows(rootDir = ROOT) {
     // 3. Workflow-specific architectural contracts
     if (file === 'release.yml') {
       const verifyJob = jobs.verify;
-      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== './.github/workflows/ci.yml') {
-        errors.push("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.");
+      const validCiUses = ['./.github/workflows/ci.yml', '$/.github/workflows/ci.yml'];
+      if (!verifyJob || typeof verifyJob !== 'object' || !validCiUses.includes(verifyJob.uses)) {
+        errors.push("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.");
       }
       if (!verifyJob || typeof verifyJob !== 'object' || !verifyJob.permissions || typeof verifyJob.permissions !== 'object' || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
         errors.push("release.yml verify job must explicitly scope permissions (contents: read, security-events: write).");
@@ -260,8 +261,9 @@ export function auditWorkflows(rootDir = ROOT) {
 
     if (file === 'pages.yml') {
       const verifyJob = jobs.verify;
-      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== './.github/workflows/ci.yml') {
-        errors.push("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.");
+      const validCiUses = ['./.github/workflows/ci.yml', '$/.github/workflows/ci.yml'];
+      if (!verifyJob || typeof verifyJob !== 'object' || !validCiUses.includes(verifyJob.uses)) {
+        errors.push("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.");
       }
       if (!verifyJob || typeof verifyJob !== 'object' || !verifyJob.permissions || typeof verifyJob.permissions !== 'object' || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
         errors.push("pages.yml verify job must explicitly scope permissions (contents: read, security-events: write).");

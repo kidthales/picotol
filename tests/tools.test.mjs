@@ -883,6 +883,163 @@ jobs:
   }, (tempRoot) => {
     assert.doesNotThrow(() => auditWorkflows(tempRoot));
   });
+
+  // 14. Self-repository syntax ($/) acceptance for reusable workflows and local actions (Issue #253)
+  withTempWorkflows({
+    'release.yml': `
+name: Release
+on: [release]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/local-action
+      - run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+`,
+    'pages.yml': `
+name: Pages
+on: [push]
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  build:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps: []
+`,
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.deepEqual(errs, [], `auditWorkflows must accept $/ self-repository references, got: ${errs.join('; ')}`);
+  });
+
+  // 15. Negative test: verify job delegating to invalid workflow path is rejected
+  withTempWorkflows({
+    'release.yml': `
+name: Release
+on: [release]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: other-org/other-repo/.github/workflows/ci.yml@main
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps: []
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps: []
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps: []
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+`,
+    'pages.yml': `
+name: Pages
+on: [push]
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: invalid/path.yml
+    permissions:
+      contents: read
+      security-events: write
+  build:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps: []
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps: []
+`,
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.")));
+    assert.ok(errs.some((e) => e.includes("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.")));
+  });
 });
 });
 
