@@ -1,7 +1,7 @@
 {
   "name": "@kidthales/picotol",
   "version": "0.6.0",
-  "description": "Pure-CSS, ultra-minified semantic HTML framework inspired by Pico CSS and powered strictly by Paul Tol colour schemes.",
+  "description": "Pure-CSS, ultra-minified semantic HTML framework inspired by Pico CSS with colorblind-safe design tokens and WCAG-compliant primitives.",
   "license": "MIT",
   "author": "kidthales",
   "type": "module",
