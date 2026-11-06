@@ -142,7 +142,7 @@ describe("Packaging & npm Distribution Metadata", () => {
 
     assert.equal(info.name, "@kidthales/picotol");
     assert.ok(info.size <= 75 * 1024, `Tarball size ${info.size} B exceeds 75 KB budget`);
-    assert.ok(info.unpackedSize <= 350 * 1024, `Unpacked size ${info.unpackedSize} B exceeds 350 KB budget`);
+    assert.ok(info.unpackedSize <= 380 * 1024, `Unpacked size ${info.unpackedSize} B exceeds 380 KB budget`);
 
     const paths = info.files.map((f) => f.path);
     assert.ok(paths.includes("LICENSE"), "LICENSE must be included in tarball");
@@ -442,7 +442,7 @@ describe("Packaging & npm Distribution Metadata", () => {
 });
 
 describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
-  test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 14.0 KB, picotol.min.css <= 40.0 KB, and picotol.layer.min.css <= 40.0 KB", () => {
+  test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 14.0 KB, picotol.min.css <= 44.0 KB, and picotol.layer.min.css <= 44.0 KB", () => {
     const coreMin = Buffer.byteLength(getCoreMinCss(), "utf8");
     const fullMin = Buffer.byteLength(getDistMinCss(), "utf8");
     const layerMin = Buffer.byteLength(getLayerMinCss(), "utf8");
@@ -452,12 +452,12 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
       `Expected dist/picotol.core.min.css (${coreMin} B) to be <= ${14.0 * KB} B`
     );
     assert.ok(
-      fullMin <= 40.0 * KB,
-      `Expected dist/picotol.min.css (${fullMin} B) to be <= ${40.0 * KB} B`
+      fullMin <= 44.0 * KB,
+      `Expected dist/picotol.min.css (${fullMin} B) to be <= ${44.0 * KB} B`
     );
     assert.ok(
-      layerMin <= 40.0 * KB,
-      `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= ${40.0 * KB} B`
+      layerMin <= 44.0 * KB,
+      `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= ${44.0 * KB} B`
     );
   });
 

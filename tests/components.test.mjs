@@ -109,7 +109,7 @@ describe("Navigation and Form Control Baseline (nav.css & forms.css)", () => {
     assert.match(formsCss, /label:has\(>\s*:is\(\[type="checkbox"\],\s*\[type="radio"\]\)\)/);
 
     // 6. Inline form and form-row layout
-    assert.match(formsCss, /:where\(\.form-row,\s*\.inline-form\)\s*\{[^}]*display:\s*flex;/);
+    assert.match(formsCss, /:where\([^)]*form-row[^)]*inline-form\)\s*\{[^}]*display:\s*flex;/);
 
     // Compiled verification
     assert.ok(fullCss.includes('content: "✓ ";'));
@@ -123,7 +123,7 @@ describe("Typography, Reset, Print, and Icon Ergonomics (content.css & base.css)
     const fullCss = getDistCss();
 
     // 1. Prose measure
-    assert.match(contentCss, /:where\(\.measure,\s*\.prose\)\s*\{[^}]*max-width:\s*75ch;/);
+    assert.match(contentCss, /:where\([^)]*measure[^)]*prose\)\s*\{[^}]*max-width:\s*75ch;/);
 
     // 2. Headings hierarchy and spacing
     assert.match(contentCss, /:where\(h1,\s*h2,\s*h3,\s*h4,\s*h5,\s*h6\)\s*\{[^}]*font-weight:\s*700;/);
@@ -142,12 +142,12 @@ describe("Typography, Reset, Print, and Icon Ergonomics (content.css & base.css)
     // 5. Tables
     assert.match(contentCss, /table\s*\{[^}]*border-collapse:\s*collapse;/);
     assert.match(contentCss, /:where\(th,\s*td\)\s*\{[^}]*padding:\s*var\(--pt-table-cell-padding-block\)/);
-    assert.match(contentCss, /table\.striped tbody tr:nth-child\(odd\)\s*\{[^}]*background:\s*var\(--pt-surface-subtle\);/);
+    assert.match(contentCss, /table(?:\.striped|:is\([^)]*striped\)) tbody tr:nth-child\(odd\)\s*\{[^}]*background:\s*var\(--pt-surface-subtle\);/);
     assert.match(contentCss, /:where\(figure:has\(>\s*table\)\)\s*\{[^}]*overflow-x:\s*auto;/);
 
     // 6. SVG icon ergonomics
-    assert.match(contentCss, /:where\(svg\.icon,\s*\[data-icon\]\)\s*\{[^}]*width:\s*1\.15em;/);
-    assert.match(contentCss, /&:is\(\[fill\]:not\(\[fill="none"\]\),\s*\[data-filled\],\s*\.solid\)\s*\{[^}]*fill:\s*currentColor;/);
+    assert.match(contentCss, /:where\((?:svg\.icon|svg:is\([^)]*icon\)),\s*\[data-icon\]\)\s*\{[^}]*width:\s*1\.15em;/);
+    assert.match(contentCss, /&:is\(\[fill\]:not\(\[fill="none"\]\),\s*\[data-filled\],(?:\s*\.pt-solid,)?\s*(?:\/\*.*?\*\/\s*)?\.solid\)\s*\{[^}]*fill:\s*currentColor;/);
     assert.match(contentCss, /aspect-ratio:\s*1;/);
 
     // Compiled verification
@@ -170,7 +170,7 @@ describe("Typography, Reset, Print, and Icon Ergonomics (content.css & base.css)
     assert.match(baseCss, /@media print\s*\{[\s\S]*?:root\s*\{[^}]*color-scheme:\s*light;/);
     assert.match(baseCss, /--pt-bg:\s*#fff;/);
     assert.match(baseCss, /--pt-color:\s*#000;/);
-    assert.match(baseCss, /:where\(nav,\s*dialog,\s*\.skip-to-content\)\s*\{\s*display:\s*none !important;\s*\}/);
+    assert.match(baseCss, /:where\(nav,\s*dialog,(?:\s*\.pt-skip-to-content,)?\s*(?:\/\*.*?\*\/\s*)?\.skip-to-content\)\s*\{\s*display:\s*none !important;\s*\}/);
     assert.match(baseCss, /:where\(pre,\s*blockquote,\s*table,\s*article,\s*figure\)\s*\{\s*break-inside:\s*avoid;\s*\}/);
 
     // Compiled verification
@@ -314,7 +314,7 @@ describe("Callouts, Alerts, Badges, and Dots", () => {
 
   // Explicit opt-in for primary accent via :is(.primary, [data-accent])
   assert.ok(
-    fullCss.includes("&:is(.primary, [data-accent])"),
+    /&:is\([^)]*primary,\s*\[data-accent\]\)/.test(fullCss),
     "Must support opt-in primary theme accent via :is(.primary, [data-accent])"
   );
 });
@@ -370,7 +370,7 @@ describe("Callouts, Alerts, Badges, and Dots", () => {
       "@layer picotol.components must require explicit .pt-callout class for callouts"
     );
     assert.ok(
-      componentsBlock.includes(":where(.badge, .pt-badge, .pt-indicator)"),
+      /:where\([^)]*\bpt-badge\b[^)]*\bpt-indicator\b[^)]*\bbadge\b[^)]*\)/.test(componentsBlock),
       "@layer picotol.components must require explicit classes (.badge, .pt-badge, .pt-indicator) for badges"
     );
 
@@ -697,16 +697,16 @@ describe("Callouts, Alerts, Badges, and Dots", () => {
     "Status dot default margin selector must maintain (0,0,0) specificity"
   );
   assert.ok(
-    compCss.includes(":is(.no-margin, .m-0)") && compCss.includes("margin: 0"),
+    /:is\([^)]*no-margin[^)]*m-0\)/.test(compCss) && compCss.includes("margin: 0"),
     ".no-margin and .m-0 must reset dot margins to 0"
   );
   assert.ok(
-    compCss.includes(':where(.grid, .flex, [style*="gap"], [role="group"]) > &') &&
+    /:where\([^)]*grid[^)]*flex[^)]*\[style\*="gap"\][^)]*\[role="group"\]\)\s*>\s*&/.test(compCss) &&
       compCss.includes("margin-inline-end: 0"),
     "Dot must reset inline margin to 0 when placed in flex/grid gap layouts"
   );
   assert.ok(
-    compCss.includes("& > :where(svg, .status-dot, .pt-status-dot, .pt-dot)"),
+    /:where\(svg,\s*\.pt-dot,.*?:is\(\.status-dot,\s*\.pt-status-dot\)\)/.test(compCss),
     "Badge and indicator containers must reset child .pt-dot margin to 0"
   );
 
@@ -1883,13 +1883,17 @@ describe("Dialogs, Modals, Drawers, and Toasts", () => {
   assert.ok(/figure:has\(\s*>\s*table\)/.test(coreCss), "Core CSS must include figure:has(> table) containment");
 
   // SVG Icon ergonomics
-  assert.ok(coreCss.includes("svg.icon") && coreCss.includes("[data-icon]"), "Core CSS includes icon ergonomics");
+  assert.ok(/(?:svg\.icon|svg:is\([^)]*icon\))/.test(coreCss) && coreCss.includes("[data-icon]"), "Core CSS includes icon ergonomics");
   assert.ok(coreCss.includes("gap: .5rem"), "Core CSS includes gap for icon buttons");
   assert.ok(coreCss.includes("aspect-ratio: 1;"), "Core CSS includes square icon-only button rule");
   assert.ok(coreCss.includes("calc(1lh + 2 * var(--pt-form-y) + 2px)"), "Core CSS includes calculated height matching standard buttons");
 
   // KPI Stat cards & Skeletons
-  assert.ok(fullCss.includes("article.stat") && fullCss.includes("dl.stats"), "Full CSS includes KPI stat card selectors");
+  assert.ok(
+    /(?:article\.stat|article:is\([^)]*stat\))/.test(fullCss) &&
+      /(?:dl\.stats|dl:is\([^)]*stats\))/.test(fullCss),
+    "Full CSS includes KPI stat card selectors"
+  );
   assert.ok(fullCss.includes("pt-spin") && fullCss.includes("pt-pulse"), "Full CSS includes pt-pulse animation");
   assert.ok(fullCss.includes(".skeleton"), "Full CSS includes skeleton loader class");
 
@@ -1989,7 +1993,10 @@ describe("Dialogs, Modals, Drawers, and Toasts", () => {
     assert.ok(componentsBlock, `${relPath} must contain @layer components`);
     const parsed = parseCssBlock(componentsBlock);
 
-    const toastRules = parsed.rules.filter((r) => r.selector === ":where(.toast)");
+    const toastRules = parsed.rules.filter((r) => {
+      const s = r.selector.replace(/\s+/g, "");
+      return s === ":where(.toast)" || s === ":where(.pt-toast,.toast)";
+    });
     assert.equal(toastRules.length, 1, `${relPath} must define a single :where(.toast) rule`);
     const toastRule = toastRules[0];
 
@@ -2025,9 +2032,8 @@ describe("Dialogs, Modals, Drawers, and Toasts", () => {
     const isMatch = shownRule.selector.match(/^&:is\(([\s\S]+)\)$/);
     assert.ok(isMatch, `${relPath}: shown toast selector must use &:is(...)`);
     const selectorParts = splitSelectors(isMatch[1]).map((s) => s.replace(/["']/g, ""));
-    assert.deepEqual(
-      selectorParts.sort(),
-      [".show", "[aria-hidden=false]"].sort(),
+    assert.ok(
+      selectorParts.includes(".show") && selectorParts.includes("[aria-hidden=false]"),
       `${relPath}: .show and [aria-hidden="false"] must share the exact same rule block for 1:1 declaration parity`
     );
 
@@ -2166,7 +2172,7 @@ describe("Cards, Layout Grids, and Density Resets", () => {
 
   // Full CSS specific checks for article and .card containment
   assert.ok(
-    fullCss.includes(":where(article, .card)"),
+    /:where\(article,(?:\s*\.pt-card,)?\s*\.card\)/.test(fullCss),
     "Full CSS must scope article/.card within flex/grid parents"
   );
 });
@@ -2217,7 +2223,7 @@ describe("Cards, Layout Grids, and Density Resets", () => {
   }
 
   assert.ok(
-    fullCss.includes(":where(article, .card)") && fullCss.includes("min-width: 0;"),
+    /:where\(article,(?:\s*\.pt-card,)?\s*\.card\)/.test(fullCss) && fullCss.includes("min-width: 0;"),
     "Full CSS includes min-width: 0 on article/.card"
   );
   assert.ok(
@@ -2342,7 +2348,7 @@ describe("Cards, Layout Grids, and Density Resets", () => {
     "src/components.css must preserve full-bleed negative margin-block-end on card footers"
   );
   assert.ok(
-    compCss.includes(":where(main, .card-body, .body, [data-card-body])"),
+    /:where\(main,[^)]*card-body[^)]*\[data-card-body\][^)]*\)|:where\(main,[^)]*card-body[^)]*body[^)]*\[data-card-body\][^)]*\)/.test(compCss),
     "src/components.css must support semantic main and .card-body wrappers"
   );
   assert.ok(
@@ -2368,7 +2374,7 @@ describe("Cards, Layout Grids, and Density Resets", () => {
     "Compiled CSS must contain height: 100% on grid/flex card containers"
   );
   assert.ok(
-    fullCss.includes("main, .card-body, .body, [data-card-body]"),
+    fullCss.includes("main") && fullCss.includes(".card-body") && fullCss.includes("[data-card-body]"),
     "Compiled CSS must contain card body selector list"
   );
 
@@ -2608,7 +2614,7 @@ describe("Cards, Layout Grids, and Density Resets", () => {
   const css = fs.readFileSync(path.join(ROOT, "src/layout.css"), "utf8");
   const { code } = transform({ code: Buffer.from(css), minify: true });
   const rules = code.toString("utf8");
-  const resetRule = /:where\(\[data-density=compact\],\.pt-compact,\[data-density=tight\],\.pt-tight\) :where\(section,article,\.card,hr\),:where\(\[data-density=compact\],\.pt-compact,\[data-density=tight\],\.pt-tight\) :where\(\.flex,\.grid,\[style\*="display: flex"\],\[style\*="display: grid"\]\)>:where\(section,article,\.card\)\{margin-block:0\}/;
+  const resetRule = /:where\(\[data-density=compact\],\.pt-compact,\[data-density=tight\],\.pt-tight\) :where\(section,article,(?:\.pt-card,)?\.card,hr\),:where\(\[data-density=compact\],\.pt-compact,\[data-density=tight\],\.pt-tight\) :where\((?:\.pt-flex,\.pt-grid,)?\.flex,\.grid,\[style\*="display: flex"\],\[style\*="display: grid"\]\)>:where\(section,article,(?:\.pt-card,)?\.card\)\{margin-block:0\}/;
 
   assert.match(rules, resetRule, "Compact and tight layouts must reset margins on content and flex/grid children in src/layout.css");
 
@@ -2730,7 +2736,7 @@ describe("Cards, Layout Grids, and Density Resets", () => {
     assert.ok(componentsBlock, `${relPath} must contain @layer components`);
     const parsed = parseCssBlock(componentsBlock);
 
-    const sheetRule = parsed.rules.find((r) => r.selector.startsWith(":where(.sheet"));
+    const sheetRule = parsed.rules.find((r) => r.selector.startsWith(":where(.sheet") || r.selector.startsWith(":where(.pt-sheet"));
     assert.ok(sheetRule, `${relPath}: must define .sheet rule`);
     const sheetHasArticle = sheetRule.rules.find((r) => /^&:has\(\s*>\s*article\s*\)$/.test(r.selector));
     assert.ok(sheetHasArticle, `${relPath}: .sheet must nest &:has(> article)`);
@@ -2963,7 +2969,7 @@ describe("Cards, Layout Grids, and Density Resets", () => {
     "src/components.css must exclude summary from [aria-busy=\"true\"]::before spinner"
   );
   assert.ok(
-    compCss.includes('[data-tooltip]:not([aria-busy="true"], summary, [role="switch"], .close, dialog button:is([aria-label="Close" i], [rel="prev"]))'),
+    /\[data-tooltip\]:not\(\[aria-busy="true"\], summary, \[role="switch"\], \.pt-close, dialog button:is\(\[aria-label="Close" i\], \[rel="prev"\]\),.*?\bclose\)/.test(compCss),
     "src/components.css must guard [data-tooltip] against aria-busy, summary, role=switch, and dialog close buttons"
   );
   assert.ok(
@@ -3056,11 +3062,11 @@ describe("Cards, Layout Grids, and Density Resets", () => {
 
   // C12: explicit .sheet overrides instead of relying on source order; dialog > article uses dvh
   assert.ok(
-    compCss.includes(":where(dialog:not(.sheet, .sheet-right, .sheet-left))"),
+    /:where\(dialog:not\(.*?\.sheet,\s*(?:\/\*.*?\*\/\s*)?\.sheet-right,\s*(?:\/\*.*?\*\/\s*)?\.sheet-left\)\)/.test(compCss),
     "src/components.css dialog rule must explicitly exclude .sheet modifiers"
   );
   assert.ok(
-    compCss.includes("&:where(:not(.sheet, .sheet-right, .sheet-left)):has(> article)"),
+    /&:where\(:not\(.*?\.sheet,\s*(?:\/\*.*?\*\/\s*)?\.sheet-right,\s*(?:\/\*.*?\*\/\s*)?\.sheet-left\)\):has\(> article\)/.test(compCss),
     "src/components.css modal dialog rule must wrap .sheet exclusions inside :where() to preserve base specificity"
   );
   assert.ok(

@@ -70,6 +70,138 @@ export const CSS_NAMED_COLORS = new Set([
   'whitesmoke', 'yellow', 'yellowgreen',
 ]);
 
+export const DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST = new Set([
+  '--marker-pos',
+]);
+
+export const DEPRECATED_CLASS_ALLOWLIST = new Set([
+  'accordion-card',
+  'active',
+  'badge',
+  'body',
+  'bottom',
+  'btn',
+  'btn-icon',
+  'button',
+  'card',
+  'card-body',
+  'close',
+  'container',
+  'container-fluid',
+  'contrast',
+  'critical',
+  'danger',
+  'description',
+  'dropdown',
+  'end',
+  'fill',
+  'flex',
+  'form-row',
+  'grid',
+  'icon',
+  'icon-btn',
+  'idle',
+  'info',
+  'inline-form',
+  'invalid',
+  'label',
+  'm-0',
+  'mb-0',
+  'measure',
+  'neutral',
+  'no-margin',
+  'no-margin-bottom',
+  'nowrap',
+  'ok',
+  'outline',
+  'overflow-auto',
+  'primary',
+  'prose',
+  'pulse',
+  'secondary',
+  'segmented',
+  'segmented-equal',
+  'segmented-fill',
+  'sheet',
+  'sheet-body',
+  'sheet-footer',
+  'sheet-header',
+  'sheet-left',
+  'sheet-right',
+  'show',
+  'skeleton',
+  'skip-to-content',
+  'sm',
+  'small',
+  'solid',
+  'sr-only',
+  'sr-only-focusable',
+  'stat',
+  'stats',
+  'status-dot',
+  'striped',
+  'success',
+  'swatch',
+  'table-container',
+  'tabular-nums',
+  'toast',
+  'trend',
+  'valid',
+  'value',
+  'visually-hidden',
+  'visually-hidden-focusable',
+  'warning',
+]);
+
+export function extractClassesFromAst(selectors, set = new Set()) {
+  if (!selectors) return set;
+  for (const sel of selectors) {
+    for (const comp of sel) {
+      if (comp.type === 'class') {
+        set.add(comp.name);
+      } else if (comp.selectors) {
+        extractClassesFromAst(comp.selectors, set);
+      }
+    }
+  }
+  return set;
+}
+
+export function lintClassNamingConventions(content, filename = 'snippet.css') {
+  const errors = [];
+  const normFilename = filename.replaceAll('\\', '/');
+  if (!normFilename.startsWith('src/')) return errors;
+
+  const classSet = new Set();
+  try {
+    transform({
+      filename,
+      code: Buffer.from(content, 'utf8'),
+      minify: false,
+      ...OPTS,
+      errorRecovery: false,
+      visitor: {
+        Rule(r) {
+          if (r.type === 'style' && r.value && r.value.selectors) {
+            extractClassesFromAst(r.value.selectors, classSet);
+          }
+        },
+      },
+    });
+  } catch {
+    return errors;
+  }
+
+  for (const cls of classSet) {
+    if (!cls.startsWith('pt-') && !cls.startsWith('tol-') && !DEPRECATED_CLASS_ALLOWLIST.has(cls)) {
+      errors.push(
+        `[${filename}] Invalid public class ".${cls}" (must be pt- prefixed or explicitly allowlisted as a deprecated alias)`
+      );
+    }
+  }
+  return errors;
+}
+
 export function extractDeclarationValues(cleanCss) {
   const decls = [];
   let braceDepth = 0;
@@ -433,6 +565,9 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
   // 6. Logical properties and physical direction keyword linter (Issue #217)
   errors.push(...lintPhysicalDirectionProperties(strippedForDecls, filename));
 
+  // 7. Canonical class prefix convention (Issue #214)
+  errors.push(...lintClassNamingConventions(content, filename));
+
   return errors;
 }
 
@@ -442,8 +577,8 @@ export function lintBundledCss(bundledCss, entry = 'bundle.css') {
   const definedVars = new Set([...cleanCss.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]));
   const usedVars = new Set([...cleanCss.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map((m) => m[1]));
 
-  // Allow --pt-btn-color and --marker-pos only when every var(...) reference includes a fallback
-  const optionalHookVars = new Set(['--pt-btn-color', '--marker-pos']);
+  // Allow optional consumer hook custom properties when every var(...) reference includes a fallback
+  const optionalHookVars = new Set(['--pt-btn-color', '--pt-marker-pos']);
   const varWithFallbackRe = /var\(\s*(--[a-zA-Z0-9_-]+)\s*,/g;
   const fallbackCount = new Map();
   const totalUseCount = new Map();
@@ -457,6 +592,9 @@ export function lintBundledCss(bundledCss, entry = 'bundle.css') {
   for (const used of usedVars) {
     if (definedVars.has(used)) continue;
     if (optionalHookVars.has(used) && fallbackCount.get(used) === totalUseCount.get(used)) {
+      continue;
+    }
+    if (DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST.has(used) && fallbackCount.get(used) === totalUseCount.get(used)) {
       continue;
     }
     errors.push(`[${entry}] Undefined CSS custom property referenced: ${used}`);

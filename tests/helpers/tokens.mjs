@@ -250,9 +250,9 @@ function isSecondaryButtonRuleSelector(rawSelector) {
   const parts = splitSelectors(unwrapped);
   if (parts.length === 0) return false;
   return (
-    parts.some((p) => p === '.secondary') &&
+    parts.some((p) => p === '.secondary' || p === '.pt-secondary') &&
     parts.every(
-      (p) => p === '.secondary' || p === '[type="reset"]' || p === '[type=reset]'
+      (p) => p === '.secondary' || p === '.pt-secondary' || p === '[type="reset"]' || p === '[type=reset]'
     )
   );
 }

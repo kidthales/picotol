@@ -18,6 +18,9 @@ import {
   lintDemoHtml,
   runLint,
   stripCssCommentsAndStrings,
+  lintClassNamingConventions,
+  DEPRECATED_CLASS_ALLOWLIST,
+  DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST,
 } from '../tools/lint.mjs';
 import {
   expandHex,
@@ -322,6 +325,22 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
     '[fixtures/no-fallback.css] Undefined CSS custom property referenced: --pt-btn-color',
     '[fixtures/no-fallback.css] Undefined CSS custom property referenced: --marker-pos',
   ]);
+  const ptMarkerPosHookCss = `.btn { left: var(--pt-marker-pos, 0%); }`;
+  assert.deepEqual(lintBundledCss(ptMarkerPosHookCss, 'fixtures/pt-marker.css'), []);
+
+  // Canonical class prefix & deprecated alias allowlist validation (Issue #214)
+  assert.ok(DEPRECATED_CLASS_ALLOWLIST.has('card'));
+  assert.ok(DEPRECATED_CLASS_ALLOWLIST.has('badge'));
+  assert.ok(DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST.has('--marker-pos'));
+
+  const badPrefixCss = `.pt-valid-class { color: #4477AA; } .unprefixed-bogus { color: #4477AA; }`;
+  const prefixErrors = lintClassNamingConventions(badPrefixCss, 'src/components.css');
+  assert.deepEqual(prefixErrors, [
+    '[src/components.css] Invalid public class ".unprefixed-bogus" (must be pt- prefixed or explicitly allowlisted as a deprecated alias)',
+  ]);
+  const allowedDeprecatedCss = `.card { color: #4477AA; } .pt-card { color: #4477AA; }`;
+  assert.deepEqual(lintClassNamingConventions(allowedDeprecatedCss, 'src/components.css'), []);
+  assert.deepEqual(lintClassNamingConventions(badPrefixCss, 'fixtures/other.css'), []);
 
   const incompleteDistCss = `:focus-visible { outline: 2px solid #4477AA; } .skip-to-content {} .sr-only {}`;
   const distRuleErrors = lintDistAccessibilityRules(incompleteDistCss, 'fixtures/dist.css');
