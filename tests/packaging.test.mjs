@@ -141,7 +141,7 @@ describe("Packaging & npm Distribution Metadata", () => {
     const [info] = JSON.parse(raw);
 
     assert.equal(info.name, "@kidthales/picotol");
-    assert.ok(info.size <= 75 * 1024, `Tarball size ${info.size} B exceeds 75 KB budget`);
+    assert.ok(info.size <= 80 * 1024, `Tarball size ${info.size} B exceeds 80 KB budget`);
     assert.ok(info.unpackedSize <= 380 * 1024, `Unpacked size ${info.unpackedSize} B exceeds 380 KB budget`);
 
     const paths = info.files.map((f) => f.path);

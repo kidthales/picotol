@@ -12,7 +12,7 @@ Because `@kidthales/picotol` is a pure-CSS package without a consumer runtime or
 | :--- | :--- | :--- | :--- |
 | **1. Cascade Layer Names (`@layer picotol.*`)** | **Hard break**: renamed from `tokens, reset, base, components, utilities` to `picotol.*` | `picotol.*` (`picotol.legacy` removed) | [#206](https://github.com/kidthales/picotol/issues/206) |
 | **2. Bare `aside`, `[role="alert"]`, `[role="status"]`** | Moved to lowest-priority `@layer picotol.legacy` (deprecated); use `.pt-callout` / `.pt-badge` | `@layer picotol.legacy` removed | [#207](https://github.com/kidthales/picotol/issues/207) |
-| **3. Status Vocabulary & `.pt-dot` Primitive** | Canonical `ok \| info \| warning \| critical` & `.pt-dot--*`; `success/danger` & `.pt-status-dot*` deprecated | Deprecated dot & status aliases removed | [#208](https://github.com/kidthales/picotol/issues/208) |
+| **3. Status Vocabulary & `.pt-dot` Primitive** | Canonical `ok \| info \| warning \| critical` & `.pt-dot--*`; `success/danger`, `backlog/no-status`, & `.pt-status-dot*` deprecated | Deprecated dot & status aliases removed | [#208](https://github.com/kidthales/picotol/issues/208), [#227](https://github.com/kidthales/picotol/issues/227) |
 | **4. `pt-` Class & `--pt-marker-pos` Prefixing** | Canonical `pt-*` classes & `--pt-marker-pos`; unprefixed classes & `--marker-pos` deprecated | Unprefixed classes & `--marker-pos` removed | [#214](https://github.com/kidthales/picotol/issues/214) |
 | **5. Opt-In Flex Column `body.pt-app`** | **Breaking default**: bare `body` is normal block flow; sticky-footer flex column requires `<body class="pt-app">` | Opt-in `<body class="pt-app">` | [#215](https://github.com/kidthales/picotol/issues/215) |
 | **6. Derived `:root` Density Token Aliases** | **Removed**: `--pt-form-element-spacing-*` and `--pt-btn-padding-block` (deprecated in `v0.5.1`) | N/A | [#209](https://github.com/kidthales/picotol/issues/209) |
@@ -108,11 +108,14 @@ Status naming across tokens, attributes, and classes is unified on the four-stat
 
 | Component Surface | `v0.5.x` (Deprecated) | `v0.6.0` Canonical |
 | :--- | :--- | :--- |
-| **Status Attributes** | `[data-status="success"]`, `[data-status="danger"]` | `[data-status="ok"]`, `[data-status="critical"]` |
+| **Status Attributes** | `[data-status="success"]`, `[data-status="danger"]`, `[data-status="backlog"]`, `[data-status="no-status"]` | `[data-status="ok"]`, `[data-status="critical"]`, `[data-status="idle"]`, `[data-status="neutral"]` |
 | **Callout Variants** | `.pt-callout-success`, `.pt-callout-danger` | `.pt-callout-ok`, `.pt-callout-critical` |
 | **Progress Variants** | `.pt-progress-success`, `.pt-progress-danger` | `.pt-progress-ok`, `.pt-progress-critical` |
 | **Status Classes** | `.success`, `.danger` | `[data-status="ok|critical"]` (or `.pt-ok`, `.pt-critical`) |
 | **Validation Classes** | `.valid`, `.invalid` | `.pt-valid`, `.pt-invalid` |
+
+> **Ad-Hoc Status Deprecations**: `[data-status="backlog"]` and `[data-status="no-status"]` are deprecated in `v0.6.0` and will be removed in `v0.7.0`. Migrate to canonical `[data-status="idle"]` or `[data-status="neutral"]` (or rely on default neutral component styling without `data-status`).
+
 
 ### Action Required
 

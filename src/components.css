@@ -1058,7 +1058,7 @@
     }
 
     /* @deprecated: removed in v0.7.0 */
-    &:is(.neutral, .idle, [data-status="neutral"], [data-status="idle"], [data-status="backlog"], [data-status="no-status"]) {
+    &:is(.neutral, .idle, [data-status="neutral"], [data-status="idle"], /* @deprecated: removed in v0.7.0 */ [data-status="backlog"], /* @deprecated: removed in v0.7.0 */ [data-status="no-status"]) {
       background-color: var(--pt-muted-border);
     }
     /* @deprecated: removed in v0.7.0 */
