@@ -33,9 +33,7 @@
 
 ## Why `@kidthales/picotol`?
 
-[Pico CSS](https://picocss.com/) (`v2.1.1`) pioneered class-light semantic HTML styling, but its `15,000+` line Sass architecture compiles to an **83.3 KB** minified bundle (`219` synthetic Tailwind-style RGB color stops across 160 separate theme files) and is now archived.
-
-`@kidthales/picotol` re-imagines semantic HTML styling from first principles:
+`@kidthales/picotol` is an independent, pure-modern-CSS design system engineered from first principles for semantic HTML applications. Built on Paul Tol's colour science, native CSS cascade layers (`@layer picotol.*`), and zero-JS interactive primitives, it provides a lightweight, fully accessible component suite across standalone distribution tiers:
 
 - **100% Canonical Paul Tol Palette Purity**: Every hex code in `picotol` is drawn directly from [Paul Tol's colour schemes](https://github.com/kidthales/tol-palettes) (10 synchronized schemes: 8 qualitative `bright`, `vibrant`, `high-contrast`, `medium-contrast`, `muted`, `light`, `dark`, `pale`; 1 diverging `prgn`; 1 sequential `ylorbr`; plus canonical achromatic stops). Zero invented hex codes, zero synthetic HSL/RGB ramps.
 - **Cross-Scheme Perceptual Lightness Ladder**: Instead of darkening colors with arbitrary math, interactive states (`hover`, `active`, `surface`, `text`) step across Paul Tol's own scientifically calibrated schemes:

@@ -40,7 +40,6 @@ import {
   syncTokens,
 } from '../tools/sync-tokens.mjs';
 import { UPSTREAM_PICO_HEADER_ATTRIBUTION, buildAll } from '../tools/build.mjs';
-import { UPSTREAM_PICO_MIN_BYTES } from '../tools/generate-demo.mjs';
 import { auditWorkflows, hasUnescapedExpression } from '../tools/check-workflows.mjs';
 import {
   DEFAULT_ZIP_MTIME,
@@ -613,9 +612,8 @@ test('tools/lint.mjs: lintDemoHtml matches whole selector tokens (.card not sati
 });
 
 describe('Build Constants and Workflow Auditing', () => {
-test('build constants: named constants for Pico CSS v2.1.1 header and upstream byte count (B5)', () => {
+test('build constants: named constant for Pico CSS v2.1.1 header attribution (B5)', () => {
   assert.equal(UPSTREAM_PICO_HEADER_ATTRIBUTION, 'Pico CSS v2.1.1 (MIT)');
-  assert.equal(UPSTREAM_PICO_MIN_BYTES, 83319);
 });
 
 test('tools/check-workflows.mjs: real YAML parser workflow drift auditor (B6)', () => {
