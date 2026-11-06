@@ -170,7 +170,7 @@ export function generateDemoHtml(fullMinCss, stats) {
   <title>picotol — Pure-CSS Semantic Framework Powered by Paul Tol Colour Schemes</title>
   <style>${fullMinCss}</style>
 </head>
-<body>
+<body class="pt-app">
   <a href="#main-content" class="skip-to-content">Skip to main content</a>
   <header>
     <nav>

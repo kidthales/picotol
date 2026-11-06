@@ -160,7 +160,8 @@ describe("Typography, Reset, Print, and Icon Ergonomics (content.css & base.css)
 
     // 1. Reset layer
     assert.match(baseCss, /@layer picotol\.reset\s*\{[^}]*\*, ::before, ::after\s*\{[^}]*box-sizing:\s*border-box;/);
-    assert.match(baseCss, /body\s*\{[^}]*min-height:\s*100dvh;/);
+    assert.match(baseCss, /body\s*\{\s*margin:\s*0;\s*\}/);
+    assert.match(baseCss, /body\.pt-app\s*\{[^}]*min-height:\s*100dvh;/);
     assert.match(baseCss, /display:\s*flex;/);
     assert.match(baseCss, /flex-direction:\s*column;/);
     assert.match(baseCss, /& > :where\(main,\s*\[role="main"\]\)\s*\{[^}]*flex:\s*1 0 auto;/);
@@ -176,6 +177,36 @@ describe("Typography, Reset, Print, and Icon Ergonomics (content.css & base.css)
     // Compiled verification
     assert.ok(fullCss.includes("color-scheme: light;"));
     assert.ok(fullCss.includes("break-inside: avoid;"));
+  });
+
+  test("Opt-in flex column body layout and normal block flow for bare body (Issue #215)", () => {
+    const baseCss = getSrcBaseCss();
+    const fullCss = getDistCss();
+    const coreCss = getCoreCss();
+    const demoHtml = getDemoHtml();
+
+    // 1. Bare body retains normal block flow with margin: 0 and NO display: flex
+    assert.match(baseCss, /body\s*\{\s*margin:\s*0;\s*\}/);
+    assert.doesNotMatch(baseCss, /(?<!\.pt-app)\bbody\s*\{[^}]*display:\s*flex;/);
+
+    // In compiled full and core bundles, bare body rule must not declare display: flex
+    assert.doesNotMatch(fullCss, /(?<!\.pt-app|\.pt-flex|\.pt-grid)\bbody\s*\{[^}]*display:\s*flex;/);
+    assert.doesNotMatch(coreCss, /(?<!\.pt-app|\.pt-flex|\.pt-grid)\bbody\s*\{[^}]*display:\s*flex;/);
+
+    // 2. Opt-in sticky-footer flex layout on body.pt-app
+    assert.match(baseCss, /body\.pt-app\s*\{[^}]*min-height:\s*100dvh;/);
+    assert.match(baseCss, /body\.pt-app\s*\{[^}]*display:\s*flex;/);
+    assert.match(baseCss, /body\.pt-app\s*\{[^}]*flex-direction:\s*column;/);
+    assert.match(baseCss, /& > :where\(main,\s*\[role="main"\]\)\s*\{[^}]*flex:\s*1 0 auto;/);
+
+    for (const css of [fullCss, coreCss]) {
+      assert.ok(css.includes("body.pt-app"), "Compiled bundles must declare body.pt-app");
+      assert.match(css, /body\.pt-app\s*\{[^}]*min-height:\s*100dvh;/);
+      assert.match(css, /body\.pt-app\s*\{[^}]*display:\s*flex;/);
+    }
+
+    // 3. Demo opts in via <body class="pt-app">
+    assert.match(demoHtml, /<body[^>]*\bclass="[^"]*\bpt-app\b[^"]*"/, "Demo HTML must opt into sticky-footer via class pt-app");
   });
 });
 
