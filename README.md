@@ -1,6 +1,6 @@
 # `@kidthales/picotol`
 
-**Pure-CSS, ultra-minified semantic HTML framework powered strictly by Paul Tol's colorblind-safe colour schemes.**
+**Pure-CSS, ultra-minified semantic HTML framework powered by colorblind-safe, contrast-certified accessible design tokens.**
 
 [![CI](https://github.com/kidthales/picotol/actions/workflows/ci.yml/badge.svg)](https://github.com/kidthales/picotol/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@kidthales/picotol.svg?style=flat&color=332288)](https://www.npmjs.com/package/@kidthales/picotol)
@@ -33,10 +33,10 @@
 
 ## Why `@kidthales/picotol`?
 
-`@kidthales/picotol` is an independent, pure-modern-CSS design system engineered from first principles for semantic HTML applications. Built on Paul Tol's colour science, native CSS cascade layers (`@layer picotol.*`), and zero-JS interactive primitives, it provides a lightweight, fully accessible component suite across standalone distribution tiers:
+`@kidthales/picotol` is an independent, pure-modern-CSS design system engineered from first principles for semantic HTML applications. Built on colorblind-safe colour science, native CSS cascade layers (`@layer picotol.*`), and zero-JS interactive primitives, it provides a lightweight, fully accessible component suite across standalone distribution tiers:
 
-- **100% Canonical Paul Tol Palette Purity**: Every hex code in `picotol` is drawn directly from [Paul Tol's colour schemes](https://github.com/kidthales/tol-palettes) (10 synchronized schemes: 8 qualitative `bright`, `vibrant`, `high-contrast`, `medium-contrast`, `muted`, `light`, `dark`, `pale`; 1 diverging `prgn`; 1 sequential `ylorbr`; plus canonical achromatic stops). Zero invented hex codes, zero synthetic HSL/RGB ramps.
-- **Cross-Scheme Perceptual Lightness Ladder**: Instead of darkening colors with arbitrary math, interactive states (`hover`, `active`, `surface`, `text`) step across Paul Tol's own scientifically calibrated schemes:
+- **100% Canonical Palette Purity**: Every hex code in `picotol` is drawn directly from [canonical colour schemes](https://github.com/kidthales/tol-palettes) authored by Dr. Paul Tol (10 synchronized schemes: 8 qualitative `bright`, `vibrant`, `high-contrast`, `medium-contrast`, `muted`, `light`, `dark`, `pale`; 1 diverging `prgn`; 1 sequential `ylorbr`; plus canonical achromatic stops). Zero invented hex codes, zero synthetic HSL/RGB ramps.
+- **Cross-Scheme Perceptual Lightness Ladder**: Instead of darkening colors with arbitrary math, interactive states (`hover`, `active`, `surface`, `text`) step across scientifically calibrated schemes:
   $$\text{pale} \longrightarrow \text{light} \longrightarrow \text{medium-contrast} \longrightarrow \text{bright} \longrightarrow \text{dark} \longrightarrow \text{high-contrast}$$
 - **100% Pure Modern CSS (`@layer` + `light-dark()` + `color-mix()`)**: Zero Sass/SCSS preprocessors. Native CSS `@layer` cascade, runtime `[data-theme="light|dark"]` and `[data-accent="blue|cyan|purple|magenta"]` switching in a **single stylesheet**.
 - **WCAG 2.2 AA/AAA & Mobile Reflow Built-In**:
@@ -167,7 +167,7 @@ import "@kidthales/picotol/palettes";
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.6.0/dist/picotol.min.css" integrity="sha384-nrNLsgH1BLMYZSz54HA5tYuAq0ZcR7/r7ru4t/GltEX794pCjrJA19L9UF4eUJTE" crossorigin="anonymous" />
-    <title>Semantic HTML with Paul Tol Colors</title>
+    <title>Semantic HTML with Accessible Design Tokens</title>
   </head>
   <body class="pt-app">
     <a href="#main-content" class="pt-skip-to-content">Skip to main content</a>
@@ -185,11 +185,11 @@ import "@kidthales/picotol/palettes";
       <p>Write clean, class-light HTML5 without utility class soup.</p>
       <article>
         <header><strong>Card Header</strong></header>
-        <p>Semantic <code>&lt;article&gt;</code> card with Paul Tol surfaces.</p>
+        <p>Semantic <code>&lt;article&gt;</code> card with accessible surfaces.</p>
       </article>
     </main>
     <footer>
-      <small>Powered by Paul Tol Colour Schemes.</small>
+      <small>Powered by colorblind-safe design tokens.</small>
     </footer>
   </body>
 </html>
@@ -202,7 +202,7 @@ Switch themes or accents dynamically on `<html>` or any subtree container:
 - **`data-theme`**: `"light"` | `"dark"` (omit to follow OS `prefers-color-scheme`)
 - **`data-accent`**: `"blue"` (default) | `"cyan"` | `"purple"` | `"magenta"` (non-semantic 4-accent suite; `green`, `yellow`, `red` reserved for operational status; `teal`, `indigo` retired for contrast safety)
 
-#### Accent Ladders & Paul Tol Cross-Scheme Calibration
+#### Accent Ladders & Cross-Scheme Calibration
 
 `@kidthales/picotol` structures interactive accent states into 5-step monotonic lightness ladders (`--pt-p1` to `--pt-p5`):
 - `--pt-p1`: Lightest tint (light mode interactive background / dark mode hover text)
@@ -222,11 +222,11 @@ To preserve empirical Tol purity while meeting strict contrast thresholds, `pico
 - **`purple`**: Composed from diverging `PRGn` (purple stops 3, 2, 0) and qualitative `muted` (`purple`, `indigo`).
 - **`magenta`**: Composed from qualitative `pale`, `light`, `dark` (stops 8, 4), and `muted` (`wine`).
 
-Every stop is an authentic, lab-measured Paul Tol hex code stepping monotonically in relative luminance.
+Every stop is an authentic, lab-measured hex code stepping monotonically in relative luminance.
 
 #### Diverging & Sequential Color Scales (`PRGn` & `YlOrBr`)
 
-In addition to qualitative palettes, `picotol` exposes Paul Tol's authentic diverging (`PRGn`) and sequential (`YlOrBr`) color tokens for heatmaps, deviation metrics, and ordered numerical visualizations:
+In addition to qualitative palettes, `picotol` exposes authentic diverging (`PRGn`) and sequential (`YlOrBr`) color tokens for heatmaps, deviation metrics, and ordered numerical visualizations:
 
 | Scheme | Token | Hex Value | Semantic / Perceptual Role |
 | :--- | :--- | :--- | :--- |
@@ -322,7 +322,7 @@ Every bundle declares its 6-tier nested sublayer hierarchy upfront:
 
 Downstream consumers can hook directly into specific sublayers without battling selector specificity:
 
-- **Hooking into `@layer picotol.tokens`**: Bridge or override design tokens and Paul Tol ladders:
+- **Hooking into `@layer picotol.tokens`**: Bridge or override design tokens and accent ladders:
   ```css
   @layer picotol.tokens {
     :root {
@@ -384,7 +384,7 @@ Declare your application layer precedence upfront to allow Tailwind utilities to
 /* 1. Define explicit layer ordering (Tailwind utilities win over Picotol) */
 @layer picotol, tailwind-utilities;
 
-/* 2. Import Picotol for accessible semantic HTML baseline & Paul Tol tokens */
+/* 2. Import Picotol for accessible semantic HTML baseline & design tokens */
 @import "@kidthales/picotol";
 
 /* 3. Import Tailwind utilities */
@@ -414,7 +414,7 @@ Declare layer precedence upfront at the top of your master stylesheet:
 
 The 4 canonical layers serve dedicated architectural responsibilities:
 1. **`reset`**: CSS resets or foundational baseline normalizations.
-2. **`picotol`**: Framework styling (typography, layout, forms, components, Paul Tol tokens).
+2. **`picotol`**: Framework styling (typography, layout, forms, components, design tokens).
 3. **`theme`**: Host theme bridges, CSS custom property overrides, and mode toggles.
 4. **`app`**: Application-specific layout rules, page components, and design overrides.
 
@@ -670,19 +670,19 @@ Callouts and status badges require explicit classes (`.pt-callout`, `.pt-badge`,
 
 ### 4a. Calibrated Semantic Status Tokens
 
-`@kidthales/picotol` introduces standardized semantic status CSS custom property triads (`--pt-status-*-bg`, `--pt-status-*-fg`, `--pt-status-*-border`) across 4 operational states, mapped directly to Paul Tol qualitative schemes with calibrated dark mode luminance ensuring WCAG 2.2 AA non-text ($\ge 3:1$) and text ($\ge 4.5:1$) contrast:
+`@kidthales/picotol` introduces standardized semantic status CSS custom property triads (`--pt-status-*-bg`, `--pt-status-*-fg`, `--pt-status-*-border`) across 4 operational states, mapped directly to qualitative colorblind-safe schemes with calibrated dark mode luminance ensuring WCAG 2.2 AA non-text ($\ge 3:1$) and text ($\ge 4.5:1$) contrast:
 
 | State | CSS Tokens | Light Theme Swatch | Dark Theme Swatch | Contrast Guarantee |
 | :--- | :--- | :--- | :--- | :--- |
-| **OK / Success** | `--pt-status-ok-*` | Paul Tol Green (`#228833`) | Paul Tol Teal (`#44AA99`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
-| **Warning** | `--pt-status-warning-*` | Paul Tol Brown (`#662506`) / Yellow (`#DDAA33`) | Paul Tol Yellow (`#DDAA33`) / Orange (`#EE8866`) | $\ge 7:1$ text AAA, $\ge 3:1$ non-text |
-| **Critical / Danger** | `--pt-status-critical-*` | Paul Tol Red (`#CC3311`) | Paul Tol Red (`#EE6677`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
-| **Info** | `--pt-status-info-*` | Paul Tol Blue (`#4477AA`) | Paul Tol Cyan (`#66CCEE`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
-| **Neutral / Idle** | `--pt-color` / `--pt-muted-border` | Paul Tol Grey (`#888888`) | Paul Tol Grey (`#666666`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **OK / Success** | `--pt-status-ok-*` | Tol Green (`#228833`) | Tol Teal (`#44AA99`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **Warning** | `--pt-status-warning-*` | Tol Brown (`#662506`) / Tol Yellow (`#DDAA33`) | Tol Yellow (`#DDAA33`) / Tol Orange (`#EE8866`) | $\ge 7:1$ text AAA, $\ge 3:1$ non-text |
+| **Critical / Danger** | `--pt-status-critical-*` | Tol Red (`#CC3311`) | Tol Red (`#EE6677`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **Info** | `--pt-status-info-*` | Tol Blue (`#4477AA`) | Tol Cyan (`#66CCEE`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
+| **Neutral / Idle** | `--pt-color` / `--pt-muted-border` | Tol Grey (`#888888`) | Tol Grey (`#666666`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
 
 These tokens automatically power `.pt-dot`, `.pt-badge`, `.pt-indicator`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
 
-> **Status Contrast Policy**: In accordance with WCAG 2.2 §1.4.1 (Use of Color) and §1.4.3 (Contrast (Minimum)), Paul Tol semantic status hues carry only non-text signals (borders, dots, and icons via `--pt-icon-color`). Status callout and badge text uses the high-contrast body foreground token (`--pt-color`), certifying $\ge 4.5:1$ text contrast on 8% alpha washes across both light and dark themes. Nested icons (`svg`, `[data-icon]`) automatically inherit the status hue via `--pt-icon-color`. Every documented status callout and badge requires a descriptive status word or icon so colour is never the sole carrier of state.
+> **Status Contrast Policy**: In accordance with WCAG 2.2 §1.4.1 (Use of Color) and §1.4.3 (Contrast (Minimum)), calibrated semantic status hues carry only non-text signals (borders, dots, and icons via `--pt-icon-color`). Status callout and badge text uses the high-contrast body foreground token (`--pt-color`), certifying $\ge 4.5:1$ text contrast on 8% alpha washes across both light and dark themes. Nested icons (`svg`, `[data-icon]`) automatically inherit the status hue via `--pt-icon-color`. Every documented status callout and badge requires a descriptive status word or icon so colour is never the sole carrier of state.
 
 ### 4b. Status Badges, Indicators & Dots
 
@@ -718,7 +718,7 @@ All status badges and indicators default to `font-variant-numeric: tabular-nums`
 <span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span>
 ```
 
-High-density status dots (`.pt-dot`, `.pt-dot--ok`, `.pt-dot--warning`, `.pt-dot--critical`, `.pt-dot--info`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
+High-density status dots (`.pt-dot`, `.pt-dot--ok`, `.pt-dot--warning`, `.pt-dot--critical`, `.pt-dot--info`) map directly to the qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
 
 ```html
 <!-- Standalone Status Dots (.pt-dot primitive) -->
@@ -1012,7 +1012,7 @@ The interactive demonstration suite at `dist/demo/index.html` showcases:
 - **Operational Data Tables**: Responsive infrastructure monitor wrapped in `figure:has(> table)` and `.pt-table-container` with `.pt-tabular-nums` alignment, `.pt-dot` indicators, and `table.pt-striped`.
 - **Equal-Fill Segmented Controls & Icon Buttons**: View navigators with `flex: 1 1 0` equal distribution and 1:1 square icon buttons (`.pt-btn-icon`, `.pt-icon-btn`).
 - **Interactive Dashboard Console**: Tabpanel switching (`Overview`, `Analytics`, `System Logs`) and segmented time filters (`1H`, `24H`, `7D`, `30D`) with zero-CLS skeleton loading transitions (`.pt-skeleton`).
-- **Paul Tol Canonical Palette Explorer**: Swatch grid of all canonical colours loaded from `data/tol-qualitative.json` with live search filtering and click-to-copy tokens.
+- **Colorblind-Safe Palette Explorer**: Swatch grid of all canonical colours loaded from `data/tol-qualitative.json` with live search filtering and click-to-copy tokens.
 
 ---
 

@@ -195,7 +195,7 @@ export function generateDemoHtml(fullMinCss, stats) {
           </div>
         </li>
         <li>
-          <select id="accent-select" class="small mb-0" aria-label="Select Paul Tol accent hue">
+          <select id="accent-select" class="small mb-0" aria-label="Select accent hue">
             <option value="blue">Accent: Blue</option>
             <option value="cyan">Accent: Cyan</option>
             <option value="purple">Accent: Purple</option>
@@ -418,7 +418,7 @@ ${rowsHtml}
           <div>
             <label for="valid-input">Verified Input (<code>aria-invalid="false"</code>)</label>
             <input id="valid-input" type="text" value="#4477AA" aria-invalid="false" aria-describedby="valid-help">
-            <small id="valid-help">Matches Paul Tol Bright Blue.</small>
+            <small id="valid-help">Matches accessible bright blue.</small>
           </div>
           <div>
             <label for="invalid-input">Invalid Input (<code>aria-invalid="true"</code>)</label>
@@ -455,7 +455,7 @@ ${rowsHtml}
           <button type="button" class="outline contrast">Cancel</button>
         </div>
         <div role="search">
-          <input type="search" placeholder="Search Paul Tol tokens..." aria-label="Search Paul Tol tokens">
+          <input type="search" placeholder="Search color tokens..." aria-label="Search color tokens">
           <button type="submit">Search</button>
         </div>
         <h3>Horizontal Form Row Alignment (.form-row, .inline-form)</h3>
@@ -619,7 +619,7 @@ ${rowsHtml}
             <p>Modern Baseline CSS provides <code>light-dark()</code>, <code>color-mix()</code>, <code>clamp()</code>, and <code>@layer</code> natively, eliminating 3x duplicated variable blocks and shrinking the stylesheet by over 85%.</p>
           </details>
           <details>
-            <summary>Accordion: Strict Paul Tol Lightness Ladder</summary>
+            <summary>Accordion: Strict Lightness Ladder</summary>
             <p>All solid UI states step across <code>pale</code>, <code>light</code>, <code>medium-contrast</code>, <code>bright</code>, <code>dark</code>, and <code>high-contrast</code> schemes.</p>
           </details>
         </div>
@@ -648,7 +648,7 @@ ${rowsHtml}
       <dialog id="demo-modal" aria-labelledby="modal-title">
         <article>
           <header>
-            <strong id="modal-title">Paul Tol Colour Verification Modal</strong>
+            <strong id="modal-title">Color &amp; Contrast Verification Modal</strong>
             <button type="button" aria-label="Close" class="close" data-dialog-close="demo-modal"></button>
           </header>
           <p>This native HTML5 <code>&lt;dialog&gt;</code> element is styled purely with <code>picotol.min.css</code>.</p>
@@ -703,7 +703,7 @@ ${rowsHtml}
       <h3>Status Dots &amp; Narrow-Corridor Reflow</h3>
       <div class="grid">
         <article>
-          <header><strong>Tokenized Status Dots (<code>.pt-dot</code>)</strong></header>
+          <header><strong>Status Dots (<code>.pt-dot</code>)</strong></header>
           <main>
             <p><span class="pt-dot pt-dot--ok"></span><strong>Operational</strong> <code>.pt-dot.pt-dot--ok</code></p>
             <p><span class="pt-dot pt-dot--warning"></span><strong>Warning</strong> <code>.pt-dot.pt-dot--warning</code></p>
@@ -715,7 +715,7 @@ ${rowsHtml}
           <footer><small>Tokenized 0.5rem primitive with wash halo and forced-colors border</small></footer>
         </article>
         <article>
-          <header><strong>Paul Tol Status Dots (<code>.status-dot</code>)</strong></header>
+          <header><strong>Status Dots (<code>.status-dot</code>)</strong></header>
           <main>
             <p><span class="status-dot success"></span><strong>Operational</strong> <code>.status-dot.success</code></p>
             <p><span class="status-dot warning"></span><strong>Warning</strong> <code>.status-dot.warning</code></p>
@@ -842,7 +842,7 @@ ${rowsHtml}
         <article>
           <header><strong>Native &lt;progress&gt; &amp; Status</strong></header>
           <main>
-            <p><small>Default accent, compact height, and Paul Tol semantic modifiers.</small></p>
+            <p><small>Default accent, compact height, and accessible semantic modifiers.</small></p>
             <progress value="65" max="100"></progress>
             <progress value="85" max="100" class="pt-progress-success"></progress>
             <progress value="50" max="100" class="pt-progress-warning"></progress>
@@ -1079,7 +1079,7 @@ ${rowsHtml}
         </div>
 
         <aside class="valid">
-          <p><strong>System Health Normal:</strong> All cluster telemetry reporting within nominal Paul Tol accessible thresholds.</p>
+          <p><strong>System Health Normal:</strong> All cluster telemetry reporting within nominal accessibility thresholds.</p>
         </aside>
       </div>
 
@@ -1175,15 +1175,15 @@ ${rowsHtml}
     <hr>
 
     <section id="palettes">
-      <h2>10. Paul Tol Canonical Palette Explorer</h2>
-      <p>Explore canonical color-blind safe palettes authored by Dr. Paul Tol. Click any swatch or token to copy its CSS custom property to the clipboard.</p>
+      <h2>10. Colorblind-Safe Palette Explorer</h2>
+      <p>Explore scientific, colorblind-safe qualitative and diverging palettes (SRON). Click any swatch or token to copy its CSS custom property to the clipboard.</p>
       <div role="search">
-        <input type="search" id="palette-search" placeholder="Search by scheme (e.g. vibrant), name (e.g. cyan), token, or hex..." aria-label="Search Paul Tol palettes">
+        <input type="search" id="palette-search" placeholder="Search by scheme (e.g. vibrant), name (e.g. cyan), token, or hex..." aria-label="Search colorblind-safe palettes">
       </div>
       <div id="palette-grid" class="grid" style="grid-template-columns:repeat(auto-fill, minmax(13rem, 1fr));gap:1rem;">
 ${swatchCardsHtml}
       </div>
-      <p id="palette-empty" hidden>No matching Paul Tol color tokens found.</p>
+      <p id="palette-empty" hidden>No matching color tokens found.</p>
       <div role="status" aria-live="polite"><div id="toast" class="toast"></div></div>
     </section>
   </main>
