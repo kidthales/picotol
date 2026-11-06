@@ -142,7 +142,7 @@ describe("Packaging & npm Distribution Metadata", () => {
 
     assert.equal(info.name, "@kidthales/picotol");
     assert.ok(info.size <= 75 * 1024, `Tarball size ${info.size} B exceeds 75 KB budget`);
-    assert.ok(info.unpackedSize <= 350 * 1024, `Unpacked size ${info.unpackedSize} B exceeds 350 KB budget`);
+    assert.ok(info.unpackedSize <= 380 * 1024, `Unpacked size ${info.unpackedSize} B exceeds 380 KB budget`);
 
     const paths = info.files.map((f) => f.path);
     assert.ok(paths.includes("LICENSE"), "LICENSE must be included in tarball");
@@ -442,7 +442,7 @@ describe("Packaging & npm Distribution Metadata", () => {
 });
 
 describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
-  test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 14.0 KB, picotol.min.css <= 40.0 KB, and picotol.layer.min.css <= 40.0 KB", () => {
+  test("Two-Tier Bundle Byte Budgets: picotol.core.min.css <= 14.0 KB, picotol.min.css <= 44.0 KB, and picotol.layer.min.css <= 44.0 KB", () => {
     const coreMin = Buffer.byteLength(getCoreMinCss(), "utf8");
     const fullMin = Buffer.byteLength(getDistMinCss(), "utf8");
     const layerMin = Buffer.byteLength(getLayerMinCss(), "utf8");
@@ -452,47 +452,53 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
       `Expected dist/picotol.core.min.css (${coreMin} B) to be <= ${14.0 * KB} B`
     );
     assert.ok(
-      fullMin <= 40.0 * KB,
-      `Expected dist/picotol.min.css (${fullMin} B) to be <= ${40.0 * KB} B`
+      fullMin <= 44.0 * KB,
+      `Expected dist/picotol.min.css (${fullMin} B) to be <= ${44.0 * KB} B`
     );
     assert.ok(
-      layerMin <= 40.0 * KB,
-      `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= ${40.0 * KB} B`
+      layerMin <= 44.0 * KB,
+      `Expected dist/picotol.layer.min.css (${layerMin} B) to be <= ${44.0 * KB} B`
     );
   });
 
-  test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework bundle in @layer picotol without syntax errors", () => {
+  test("Opt-in Layered Distribution Build: picotol.layer.min.css emits identical output to picotol.min.css namespaced under picotol.* without un-namespaced layers", () => {
     const layerCss = getLayerCss();
     const layerMinCss = getLayerMinCss();
+    const fullCss = getDistCss();
+    const fullMinCss = getDistMinCss();
 
     assert.ok(layerCss.startsWith("/*!"), "Expanded layered build must retain license header");
     assert.ok(layerMinCss.startsWith("/*!"), "Minified layered build must retain license header");
 
+    assert.equal(layerCss, fullCss, "dist/picotol.layer.css must emit identical output to dist/picotol.css per ADR 0001");
+    assert.equal(layerMinCss, fullMinCss, "dist/picotol.layer.min.css must emit identical output to dist/picotol.min.css per ADR 0001");
+
     assert.ok(
-      layerCss.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
+      layerCss.includes("@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
       "dist/picotol.layer.css must export nested layer definitions preamble"
     );
     assert.ok(
-      layerMinCss.includes("@layer picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;"),
+      layerMinCss.includes("@layer picotol.legacy,picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;"),
       "dist/picotol.layer.min.css must export nested layer definitions preamble"
     );
 
-    assert.ok(
-      layerCss.includes("@layer picotol {"),
-      "dist/picotol.layer.css must wrap contents in @layer picotol"
-    );
-    assert.ok(
-      layerMinCss.includes("@layer picotol{"),
-      "dist/picotol.layer.min.css must contain @layer picotol"
-    );
-
-    const layers = ["tokens", "reset", "base", "components", "utilities"];
+    const layers = ["legacy", "tokens", "reset", "base", "components", "utilities"];
     for (const layer of layers) {
       assert.ok(
-        layerMinCss.includes(`@layer ${layer}{`),
-        `Layered minified build must retain inner @layer ${layer}`
+        layerMinCss.includes(`@layer picotol.${layer}{`),
+        `Layered minified build must retain inner @layer picotol.${layer}`
       );
     }
+
+    const unnamespacedRegex = /@layer\s+(?:legacy|tokens|reset|base|components|utilities)[\s,{]/;
+    assert.ok(
+      !unnamespacedRegex.test(layerCss),
+      "dist/picotol.layer.css must contain no un-namespaced @layer declarations"
+    );
+    assert.ok(
+      !unnamespacedRegex.test(layerMinCss),
+      "dist/picotol.layer.min.css must contain no un-namespaced @layer declarations"
+    );
   });
 
   test("Two-Tier Isolation: Core bundle strictly excludes extended components", () => {

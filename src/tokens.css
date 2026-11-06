@@ -1,5 +1,5 @@
-@layer tokens, reset, base, components, utilities;
-@layer tokens {
+@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
+@layer picotol.tokens {
   :root, :host, [data-accent="blue"] {
     --pt-p1: #AACCEE; --pt-p2: #77AADD; --pt-p3: #4477AA; --pt-p4: #2255AA; --pt-p5: #004488;
   }
@@ -18,9 +18,6 @@
     --pt-card-padding: var(--pt-spacing);
     --pt-form-y: 0.5rem;
     --pt-form-x: 0.75rem;
-    --pt-form-element-spacing-vertical: var(--pt-form-y); /* @deprecated: removed in v0.6.0 */
-    --pt-form-element-spacing-horizontal: var(--pt-form-x); /* @deprecated: removed in v0.6.0 */
-    --pt-btn-padding-block: var(--pt-form-y); /* @deprecated: removed in v0.6.0 */
     --pt-table-cell-padding-block: 0.5rem;
     --pt-table-cell-padding-inline: 0.75rem;
     --pt-container-max: 70rem;

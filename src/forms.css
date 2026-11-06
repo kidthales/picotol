@@ -1,4 +1,4 @@
-@layer base {
+@layer picotol.base {
   :where(label, fieldset > legend) { display: block; margin-bottom: 0.25rem; font-weight: 500; }
   fieldset { margin: 0 0 var(--pt-spacing); padding: 0; border: 0; }
 
@@ -70,7 +70,7 @@
     cursor: pointer;
   }
 
-  :where(.form-row, .inline-form) {
+  :where(.pt-form-row, .pt-inline-form, /* @deprecated: removed in v0.7.0 */ .form-row, /* @deprecated: removed in v0.7.0 */ .inline-form) {
     display: flex;
     flex-wrap: wrap;
     align-items: center;

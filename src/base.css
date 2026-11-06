@@ -1,8 +1,9 @@
-@layer reset {
+@layer picotol.reset {
   *, ::before, ::after { box-sizing: border-box; }
 
-  body {
-    margin: 0;
+  body { margin: 0; }
+
+  body.pt-app {
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
@@ -15,7 +16,7 @@
   :where([hidden]:not([hidden="until-found" i])) { display: none !important; }
 }
 
-@layer base {
+@layer picotol.base {
   :root, :host, :where([data-theme]) {
     background: var(--pt-bg);
     color: var(--pt-color);
@@ -54,13 +55,13 @@
       --pt-bg: #fff;
       --pt-color: #000;
     }
-    :where(nav, dialog, .skip-to-content) { display: none !important; }
+    :where(nav, dialog, .pt-skip-to-content, /* @deprecated: removed in v0.7.0 */ .skip-to-content) { display: none !important; }
     :where(pre, blockquote, table, article, figure) { break-inside: avoid; }
   }
 }
 
-@layer utilities {
-  .skip-to-content:is(:focus, :focus-visible) {
+@layer picotol.utilities {
+  :is(.pt-skip-to-content, /* @deprecated: removed in v0.7.0 */ .skip-to-content):is(:focus, :focus-visible) {
     position: fixed;
     top: 0.5rem;
     inset-inline-start: 0.5rem;
@@ -75,9 +76,12 @@
   }
 
   :where(
-    .sr-only,
-    .visually-hidden,
-    :is(.skip-to-content, .sr-only-focusable, .visually-hidden-focusable):not(:focus, :focus-visible)
+    .pt-sr-only,
+    .pt-visually-hidden,
+    :is(.pt-skip-to-content, .pt-sr-only-focusable, .pt-visually-hidden-focusable):not(:focus, :focus-visible),
+    /* @deprecated: removed in v0.7.0 */ .sr-only,
+    /* @deprecated: removed in v0.7.0 */ .visually-hidden,
+    /* @deprecated: removed in v0.7.0 */ :is(.skip-to-content, .sr-only-focusable, .visually-hidden-focusable):not(:focus, :focus-visible)
   ) {
     position: absolute;
     width: 1px;

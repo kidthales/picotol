@@ -120,11 +120,13 @@ export function splitSelectors(rawSelector) {
 
 export function extractLayerBlock(rawCss, layerName) {
   const cleanCss = stripCssComments(rawCss);
-  const re = new RegExp(`@layer\\s+${layerName}\\s*\\{`, 'g');
+  const canonicalLayer = layerName.startsWith('picotol.') ? layerName : `picotol.${layerName}`;
+  const escaped = canonicalLayer.replace(/\./g, '\\.');
+  const re = new RegExp(`@layer\\s+${escaped}\\s*\\{`, 'g');
   const matches = [...cleanCss.matchAll(re)];
   if (matches.length === 0) return null;
   if (matches.length > 1) {
-    throw new Error(`Multiple @layer ${layerName} blocks found in CSS content`);
+    throw new Error(`Multiple @layer ${canonicalLayer} blocks found in CSS content`);
   }
   const match = matches[0];
   const openBraceIdx = match.index + match[0].length - 1;
@@ -148,7 +150,7 @@ export function extractLayerBlock(rawCss, layerName) {
       }
     }
   }
-  throw new Error(`Unclosed @layer ${layerName} block in CSS content`);
+  throw new Error(`Unclosed @layer ${canonicalLayer} block in CSS content`);
 }
 
 export function parseCssBlock(rawBlockText) {
@@ -247,9 +249,9 @@ function isSecondaryButtonRuleSelector(rawSelector) {
   const parts = splitSelectors(unwrapped);
   if (parts.length === 0) return false;
   return (
-    parts.some((p) => p === '.secondary') &&
+    parts.some((p) => p === '.secondary' || p === '.pt-secondary') &&
     parts.every(
-      (p) => p === '.secondary' || p === '[type="reset"]' || p === '[type=reset]'
+      (p) => p === '.secondary' || p === '.pt-secondary' || p === '[type="reset"]' || p === '[type=reset]'
     )
   );
 }
@@ -258,12 +260,12 @@ export function parseTokens(cssContent) {
   // Strip CSS comments (preserving strings and unquoted url()) before parsing rules
   const cleanCss = stripCssComments(cssContent);
 
-  const tokensBlock = extractLayerBlock(cleanCss, 'tokens');
+  const tokensBlock = extractLayerBlock(cleanCss, 'picotol.tokens');
   if (tokensBlock === null) {
-    throw new Error('Missing @layer tokens in CSS content');
+    throw new Error('Missing @layer picotol.tokens in CSS content');
   }
-  if (!/@layer\s+reset\s*\{/.test(cleanCss)) {
-    throw new Error('Missing @layer reset delimiter after tokens in CSS content');
+  if (!/@layer\s+picotol\.reset\s*\{/.test(cleanCss)) {
+    throw new Error('Missing @layer picotol.reset delimiter after tokens in CSS content');
   }
 
   const rootDecls = {};
@@ -342,10 +344,10 @@ export function parseTokens(cssContent) {
     processTokensRule(rule, null);
   }
 
-  // Parse secondary button rules scoped to @layer base (with brace-depth awareness for nested rules)
-  const baseBlock = extractLayerBlock(cleanCss, 'base');
+  // Parse secondary button rules scoped to @layer picotol.base (with brace-depth awareness for nested rules)
+  const baseBlock = extractLayerBlock(cleanCss, 'picotol.base');
   if (baseBlock === null) {
-    throw new Error('Missing @layer base in CSS content');
+    throw new Error('Missing @layer picotol.base in CSS content');
   }
   const baseParsed = parseCssBlock(baseBlock);
   for (const rule of baseParsed.rules) {

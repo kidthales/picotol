@@ -13,7 +13,10 @@ import {
   extractCdnUrlsFromMarkdown,
   isCdnUrlPinned,
   extractCdnLinkTags,
+  isDeprecatedDocToken,
+  DEPRECATED_DOC_TOKENS,
 } from './helpers/doc-lint.mjs';
+import { DEPRECATED_CLASS_ALLOWLIST } from '../tools/lint.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -26,6 +29,16 @@ const REMOVE_BY_ANCHORED_RE =
 // Empty allowlist following Issue #200 (all phantom APIs retracted and documentation reconciled).
 export const TEMPORARY_ALLOWLIST = [];
 
+// Historical document allowlist for tokens formally retired in breaking releases (e.g. v0.6.0 density tokens)
+export const HISTORICAL_DOC_ALLOWLIST = [
+  { file: 'CHANGELOG.md', token: '--pt-form-element-spacing-vertical', count: 2 },
+  { file: 'CHANGELOG.md', token: '--pt-form-element-spacing-horizontal', count: 2 },
+  { file: 'CHANGELOG.md', token: '--pt-btn-padding-block', count: 2 },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-form-element-spacing-vertical', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-form-element-spacing-horizontal', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-btn-padding-block', count: 1 },
+];
+
 test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs/RELEASE_NOTES_*.md against dist/picotol.css', () => {
   const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -36,11 +49,15 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
   const readmeResult = validateDocTokens(readmeContent, distCss, 'README.md', TEMPORARY_ALLOWLIST);
   assert.ok(readmeResult.tokens.length > 0, 'README.md must contain documented tokens');
   assert.deepEqual(readmeResult.missing, [], `README.md contains undocumented tokens: ${readmeResult.missing.join(', ')}`);
+  assert.deepEqual(readmeResult.deprecated, [], `README.md contains deprecated tokens: ${readmeResult.deprecated.join(', ')}`);
 
   // 2. CHANGELOG.md scoped strictly to current release header (e.g. ## [0.5.0])
   const changelogContent = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8');
   const changelogSection = extractCurrentChangelogSection(changelogContent, currentVersion);
-  const changelogResult = validateDocTokens(changelogSection, distCss, 'CHANGELOG.md', TEMPORARY_ALLOWLIST);
+  const changelogResult = validateDocTokens(changelogSection, distCss, 'CHANGELOG.md', [
+    ...TEMPORARY_ALLOWLIST,
+    ...HISTORICAL_DOC_ALLOWLIST,
+  ]);
   assert.ok(changelogResult.tokens.length > 0, `CHANGELOG.md ## [${currentVersion}] section must contain documented tokens`);
   assert.deepEqual(changelogResult.missing, [], `CHANGELOG.md contains undocumented tokens: ${changelogResult.missing.join(', ')}`);
 
@@ -61,7 +78,10 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
   for (const file of releaseNoteFiles) {
     const relPath = `docs/${file}`;
     const noteContent = fs.readFileSync(path.join(ROOT, 'docs', file), 'utf8');
-    const noteResult = validateDocTokens(noteContent, distCss, relPath, TEMPORARY_ALLOWLIST);
+    const noteResult = validateDocTokens(noteContent, distCss, relPath, [
+      ...TEMPORARY_ALLOWLIST,
+      ...HISTORICAL_DOC_ALLOWLIST,
+    ]);
     if (file === currentReleaseNoteFile) {
       assert.ok(noteResult.tokens.length > 0, `${relPath} must contain documented tokens`);
     }
@@ -342,7 +362,13 @@ test('doc-lint: validate CDN examples in README.md and current release notes are
   const currentReleaseNoteFile = `RELEASE_NOTES_V${currentVersion.replaceAll('.', '_')}.md`;
   const currentReleaseNotePath = path.join(ROOT, 'docs', currentReleaseNoteFile);
   const currentNoteContent = fs.readFileSync(currentReleaseNotePath, 'utf8');
-  const currentNoteErrors = validateDocCdn(currentNoteContent, sri, `docs/${currentReleaseNoteFile}`, true);
+  const isHistoricalRelease = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8').includes(`## [${currentVersion}]`);
+  const currentNoteErrors = validateDocCdn(
+    currentNoteContent,
+    isHistoricalRelease ? null : sri,
+    `docs/${currentReleaseNoteFile}`,
+    !isHistoricalRelease
+  );
   assert.deepEqual(currentNoteErrors, [], `Current release notes CDN validation errors: ${currentNoteErrors.join(', ')}`);
 
   // 3. Validate all other release notes CDN URLs are version-pinned (zero unpinned CDN URLs across all docs)
@@ -426,4 +452,66 @@ test('doc-lint: negative tests: unpinned CDN URLs, missing integrity, and mismat
     ['https://unpkg.com/@kidthales/picotol@0.5.0/dist/picotol.min.css'],
     'Must parse URL cleanly without trailing backtick'
   );
+});
+
+test('doc-lint: flags deprecated status dot primitives and aliases in docs (Issue #208)', () => {
+  const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
+
+  // 1. Canonical README.md has zero deprecated tokens
+  const readmeContent = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const readmeResult = validateDocTokens(readmeContent, distCss, 'README.md');
+  assert.deepEqual(readmeResult.deprecated, [], `README.md contains deprecated tokens: ${readmeResult.deprecated.join(', ')}`);
+
+  // 2. Negative test: each deprecated dot primitive/alias fails closed when used in markdown
+  const deprecatedSnippet = [
+    'Use `.status-dot` and `.pt-status-dot` with `.pt-status-dot-success` and `.pt-status-dot-danger`.',
+    'Also old `.pt-dot--success` and `.pt-dot--danger`.',
+    '```html',
+    '<span class="status-dot success"></span>',
+    '<span class="pt-status-dot pt-status-dot-warning"></span>',
+    '```',
+  ].join('\n');
+  const negResult = validateDocTokens(deprecatedSnippet, distCss, 'sample.md');
+  assert.ok(negResult.deprecated.includes('.status-dot'), 'Must flag .status-dot');
+  assert.ok(negResult.deprecated.includes('.pt-status-dot'), 'Must flag .pt-status-dot');
+  assert.ok(negResult.deprecated.includes('.pt-status-dot-success'), 'Must flag .pt-status-dot-success');
+  assert.ok(negResult.deprecated.includes('.pt-status-dot-danger'), 'Must flag .pt-status-dot-danger');
+  assert.ok(negResult.deprecated.includes('.pt-status-dot-warning'), 'Must flag .pt-status-dot-warning');
+  assert.ok(negResult.deprecated.includes('.pt-dot--success'), 'Must flag .pt-dot--success');
+  assert.ok(negResult.deprecated.includes('.pt-dot--danger'), 'Must flag .pt-dot--danger');
+
+  // 3. Allowlist suppresses deprecated warnings when explicitly allowlisted (e.g. for migration docs)
+  const allowed = validateDocTokens('Use `.status-dot` for migration.', distCss, 'migrate.md', [
+    { file: 'migrate.md', token: '.status-dot', count: 1 },
+  ]);
+  assert.deepEqual(allowed.deprecated, []);
+});
+
+test('doc-lint: README.md strictly uses canonical v0.6.0 selectors and zero deprecated class aliases (ADR 0001 §7)', () => {
+  const readmeContent = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const violations = [];
+
+  // Check HTML class attributes in README
+  const htmlClassAttrRe = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g;
+  let cm;
+  while ((cm = htmlClassAttrRe.exec(readmeContent)) !== null) {
+    const classVal = cm[1] ?? cm[2] ?? cm[3] ?? '';
+    for (const cls of classVal.split(/\s+/).filter(Boolean)) {
+      if (DEPRECATED_CLASS_ALLOWLIST.has(cls)) {
+        violations.push(`HTML class="${classVal}" uses deprecated class ".${cls}"`);
+      }
+    }
+  }
+
+  // Check code spans for unprefixed deprecated classes
+  const codeSpanRe = /`\.([a-zA-Z0-9_-]+)`/g;
+  let sm;
+  while ((sm = codeSpanRe.exec(readmeContent)) !== null) {
+    const cls = sm[1];
+    if (DEPRECATED_CLASS_ALLOWLIST.has(cls)) {
+      violations.push(`Code span uses deprecated class ".${cls}"`);
+    }
+  }
+
+  assert.deepEqual(violations, [], `README.md contains non-canonical/deprecated classes:\n  • ${violations.join('\n  • ')}`);
 });

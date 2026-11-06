@@ -1,53 +1,53 @@
-@layer base {
-  :where(body > header, body > main, body > footer, .container) {
+@layer picotol.base {
+  :where(body > header, body > main, body > footer, .pt-container, /* @deprecated: removed in v0.7.0 */ .container) {
     width: 100%;
     max-width: var(--pt-container-max);
     margin-inline: auto;
     padding: var(--pt-spacing);
   }
 
-  .container-fluid {
+  :is(.pt-container-fluid, /* @deprecated: removed in v0.7.0 */ .container-fluid) {
     width: 100%;
     padding: var(--pt-spacing);
   }
 
   :where(section) {
     margin-bottom: calc(var(--pt-spacing) * 1.5);
-    :where(.flex, .grid, [style*="gap"]) > &,
+    :where(.pt-flex, .pt-grid, /* @deprecated: removed in v0.7.0 */ .flex, /* @deprecated: removed in v0.7.0 */ .grid, [style*="gap"]) > &,
     :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) & {
       margin-bottom: 0;
     }
   }
 
-  :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) :where(section, article, .card, hr) {
+  :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) :where(section, article, .pt-card, /* @deprecated: removed in v0.7.0 */ .card, hr) {
     margin-block: 0;
   }
 
-  :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) :where(.flex, .grid, [style*="display: flex"], [style*="display: grid"]) > :where(section, article, .card) {
+  :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) :where(.pt-flex, .pt-grid, /* @deprecated: removed in v0.7.0 */ .flex, /* @deprecated: removed in v0.7.0 */ .grid, [style*="display: flex"], [style*="display: grid"]) > :where(section, article, .pt-card, /* @deprecated: removed in v0.7.0 */ .card) {
     margin-block: 0;
   }
 }
 
-@layer utilities {
-  :where(.mb-0, .no-margin-bottom) { margin-bottom: 0 !important; }
+@layer picotol.utilities {
+  :where(.pt-mb-0, .pt-no-margin-bottom, /* @deprecated: removed in v0.7.0 */ .mb-0, /* @deprecated: removed in v0.7.0 */ .no-margin-bottom) { margin-bottom: 0 !important; }
 
-  :where(.grid, .flex) {
+  :where(.pt-grid, .pt-flex, /* @deprecated: removed in v0.7.0 */ .grid, /* @deprecated: removed in v0.7.0 */ .flex) {
     gap: var(--pt-grid-gap, var(--pt-spacing));
     & > * { min-width: 0; }
   }
 
-  .grid {
+  :is(.pt-grid, /* @deprecated: removed in v0.7.0 */ .grid) {
     display: grid;
     @media (min-width: 48rem) {
       grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--pt-grid-min)), 1fr));
     }
   }
 
-  :where(.flex) {
+  :where(.pt-flex, /* @deprecated: removed in v0.7.0 */ .flex) {
     display: flex;
   }
 
-  :where(.overflow-auto, .table-container) {
+  :where(.pt-overflow-auto, .pt-table-container, /* @deprecated: removed in v0.7.0 */ .overflow-auto, /* @deprecated: removed in v0.7.0 */ .table-container) {
     max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;

@@ -149,8 +149,8 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
   };
 
   const lines = [
-    '@layer tokens, reset, base, components, utilities;',
-    '@layer tokens {',
+    '@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;',
+    '@layer picotol.tokens {',
     '  :root, :host, [data-accent="blue"] {',
     `    --pt-p1: ${colorByName('pale', 0)}; --pt-p2: ${colorByName('light', 'light_blue')}; --pt-p3: ${colorByName('bright', 'blue')}; --pt-p4: ${colorByName('dark', 3)}; --pt-p5: ${colorByName('high-contrast', 'blue')};`,
     '  }',
@@ -169,9 +169,6 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
     '    --pt-card-padding: var(--pt-spacing);',
     '    --pt-form-y: 0.5rem;',
     '    --pt-form-x: 0.75rem;',
-    '    --pt-form-element-spacing-vertical: var(--pt-form-y); /* @deprecated: removed in v0.6.0 */',
-    '    --pt-form-element-spacing-horizontal: var(--pt-form-x); /* @deprecated: removed in v0.6.0 */',
-    '    --pt-btn-padding-block: var(--pt-form-y); /* @deprecated: removed in v0.6.0 */',
     '    --pt-table-cell-padding-block: 0.5rem;',
     '    --pt-table-cell-padding-inline: 0.75rem;',
     '    --pt-container-max: 70rem;',
@@ -261,7 +258,7 @@ export function buildTokensCss(snapshot = loadSnapshot()) {
 
 export function buildPalettesCss(snapshot = loadSnapshot()) {
   const lines = [
-    '@layer tokens {',
+    '@layer picotol.tokens {',
     '  :root, :host {',
   ];
 

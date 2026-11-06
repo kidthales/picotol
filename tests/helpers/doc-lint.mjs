@@ -120,11 +120,11 @@ export function extractTokenOccurrencesFromMarkdown(content) {
   flushProseParagraphs();
 
   const occurrences = [];
-  const tokenRe = /(\.(?:pt|segmented)-[a-zA-Z0-9_*-]+|(?<![\w-])--pt-[a-zA-Z0-9_*-]+)(?![\w*-])/g;
+  const tokenRe = /(\.(?:pt|segmented|status)-[a-zA-Z0-9_*-]+|(?<![\w-])--pt-[a-zA-Z0-9_*-]+)(?![\w*-])/g;
   const braceTokenRe =
-    /(?:\.(?:pt|segmented)|--pt|(?<=[\s"'=])(?:pt|segmented))-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
+    /(?:\.(?:pt|segmented|status)|--pt|(?<=[\s"'=])(?:pt|segmented|status))-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
   const htmlClassAttrRe = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g;
-  const bareClassTokenRe = /^(?:pt|segmented)-[a-zA-Z0-9_*-]+$/;
+  const bareClassTokenRe = /^(?:pt|segmented|status)-[a-zA-Z0-9_*-]+$/;
 
   for (const rawSegment of codeSegments) {
     const expandedSegment = rawSegment.replace(braceTokenRe, (match) =>
@@ -173,10 +173,18 @@ function tokenToRegexSource(token) {
     .join('[a-zA-Z0-9_-]+');
 }
 
+export const CONSUMER_HOOK_PROPERTIES = new Set([
+  '--pt-marker-pos',
+]);
+
 export function tokenExistsInCss(token, cssContent) {
   const cleanCss = stripCssCommentsAndStrings(cssContent);
   const pattern = tokenToRegexSource(token);
   if (token.startsWith('--')) {
+    if (CONSUMER_HOOK_PROPERTIES.has(token)) {
+      const varRe = new RegExp(`var\\(\\s*${pattern}(?![\\w-])`);
+      return varRe.test(cleanCss);
+    }
     // Require a custom property declaration (--pt-foo:), not merely a var(--pt-foo) usage
     const declRe = new RegExp(`(?<![\\w-])${pattern}(?![\\w-])\\s*:`);
     return declRe.test(cleanCss);
@@ -187,6 +195,25 @@ export function tokenExistsInCss(token, cssContent) {
     const selRe = new RegExp(`${pattern}(?![\\w-])(?=[^;{}]*\\{)`);
     return selRe.test(positiveCss);
   }
+  return false;
+}
+
+export const DEPRECATED_DOC_TOKENS = new Set([
+  '.pt-dot--success',
+  '.pt-dot--danger',
+  '.status-dot',
+  '.pt-status-dot',
+  '.pt-status-dot-ok',
+  '.pt-status-dot-success',
+  '.pt-status-dot-warning',
+  '.pt-status-dot-danger',
+  '.pt-status-dot-critical',
+  '.pt-status-dot-info',
+]);
+
+export function isDeprecatedDocToken(token) {
+  if (token === '.pt-dot--success' || token === '.pt-dot--danger') return true;
+  if (token === '.status-dot' || token.startsWith('.pt-status-dot')) return true;
   return false;
 }
 
@@ -202,13 +229,17 @@ export function validateDocTokens(content, distCss, file = '', allowlistOrFn = [
   }
   const tokens = [...counts.keys()];
   const missing = [];
+  const deprecated = [];
   for (const token of tokens) {
     if (allowlistFn(token, file, counts.get(token))) continue;
     if (!tokenExistsInCss(token, distCss)) {
       missing.push(token);
     }
+    if (isDeprecatedDocToken(token)) {
+      deprecated.push(token);
+    }
   }
-  return { tokens, missing, counts };
+  return { tokens, missing, deprecated, counts };
 }
 
 export function extractCdnUrlsFromMarkdown(content) {
