@@ -5,8 +5,6 @@ import { expandHex, hexToRgb, relativeLuminance, contrastRatio } from './color-u
 
 export { expandHex, hexToRgb, relativeLuminance, contrastRatio };
 
-export const UPSTREAM_PICO_MIN_BYTES = 83319;
-
 export const ACCENT_TABLE = [
   {
     accent: 'blue',
@@ -232,14 +230,14 @@ export function generateDemoHtml(fullMinCss, stats) {
           <main>
             <p><strong>${stats.coreMinBytes} bytes</strong> (${(stats.coreMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.coreGzipBytes} B</strong> gzip)</p>
           </main>
-          <footer><small>Landmarks, .grid, typography, tables, forms, nav</small></footer>
+          <footer><small>Landmarks, typography, forms, tables, nav</small></footer>
         </article>
         <article>
           <header><strong>Full Bundle (<code>picotol.min.css</code>)</strong></header>
           <main>
             <p><strong>${stats.fullMinBytes} bytes</strong> (${(stats.fullMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.fullGzipBytes} B</strong> gzip)</p>
           </main>
-          <footer><small>${((1 - stats.fullMinBytes / UPSTREAM_PICO_MIN_BYTES) * 100).toFixed(1)}% smaller than upstream pico.min.css (83.3 KB)</small></footer>
+          <footer><small>Complete accessible component suite</small></footer>
         </article>
         <article>
           <header><strong>Layer Build (<code>picotol.layer.min.css</code>)</strong></header>
