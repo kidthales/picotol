@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-06
+
+Ninth public open-source pre-release of `@kidthales/picotol`. Major breaking API consolidation release completing the v0.6 transition by removing `@layer picotol.legacy`, bare semantic selectors, legacy unprefixed class aliases, deprecated status dot primitives/vocabulary aliases, and legacy `--marker-pos` property reads (#275). Refactors demo presentation to reframe standalone bundle metrics (#273) and refines documentation copy to tone down repetitive brand references (#274). For detailed narrative and migration guidance, see [Release Notes v0.7.0](docs/RELEASE_NOTES_V0_7_0.md).
+
 ### Breaking Changes
 - **Removal of `@layer picotol.legacy`**: Completely removed `@layer picotol.legacy` and deprecated bare semantic selectors (`aside:not(...)`, `[role="alert"]`, `[role="status"]`) from all source and distribution bundles. Cascade layer preamble is now `@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;` (#275).
 - **Removal of Unprefixed Class Aliases**: Removed all legacy unprefixed class aliases (`.card`, `.grid`, `.flex`, `.button`, `.btn`, `.sheet`, `.dialog`, `.primary`, `.secondary`, `.contrast`, `.outline`, `.small`, `.sm`, `.striped`, `.solid`, `.swatch`, `.nowrap`, `.end`, `.fill`, `.show`, `.sr-only`, `.visually-hidden`, `.skip-to-content`, `.overflow-auto`, `.table-container`, etc.) across all stylesheets. All public classes are now strictly canonical and prefixed with `pt-` (#275).
 - **Removal of Deprecated Status and Dot Aliases**: Removed legacy status dot primitives and vocabulary aliases: `.status-dot`, `.pt-status-dot*`, `.pulse`, `.pt-callout-success`, `.pt-callout-danger`, `.pt-progress-success`, `.pt-progress-danger`, `.pt-dot--success`, `.pt-dot--danger`, and bare status classes (`.ok`, `.info`, `.warning`, `.critical`, `.success`, `.danger`, `.valid`, `.invalid`) in favor of canonical `.pt-dot`, `.pt-dot--pulse` (with `@keyframes pt-pulse`), `.pt-progress-ok`, `.pt-progress-critical`, and canonical status vocabulary `ok | info | warning | critical` (#275).
 - **Removal of Deprecated `--marker-pos` Fallback**: Removed legacy `--marker-pos` custom property fallback read in `src/components.css` and removed from `DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST` in favor of canonical `--pt-marker-pos` (#275).
+
+### Changed
+- Refactored demo presentation (`dist/demo/index.html` and `tools/generate-demo.mjs`) to retire upstream bundle comparison metrics and reframe showcase cards around standalone tier metrics (#273).
+- Refined documentation copy across `README.md`, demo pages, and package descriptions to tone down repetitive brand references while preserving rigorous attribution (#274).
 
 ## [0.6.0] - 2026-11-05
 

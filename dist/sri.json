@@ -1,21 +1,21 @@
 {
   "package": "@kidthales/picotol",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "files": {
     "dist/picotol.core.min.css": {
       "bytes": 13516,
       "gzipBytes": 4125,
-      "integrity": "sha384-Vw+WLZbseobiMddA+8csXke0gK/FEuJsdX6e1e3Iek6EnCQBPgxGWNRAXB8D0KBB"
+      "integrity": "sha384-nGAcEABzYVEdQXVaQ+bi5T48Kn+T0ruJJxoBSnZALyOnAV5w/D1HMCPoNh2CU5W8"
     },
     "dist/picotol.min.css": {
       "bytes": 38354,
       "gzipBytes": 8520,
-      "integrity": "sha384-hBl5xZv+J2dmQr6XH/HcXT30ckI6J/pP40UW7NSicJhH6fN6kwNVlaRSMl+sIztH"
+      "integrity": "sha384-idbC1E3B+9TK8Mj8UjtRE3CIc6DJn9dlwbo8EyChacdNCkkly+9+mZznntWhDItE"
     },
     "dist/picotol.layer.min.css": {
       "bytes": 38354,
       "gzipBytes": 8520,
-      "integrity": "sha384-hBl5xZv+J2dmQr6XH/HcXT30ckI6J/pP40UW7NSicJhH6fN6kwNVlaRSMl+sIztH"
+      "integrity": "sha384-idbC1E3B+9TK8Mj8UjtRE3CIc6DJn9dlwbo8EyChacdNCkkly+9+mZznntWhDItE"
     }
   }
 }
