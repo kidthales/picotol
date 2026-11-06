@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-05
+
+Eighth public open-source pre-release of `@kidthales/picotol`. Major breaking API consolidation milestone introducing namespaced cascade layers (`@layer picotol.*`), canonical `pt-*` class prefixing, four-state status vocabulary (`ok | info | warning | critical`), opt-in flex column body layout (`body.pt-app`), and removal of deprecated derived density tokens. For detailed narrative and migration guidance, see [Release Notes v0.6.0](docs/RELEASE_NOTES_V0_6_0.md) and [v0.6 Migration Guide](docs/migrate-0.6.md).
+
+### Breaking Changes
+- **Cascade Layer Names**: Renamed all internal cascade layers to `@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities` across all distribution bundles (`dist/picotol.css`, `dist/picotol.core.css`, `dist/picotol.layer.css`) per ADR 0001, eliminating layer name collisions with consumer frameworks such as Tailwind CSS (#206, #210).
+- **Bare Semantic Selectors Deprecated**: Quarantined bare `aside:not(nav *)`, `[role="alert"]`, and `[role="status"]` inside low-precedence `@layer picotol.legacy` marked with `@deprecated`. Component styles now require explicit classes `.pt-callout`, `.pt-badge`, or `.pt-indicator` (#207, #210).
+- **Status Vocabulary Consolidation**: Unified status vocabulary across tokens, attributes, and classes on canonical four-state model `ok | info | warning | critical`. Deprecated `.success`/`.danger`, `.pt-status-dot*`, and ad-hoc `backlog`/`no-status` in favor of `.pt-dot--*`, `[data-status="ok|critical"]`, and `.pt-callout-ok`/`.pt-callout-critical` (#208, #210, #227).
+- **Generic Class Prefixing**: Prefixed generic component classes (`.pt-badge`, `.pt-callout`, `.pt-progress`, `.pt-dot`, `.pt-meter`) and renamed gauge marker custom property hook to `--pt-marker-pos` (#214, #210).
+- **Opt-In Body Flex Column**: Bare `body` now defaults to standard CSS block flow (`margin: 0`). Full-viewport sticky-footer layout is now opt-in via `<body class="pt-app">` (#215, #210).
+- **Derived Density Aliases Removed**: Removed deprecated derived `:root` tokens (`--pt-form-element-spacing-vertical`, `--pt-form-element-spacing-horizontal`, `--pt-btn-padding-block`) in favor of direct base-token scaling and late-bound fallback chains (#209, #210).
+
+### Added
+- Architectural Decision Record `docs/adr/0001-v0.6-api-consolidation.md` establishing single-bundle layer encapsulation and breaking change rationale (#205, #210).
+- Comprehensive v0.6 Migration Guide `docs/migrate-0.6.md` with 1:1 before/after syntax migrations and deprecation timelines (#205, #210, #227).
+- Reverse doc-lint audit in `tools/lint.mjs` and `tests/doc-lint.test.mjs` verifying complete documentation coverage for all public selectors (#227).
+- Standalone offline bundle packaging producing `dist/assets/picotol-v0.6.0.zip` with deterministic entry timestamps via `SOURCE_DATE_EPOCH` (#210).
+
+### Changed
+- Rebuilt distribution stylesheets, manifests, and demo to reflect namespaced layers and opt-in `<body class="pt-app">` (#210, #227).
+- Updated documentation and test suites to assert absence of bare `body` flex layouts, absence of legacy `:root` density tokens, and conformance with namespaced layer taxonomy (#210, #227).
+
 ## [0.5.1] - 2026-11-03
 
 Seventh public open-source pre-release of `@kidthales/picotol`. For detailed narrative and architectural overview, see [Release Notes v0.5.1](docs/RELEASE_NOTES_V0_5_1.md).
