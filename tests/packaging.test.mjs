@@ -377,10 +377,10 @@ describe("Packaging & npm Distribution Metadata", () => {
     assert.ok(fs.existsSync(secPath), "SECURITY.md must exist in root");
     const secContent = fs.readFileSync(secPath, "utf8");
 
-    // Supported versions: latest minor (0.5.x) + previous (0.4.x)
-    assert.match(secContent, /0\.5\.x\s*\|\s*:white_check_mark:/, "SECURITY.md must list 0.5.x as supported");
-    assert.match(secContent, /0\.4\.x\s*\|\s*:white_check_mark:/, "SECURITY.md must list 0.4.x as supported");
-    assert.match(secContent, /<\s*0\.4\s*\|\s*:x:/, "SECURITY.md must list versions < 0.4 as unsupported");
+    // Supported versions: latest minor (0.7.x) + previous (0.6.x)
+    assert.match(secContent, /0\.7\.x\s*\|\s*:white_check_mark:/, "SECURITY.md must list 0.7.x as supported");
+    assert.match(secContent, /0\.6\.x\s*\|\s*:white_check_mark:/, "SECURITY.md must list 0.6.x as supported");
+    assert.match(secContent, /<\s*0\.6\s*\|\s*:x:/, "SECURITY.md must list versions < 0.6 as unsupported");
 
     // Response SLA
     assert.ok(secContent.includes("48 hours"), "SECURITY.md must define an initial acknowledgment SLA");
@@ -1423,6 +1423,7 @@ describe("Pre-release Documentation and Versioning Standards", () => {
     { version: "0.5.0", fileVersion: "0_5_0", date: "2026-10-30" },
     { version: "0.5.1", fileVersion: "0_5_1", date: "2026-11-03" },
     { version: "0.6.0", fileVersion: "0_6_0", date: "2026-11-05" },
+    { version: "0.7.0", fileVersion: "0_7_0", date: "2026-11-06" },
   ];
 
   for (const { version, fileVersion, date } of RELEASE_VERSIONS) {

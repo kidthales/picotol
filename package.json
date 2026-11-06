@@ -1,6 +1,6 @@
 {
   "name": "@kidthales/picotol",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Pure-CSS, ultra-minified semantic HTML framework inspired by Pico CSS with colorblind-safe design tokens and WCAG-compliant primitives.",
   "license": "MIT",
   "author": "kidthales",
