@@ -209,9 +209,12 @@
   }
 
   body {
+    margin: 0;
+  }
+
+  body.pt-app {
     flex-direction: column;
     min-height: 100dvh;
-    margin: 0;
     display: flex;
 
     & > :where(main, [role="main"]) {

@@ -125,7 +125,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-Hk1tHg8VBTCCamaRfrmGJUca4nInW3siPB5Qby5IKnV4LsogtZKUeMueuvhJgbph" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-xNZBVKZzvn1zf1uHKllWoe1KGvZkaicY5WYSu+oa5YI1rSL7XJaFI3ZMBZtvO481" crossorigin="anonymous" />
 ```
 
 ---
@@ -167,10 +167,10 @@ import "@kidthales/picotol/palettes";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-Hk1tHg8VBTCCamaRfrmGJUca4nInW3siPB5Qby5IKnV4LsogtZKUeMueuvhJgbph" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-xNZBVKZzvn1zf1uHKllWoe1KGvZkaicY5WYSu+oa5YI1rSL7XJaFI3ZMBZtvO481" crossorigin="anonymous" />
     <title>Semantic HTML with Paul Tol Colors</title>
   </head>
-  <body>
+  <body class="pt-app">
     <a href="#main-content" class="skip-to-content">Skip to main content</a>
     <header>
       <nav aria-label="Primary">
@@ -355,7 +355,7 @@ Downstream consumers can hook directly into specific sublayers without battling 
 <style>
   @layer picotol, app-theme, app-components, app-utilities;
 </style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-Hk1tHg8VBTCCamaRfrmGJUca4nInW3siPB5Qby5IKnV4LsogtZKUeMueuvhJgbph" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-xNZBVKZzvn1zf1uHKllWoe1KGvZkaicY5WYSu+oa5YI1rSL7XJaFI3ZMBZtvO481" crossorigin="anonymous" />
 <link rel="stylesheet" href="/css/theme.css" layer="app-theme" />
 <link rel="stylesheet" href="/css/components.css" layer="app-components" />
 <link rel="stylesheet" href="/css/utilities.css" layer="app-utilities" />
@@ -450,11 +450,12 @@ Host themes can bridge host custom properties to picotol's `--pt-*` tokens or co
 
 ### Body Layout Reset & Sticky Footer Integration
 
-`@kidthales/picotol`'s `base` layer applies an ergonomic document layout reset to `<body>` ensuring semantic footers stay pinned to the bottom of the viewport even on sparse pages:
+`@kidthales/picotol`'s `reset` layer keeps bare `<body>` in normal block flow (`margin: 0`). Full-viewport sticky footers opt in via `body.pt-app`:
 
 ```css
-body {
-  margin: 0;
+body { margin: 0; }
+
+body.pt-app {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -464,12 +465,20 @@ body {
 }
 ```
 
+```html
+<body class="pt-app">
+  <header>...</header>
+  <main>...</main>
+  <footer>...</footer>
+</body>
+```
+
 #### Integration Caveats & Host Scoping
-When embedding `@kidthales/picotol` into an existing application shell with its own layout, the `min-height: 100dvh` and flex column reset on `body` can be overridden in `@layer app`:
+Bare `<body>` needs no reset overrides in host shells. For `.pt-app` shells, customize in `@layer app`:
 
 ```css
 @layer app {
-  body { min-height: auto; display: block; }
+  body.pt-app { min-height: auto; display: block; }
 }
 ```
 

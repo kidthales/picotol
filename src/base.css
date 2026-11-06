@@ -1,8 +1,9 @@
 @layer picotol.reset {
   *, ::before, ::after { box-sizing: border-box; }
 
-  body {
-    margin: 0;
+  body { margin: 0; }
+
+  body.pt-app {
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
