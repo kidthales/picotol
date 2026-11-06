@@ -1040,13 +1040,19 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
       "--pt-btn-padding-block",
     ];
     for (const token of deprecatedTokens) {
-      const re = new RegExp(`${token}:[^;]+;\\s*/\\*\\s*@deprecated:\\s*removed in v0\\.6\\.0\\s*\\*/`);
-      assert.match(
-        tokensCss,
-        re,
-        `tokens.css :root must declare ${token} with deprecation comment /* @deprecated: removed in v0.6.0 */`
+      assert.ok(
+        !tokensCss.includes(`${token}:`),
+        `tokens.css :root must NOT declare ${token} in v0.6.0 (Issue #209)`
       );
     }
+
+    const distCss = getDistCss();
+    const coreDistCss = getCoreCss();
+    for (const token of ["--pt-form-element-spacing-vertical", "--pt-form-element-spacing-horizontal"]) {
+      assert.ok(!distCss.includes(`${token}:`), `dist/picotol.css must NOT declare ${token}`);
+      assert.ok(!coreDistCss.includes(`${token}:`), `dist/picotol.core.css must NOT declare ${token}`);
+    }
+    assert.ok(!coreDistCss.includes("--pt-btn-padding-block:"), "dist/picotol.core.css must NOT declare --pt-btn-padding-block");
 
     assert.match(
       formsCss,

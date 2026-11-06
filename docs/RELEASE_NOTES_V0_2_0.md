@@ -21,7 +21,7 @@ Second public open-source pre-release of `@kidthales/picotol`, incorporating pro
 
 ### 3. Cascading Compact Density (#125)
 - **Beyond Block Margins**: Extended `[data-density="compact"]` (and `.pt-compact`) beyond block margins into interactive components and layout structures.
-- **Form Controls & Tables**: Compact mode reduces vertical and horizontal padding on `input`, `select`, `textarea`, and buttons via `--pt-form-element-spacing-vertical`, `--pt-form-element-spacing-horizontal`, and `--pt-btn-padding-block`, and tightens table cell padding (`th`, `td`).
+- **Form Controls & Tables**: Compact mode reduces vertical and horizontal padding on `input`, `select`, `textarea`, and buttons via *--pt-form-element-spacing-vertical*, *--pt-form-element-spacing-horizontal*, and *--pt-btn-padding-block*, and tightens table cell padding (`th`, `td`).
 - **Pills, Chips & Gaps**: Compact density cascades into `.pt-copy-pill`, `.pt-chip`, segmented button controls, and grid/flex container gaps (`--pt-gap-compact`), preserving full 320px mobile reflow.
 
 ### 4. Calibrated Semantic Status Tokens & Dark Mode Contrast (#126)

@@ -72,6 +72,9 @@ export const CSS_NAMED_COLORS = new Set([
 
 export const DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST = new Set([
   '--marker-pos',
+  '--pt-form-element-spacing-vertical',
+  '--pt-form-element-spacing-horizontal',
+  '--pt-btn-padding-block',
 ]);
 
 export const DEPRECATED_CLASS_ALLOWLIST = new Set([

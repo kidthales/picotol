@@ -24,9 +24,6 @@
     --pt-card-padding: var(--pt-spacing);
     --pt-form-y: .5rem;
     --pt-form-x: .75rem;
-    --pt-form-element-spacing-vertical: var(--pt-form-y);
-    --pt-form-element-spacing-horizontal: var(--pt-form-x);
-    --pt-btn-padding-block: var(--pt-form-y);
     --pt-table-cell-padding-block: .5rem;
     --pt-table-cell-padding-inline: .75rem;
     --pt-container-max: 70rem;

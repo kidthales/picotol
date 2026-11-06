@@ -285,10 +285,43 @@ If your page relies on Picotol's full-viewport sticky-footer flex layout (where 
 
 > Tracked in [#209](https://github.com/kidthales/picotol/issues/209). **Removed in v0.6.0** (deprecated in `v0.5.1` via [#203](https://github.com/kidthales/picotol/issues/203)).
 
-The early-bound `:root` custom property aliases deprecated in `v0.5.1` have been removed in `v0.6.0`:
+In `v0.5.1` ([#203](https://github.com/kidthales/picotol/issues/203)), derived density tokens were refactored to late-bind against `--pt-form-y` and `--pt-form-x` via fallback chains, preserving `:root` declarations as deprecated aliases for one minor release. In `v0.6.0`, those `:root` aliases are removed.
+
+### Token Mapping
 
 | Removed `v0.5.x` Alias | `v0.6.0` Replacement |
 | :--- | :--- |
 | `--pt-form-element-spacing-vertical` | `--pt-form-y` |
 | `--pt-form-element-spacing-horizontal` | `--pt-form-x` |
 | `--pt-btn-padding-block` | `--pt-form-y` |
+
+### Migration Steps
+
+1. **Global Spacing Customization**:
+   If your application customized control sizing at `:root`, replace the deprecated derived properties with `--pt-form-y` and `--pt-form-x`:
+
+   ```css
+   /* Before (v0.5.x deprecated) */
+   :root {
+     --pt-form-element-spacing-vertical: 0.75rem;
+     --pt-form-element-spacing-horizontal: 1rem;
+     --pt-btn-padding-block: 0.75rem;
+   }
+
+   /* After (v0.6.0 canonical) */
+   :root {
+     --pt-form-y: 0.75rem;
+     --pt-form-x: 1rem;
+   }
+   ```
+
+2. **Scoped Container Overrides**:
+   Scoped containers (`[data-density="compact"]`, `[data-density="tight"]`, or bespoke data corridors) now cascade properly into forms, buttons, and micro-actions simply by adjusting `--pt-form-y` and `--pt-form-x` without early-binding lockup:
+
+   ```css
+   /* Scoped custom density block */
+   .my-dense-panel {
+     --pt-form-y: 0.2rem;
+     --pt-form-x: 0.4rem;
+   }
+   ```

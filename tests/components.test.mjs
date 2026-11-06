@@ -2452,11 +2452,11 @@ describe("Cards, Layout Grids, and Density Resets", () => {
   const compCss = fs.readFileSync(path.join(ROOT, "src/components.css"), "utf8");
   const demoHtml = fs.readFileSync(path.join(ROOT, "dist/demo/index.html"), "utf8");
 
-  // 1. Form control padding wired to --pt-form-element-spacing-vertical and horizontal
+  // 1. Form control padding wired to --pt-form-y and --pt-form-x (with late-bind fallbacks in forms.css)
   assert.ok(
-    tokensCss.includes("--pt-form-element-spacing-vertical:") &&
-    tokensCss.includes("--pt-form-element-spacing-horizontal:"),
-    "Tokens CSS must expose --pt-form-element-spacing-vertical and --pt-form-element-spacing-horizontal"
+    !tokensCss.includes("--pt-form-element-spacing-vertical:") &&
+    !tokensCss.includes("--pt-form-element-spacing-horizontal:"),
+    "Tokens CSS must NOT declare --pt-form-element-spacing-vertical or horizontal at root in v0.6.0 (Issue #209)"
   );
   assert.ok(
     formsCss.includes("var(--pt-form-element-spacing-vertical, var(--pt-form-y)) var(--pt-form-element-spacing-horizontal, var(--pt-form-x))"),
@@ -2486,8 +2486,8 @@ describe("Cards, Layout Grids, and Density Resets", () => {
 
   // 3. Button and micro-action vertical padding wired to --pt-btn-padding-block with base fallback
   assert.ok(
-    tokensCss.includes("--pt-btn-padding-block:"),
-    "Tokens CSS must declare --pt-btn-padding-block"
+    !tokensCss.includes("--pt-btn-padding-block:"),
+    "Tokens CSS must NOT declare --pt-btn-padding-block at root in v0.6.0 (Issue #209)"
   );
   assert.ok(
     contentCss.includes("padding: var(--pt-btn-padding-block, var(--pt-form-y)) var(--pt-form-x);"),

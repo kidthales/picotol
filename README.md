@@ -125,7 +125,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-xNZBVKZzvn1zf1uHKllWoe1KGvZkaicY5WYSu+oa5YI1rSL7XJaFI3ZMBZtvO481" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-E4aIW2X4QCCAoc3TjWQISsrUcYp8U7fNGvOhoQ9xva2S4fsqbSaR/+7dStdGzytH" crossorigin="anonymous" />
 ```
 
 ---
@@ -167,7 +167,7 @@ import "@kidthales/picotol/palettes";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-xNZBVKZzvn1zf1uHKllWoe1KGvZkaicY5WYSu+oa5YI1rSL7XJaFI3ZMBZtvO481" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-E4aIW2X4QCCAoc3TjWQISsrUcYp8U7fNGvOhoQ9xva2S4fsqbSaR/+7dStdGzytH" crossorigin="anonymous" />
     <title>Semantic HTML with Paul Tol Colors</title>
   </head>
   <body class="pt-app">
@@ -355,7 +355,7 @@ Downstream consumers can hook directly into specific sublayers without battling 
 <style>
   @layer picotol, app-theme, app-components, app-utilities;
 </style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-xNZBVKZzvn1zf1uHKllWoe1KGvZkaicY5WYSu+oa5YI1rSL7XJaFI3ZMBZtvO481" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-E4aIW2X4QCCAoc3TjWQISsrUcYp8U7fNGvOhoQ9xva2S4fsqbSaR/+7dStdGzytH" crossorigin="anonymous" />
 <link rel="stylesheet" href="/css/theme.css" layer="app-theme" />
 <link rel="stylesheet" href="/css/components.css" layer="app-components" />
 <link rel="stylesheet" href="/css/utilities.css" layer="app-utilities" />
@@ -779,11 +779,11 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
 
 For data-dense applications, dashboards, and narrow IDE corridors, apply `[data-density="compact"]` (or `.pt-compact`) to any container or `<html>`/`<body>` element. In `@kidthales/picotol`, compact density cascades deep into interactive components and layout systems:
 
-- **Form Controls**: Reduces vertical and horizontal padding on `input`, `select`, `textarea`, and buttons via `--pt-form-element-spacing-vertical: 0.25rem;` and `--pt-form-element-spacing-horizontal: 0.5rem;`.
+- **Form Controls**: Reduces vertical and horizontal padding on `input`, `select`, `textarea`, and buttons via `--pt-form-y: 0.25rem;` and `--pt-form-x: 0.5rem;`.
 - **Tables**: Tightens cell padding (`th, td`) via `--pt-table-cell-padding-block: 0.25rem;` and `--pt-table-cell-padding-inline: 0.5rem;`.
 - **Layout & Cards**: Tightens grid and flex gaps via `--pt-gap-compact: 0.5rem;`, zeroes outer card bottom margins, and tightens card padding.
 - **Margin Auto-Collapsing**: Auto-collapses outer block margins (`margin-block: 0;`) on `section`, `article`, `.card`, and `hr` elements (as well as flex/grid child containers), allowing dense grid and flex layouts to space strictly via `--pt-gap-compact: 0.5rem;` without double-margin bloat.
-- **Pills & Chips**: Decreases vertical padding on `.pt-copy-pill` and `.pt-chip` (`--pt-btn-padding-block: 0.25rem;`).
+- **Pills & Chips**: Decreases vertical padding on `.pt-copy-pill` and `.pt-chip` via compact padding.
 - **320px Reflow**: Retains full WCAG 2.2 SC 1.4.10 mobile reflow with zero horizontal scrolling.
 
 ```html
