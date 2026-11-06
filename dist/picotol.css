@@ -1,4 +1,4 @@
-/*! @kidthales/picotol v0.5.1 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
+/*! @kidthales/picotol v0.6.0 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
 @layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
 @layer picotol.legacy {
   :where(aside:not(nav *, .pt-callout), [role="alert"]:not(.pt-callout, .pt-badge, .pt-indicator)) {
