@@ -1,7 +1,7 @@
 /* @deprecated: removed in v0.7.0 */
 @layer picotol.legacy {
   /* Legacy bare semantic callouts (aside, [role="alert"]) */
-  :where(aside:not(nav *), [role="alert"]) {
+  :where(aside:not(nav *, .pt-callout), [role="alert"]:not(.pt-callout, .pt-badge, .pt-indicator)) {
     margin-bottom: var(--pt-spacing);
     padding: var(--pt-spacing);
     border-radius: var(--pt-border-radius);
@@ -24,7 +24,7 @@
   }
 
   /* Legacy bare ARIA live status badge ([role="status"]) */
-  :where([role="status"]) {
+  :where([role="status"]:not(.pt-badge, .pt-indicator, .pt-callout, .pt-chip)) {
     display: inline-flex;
     align-items: center;
     gap: 0.35em;
@@ -564,6 +564,7 @@
     --pt-progress-height: 0.375rem;
   }
 
+  /* @deprecated: removed in v0.7.0 */
   :is(.pt-progress-success, [data-status="success"]) {
     --pt-progress-fill: var(--pt-valid);
     --pt-marker-color: var(--pt-valid);
@@ -574,6 +575,7 @@
     --pt-marker-color: var(--pt-warning);
   }
 
+  /* @deprecated: removed in v0.7.0 */
   :is(.pt-progress-danger, [data-status="danger"]) {
     --pt-progress-fill: var(--pt-invalid);
     --pt-marker-color: var(--pt-invalid);
@@ -662,7 +664,6 @@
   }
 
   :where(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end) {
-    --pt-marker-pos: var(--marker-pos, 0%);
     --pt-marker-color: var(--pt-color);
     position: absolute;
     top: 0;
@@ -1056,21 +1057,27 @@
       margin: 0;
     }
 
+    /* @deprecated: removed in v0.7.0 */
     &:is(.neutral, .idle, [data-status="neutral"], [data-status="idle"], [data-status="backlog"], [data-status="no-status"]) {
       background-color: var(--pt-muted-border);
     }
+    /* @deprecated: removed in v0.7.0 */
     &:is(.success, .valid, .ok, .pt-status-dot-success, .pt-status-dot-ok, [data-status="success"], [data-status="valid"], [data-status="ok"]) {
       background-color: var(--pt-status-ok-border, var(--pt-valid));
     }
+    /* @deprecated: removed in v0.7.0 */
     &:is(.warning, .pt-status-dot-warning, [data-status="warning"]) {
       background-color: var(--pt-status-warning-border, var(--pt-warning));
     }
+    /* @deprecated: removed in v0.7.0 */
     &:is(.danger, .invalid, .critical, .pt-status-dot-danger, .pt-status-dot-critical, [data-status="danger"], [data-status="invalid"], [data-status="critical"]) {
       background-color: var(--pt-status-critical-border, var(--pt-invalid));
     }
+    /* @deprecated: removed in v0.7.0 */
     &:is(.info, .primary, .pt-status-dot-info, [data-status="info"], [data-status="primary"]) {
       background-color: var(--pt-status-info-border, var(--pt-primary));
     }
+    /* @deprecated: removed in v0.7.0 */
     &:is(.pulse, .pt-pulse) {
       animation: pt-pulse 1.5s ease-in-out infinite;
     }
@@ -1365,11 +1372,11 @@
       color: var(--pt-color);
     }
 
-    &:is(.pt-callout-ok, .pt-callout-success, .pt-ok, /* @deprecated: removed in v0.7.0 */ :is(.ok, .success)) {
+    &:is(.pt-callout-ok, .pt-ok, /* @deprecated: removed in v0.7.0 */ :is(.pt-callout-success, .ok, .success)) {
       --pt-callout-border: var(--pt-status-ok-border);
       --pt-callout-bg: var(--pt-status-ok-bg);
     }
-    &:is(.pt-callout-critical, .pt-callout-danger, .pt-critical, /* @deprecated: removed in v0.7.0 */ :is(.critical, .danger)) {
+    &:is(.pt-callout-critical, .pt-critical, /* @deprecated: removed in v0.7.0 */ :is(.pt-callout-danger, .critical, .danger)) {
       --pt-callout-border: var(--pt-status-critical-border);
       --pt-callout-bg: var(--pt-status-critical-bg);
     }

@@ -19,6 +19,7 @@ import {
   runLint,
   stripCssCommentsAndStrings,
   lintClassNamingConventions,
+  lintDeprecatedSelectorAnnotations,
   DEPRECATED_CLASS_ALLOWLIST,
   DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST,
 } from '../tools/lint.mjs';
@@ -329,6 +330,7 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   assert.deepEqual(lintBundledCss(ptMarkerPosHookCss, 'fixtures/pt-marker.css'), []);
 
   // Canonical class prefix & deprecated alias allowlist validation (Issue #214)
+  assert.equal(DEPRECATED_CLASS_ALLOWLIST.size, 76, 'DEPRECATED_CLASS_ALLOWLIST must contain exactly 76 entries');
   assert.ok(DEPRECATED_CLASS_ALLOWLIST.has('card'));
   assert.ok(DEPRECATED_CLASS_ALLOWLIST.has('badge'));
   assert.ok(DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST.has('--marker-pos'));
@@ -341,6 +343,15 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   const allowedDeprecatedCss = `.card { color: #4477AA; } .pt-card { color: #4477AA; }`;
   assert.deepEqual(lintClassNamingConventions(allowedDeprecatedCss, 'src/components.css'), []);
   assert.deepEqual(lintClassNamingConventions(badPrefixCss, 'fixtures/other.css'), []);
+
+  // Deprecated status & dot selector annotation gate validation (ADR 0001 §3, Issue #208)
+  const unannotatedStatusCss = `.pt-progress-success { color: #4477AA; }`;
+  assert.deepEqual(
+    lintDeprecatedSelectorAnnotations(unannotatedStatusCss, 'src/components.css'),
+    ['[src/components.css:1] Deprecated selector containing status vocabulary/dot primitive lacks /* @deprecated */ comment: ".pt-progress-success { color: #4477AA; }"']
+  );
+  const annotatedStatusCss = `/* @deprecated: removed in v0.7.0 */\n.pt-progress-success { color: #4477AA; }`;
+  assert.deepEqual(lintDeprecatedSelectorAnnotations(annotatedStatusCss, 'src/components.css'), []);
 
   const incompleteDistCss = `:focus-visible { outline: 2px solid #4477AA; } .skip-to-content {} .sr-only {}`;
   const distRuleErrors = lintDistAccessibilityRules(incompleteDistCss, 'fixtures/dist.css');

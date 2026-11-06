@@ -111,7 +111,8 @@ Status naming across tokens, attributes, and classes is unified on the four-stat
 | **Status Attributes** | `[data-status="success"]`, `[data-status="danger"]` | `[data-status="ok"]`, `[data-status="critical"]` |
 | **Callout Variants** | `.pt-callout-success`, `.pt-callout-danger` | `.pt-callout-ok`, `.pt-callout-critical` |
 | **Progress Variants** | `.pt-progress-success`, `.pt-progress-danger` | `.pt-progress-ok`, `.pt-progress-critical` |
-| **Status Classes** | `.success`, `.danger`, `.valid`, `.invalid` | `[data-status="ok|info|warning|critical"]` (or `.pt-ok`, `.pt-critical`) |
+| **Status Classes** | `.success`, `.danger` | `[data-status="ok|critical"]` (or `.pt-ok`, `.pt-critical`) |
+| **Validation Classes** | `.valid`, `.invalid` | `.pt-valid`, `.pt-invalid` |
 
 ### Action Required
 
@@ -224,7 +225,7 @@ All public classes and custom properties in `@kidthales/picotol` now have `pt-` 
 | | `.invalid` | `.pt-invalid` |
 | | `.neutral` | `.pt-dot` (dot neutral) |
 | | `.idle` | `.pt-dot` (dot idle) |
-| | `.pulse` | `.pt-pulse` |
+| | `.pulse` | `.pt-dot--pulse` (dot animation) or `.pt-pulse` (utility) |
 | | `.m-0` | `.pt-m-0` |
 | | `.no-margin` | `.pt-no-margin` |
 
@@ -325,3 +326,6 @@ In `v0.5.1` ([#203](https://github.com/kidthales/picotol/issues/203)), derived d
      --pt-form-x: 0.4rem;
    }
    ```
+
+3. **Graceful Degradation & Fallback Reads**:
+   Component rules retain backward-compatible fallback reads (`var(--pt-form-element-spacing-vertical, var(--pt-form-y))` and `var(--pt-form-element-spacing-horizontal, var(--pt-form-x))`) until v0.7.0. If your themes or stylesheets define legacy token names, controls continue resolving sizing gracefully throughout the v0.6.x cycle.

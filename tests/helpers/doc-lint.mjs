@@ -173,10 +173,18 @@ function tokenToRegexSource(token) {
     .join('[a-zA-Z0-9_-]+');
 }
 
+export const CONSUMER_HOOK_PROPERTIES = new Set([
+  '--pt-marker-pos',
+]);
+
 export function tokenExistsInCss(token, cssContent) {
   const cleanCss = stripCssCommentsAndStrings(cssContent);
   const pattern = tokenToRegexSource(token);
   if (token.startsWith('--')) {
+    if (CONSUMER_HOOK_PROPERTIES.has(token)) {
+      const varRe = new RegExp(`var\\(\\s*${pattern}(?![\\w-])`);
+      return varRe.test(cleanCss);
+    }
     // Require a custom property declaration (--pt-foo:), not merely a var(--pt-foo) usage
     const declRe = new RegExp(`(?<![\\w-])${pattern}(?![\\w-])\\s*:`);
     return declRe.test(cleanCss);

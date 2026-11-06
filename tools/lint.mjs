@@ -196,10 +196,36 @@ export function lintClassNamingConventions(content, filename = 'snippet.css') {
   }
 
   for (const cls of classSet) {
-    if (!cls.startsWith('pt-') && !cls.startsWith('tol-') && !DEPRECATED_CLASS_ALLOWLIST.has(cls)) {
+    if (!cls.startsWith('pt-') && !DEPRECATED_CLASS_ALLOWLIST.has(cls)) {
       errors.push(
         `[${filename}] Invalid public class ".${cls}" (must be pt- prefixed or explicitly allowlisted as a deprecated alias)`
       );
+    }
+  }
+  return errors;
+}
+
+export function lintDeprecatedSelectorAnnotations(content, filename = 'snippet.css') {
+  const errors = [];
+  const normFilename = filename.replaceAll('\\', '/');
+  if (!normFilename.startsWith('src/')) return errors;
+
+  const lines = content.split(/\r?\n/);
+  const deprecatedSelectorTokenRe =
+    /(?:\.(?:pt-)?status-dot\b|\.pt-(?:progress|callout|dot)--(?:success|danger)\b|\.pt-(?:progress|callout)-(?:success|danger)\b|(?<![a-zA-Z0-9_$-])\.(?:success|danger)\b|\[data-status=["'](?:success|danger)["']\])/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (trimmed.startsWith('/*') && trimmed.endsWith('*/')) continue;
+    if (deprecatedSelectorTokenRe.test(line)) {
+      const hasDeprecatedOnLine = line.includes('@deprecated');
+      const hasDeprecatedAbove = i > 0 && lines[i - 1].includes('@deprecated');
+      if (!hasDeprecatedOnLine && !hasDeprecatedAbove) {
+        errors.push(
+          `[${filename}:${i + 1}] Deprecated selector containing status vocabulary/dot primitive lacks /* @deprecated */ comment: "${trimmed}"`
+        );
+      }
     }
   }
   return errors;
@@ -570,6 +596,9 @@ export function lintCssSnippet(content, filename = 'snippet.css', opts = {}) {
 
   // 7. Canonical class prefix convention (Issue #214)
   errors.push(...lintClassNamingConventions(content, filename));
+
+  // 8. Deprecated status selector annotation gate (ADR 0001 §3, Issue #208)
+  errors.push(...lintDeprecatedSelectorAnnotations(content, filename));
 
   return errors;
 }

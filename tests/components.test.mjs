@@ -373,8 +373,8 @@ describe("Callouts, Alerts, Badges, and Dots", () => {
 
     // 3. Bare selectors must be quarantined strictly inside @layer picotol.legacy
     assert.ok(
-      legacyBlock.includes("aside:not(nav *)"),
-      "@layer picotol.legacy must contain bare aside:not(nav *) selector"
+      legacyBlock.includes("aside:not(nav *") && legacyBlock.includes(".pt-callout"),
+      "@layer picotol.legacy must contain bare aside:not(nav *, ...) selector excluding .pt-callout"
     );
     assert.ok(
       legacyBlock.includes('[role="alert"]'),
@@ -2123,8 +2123,8 @@ describe("Dialogs, Modals, Drawers, and Toasts", () => {
   assert.match(toastReadme, /transition-delay:\s*0s/, "README toast section must document transition-delay: 0s entrance reset");
   assert.match(
     toastReadme,
-    /never pair `\.show` with `aria-hidden="true"`\s*\(which hides visible toasts from assistive tech\)/,
-    "README toast section must warn against pairing .show with aria-hidden=\"true\" and explain why"
+    /never pair `(?:\.pt-show|\.show)` with `aria-hidden="true"`\s*\(which hides visible toasts from assistive tech\)/,
+    "README toast section must warn against pairing .pt-show/.show with aria-hidden=\"true\" and explain why"
   );
   assert.match(toastReadme, /role="status"[\s\S]*?role="alert"[\s\S]*?aria-live/, "README toast section must document role=\"status\", role=\"alert\", and aria-live announcement behavior");
   assert.match(

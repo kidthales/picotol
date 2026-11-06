@@ -89,7 +89,7 @@ describe("Color Space Utilities and Conversions", () => {
 describe("Token Parser and CSS Extraction", () => {
   test("parseTokens: isolates accents without root pollution on fixture CSS and resolves getPicotolTokens() dynamically", () => {
     const fixtureCss = `
-      @layer tokens {
+      @layer picotol.tokens {
         :root, :host, [data-accent="blue"] {
           --pt-p3: #47a;
         }
@@ -103,10 +103,10 @@ describe("Token Parser and CSS Extraction", () => {
           --pt-p3: #BB4488;
         }
       }
-      @layer reset {
+      @layer picotol.reset {
         * { box-sizing: border-box; }
       }
-      @layer base {
+      @layer picotol.base {
         body { margin: 0; }
       }
     `;
@@ -206,18 +206,18 @@ describe("Token Parser and CSS Extraction", () => {
 
   test("parseTokens: getToken and getSecondaryToken throw readable errors on missing tokens without root fallback", () => {
     const css = `
-      @layer tokens {
+      @layer picotol.tokens {
         :root {
           --pt-p1: #AACCEE;
           --pt-surface: light-dark(#DDDDDD, #444444);
           --pt-dangling: var(--pt-does-not-exist);
         }
       }
-      @layer reset {
+      @layer picotol.reset {
         * { box-sizing: border-box; }
       }
-      @layer base {
-        :where(.secondary, [type="reset"]) {
+      @layer picotol.base {
+        :where(.secondary, .pt-secondary, [type="reset"]) {
           --pt-primary-bg: var(--pt-surface);
           &:hover {
             opacity: 0.9;
@@ -252,7 +252,7 @@ describe("Token Parser and CSS Extraction", () => {
 
     // Missing accent ladder token (--pt-p1..--pt-p5) in an accent block throws instead of falling back to root/blue
     const partialAccentCss = `
-      @layer tokens {
+      @layer picotol.tokens {
         :root, :host, [data-accent="blue"] {
           --pt-p1: #AACCEE;
           --pt-p5: #004488;
@@ -264,8 +264,8 @@ describe("Token Parser and CSS Extraction", () => {
           --pt-p1: #E7D4E8;
         }
       }
-      @layer reset { * { box-sizing: border-box; } }
-      @layer base { body { margin: 0; } }
+      @layer picotol.reset { * { box-sizing: border-box; } }
+      @layer picotol.base { body { margin: 0; } }
     `;
     const partialTokens = parseTokens(partialAccentCss);
     assert.equal(partialTokens.getToken("--pt-p5", "light", "blue"), "#004488");
@@ -284,7 +284,7 @@ describe("Token Parser and CSS Extraction", () => {
 
   test("parseTokens: brace-depth awareness supports nested & accent rules and rejects @media / [data-theme] / state overrides in @layer tokens", () => {
     const nestedAccentCss = `
-      @layer tokens {
+      @layer picotol.tokens {
         :root {
           &[data-accent="blue"] {
             --pt-p3: #4477AA;
@@ -294,10 +294,10 @@ describe("Token Parser and CSS Extraction", () => {
           }
         }
       }
-      @layer reset {
+      @layer picotol.reset {
         * { box-sizing: border-box; }
       }
-      @layer base {
+      @layer picotol.base {
         body { margin: 0; }
       }
     `;
@@ -308,14 +308,14 @@ describe("Token Parser and CSS Extraction", () => {
 
     // @media wrapper with custom properties in @layer tokens must throw
     const mediaTokenCss = `
-      @layer tokens {
+      @layer picotol.tokens {
         :root { --pt-bg: #FFFFFF; }
         @media (prefers-color-scheme: dark) {
           :root { --pt-bg: #000000; }
         }
       }
-      @layer reset { * { box-sizing: border-box; } }
-      @layer base { body { margin: 0; } }
+      @layer picotol.reset { * { box-sizing: border-box; } }
+      @layer picotol.base { body { margin: 0; } }
     `;
     assert.throws(
       () => parseTokens(mediaTokenCss),
@@ -324,12 +324,12 @@ describe("Token Parser and CSS Extraction", () => {
 
     // [data-theme="dark"] custom property override in @layer tokens must throw
     const themeOverrideCss = `
-      @layer tokens {
+      @layer picotol.tokens {
         :root { --pt-bg: #FFFFFF; }
         [data-theme="dark"] { --pt-bg: #000000; }
       }
-      @layer reset { * { box-sizing: border-box; } }
-      @layer base { body { margin: 0; } }
+      @layer picotol.reset { * { box-sizing: border-box; } }
+      @layer picotol.base { body { margin: 0; } }
     `;
     assert.throws(
       () => parseTokens(themeOverrideCss),
@@ -338,12 +338,12 @@ describe("Token Parser and CSS Extraction", () => {
 
     // :root:hover state override in @layer tokens must throw
     const stateOverrideCss = `
-      @layer tokens {
+      @layer picotol.tokens {
         :root { --pt-bg: #FFFFFF; }
         :root:hover { --pt-bg: #000000; }
       }
-      @layer reset { * { box-sizing: border-box; } }
-      @layer base { body { margin: 0; } }
+      @layer picotol.reset { * { box-sizing: border-box; } }
+      @layer picotol.base { body { margin: 0; } }
     `;
     assert.throws(
       () => parseTokens(stateOverrideCss),
@@ -353,16 +353,16 @@ describe("Token Parser and CSS Extraction", () => {
 
   test("parseTokens: cycle guard throws on recursive CSS custom properties", () => {
     const cyclicCss = `
-      @layer tokens {
+      @layer picotol.tokens {
         :root {
           --pt-a: var(--pt-b);
           --pt-b: var(--pt-a);
         }
       }
-      @layer reset {
+      @layer picotol.reset {
         * { box-sizing: border-box; }
       }
-      @layer base {
+      @layer picotol.base {
         body { margin: 0; }
       }
     `;
@@ -377,32 +377,32 @@ describe("Token Parser and CSS Extraction", () => {
   test("parseTokens: throws if required layers (tokens, reset, base) are missing", () => {
     assert.throws(
       () => parseTokens(":root { --pt-color: #000; }"),
-      /Missing @layer tokens/
+      /Missing @layer picotol\.tokens/
     );
 
     assert.throws(
-      () => parseTokens("@layer tokens { :root { --pt-color: #000; } }"),
-      /Missing @layer reset delimiter/
+      () => parseTokens("@layer picotol.tokens { :root { --pt-color: #000; } }"),
+      /Missing @layer picotol\.reset delimiter/
     );
 
     assert.throws(
-      () => parseTokens("@layer tokens { :root { --pt-color: #000; } } @layer reset { * { box-sizing: border-box; } }"),
-      /Missing @layer base in CSS content/
+      () => parseTokens("@layer picotol.tokens { :root { --pt-color: #000; } } @layer picotol.reset { * { box-sizing: border-box; } }"),
+      /Missing @layer picotol\.base in CSS content/
     );
 
     assert.throws(
       () =>
         parseTokens(
-          "@layer tokens { :root { --pt-a: #4477AA; } } @layer tokens { :root { --pt-b: #0077BB; } } @layer reset { * { box-sizing: border-box; } } @layer base { body { margin: 0; } }"
+          "@layer picotol.tokens { :root { --pt-a: #4477AA; } } @layer picotol.tokens { :root { --pt-b: #0077BB; } } @layer picotol.reset { * { box-sizing: border-box; } } @layer picotol.base { body { margin: 0; } }"
         ),
-      /Multiple @layer tokens blocks found in CSS content/
+      /Multiple @layer picotol\.tokens blocks found in CSS content/
     );
   });
 
   test("parseTokens: CSS comments, /* inside strings, and unquoted url(data:...;base64,...) semicolons do not corrupt parsing", () => {
     const commentedCss = `
       /* Comment with { braces: inside; } and ; colons */
-      @layer tokens {
+      @layer picotol.tokens {
         /* Another comment { foo: bar; } */
         :root, :host {
           --pt-str-comment: "/* inside double quotes";
@@ -412,10 +412,10 @@ describe("Token Parser and CSS Extraction", () => {
           --pt-str-close: "*/";
         }
       }
-      @layer reset {
+      @layer picotol.reset {
         body { margin: 0; }
       }
-      @layer base {
+      @layer picotol.base {
         body { margin: 0; }
       }
     `;
@@ -437,17 +437,17 @@ describe("Token Parser and CSS Extraction", () => {
 
   test("parseTokens: non-hex, transparent (#0000 / #00000000), and invalid mixSrgb inputs throw strict validation errors", () => {
     const nonHexCss = `
-      @layer tokens {
+      @layer picotol.tokens {
         :root {
           --pt-bad: red;
           --pt-transparent-4: #0000;
           --pt-transparent-8: #00000000;
         }
       }
-      @layer reset {
+      @layer picotol.reset {
         body { margin: 0; }
       }
-      @layer base {
+      @layer picotol.base {
         body { margin: 0; }
       }
     `;
@@ -958,7 +958,7 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
       "dist/picotol.layer.css",
       "dist/picotol.layer.min.css",
     ];
-    const unnamespacedLayerRegex = /@layer\s+(?:legacy|tokens|reset|base|components|utilities)[\s,{]/;
+    const unnamespacedLayerRegex = /@layer\s+[^;{]*?(?<!picotol\.)\b(legacy|tokens|reset|base|components|utilities)\b/;
     for (const file of distFiles) {
       const content = fs.readFileSync(path.join(ROOT, file), "utf8");
       assert.ok(
@@ -999,8 +999,9 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
 
     const utilitiesIdx = layerCss.indexOf("@layer picotol.utilities {");
     assert.ok(utilitiesIdx !== -1, "@layer picotol.utilities must be defined in dist/picotol.layer.css");
-    assert.ok(
-      layerCss.indexOf(".skip-to-content", utilitiesIdx) !== -1 && layerCss.indexOf(":is(:focus, :focus-visible)", utilitiesIdx) !== -1,
+    assert.match(
+      layerCss.slice(utilitiesIdx),
+      /:is\([^)]*\.skip-to-content[^)]*\):is\(:focus,\s*:focus-visible\)/,
       ".skip-to-content focus rule must compile inside @layer picotol.utilities"
     );
     assert.ok(

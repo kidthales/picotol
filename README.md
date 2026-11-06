@@ -44,10 +44,10 @@
 - **WCAG 2.2 AA/AAA & Mobile Reflow Built-In**:
   - Universal `:focus-visible` `2px solid` high-contrast focus outlines (`outline-offset: 2px`) that survive Windows High Contrast (`@media (forced-colors: active)`).
   - Non-color validation cues (`2px` border + `✓` / `✗` prefix icons on `[aria-invalid] + small`) and $\ge 24\times24\text{px}$ target sizes (WCAG 2.2 SC 2.5.8).
-  - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
+  - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.pt-skip-to-content`, `.pt-sr-only` / `.pt-visually-hidden`, `.pt-overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
-  - **`dist/picotol.core.min.css`** (<= 14.0 KB minified, <= 4.5 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 44.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.pt-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-meter` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.core.min.css`** (<= 14.0 KB minified, <= 4.5 KB gzip): Landmarks (`body > header, main, footer`), `.pt-container`, `.pt-grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
+  - **`dist/picotol.min.css`** (<= 44.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.pt-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.pt-segmented-fill`), square icon buttons (`.pt-btn-icon`), `<progress>`, `.pt-meter` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
   - **`dist/picotol.layer.min.css`** (<= 44.0 KB minified, <= 9.0 KB gzip): Full framework namespaced under `@layer picotol.*` for host applications using CSS cascade layers (retained alias of `picotol.min.css`).
 
 ---
@@ -125,7 +125,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-E4aIW2X4QCCAoc3TjWQISsrUcYp8U7fNGvOhoQ9xva2S4fsqbSaR/+7dStdGzytH" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-ZIR4EgoUdplm2O1Qin/ThOFhxk7qcFldaHnXlI0d77ch14DM3LozpaPkv6+Sb36l" crossorigin="anonymous" />
 ```
 
 ---
@@ -167,11 +167,11 @@ import "@kidthales/picotol/palettes";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-E4aIW2X4QCCAoc3TjWQISsrUcYp8U7fNGvOhoQ9xva2S4fsqbSaR/+7dStdGzytH" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-ZIR4EgoUdplm2O1Qin/ThOFhxk7qcFldaHnXlI0d77ch14DM3LozpaPkv6+Sb36l" crossorigin="anonymous" />
     <title>Semantic HTML with Paul Tol Colors</title>
   </head>
   <body class="pt-app">
-    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+    <a href="#main-content" class="pt-skip-to-content">Skip to main content</a>
     <header>
       <nav aria-label="Primary">
         <ul><li><strong>picotol</strong></li></ul>
@@ -253,28 +253,28 @@ No JavaScript runtime, polyfills, or build steps are required downstream. Browse
 | `picotol.legacy` | [`src/components.css`](src/components.css) | Deprecated bare semantic selectors (`aside:not(nav *)`, `[role="alert"]`, `[role="status"]`) scheduled for removal in v0.7.0 |
 | `picotol.tokens` | [`src/tokens.css`](src/tokens.css), [`src/palettes.css`](src/palettes.css) | Auto-generated canonical `--tol-*` scheme constants, `--pt-*` semantic tokens, `[data-theme]` & `[data-accent]` ladders |
 | `picotol.reset` | [`src/base.css`](src/base.css) | Modern box-sizing reset, `body` zero-margin and flex column root, button font normalization, `[hidden]` display reset |
-| `picotol.base` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/forms.css`](src/forms.css), [`src/nav.css`](src/nav.css) | Document defaults, `:focus-visible`, `[tabindex="-1"]` guard, `@media print`, typography/content hierarchy, form controls, semantic landmarks, `.container` |
+| `picotol.base` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/forms.css`](src/forms.css), [`src/nav.css`](src/nav.css) | Document defaults, `:focus-visible`, `[tabindex="-1"]` guard, `@media print`, typography/content hierarchy, form controls, semantic landmarks, `.pt-container` |
 | `picotol.components` | [`src/components.css`](src/components.css) | Extended semantic components (`<article>` card, `<details>` accordion/dropdown, `<dialog>` modal, `.pt-badge`, `.pt-callout`, `progress`, `.pt-meter`, segmented controls, tooltips) |
-| `picotol.utilities` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/utilities.css`](src/utilities.css) | Standalone utility classes and layout helpers (`.skip-to-content`, `.sr-only`, `.visually-hidden`, `.grid`, `.flex`, `.overflow-auto`, `.table-container`, `.mb-0`, `.pt-tabular`, `.pt-tabular--align-end`, `.tabular-nums`) |
+| `picotol.utilities` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/utilities.css`](src/utilities.css) | Standalone utility classes and layout helpers (`.pt-skip-to-content`, `.pt-sr-only`, `.pt-visually-hidden`, `.pt-grid`, `.pt-flex`, `.pt-overflow-auto`, `.pt-table-container`, `.pt-mb-0`, `.pt-tabular`, `.pt-tabular--align-end`, `.pt-tabular-nums`) |
 
 ---
 
 ## Screen Reader & Non-Visual UX Patterns
 
 1. **Skip Links & Programmatic Landmark Focus**:
-   Place `.skip-to-content` as the first focusable child of `<body>` and set `tabindex="-1"` on `<main id="main-content">`. `@kidthales/picotol` suppresses unwanted mouse-click outlines on `[tabindex="-1"]:focus:not(:focus-visible)` while preserving keyboard `:focus-visible` rings.
+   Place `.pt-skip-to-content` as the first focusable child of `<body>` and set `tabindex="-1"` on `<main id="main-content">`. `@kidthales/picotol` suppresses unwanted mouse-click outlines on `[tabindex="-1"]:focus:not(:focus-visible)` while preserving keyboard `:focus-visible` rings.
 2. **Screen-Reader-Only & Focusable Utilities**:
-   - `.sr-only` / `.visually-hidden`: Visually hides text via `clip-path: inset(50%)` while keeping it in the accessibility tree (e.g. `<a href="..." target="_blank">Docs<span class="sr-only"> (opens in a new tab)</span></a>`).
-   - `.sr-only-focusable` / `.visually-hidden-focusable`: Remains visually clipped until focused via keyboard (`:focus` / `:focus-visible`).
+   - `.pt-sr-only` / `.pt-visually-hidden`: Visually hides text via `clip-path: inset(50%)` while keeping it in the accessibility tree (e.g. `<a href="..." target="_blank">Docs<span class="pt-sr-only"> (opens in a new tab)</span></a>`).
+   - `.pt-sr-only-focusable` / `.pt-visually-hidden-focusable`: Remains visually clipped until focused via keyboard (`:focus` / `:focus-visible`).
 3. **Accessible Tooltips (`[data-tooltip]`) & WCAG 1.4.13**:
-   `[data-tooltip]` provides a zero-JS supplementary visual hint. Tooltip bubbles (`::before`) and a `0.375rem` `::after` hover bridge (`bottom: 100%; left: 50%; width: min(16rem, 80vw); height: 0.375rem; transform: translateX(-50%); z-index: var(--pt-z-tooltip, 99);`) share `pointer-events: auto` to span the `bottom: calc(100% + 0.375rem)` gap and full bubble overhang per WCAG 2.1 SC 1.4.13 (*Hoverable* & *Persistent*). Pure CSS cannot meet SC 1.4.13 *Dismissible* (`Escape` key) without JS. Because `attr(data-tooltip)` is not announced reliably across screen readers, non-decorative tooltips **must** be paired with `aria-describedby` or `aria-label` (plus `tabindex="0"` on non-interactive inline triggers). `[data-tooltip]` is not supported on hosts with their own `::before` or `::after` (`<summary>`, `[role="switch"]`, `[aria-busy="true"]`, or `dialog` `.close` buttons). Clicking a `::before` bubble or its full-width `0.375rem` `::after` bridge strip activates interactive hosts (`<button data-tooltip>`) and intercepts pointer events over covered neighbours (even when the bubble is narrower than `16rem`); `overflow: hidden` ancestors (`<article>`) clip protruding bubbles.
+   `[data-tooltip]` provides a zero-JS supplementary visual hint. Tooltip bubbles (`::before`) and a `0.375rem` `::after` hover bridge (`bottom: 100%; left: 50%; width: min(16rem, 80vw); height: 0.375rem; transform: translateX(-50%); z-index: var(--pt-z-tooltip, 99);`) share `pointer-events: auto` to span the `bottom: calc(100% + 0.375rem)` gap and full bubble overhang per WCAG 2.1 SC 1.4.13 (*Hoverable* & *Persistent*). Pure CSS cannot meet SC 1.4.13 *Dismissible* (`Escape` key) without JS. Because `attr(data-tooltip)` is not announced reliably across screen readers, non-decorative tooltips **must** be paired with `aria-describedby` or `aria-label` (plus `tabindex="0"` on non-interactive inline triggers). `[data-tooltip]` is not supported on hosts with their own `::before` or `::after` (`<summary>`, `[role="switch"]`, `[aria-busy="true"]`, or `dialog` `.pt-close` buttons). Clicking a `::before` bubble or its full-width `0.375rem` `::after` bridge strip activates interactive hosts (`<button data-tooltip>`) and intercepts pointer events over covered neighbours (even when the bubble is narrower than `16rem`); `overflow: hidden` ancestors (`<article>`) clip protruding bubbles.
    *Popover / `interestfor` Evaluation (as of Nov 2026)*: [Open UI `interestfor` (`popover="hint"`)](https://open-ui.org/components/interest-invokers.explainer/) remains an experimental non-baseline draft; use `[data-tooltip]` for lightweight hints, or the HTML Popover API with JS for dismissible disclosures.
 4. **Native Table Semantics Preservation**:
-   Wrap wide tables in `<div class="overflow-auto table-container"><table>...</table></div>` or semantic `<figure><table>...</table></figure>`. Unlike frameworks that apply `display: block` to `<table>` (which strips table coordinate semantics in WebKit/VoiceOver and Chromium), `@kidthales/picotol` preserves native `display: table` while providing touch-momentum horizontal scrolling.
+   Wrap wide tables in `<div class="pt-overflow-auto pt-table-container"><table>...</table></div>` or semantic `<figure><table>...</table></figure>`. Unlike frameworks that apply `display: block` to `<table>` (which strips table coordinate semantics in WebKit/VoiceOver and Chromium), `@kidthales/picotol` preserves native `display: table` while providing touch-momentum horizontal scrolling.
 5. **Theme-Reactive Selection Contrast (`::selection`)**:
    `::selection` binds dynamically to `background-color: var(--pt-primary-bg); color: var(--pt-color);`. This guarantees WCAG AA/AAA text contrast ($\ge 4.5:1$ across all four accent palettes) in both light mode and dark mode without translucent washout, preserving crisp text legibility during copy-paste and text inspection.
-6. **Accessible Toasts (`.toast`) & Accessibility Tree**:
-   Hidden toasts use `visibility: hidden` (delayed via `transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;`, or immediate under `prefers-reduced-motion: reduce`) so inactive toasts leave the accessibility tree. Activate with `.show` (`visibility: visible; transition-delay: 0s;`); never pair `.show` with `aria-hidden="true"` (which hides visible toasts from assistive tech). Keep `role="status"`, `role="alert"`, or `aria-live` on a persistent wrapper or inject message text after `.show` becomes visible so `visibility` toggling does not suppress announcements. Legacy `[aria-hidden="false"]` is a deprecated alias until v0.7.0.
+6. **Accessible Toasts (`.pt-toast`) & Accessibility Tree**:
+   Hidden toasts use `visibility: hidden` (delayed via `transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;`, or immediate under `prefers-reduced-motion: reduce`) so inactive toasts leave the accessibility tree. Activate with `.pt-show` (`visibility: visible; transition-delay: 0s;`); never pair `.pt-show` with `aria-hidden="true"` (which hides visible toasts from assistive tech). Keep `role="status"`, `role="alert"`, or `aria-live` on a persistent wrapper or inject message text after `.pt-show` becomes visible so `visibility` toggling does not suppress announcements. Legacy `[aria-hidden="false"]` is a deprecated alias until v0.7.0.
 
 ---
 
@@ -355,7 +355,7 @@ Downstream consumers can hook directly into specific sublayers without battling 
 <style>
   @layer picotol, app-theme, app-components, app-utilities;
 </style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-E4aIW2X4QCCAoc3TjWQISsrUcYp8U7fNGvOhoQ9xva2S4fsqbSaR/+7dStdGzytH" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-ZIR4EgoUdplm2O1Qin/ThOFhxk7qcFldaHnXlI0d77ch14DM3LozpaPkv6+Sb36l" crossorigin="anonymous" />
 <link rel="stylesheet" href="/css/theme.css" layer="app-theme" />
 <link rel="stylesheet" href="/css/components.css" layer="app-components" />
 <link rel="stylesheet" href="/css/utilities.css" layer="app-utilities" />
@@ -486,7 +486,7 @@ Bare `<body>` needs no reset overrides in host shells. For `.pt-app` shells, cus
 
 ## Accessible Typography & Font Integration
 
-`@kidthales/picotol` ships with bulletproof system font stacks (`--pt-font-sans`, `--pt-font-mono`) and fixed-width tabular figures (`.tabular-nums`, `table`, `[role="table"]`, `code`, `kbd`, `samp`, `time`).
+`@kidthales/picotol` ships with bulletproof system font stacks (`--pt-font-sans`, `--pt-font-mono`) and fixed-width tabular figures (`.pt-tabular-nums`, `.pt-tabular`, `table`, `[role="table"]`, `code`, `kbd`, `samp`, `time`).
 
 ### Zero-Network Accessible Font Recipes
 
@@ -521,32 +521,32 @@ To protect readability and accessibility in constrained host environments (e.g.,
 
 ### 1. KPI Metric Stat Cards
 
-Use semantic `<article class="stat">` or `<dl class="stats">` to display large fluid tabular figures (`clamp(1.75rem, ...)`):
+Use semantic `<article class="pt-stat">` or `<dl class="pt-stats">` to display large fluid tabular figures (`clamp(1.75rem, ...)`):
 
 ```html
-<div class="grid">
-  <article class="stat">
+<div class="pt-grid">
+  <article class="pt-stat">
     <small>Total Revenue</small>
     <strong>$128,430</strong>
-    <footer><span class="badge valid">+14.2%</span> vs last month</footer>
+    <footer><span class="pt-badge pt-ok">+14.2%</span> vs last month</footer>
   </article>
-  <article class="stat">
+  <article class="pt-stat">
     <small>Active Users</small>
     <strong>24,512</strong>
-    <footer><span class="badge valid">+3.8%</span> vs last month</footer>
+    <footer><span class="pt-badge pt-ok">+3.8%</span> vs last month</footer>
   </article>
 </div>
 ```
 
 ### 1b. Card Flex-Column Layout & Auto-Docking Footers
 
-In `@kidthales/picotol`, cards (`<article>`, `.card`) declare `display: flex; flex-direction: column;` with `height: 100%` when nested in grid or flex layouts (`.grid`, `.flex`). Footers (`<footer>`) automatically dock flush at the bottom edge via `margin-block-start: auto;` while preserving full-bleed negative block-end margins (`calc(-1 * var(--pt-card-padding))`), completely eliminating stranded footers and awkward white-space voids across uneven multi-column grid tracks.
+In `@kidthales/picotol`, cards (`<article>`, `.pt-card`) declare `display: flex; flex-direction: column;` with `height: 100%` when nested in grid or flex layouts (`.pt-grid`, `.pt-flex`). Footers (`<footer>`) automatically dock flush at the bottom edge via `margin-block-start: auto;` while preserving full-bleed negative block-end margins (`calc(-1 * var(--pt-card-padding))`), completely eliminating stranded footers and awkward white-space voids across uneven multi-column grid tracks.
 
-Inner card bodies (`<main>`, `.card-body`, `.body`, or `[data-card-body]`) automatically expand vertically with `flex: 1 1 auto; min-width: 0;`:
+Inner card bodies (`<main>`, `.pt-card-body`, or `[data-card-body]`) automatically expand vertically with `flex: 1 1 auto; min-width: 0;`:
 
 ```html
-<div class="grid">
-  <article class="card">
+<div class="pt-grid">
+  <article class="pt-card">
     <header><h3>Plan A</h3></header>
     <main>
       <p>Basic tier features with minimal content.</p>
@@ -554,7 +554,7 @@ Inner card bodies (`<main>`, `.card-body`, `.body`, or `[data-card-body]`) autom
     <footer><button type="button">Select Plan</button></footer>
   </article>
 
-  <article class="card">
+  <article class="pt-card">
     <header><h3>Plan B</h3></header>
     <main>
       <p>Pro tier features with comprehensive details, bullet lists, SLA metrics, and extended specifications stretching the grid row height.</p>
@@ -566,15 +566,15 @@ Inner card bodies (`<main>`, `.card-body`, `.body`, or `[data-card-body]`) autom
 
 ### 2. Zero-CLS Skeleton Loaders
 
-Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions while content is fetching. Uses a gentle 1.5s opacity pulse (`pt-pulse`) that safely pauses under `prefers-reduced-motion: reduce`:
+Apply `.pt-skeleton` or `[aria-busy="true"].pt-skeleton` to preserve layout dimensions while content is fetching. Uses a gentle 1.5s opacity pulse (`pt-pulse`) that safely pauses under `prefers-reduced-motion: reduce`:
 
 ```html
-<div class="skeleton" style="height: 2.2rem; width: 60%;"></div>
+<div class="pt-skeleton" style="height: 2.2rem; width: 60%;"></div>
 ```
 
 ### 3. Universal SVG Icon Ergonomics
 
-`@kidthales/picotol` automatically scales, aligns, and spaces inline SVGs (`svg.icon` or `[data-icon]`). Recommended for use with [Lucide Icons](https://lucide.dev/):
+`@kidthales/picotol` automatically scales, aligns, and spaces inline SVGs (`svg.pt-icon` or `[data-icon]`). Recommended for use with [Lucide Icons](https://lucide.dev/):
 
 - **Auto-Inheritance**: Icons inherit active theme/accent colors via `currentColor`.
 - **Baseline Alignment**: Centered at `1.15em` size with `-0.2em` vertical alignment to match adjacent typography.
@@ -584,13 +584,13 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 ```html
 <!-- Text + icon button -->
 <button type="button">
-  <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
   Export Report
 </button>
 
 <!-- Icon-only square button -->
 <button type="button" aria-label="Settings">
-  <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>
+  <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>
 </button>
 ```
 
@@ -621,25 +621,25 @@ Callouts and status badges require explicit classes (`.pt-callout`, `.pt-badge`,
 | **Critical / Danger** | `--pt-status-critical-*` | Paul Tol Red (`#CC3311`) | Paul Tol Red (`#EE6677`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
 | **Info** | `--pt-status-info-*` | Paul Tol Blue (`#4477AA`) | Paul Tol Cyan (`#66CCEE`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
 
-These tokens automatically power `.pt-dot`, `.pt-badge`, `.pt-indicator`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
+These tokens automatically power `.pt-dot`, `.pt-badge`, `.pt-indicator`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
 
 > **Status Contrast Policy**: In accordance with WCAG 2.2 §1.4.1 (Use of Color) and §1.4.3 (Contrast (Minimum)), Paul Tol semantic status hues carry only non-text signals (borders, dots, and icons via `--pt-icon-color`). Status callout and badge text uses the high-contrast body foreground token (`--pt-color`), certifying $\ge 4.5:1$ text contrast on 8% alpha washes across both light and dark themes. Nested icons (`svg`, `[data-icon]`) automatically inherit the status hue via `--pt-icon-color`. Every documented status callout and badge requires a descriptive status word or icon so colour is never the sole carrier of state.
 
 ### 4b. Status Badges, Indicators & Dots
 
-Ready-to-use component primitives (`.pt-badge` and `.pt-indicator`) map natively to calibrated `--pt-status-{ok,warning,critical,info}-{fg,border,bg}` triads via `[data-status]` attributes or semantic modifier classes (`.ok`, `.success`, `.warning`, `.critical`, `.danger`, `.info`):
+Ready-to-use component primitives (`.pt-badge` and `.pt-indicator`) map natively to calibrated `--pt-status-{ok,warning,critical,info}-{fg,border,bg}` triads via `[data-status]` attributes or semantic modifier classes (`.pt-ok`, `.pt-warning`, `.pt-critical`, `.pt-info`):
 
 ```html
 <!-- Native Status Badges with Nested Status Dots -->
 <span class="pt-badge" data-status="ok"><span class="pt-dot pt-dot--ok"></span> Operational</span>
-<span class="pt-badge warning"><span class="pt-dot pt-dot--warning"></span> Degraded</span>
-<span class="pt-badge critical"><span class="pt-dot pt-dot--critical"></span> Outage</span>
-<span class="pt-badge info"><span class="pt-dot pt-dot--info"></span> Rebalancing</span>
+<span class="pt-badge pt-warning"><span class="pt-dot pt-dot--warning"></span> Degraded</span>
+<span class="pt-badge pt-critical"><span class="pt-dot pt-dot--critical"></span> Outage</span>
+<span class="pt-badge pt-info"><span class="pt-dot pt-dot--info"></span> Rebalancing</span>
 
 <!-- Status Indicators & Semantic Chips -->
-<span class="pt-indicator ok">Online</span>
-<span class="pt-indicator warning">Warning</span>
-<span class="pt-chip critical">p0-crit</span>
+<span class="pt-indicator pt-ok">Online</span>
+<span class="pt-indicator pt-warning">Warning</span>
+<span class="pt-chip pt-critical">p0-crit</span>
 ```
 
 #### Tabular Numerics for Streaming Telemetry
@@ -648,9 +648,9 @@ All status badges and indicators default to `font-variant-numeric: tabular-nums`
 ```html
 <!-- Tabular Numbers on Numeric Badges and Telemetry Indicators -->
 <span class="pt-badge pt-badge--numeric" data-status="ok"><span class="pt-dot pt-dot--ok"></span> 99.98% SLA</span>
-<span class="pt-badge pt-badge--numeric warning"><span class="pt-dot pt-dot--warning"></span> 1,420 ms P99</span>
-<span class="pt-indicator pt-indicator--numeric info">Turn #042</span>
-<span class="pt-indicator pt-tabular ok">1,842 tok/s</span>
+<span class="pt-badge pt-badge--numeric pt-warning"><span class="pt-dot pt-dot--warning"></span> 1,420 ms P99</span>
+<span class="pt-indicator pt-indicator--numeric pt-info">Turn #042</span>
+<span class="pt-indicator pt-tabular pt-ok">1,842 tok/s</span>
 <span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span>
 ```
 
@@ -666,7 +666,7 @@ High-density status dots (`.pt-dot`, `.pt-dot--ok`, `.pt-dot--warning`, `.pt-dot
 
 <!-- Pulse Animation & Badges -->
 <span class="pt-dot pt-dot--critical pt-dot--pulse"></span> Live Alert
-<span class="badge"><span class="pt-dot pt-dot--ok"></span> Active</span>
+<span class="pt-badge"><span class="pt-dot pt-dot--ok"></span> Active</span>
 ```
 
 ### 4c. Callout Banners, Copy Pills & Chips
@@ -684,11 +684,11 @@ High-contrast, unignorable severity banners (`.pt-callout`) feature 4px solid st
 
 ### 4d. Native Disclosures, Accordion Cards & Popovers
 
-Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature smooth chevron marker rotations, structured accordion card containment (`.card.accordion-card` / `.pt-card-disclosure`), and elevated popover/dropdown menus (`.pt-popover`, `.pt-dropdown`, `.pt-popover--start`, `.pt-popover--end`, `.pt-popover-menu`):
+Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature smooth chevron marker rotations, structured accordion card containment (`.pt-card.pt-accordion-card` / `.pt-card-disclosure`), and elevated popover/dropdown menus (`.pt-popover`, `.pt-dropdown`, `.pt-popover--start`, `.pt-popover--end`, `.pt-popover-menu`):
 
 ```html
 <!-- Structured Accordion Card Container -->
-<article class="card accordion-card">
+<article class="pt-card pt-accordion-card">
   <details class="pt-card-disclosure" open>
     <summary>Platform Architecture</summary>
     <p>Four-layer cascade isolation ensures design tokens remain pure.</p>
@@ -712,7 +712,7 @@ Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature sm
 
 <!-- End-Aligned Dropdown / Popover -->
 <details class="pt-dropdown pt-popover--end">
-  <summary role="button" class="secondary">Options</summary>
+  <summary role="button" class="pt-secondary">Options</summary>
   <ul class="pt-popover-content">
     <li><a href="#profile">Profile</a></li>
     <li><a href="#settings">Settings</a></li>
@@ -722,22 +722,22 @@ Zero-JavaScript native HTML5 disclosures (`<details>`, `.pt-details`) feature sm
 
 ### 4e. Equal-Fill Segmented Controls & Square Icon Buttons
 
-For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill segmented controls (`.segmented-fill` or `.segmented-equal`) distribute width equally across tabs (`flex: 1 1 0`) and establish a block formatting context (`min-width: 0`) ensuring reliable single-line text truncation with CSS ellipsis. Dedicated square icon buttons enforce an exact 1:1 aspect ratio:
+For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill segmented controls (`.pt-segmented-fill` or `.pt-segmented-equal`) distribute width equally across tabs (`flex: 1 1 0`) and establish a block formatting context (`min-width: 0`) ensuring reliable single-line text truncation with CSS ellipsis. Dedicated square icon buttons enforce an exact 1:1 aspect ratio:
 
 ```html
 <!-- Equal-Fill Segmented Control (BFC & Ellipsis Truncation on Reflow) -->
-<nav role="tablist" class="segmented segmented-fill" aria-label="View options">
+<nav role="tablist" class="pt-segmented pt-segmented-fill" aria-label="View options">
   <button type="button" role="tab" aria-selected="true">Daily</button>
   <button type="button" role="tab" aria-selected="false">Weekly</button>
   <button type="button" role="tab" aria-selected="false">Monthly</button>
 </nav>
 
 <!-- Dedicated 1:1 Square Icon Buttons (Zero-Padding, Flex Centered) -->
-<button type="button" class="btn-icon" aria-label="Search">
-  <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+<button type="button" class="pt-btn-icon" aria-label="Search">
+  <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
 </button>
-<button type="button" class="icon-btn outline" aria-label="Close">
-  <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+<button type="button" class="pt-icon-btn pt-outline" aria-label="Close">
+  <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
 </button>
 ```
 
@@ -749,11 +749,11 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
 > **Container Pattern & Replaced Element Limits**: Native `<progress>` elements in HTML/browsers (Chromium, Firefox, WebKit) are replaced/void-like elements that cannot render child DOM elements (`.pt-gauge-marker`, `.pt-meter-mark`, `.pt-meter-label`). For rich meters with threshold pins, markers, and range bands, use the standard container pattern: `<div class="pt-meter">` wrapping `<div class="pt-progress" role="progressbar">`. Basic `<progress>` without child pins remains fully supported for simple indeterminate and determinate progress bars.
 
 - **Marker Containers & Pin Drawing**: `.pt-meter-mark` (or `.pt-gauge-marker`) serves as the positioned container and automatically draws the indicator pin via its `::before` pseudo-element. Children elements are strictly labels (`.pt-meter-label`, `[data-label]`, or `.pt-gauge-label`).
-- **Canonical Placement (`data-placement`)**: `data-placement="top"` (default) or `data-placement="bottom"`. Compatibility classes `.top` and `.bottom` are also supported.
+- **Canonical Placement (`data-placement`)**: `data-placement="top"` (default) or `data-placement="bottom"`. Modifier `.pt-bottom` is also supported (compatibility classes .top and .bottom are retained until v0.7.0).
 - **Positioning**: Pin position configured via `--pt-marker-pos` (`0%` to `100%`); range band span configured via `--pt-range-start` and `--pt-range-end`.
-- **Boundary Clamping & Rounded Corners**: Pin positioning automatically clamps to track corner radius (`inset-inline-start: clamp(var(--pt-progress-radius, 0px), var(--marker-pos, var(--pt-marker-pos, 0%)), calc(100% - var(--pt-progress-radius, 0px)))`), ensuring pins align cleanly within rounded and capsule tracks without overhanging curved ends at 0% or 100%.
+- **Boundary Clamping & Rounded Corners**: Pin positioning automatically clamps to track corner radius (`inset-inline-start: clamp(var(--pt-progress-radius, 0px), var(--pt-marker-pos, var(--marker-pos, 0%)), calc(100% - var(--pt-progress-radius, 0px)))`), ensuring pins align cleanly within rounded and capsule tracks without overhanging curved ends at 0% or 100%.
 - **Overflow Visibility**: Both `:where(.pt-meter, .pt-progress)` automatically apply `overflow: visible` when child markers or pins are present, preventing pins and labels from being clipped by the track container.
-- **Labels**: `.pt-meter-label` or `[data-label]` child elements aligned to the marker with `tabular-nums`.
+- **Labels**: `.pt-meter-label` or `[data-label]` child elements aligned to the marker with `.pt-tabular-nums`.
 - **Boundary-Aligned Modifiers (`data-align` / `.pt-meter-mark--*`)**: Prevent label clipping and container overflow at track extremes (0% and 100%) without shifting the indicator pin:
   - `data-align="start"` or `.pt-meter-mark--start`: Applies `transform: translateX(0)` for 0% / low-end markers.
   - `data-align="end"` or `.pt-meter-mark--end`: Applies `transform: translateX(-100%)` for 100% / high-end markers.
@@ -763,14 +763,14 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
 
 ```html
 <div class="pt-meter">
-  <div class="pt-meter-range ok" style="--pt-range-start: 0%; --pt-range-end: 60%;"></div>
-  <div class="pt-meter-range warning" style="--pt-range-start: 60%; --pt-range-end: 85%;"></div>
-  <div class="pt-meter-range critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
+  <div class="pt-meter-range pt-ok" style="--pt-range-start: 0%; --pt-range-end: 60%;"></div>
+  <div class="pt-meter-range pt-warning" style="--pt-range-start: 60%; --pt-range-end: 85%;"></div>
+  <div class="pt-meter-range pt-critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
   <div class="pt-progress" role="progressbar" aria-valuenow="78" style="--pt-progress-value: 78%;">
     <div class="pt-progress-fill pt-meter-fill"></div>
     <div class="pt-meter-mark pt-meter-mark--start" data-placement="top" data-align="start" style="--pt-marker-pos: 0%;"><span class="pt-meter-label">0% Min</span></div>
     <div class="pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
-    <div class="pt-meter-mark pt-meter-mark--end critical bottom" data-placement="bottom" data-align="end" style="--pt-marker-pos: 100%;"><span class="pt-meter-label" data-label>100% Max</span></div>
+    <div class="pt-meter-mark pt-meter-mark--end pt-critical pt-bottom" data-placement="bottom" data-align="end" style="--pt-marker-pos: 100%;"><span class="pt-meter-label" data-label>100% Max</span></div>
   </div>
 </div>
 ```
@@ -782,21 +782,21 @@ For data-dense applications, dashboards, and narrow IDE corridors, apply `[data-
 - **Form Controls**: Reduces vertical and horizontal padding on `input`, `select`, `textarea`, and buttons via `--pt-form-y: 0.25rem;` and `--pt-form-x: 0.5rem;`.
 - **Tables**: Tightens cell padding (`th, td`) via `--pt-table-cell-padding-block: 0.25rem;` and `--pt-table-cell-padding-inline: 0.5rem;`.
 - **Layout & Cards**: Tightens grid and flex gaps via `--pt-gap-compact: 0.5rem;`, zeroes outer card bottom margins, and tightens card padding.
-- **Margin Auto-Collapsing**: Auto-collapses outer block margins (`margin-block: 0;`) on `section`, `article`, `.card`, and `hr` elements (as well as flex/grid child containers), allowing dense grid and flex layouts to space strictly via `--pt-gap-compact: 0.5rem;` without double-margin bloat.
+- **Margin Auto-Collapsing**: Auto-collapses outer block margins (`margin-block: 0;`) on `section`, `article`, `.pt-card`, and `hr` elements (as well as flex/grid child containers), allowing dense grid and flex layouts to space strictly via `--pt-gap-compact: 0.5rem;` without double-margin bloat.
 - **Pills & Chips**: Decreases vertical padding on `.pt-copy-pill` and `.pt-chip` via compact padding.
 - **320px Reflow**: Retains full WCAG 2.2 SC 1.4.10 mobile reflow with zero horizontal scrolling.
 
 ```html
 <!-- Dense Data Table & Compact Form Layout -->
 <section data-density="compact">
-  <form class="grid">
+  <form class="pt-grid">
     <input type="text" placeholder="Search hosts..." aria-label="Search" />
     <select aria-label="Region"><option>All Regions</option></select>
     <button type="submit">Filter</button>
   </form>
 
-  <figure class="table-container">
-    <table class="striped">
+  <figure class="pt-table-container">
+    <table class="pt-striped">
       <thead>
         <tr><th>Host</th><th>Status</th><th>Latency</th></tr>
       </thead>
@@ -820,10 +820,10 @@ For highly constrained embedding contexts—such as IDE auxiliary toolbars, webv
 
 ```html
 <!-- Ultra-compact embedded sidebar card -->
-<article class="card pt-card--dense" data-density="tight">
+<article class="pt-card pt-card--dense" data-density="tight">
   <header><strong>Worker 03</strong></header>
   <main>
-    <div class="card pt-card--dense">
+    <div class="pt-card pt-card--dense">
       <small>Nested Queue: 12 jobs</small>
     </div>
   </main>
@@ -846,9 +846,9 @@ Toggle switches (`[role="switch"]`) provide native zero-JS toggle semantics with
 The interactive demonstration suite at `dist/demo/index.html` showcases:
 - **Opt-in `@layer picotol` Integration**: Cascade layer containment for modular host application embedding.
 - **Concurrent 4-Accent Subtree Theming**: `blue`, `cyan`, `purple`, and `magenta` run simultaneously in isolated scopes via `[data-accent]`.
-- **Operational Data Tables**: Responsive infrastructure monitor wrapped in `figure:has(> table)` and `.table-container` with `.tabular-nums` alignment, `.pt-dot` indicators, and `table.striped`.
-- **Equal-Fill Segmented Controls & Icon Buttons**: View navigators with `flex: 1 1 0` equal distribution and 1:1 square icon buttons (`.btn-icon`, `.icon-btn`).
-- **Interactive Dashboard Console**: Tabpanel switching (`Overview`, `Analytics`, `System Logs`) and segmented time filters (`1H`, `24H`, `7D`, `30D`) with zero-CLS skeleton loading transitions (`.skeleton`).
+- **Operational Data Tables**: Responsive infrastructure monitor wrapped in `figure:has(> table)` and `.pt-table-container` with `.pt-tabular-nums` alignment, `.pt-dot` indicators, and `table.pt-striped`.
+- **Equal-Fill Segmented Controls & Icon Buttons**: View navigators with `flex: 1 1 0` equal distribution and 1:1 square icon buttons (`.pt-btn-icon`, `.pt-icon-btn`).
+- **Interactive Dashboard Console**: Tabpanel switching (`Overview`, `Analytics`, `System Logs`) and segmented time filters (`1H`, `24H`, `7D`, `30D`) with zero-CLS skeleton loading transitions (`.pt-skeleton`).
 - **Paul Tol Canonical Palette Explorer**: Swatch grid of all canonical colours loaded from `data/tol-qualitative.json` with live search filtering and click-to-copy tokens.
 
 ---

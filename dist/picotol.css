@@ -1,7 +1,7 @@
 /*! @kidthales/picotol v0.5.1 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
 @layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
 @layer picotol.legacy {
-  :where(aside:not(nav *), [role="alert"]) {
+  :where(aside:not(nav *, .pt-callout), [role="alert"]:not(.pt-callout, .pt-badge, .pt-indicator)) {
     margin-bottom: var(--pt-spacing);
     padding: var(--pt-spacing);
     border-radius: var(--pt-border-radius);
@@ -26,7 +26,7 @@
     }
   }
 
-  :where([role="status"]) {
+  :where([role="status"]:not(.pt-badge, .pt-indicator, .pt-callout, .pt-chip)) {
     border: 1px solid var(--pt-muted-border);
     background: var(--pt-surface-subtle);
     color: var(--pt-color);
@@ -1407,7 +1407,6 @@
   }
 
   :where(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end) {
-    --pt-marker-pos: var(--marker-pos, 0%);
     --pt-marker-color: var(--pt-color);
     height: var(--pt-progress-height);
     top: 0;
@@ -2123,12 +2122,12 @@
       color: var(--pt-color);
     }
 
-    &:is(.pt-callout-ok, .pt-callout-success, .pt-ok, :is(.ok, .success)) {
+    &:is(.pt-callout-ok, .pt-ok, :is(.pt-callout-success, .ok, .success)) {
       --pt-callout-border: var(--pt-status-ok-border);
       --pt-callout-bg: var(--pt-status-ok-bg);
     }
 
-    &:is(.pt-callout-critical, .pt-callout-danger, .pt-critical, :is(.critical, .danger)) {
+    &:is(.pt-callout-critical, .pt-critical, :is(.pt-callout-danger, .critical, .danger)) {
       --pt-callout-border: var(--pt-status-critical-border);
       --pt-callout-bg: var(--pt-status-critical-bg);
     }
