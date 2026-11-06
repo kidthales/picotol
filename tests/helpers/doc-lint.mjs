@@ -102,6 +102,9 @@ export function extractTokenOccurrencesFromMarkdown(content) {
       }
       currentProseLines.push(line);
     } else {
+      if (new RegExp(`^${escapeRegex(fenceChar)}{${fenceLen},}[a-zA-Z0-9_-]+`).test(trimmed)) {
+        throw new Error(`Nested or unclosed fenced code block opener detected: "${trimmed}"`);
+      }
       const closeRe = new RegExp(`^${escapeRegex(fenceChar)}{${fenceLen},}\\s*$`);
       if (closeRe.test(trimmed)) {
         codeSegments.push(currentFenceLines.join('\n'));
@@ -334,9 +337,6 @@ export function validateDocCdn(content, sriManifest = null, file = '', requireIn
 
 export const REVERSE_DOC_ALLOWLIST = new Set([
   // Internal sub-elements and compound children
-  '.pt-meter-fill',
-  '.pt-progress-fill',
-  '.pt-popover-content',
   '.pt-gauge-label--center',
   '.pt-gauge-label--end',
   '.pt-gauge-label--start',
@@ -354,6 +354,7 @@ export const REVERSE_DOC_ALLOWLIST = new Set([
   '.pt-dot--success',
   '.pt-progress-danger',
   '.pt-progress-success',
+  '.pt-pulse',
   '.pt-status-dot',
   '.pt-status-dot-critical',
   '.pt-status-dot-danger',

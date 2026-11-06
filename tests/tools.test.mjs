@@ -353,6 +353,20 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   const annotatedStatusCss = `/* @deprecated: removed in v0.7.0 */\n.pt-progress-success { color: #4477AA; }`;
   assert.deepEqual(lintDeprecatedSelectorAnnotations(annotatedStatusCss, 'src/components.css'), []);
 
+  // Deprecated backlog & no-status annotation gate validation (Issue #227)
+  const unannotatedBacklogCss = `[data-status="backlog"] { color: #4477AA; }`;
+  assert.deepEqual(
+    lintDeprecatedSelectorAnnotations(unannotatedBacklogCss, 'src/components.css'),
+    ['[src/components.css:1] Deprecated selector containing status vocabulary/dot primitive lacks /* @deprecated */ comment: "[data-status="backlog"] { color: #4477AA; }"']
+  );
+  const unannotatedNoStatusCss = `[data-status="no-status"] { color: #4477AA; }`;
+  assert.deepEqual(
+    lintDeprecatedSelectorAnnotations(unannotatedNoStatusCss, 'src/components.css'),
+    ['[src/components.css:1] Deprecated selector containing status vocabulary/dot primitive lacks /* @deprecated */ comment: "[data-status="no-status"] { color: #4477AA; }"']
+  );
+  const annotatedBacklogCss = `/* @deprecated: removed in v0.7.0 */\n[data-status="backlog"] { color: #4477AA; }`;
+  assert.deepEqual(lintDeprecatedSelectorAnnotations(annotatedBacklogCss, 'src/components.css'), []);
+
   const incompleteDistCss = `:focus-visible { outline: 2px solid #4477AA; } .skip-to-content {} .sr-only {}`;
   const distRuleErrors = lintDistAccessibilityRules(incompleteDistCss, 'fixtures/dist.css');
   assert.ok(distRuleErrors.some((e) => e.includes('".overflow-auto"')));

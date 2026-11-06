@@ -1005,6 +1005,10 @@
       margin: 0;
     }
 
+    &:is([data-status="idle"], [data-status="neutral"]) {
+      background-color: var(--pt-muted-border);
+    }
+
     /* .pt-dot--success is @deprecated: removed in v0.7.0 */
     &:is(.pt-dot--ok, .pt-dot--success) {
       background-color: var(--pt-status-ok-fg);

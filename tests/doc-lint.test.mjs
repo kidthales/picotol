@@ -554,3 +554,36 @@ test('reverse doc-lint: unallowlisted/undocumented public classes fail closed an
   assert.deepEqual(cleanAllowlistResult, [], 'Allowlisted internal sub-element must not be flagged as undocumented');
 });
 
+test('reverse doc-lint: REVERSE_DOC_ALLOWLIST entries are stale if documented in README.md (Issue #227)', () => {
+  const readmeContent = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const documentedTokens = new Set(extractTokenOccurrencesFromMarkdown(readmeContent));
+
+  const staleEntries = [];
+  for (const item of REVERSE_DOC_ALLOWLIST) {
+    if (documentedTokens.has(item)) {
+      staleEntries.push(item);
+    }
+  }
+
+  assert.deepEqual(
+    staleEntries,
+    [],
+    `Allowlist entries in REVERSE_DOC_ALLOWLIST are documented in README.md and must be removed from allowlist:\n  • ${staleEntries.join('\n  • ')}`
+  );
+});
+
+test('doc-lint: reject nested or corrupted code fence openers within markdown code blocks (Issue #227)', () => {
+  const corruptedMd = [
+    '```',
+    '<div class="pt-meter">',
+    '```html',
+    '<section>',
+    '```',
+  ].join('\n');
+
+  assert.throws(
+    () => extractTokenOccurrencesFromMarkdown(corruptedMd),
+    /Nested or unclosed fenced code block opener detected/
+  );
+});
+
