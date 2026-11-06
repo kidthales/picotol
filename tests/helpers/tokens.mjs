@@ -120,7 +120,10 @@ export function splitSelectors(rawSelector) {
 
 export function extractLayerBlock(rawCss, layerName) {
   const cleanCss = stripCssComments(rawCss);
-  const re = new RegExp(`@layer\\s+${layerName}\\s*\\{`, 'g');
+  const escaped = layerName.replace(/\./g, '\\.');
+  const re = layerName.includes('.')
+    ? new RegExp(`@layer\\s+${escaped}\\s*\\{`, 'g')
+    : new RegExp(`@layer\\s+(?:picotol\\.)?${escaped}\\s*\\{`, 'g');
   const matches = [...cleanCss.matchAll(re)];
   if (matches.length === 0) return null;
   if (matches.length > 1) {
@@ -262,7 +265,7 @@ export function parseTokens(cssContent) {
   if (tokensBlock === null) {
     throw new Error('Missing @layer tokens in CSS content');
   }
-  if (!/@layer\s+reset\s*\{/.test(cleanCss)) {
+  if (!/@layer\s+(?:picotol\.)?reset\s*\{/.test(cleanCss)) {
     throw new Error('Missing @layer reset delimiter after tokens in CSS content');
   }
 

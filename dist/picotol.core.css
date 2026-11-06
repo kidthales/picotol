@@ -1,5 +1,6 @@
 /*! @kidthales/picotol v0.5.1 | MIT | Paul Tol colours (BSD-3) | Pico CSS v2.1.1 (MIT) */
-@layer tokens {
+@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
+@layer picotol.tokens {
   :root, :host, [data-accent="blue"] {
     --pt-p1: #ace;
     --pt-p2: #7ad;
@@ -130,7 +131,7 @@
   }
 }
 
-@layer reset {
+@layer picotol.reset {
   *, :before, :after {
     box-sizing: border-box;
   }
@@ -156,7 +157,7 @@
   }
 }
 
-@layer base {
+@layer picotol.base {
   :root, :host, :where([data-theme]) {
     background: var(--pt-bg);
     color: var(--pt-color);
@@ -694,9 +695,9 @@
   }
 }
 
-@layer components;
+@layer picotol.components;
 
-@layer utilities {
+@layer picotol.utilities {
   .skip-to-content:is(:focus, :focus-visible) {
     top: .5rem;
     z-index: var(--pt-z-skip-link, 10000);

@@ -159,7 +159,7 @@ describe("Typography, Reset, Print, and Icon Ergonomics (content.css & base.css)
     const fullCss = getDistCss();
 
     // 1. Reset layer
-    assert.match(baseCss, /@layer reset\s*\{[^}]*\*, ::before, ::after\s*\{[^}]*box-sizing:\s*border-box;/);
+    assert.match(baseCss, /@layer picotol\.reset\s*\{[^}]*\*, ::before, ::after\s*\{[^}]*box-sizing:\s*border-box;/);
     assert.match(baseCss, /body\s*\{[^}]*min-height:\s*100dvh;/);
     assert.match(baseCss, /display:\s*flex;/);
     assert.match(baseCss, /flex-direction:\s*column;/);
@@ -696,7 +696,7 @@ describe("Callouts, Alerts, Badges, and Dots", () => {
   // 4. Utility parity: .pt-tabular in @layer utilities
   assert.ok(
     contentCss.includes(".pt-tabular"),
-    "src/content.css must define .pt-tabular utility in @layer utilities"
+    "src/content.css must define .pt-tabular utility in @layer picotol.utilities"
   );
 
   // 5. Interactive Demo showcase verification
@@ -785,8 +785,8 @@ describe("Callouts, Alerts, Badges, and Dots", () => {
 
   // 2. .pt-tabular--align-end utility in src/utilities.css
   assert.ok(
-    utilCss.includes("@layer utilities"),
-    "src/utilities.css must declare @layer utilities"
+    utilCss.includes("@layer picotol.utilities"),
+    "src/utilities.css must declare @layer picotol.utilities"
   );
   assert.ok(
     utilCss.includes(":where(.pt-tabular--align-end)"),

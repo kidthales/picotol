@@ -75,24 +75,25 @@ export function buildAll(opts = {}) {
   const coreEntry = join(root, 'src', 'picotol.core.css');
   const fullEntry = join(root, 'src', 'picotol.css');
 
+  const LAYER_PREAMBLE = '@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;\n';
+  const LAYER_PREAMBLE_MIN = '@layer picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;';
+
   const coreExpandedRaw = bundleStrict(coreEntry, false);
   const coreMinRaw = bundleStrict(coreEntry, true);
-  const coreExpanded = HEADER + coreExpandedRaw;
-  const coreMin = HEADER + coreMinRaw;
+  const coreExpanded = HEADER + LAYER_PREAMBLE + coreExpandedRaw;
+  const coreMin = HEADER + LAYER_PREAMBLE_MIN + coreMinRaw;
 
   const fullExpandedRaw = bundleStrict(fullEntry, false);
   const fullMinRaw = bundleStrict(fullEntry, true);
-  const fullExpanded = HEADER + fullExpandedRaw;
-  const fullMin = HEADER + fullMinRaw;
+  const fullExpanded = HEADER + LAYER_PREAMBLE + fullExpandedRaw;
+  const fullMin = HEADER + LAYER_PREAMBLE_MIN + fullMinRaw;
 
-  // Opt-in layered distribution build wrapping full bundle within @layer picotol { ... }
-  // Explicitly exports nested sublayer taxonomy for granular downstream overrides and token bridging
-  const layerPreamble = '@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;\n';
-  const layerWrapped = `${layerPreamble}@layer picotol {\n${fullExpandedRaw}\n}`;
-  const layerExpandedRaw = transformStrict('picotol.layer.css', layerWrapped, false);
-  const layerMinRaw = transformStrict('picotol.layer.min.css', layerWrapped, true);
-  const layerExpanded = HEADER + layerExpandedRaw;
-  const layerMin = HEADER + layerMinRaw;
+  // Opt-in layered distribution build: in v0.6.0, dist/picotol.layer.css and dist/picotol.css
+  // emit identical @layer picotol.* output per ADR 0001 Decision #1.
+  // The @kidthales/picotol/layer package export is retained so existing
+  // @import "@kidthales/picotol/layer" statements continue to resolve cleanly without double-nesting.
+  const layerExpanded = fullExpanded;
+  const layerMin = fullMin;
 
   writeFileSync(join(targetDist, 'picotol.core.css'), coreExpanded, 'utf8');
   writeFileSync(join(targetDist, 'picotol.core.min.css'), coreMin, 'utf8');

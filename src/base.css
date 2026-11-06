@@ -1,4 +1,4 @@
-@layer reset {
+@layer picotol.reset {
   *, ::before, ::after { box-sizing: border-box; }
 
   body {
@@ -15,7 +15,7 @@
   :where([hidden]:not([hidden="until-found" i])) { display: none !important; }
 }
 
-@layer base {
+@layer picotol.base {
   :root, :host, :where([data-theme]) {
     background: var(--pt-bg);
     color: var(--pt-color);
@@ -59,7 +59,7 @@
   }
 }
 
-@layer utilities {
+@layer picotol.utilities {
   .skip-to-content:is(:focus, :focus-visible) {
     position: fixed;
     top: 0.5rem;

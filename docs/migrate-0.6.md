@@ -37,6 +37,31 @@ All internal cascade layers are now namespaced under `picotol.*` across `dist/pi
 - If your stylesheet references un-namespaced `@layer tokens`, `@layer reset`, `@layer base`, `@layer components`, or `@layer utilities` to hook into Picotol, update those references to `@layer picotol.tokens`, `@layer picotol.reset`, `@layer picotol.base`, `@layer picotol.components`, or `@layer picotol.utilities`.
 - If you order the entire framework at the parent layer level (`@layer reset, picotol, app;`), both `@import "@kidthales/picotol"` and `@import "@kidthales/picotol/layer"` now group all `picotol.*` sublayers under `picotol` automatically.
 
+### Tailwind CSS Coexistence
+
+Because `@kidthales/picotol` v0.6.0 namespaces all internal layers under `picotol.*`, it coexists cleanly alongside Tailwind CSS without layer name collisions (`base`, `components`, `utilities`).
+
+Declare your application layer precedence upfront so Tailwind utilities override Picotol rules without `!important`:
+
+```css
+/* Declare layer precedence upfront (Tailwind utilities defeat Picotol) */
+@layer picotol, tailwind-utilities;
+
+/* Picotol provides accessible semantic HTML baseline & Paul Tol tokens */
+@import "@kidthales/picotol";
+
+/* Tailwind utilities defeat Picotol rules */
+@import "tailwindcss/utilities";
+```
+
+When integrating with Tailwind's standard layer taxonomy (`base`, `components`, `utilities`):
+
+```css
+@layer picotol, components, utilities;
+@import "@kidthales/picotol";
+@import "tailwindcss";
+```
+
 ---
 
 ## 2. Class-Gated Callouts & Badges (`@layer picotol.legacy`)

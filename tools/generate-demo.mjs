@@ -246,7 +246,7 @@ export function generateDemoHtml(fullMinCss, stats) {
           <main>
             <p><strong>${stats.layerMinBytes} bytes</strong> (${(stats.layerMinBytes / 1024).toFixed(2)} KB minified · <strong>${stats.layerGzipBytes} B</strong> gzip)</p>
           </main>
-          <footer><small>Wrapped in <code>@layer picotol { ... }</code> for cascade containment</small></footer>
+          <footer><small>Namespaced in <code>@layer picotol.*</code> for cascade containment</small></footer>
         </article>
       </div>
       <aside>
