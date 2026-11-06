@@ -243,7 +243,7 @@ describe("WCAG 2.2 Contrast Verification", () => {
     const tokens = getPicotolTokens();
 
     assert.ok(
-      compCss.includes(':where(.badge, [role="status"], .pt-badge, .pt-indicator)') &&
+      compCss.includes(':where(.badge, .pt-badge, .pt-indicator)') &&
       compCss.includes("color: var(--pt-color)"),
       "src/components.css must establish color: var(--pt-color) on baseline status badges and indicators"
     );

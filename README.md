@@ -125,7 +125,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-WQ9gHi4TlAsbSbZK+j+Uorg1H0mlwPlzT1WowvAIN0a+C6CNDXtcZTrPQjiUvrby" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-vK6+aQ5wHmQ5XFfZECq9CORe5eOUUs/6bd86qK+EqqOAYyEE9eCxvH5+wfqNCXPW" crossorigin="anonymous" />
 ```
 
 ---
@@ -167,7 +167,7 @@ import "@kidthales/picotol/palettes";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-WQ9gHi4TlAsbSbZK+j+Uorg1H0mlwPlzT1WowvAIN0a+C6CNDXtcZTrPQjiUvrby" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-vK6+aQ5wHmQ5XFfZECq9CORe5eOUUs/6bd86qK+EqqOAYyEE9eCxvH5+wfqNCXPW" crossorigin="anonymous" />
     <title>Semantic HTML with Paul Tol Colors</title>
   </head>
   <body>
@@ -245,11 +245,12 @@ No JavaScript runtime, polyfills, or build steps are required downstream. Browse
 ## Architecture & Cascade Layers
 
 ```css
-@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
+@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
 ```
 
 | Layer | Source Files | Responsibility |
 | :--- | :--- | :--- |
+| `picotol.legacy` | [`src/components.css`](src/components.css) | Deprecated bare semantic selectors (`aside:not(nav *)`, `[role="alert"]`, `[role="status"]`) scheduled for removal in v0.7.0 |
 | `picotol.tokens` | [`src/tokens.css`](src/tokens.css), [`src/palettes.css`](src/palettes.css) | Auto-generated canonical `--tol-*` scheme constants, `--pt-*` semantic tokens, `[data-theme]` & `[data-accent]` ladders |
 | `picotol.reset` | [`src/base.css`](src/base.css) | Modern box-sizing reset, `body` zero-margin and flex column root, button font normalization, `[hidden]` display reset |
 | `picotol.base` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/forms.css`](src/forms.css), [`src/nav.css`](src/nav.css) | Document defaults, `:focus-visible`, `[tabindex="-1"]` guard, `@media print`, typography/content hierarchy, form controls, semantic landmarks, `.container` |
@@ -298,10 +299,10 @@ Declare layer order upfront in your root stylesheet or HTML document to control 
 
 Starting in `v0.6.0`, all Picotol distribution bundles (`dist/picotol.css`, `dist/picotol.min.css`, `dist/picotol.core.css`, `dist/picotol.layer.css`, and `dist/picotol.layer.min.css`) natively namespace their internal rules under `picotol.*`. The bundle [`dist/picotol.layer.min.css`](dist/picotol.layer.min.css) is retained as an identical alias of `dist/picotol.min.css` for backward-compatible package imports (`@import "@kidthales/picotol/layer"`) without double-nesting (`picotol.picotol.*`).
 
-Every bundle declares its 5-tier nested sublayer hierarchy upfront:
+Every bundle declares its 6-tier nested sublayer hierarchy upfront:
 
 ```css
-@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
+@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
 ```
 
 ##### Granular Sublayer Extension (`@layer picotol.*`)
@@ -354,7 +355,7 @@ Downstream consumers can hook directly into specific sublayers without battling 
 <style>
   @layer picotol, app-theme, app-components, app-utilities;
 </style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-WQ9gHi4TlAsbSbZK+j+Uorg1H0mlwPlzT1WowvAIN0a+C6CNDXtcZTrPQjiUvrby" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-vK6+aQ5wHmQ5XFfZECq9CORe5eOUUs/6bd86qK+EqqOAYyEE9eCxvH5+wfqNCXPW" crossorigin="anonymous" />
 <link rel="stylesheet" href="/css/theme.css" layer="app-theme" />
 <link rel="stylesheet" href="/css/components.css" layer="app-components" />
 <link rel="stylesheet" href="/css/utilities.css" layer="app-utilities" />
@@ -586,16 +587,18 @@ Apply `.skeleton` or `[aria-busy="true"].skeleton` to preserve layout dimensions
 
 ### 4. Semantic Callouts & Status Badges
 
+Callouts and status badges require explicit classes (`.pt-callout`, `.pt-badge`, `.pt-indicator`):
+
 ```html
-<!-- Info, Success, Danger Callouts -->
-<aside><p>System update completed.</p></aside>
-<aside class="success"><p>All checks passed.</p></aside>
-<aside role="alert"><p>Authentication timeout.</p></aside>
+<!-- Callout Banners -->
+<aside class="pt-callout"><p>System update completed.</p></aside>
+<aside class="pt-callout pt-callout-ok"><p>All checks passed.</p></aside>
+<div class="pt-callout pt-callout-critical" role="alert"><p>Authentication timeout.</p></div>
 
 <!-- Status Badges -->
-<span class="badge">Draft</span>
-<span class="badge valid">Healthy</span>
-<span class="badge invalid">Error</span>
+<span class="pt-badge">Draft</span>
+<span class="pt-badge" data-status="ok">Healthy</span>
+<span class="pt-badge" data-status="critical">Error</span>
 ```
 
 ### 4a. Calibrated Semantic Status Tokens

@@ -75,8 +75,8 @@ export function buildAll(opts = {}) {
   const coreEntry = join(root, 'src', 'picotol.core.css');
   const fullEntry = join(root, 'src', 'picotol.css');
 
-  const LAYER_PREAMBLE = '@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;\n';
-  const LAYER_PREAMBLE_MIN = '@layer picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;';
+  const LAYER_PREAMBLE = '@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;\n';
+  const LAYER_PREAMBLE_MIN = '@layer picotol.legacy,picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;';
 
   const coreExpandedRaw = bundleStrict(coreEntry, false);
   const coreMinRaw = bundleStrict(coreEntry, true);

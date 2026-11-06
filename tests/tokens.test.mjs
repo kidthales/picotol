@@ -913,8 +913,8 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     const compCss = getSrcComponentsCss();
     const readme = getReadme();
 
-    const expectedPreamble = "@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;";
-    const expectedMinPreamble = "@layer picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;";
+    const expectedPreamble = "@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;";
+    const expectedMinPreamble = "@layer picotol.legacy,picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;";
 
     assert.ok(
       layerCss.includes(expectedPreamble),
@@ -926,11 +926,11 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     );
 
     assert.ok(
-      tokensCss.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
-      "src/tokens.css must declare 5-tier layer ordering"
+      tokensCss.includes("@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
+      "src/tokens.css must declare layer ordering"
     );
     let fullIdx = -1;
-    for (const l of ["picotol.tokens", "picotol.reset", "picotol.base", "picotol.components", "picotol.utilities"]) {
+    for (const l of ["picotol.legacy", "picotol.tokens", "picotol.reset", "picotol.base", "picotol.components", "picotol.utilities"]) {
       const idx = fullCss.indexOf(`@layer ${l}`);
       assert.ok(idx > fullIdx, `dist/picotol.css must preserve @layer ${l} in sequential cascade order`);
       fullIdx = idx;
@@ -943,7 +943,7 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     }
 
     let layerIdx = -1;
-    for (const l of ["picotol.tokens", "picotol.reset", "picotol.base", "picotol.components", "picotol.utilities"]) {
+    for (const l of ["picotol.legacy", "picotol.tokens", "picotol.reset", "picotol.base", "picotol.components", "picotol.utilities"]) {
       const idx = layerCss.indexOf(`@layer ${l}`);
       assert.ok(idx > layerIdx, `dist/picotol.layer.css must preserve @layer ${l} in sequential cascade order`);
       layerIdx = idx;
@@ -958,7 +958,7 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
       "dist/picotol.layer.css",
       "dist/picotol.layer.min.css",
     ];
-    const unnamespacedLayerRegex = /@layer\s+(?:tokens|reset|base|components|utilities)[\s,{]/;
+    const unnamespacedLayerRegex = /@layer\s+(?:legacy|tokens|reset|base|components|utilities)[\s,{]/;
     for (const file of distFiles) {
       const content = fs.readFileSync(path.join(ROOT, file), "utf8");
       assert.ok(
@@ -972,6 +972,7 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     assert.ok(baseCss.includes("@layer picotol.utilities {"), "src/base.css must define @layer picotol.utilities");
     assert.ok(layoutCss.includes("@layer picotol.base {"), "src/layout.css must define @layer picotol.base");
     assert.ok(layoutCss.includes("@layer picotol.utilities {"), "src/layout.css must define @layer picotol.utilities");
+    assert.ok(compCss.includes("@layer picotol.legacy {"), "src/components.css must define @layer picotol.legacy");
     assert.ok(compCss.includes("@layer picotol.components {"), "src/components.css must define @layer picotol.components");
 
     const downstreamSnippet = `
@@ -1012,8 +1013,8 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     );
 
     assert.ok(
-      readme.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
-      "README must document 5-tier architecture layer declaration"
+      readme.includes("@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
+      "README must document layer declaration preamble"
     );
     const defaultLightPrimary = getPicotolTokens().getToken("--pt-primary", "light", "blue");
     assert.ok(
