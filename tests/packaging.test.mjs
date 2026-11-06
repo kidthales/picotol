@@ -461,12 +461,17 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
     );
   });
 
-  test("Opt-in Layered Distribution Build: picotol.layer.min.css wraps framework bundle in @layer picotol without syntax errors", () => {
+  test("Opt-in Layered Distribution Build: picotol.layer.min.css emits identical output to picotol.min.css namespaced under picotol.* without un-namespaced layers", () => {
     const layerCss = getLayerCss();
     const layerMinCss = getLayerMinCss();
+    const fullCss = getDistCss();
+    const fullMinCss = getDistMinCss();
 
     assert.ok(layerCss.startsWith("/*!"), "Expanded layered build must retain license header");
     assert.ok(layerMinCss.startsWith("/*!"), "Minified layered build must retain license header");
+
+    assert.equal(layerCss, fullCss, "dist/picotol.layer.css must emit identical output to dist/picotol.css per ADR 0001");
+    assert.equal(layerMinCss, fullMinCss, "dist/picotol.layer.min.css must emit identical output to dist/picotol.min.css per ADR 0001");
 
     assert.ok(
       layerCss.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
@@ -477,22 +482,23 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
       "dist/picotol.layer.min.css must export nested layer definitions preamble"
     );
 
-    assert.ok(
-      layerCss.includes("@layer picotol {"),
-      "dist/picotol.layer.css must wrap contents in @layer picotol"
-    );
-    assert.ok(
-      layerMinCss.includes("@layer picotol{"),
-      "dist/picotol.layer.min.css must contain @layer picotol"
-    );
-
     const layers = ["tokens", "reset", "base", "components", "utilities"];
     for (const layer of layers) {
       assert.ok(
-        layerMinCss.includes(`@layer ${layer}{`),
-        `Layered minified build must retain inner @layer ${layer}`
+        layerMinCss.includes(`@layer picotol.${layer}{`),
+        `Layered minified build must retain inner @layer picotol.${layer}`
       );
     }
+
+    const unnamespacedRegex = /@layer\s+(?:tokens|reset|base|components|utilities)[\s,{]/;
+    assert.ok(
+      !unnamespacedRegex.test(layerCss),
+      "dist/picotol.layer.css must contain no un-namespaced @layer declarations"
+    );
+    assert.ok(
+      !unnamespacedRegex.test(layerMinCss),
+      "dist/picotol.layer.min.css must contain no un-namespaced @layer declarations"
+    );
   });
 
   test("Two-Tier Isolation: Core bundle strictly excludes extended components", () => {

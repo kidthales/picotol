@@ -1,4 +1,4 @@
-@layer components {
+@layer picotol.components {
   /* 1. Card (<article>, .card) */
   :where(article, .card) {
     display: flex;

@@ -48,7 +48,7 @@
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
   - **`dist/picotol.core.min.css`** (<= 14.0 KB minified, <= 4.5 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
   - **`dist/picotol.min.css`** (<= 40.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.pt-dot`, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-meter` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
-  - **`dist/picotol.layer.min.css`** (<= 40.0 KB minified, <= 9.0 KB gzip): Full framework wrapped in `@layer picotol { ... }` for host applications using CSS cascade layers.
+  - **`dist/picotol.layer.min.css`** (<= 40.0 KB minified, <= 9.0 KB gzip): Full framework namespaced under `@layer picotol.*` for host applications using CSS cascade layers (retained alias of `picotol.min.css`).
 
 ---
 
@@ -125,7 +125,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-o4vcyaGHZHbXWpVzVTkf+qHpxjUr9OYQBNsh4oeqfMr9Ua8dbn5ruX3ZfYkoQUXc" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-WQ9gHi4TlAsbSbZK+j+Uorg1H0mlwPlzT1WowvAIN0a+C6CNDXtcZTrPQjiUvrby" crossorigin="anonymous" />
 ```
 
 ---
@@ -167,7 +167,7 @@ import "@kidthales/picotol/palettes";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-o4vcyaGHZHbXWpVzVTkf+qHpxjUr9OYQBNsh4oeqfMr9Ua8dbn5ruX3ZfYkoQUXc" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-WQ9gHi4TlAsbSbZK+j+Uorg1H0mlwPlzT1WowvAIN0a+C6CNDXtcZTrPQjiUvrby" crossorigin="anonymous" />
     <title>Semantic HTML with Paul Tol Colors</title>
   </head>
   <body>
@@ -245,16 +245,16 @@ No JavaScript runtime, polyfills, or build steps are required downstream. Browse
 ## Architecture & Cascade Layers
 
 ```css
-@layer tokens, reset, base, components, utilities;
+@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
 ```
 
 | Layer | Source Files | Responsibility |
 | :--- | :--- | :--- |
-| `tokens` | [`src/tokens.css`](src/tokens.css), [`src/palettes.css`](src/palettes.css) | Auto-generated canonical `--tol-*` scheme constants, `--pt-*` semantic tokens, `[data-theme]` & `[data-accent]` ladders |
-| `reset` | [`src/base.css`](src/base.css) | Modern box-sizing reset, `body` zero-margin and flex column root, button font normalization, `[hidden]` display reset |
-| `base` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/forms.css`](src/forms.css), [`src/nav.css`](src/nav.css) | Document defaults, `:focus-visible`, `[tabindex="-1"]` guard, `@media print`, typography/content hierarchy, form controls, semantic landmarks, `.container` |
-| `components` | [`src/components.css`](src/components.css) | Extended semantic components (`<article>` card, `<details>` accordion/dropdown, `<dialog>` modal, `.pt-badge`, `.pt-callout`, `progress`, `.pt-meter`, segmented controls, tooltips) |
-| `utilities` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/utilities.css`](src/utilities.css) | Standalone utility classes and layout helpers (`.skip-to-content`, `.sr-only`, `.visually-hidden`, `.grid`, `.flex`, `.overflow-auto`, `.table-container`, `.mb-0`, `.pt-tabular`, `.pt-tabular--align-end`, `.tabular-nums`) |
+| `picotol.tokens` | [`src/tokens.css`](src/tokens.css), [`src/palettes.css`](src/palettes.css) | Auto-generated canonical `--tol-*` scheme constants, `--pt-*` semantic tokens, `[data-theme]` & `[data-accent]` ladders |
+| `picotol.reset` | [`src/base.css`](src/base.css) | Modern box-sizing reset, `body` zero-margin and flex column root, button font normalization, `[hidden]` display reset |
+| `picotol.base` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/forms.css`](src/forms.css), [`src/nav.css`](src/nav.css) | Document defaults, `:focus-visible`, `[tabindex="-1"]` guard, `@media print`, typography/content hierarchy, form controls, semantic landmarks, `.container` |
+| `picotol.components` | [`src/components.css`](src/components.css) | Extended semantic components (`<article>` card, `<details>` accordion/dropdown, `<dialog>` modal, `.pt-badge`, `.pt-callout`, `progress`, `.pt-meter`, segmented controls, tooltips) |
+| `picotol.utilities` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/utilities.css`](src/utilities.css) | Standalone utility classes and layout helpers (`.skip-to-content`, `.sr-only`, `.visually-hidden`, `.grid`, `.flex`, `.overflow-auto`, `.table-container`, `.mb-0`, `.pt-tabular`, `.pt-tabular--align-end`, `.tabular-nums`) |
 
 ---
 
@@ -294,9 +294,11 @@ Declare layer order upfront in your root stylesheet or HTML document to control 
 2. **Unlayered Styles Win Over All Layers**: Per the W3C CSS Cascading and Inheritance Level 5 specification, normal unlayered styles defeat *all* layered styles regardless of specificity.
 3. **The Unlayered Specificity Trap**: Leaving host rules unlayered can unintentionally override layered components. Wrapping downstream styles in explicit layers guarantees predictable overrides. *(Note: `!important` declarations invert this layer priority, making earlier layers win).*
 
-#### Integration Patterns: `dist/picotol.layer.min.css`
+#### Integration Patterns & Sublayer Hierarchy
 
-The opt-in bundle [`dist/picotol.layer.min.css`](dist/picotol.layer.min.css) is pre-wrapped in `@layer picotol { ... }` and explicitly declares and exports its 5-tier nested sublayer hierarchy upfront:
+Starting in `v0.6.0`, all Picotol distribution bundles (`dist/picotol.css`, `dist/picotol.min.css`, `dist/picotol.core.css`, `dist/picotol.layer.css`, and `dist/picotol.layer.min.css`) natively namespace their internal rules under `picotol.*`. The bundle [`dist/picotol.layer.min.css`](dist/picotol.layer.min.css) is retained as an identical alias of `dist/picotol.min.css` for backward-compatible package imports (`@import "@kidthales/picotol/layer"`) without double-nesting (`picotol.picotol.*`).
+
+Every bundle declares its 5-tier nested sublayer hierarchy upfront:
 
 ```css
 @layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
@@ -352,10 +354,36 @@ Downstream consumers can hook directly into specific sublayers without battling 
 <style>
   @layer picotol, app-theme, app-components, app-utilities;
 </style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-y7KIhSrvSGKobcL6UNQ9GoNQRnVyD0k7s5l3Ud6Zb/ycUj/I4nHI16Ox4n8G+N0E" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-WQ9gHi4TlAsbSbZK+j+Uorg1H0mlwPlzT1WowvAIN0a+C6CNDXtcZTrPQjiUvrby" crossorigin="anonymous" />
 <link rel="stylesheet" href="/css/theme.css" layer="app-theme" />
 <link rel="stylesheet" href="/css/components.css" layer="app-components" />
 <link rel="stylesheet" href="/css/utilities.css" layer="app-utilities" />
+```
+
+#### Tailwind CSS Coexistence
+
+Because `@kidthales/picotol` v0.6.0 namespaces all internal layers under `picotol.*`, it coexists cleanly alongside [Tailwind CSS](https://tailwindcss.com/) without layer name collisions (`base`, `components`, `utilities`).
+
+Declare your application layer precedence upfront to allow Tailwind utilities to cleanly override Picotol semantic styles without specificity escalation or `!important`:
+
+```css
+/* 1. Define explicit layer ordering (Tailwind utilities win over Picotol) */
+@layer picotol, tailwind-utilities;
+
+/* 2. Import Picotol for accessible semantic HTML baseline & Paul Tol tokens */
+@import "@kidthales/picotol";
+
+/* 3. Import Tailwind utilities */
+@import "tailwindcss/utilities";
+```
+
+When integrating with Tailwind's standard layer taxonomy (`base`, `components`, `utilities`), Picotol's `picotol.*` namespace prevents collisions:
+
+```css
+/* Interleave Tailwind and Picotol layers */
+@layer picotol, components, utilities;
+@import "@kidthales/picotol";
+@import "tailwindcss";
 ```
 
 ### Canonical 4-Layer Cascade Architecture

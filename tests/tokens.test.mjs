@@ -529,8 +529,8 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     const layers = ["tokens", "reset", "base", "components", "utilities"];
     let lastIdx = -1;
     for (const layer of layers) {
-      const idx = fullCss.indexOf(`@layer ${layer}`);
-      assert.ok(idx > lastIdx, `Expected @layer ${layer} in order inside dist/picotol.css`);
+      const idx = fullCss.indexOf(`@layer picotol.${layer}`);
+      assert.ok(idx > lastIdx, `Expected @layer picotol.${layer} in order inside dist/picotol.css`);
       lastIdx = idx;
     }
 
@@ -926,41 +926,53 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     );
 
     assert.ok(
-      tokensCss.includes("@layer tokens, reset, base, components, utilities;"),
+      tokensCss.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
       "src/tokens.css must declare 5-tier layer ordering"
     );
     let fullIdx = -1;
-    for (const l of ["tokens", "reset", "base", "components", "utilities"]) {
+    for (const l of ["picotol.tokens", "picotol.reset", "picotol.base", "picotol.components", "picotol.utilities"]) {
       const idx = fullCss.indexOf(`@layer ${l}`);
       assert.ok(idx > fullIdx, `dist/picotol.css must preserve @layer ${l} in sequential cascade order`);
       fullIdx = idx;
     }
     let coreIdx = -1;
-    for (const l of ["tokens", "reset", "base", "utilities"]) {
+    for (const l of ["picotol.tokens", "picotol.reset", "picotol.base", "picotol.utilities"]) {
       const idx = coreCss.indexOf(`@layer ${l}`);
       assert.ok(idx > coreIdx, `dist/picotol.core.css must preserve @layer ${l} in sequential cascade order`);
       coreIdx = idx;
     }
 
-    const sublayers = ["tokens", "reset", "base", "components", "utilities"];
-    let prevIdx = layerCss.indexOf("@layer picotol {");
-    assert.ok(prevIdx !== -1, "dist/picotol.layer.css must contain @layer picotol");
-
-    for (const layer of sublayers) {
-      const idx = layerCss.indexOf(`@layer ${layer} {`, prevIdx);
-      assert.ok(
-        idx > prevIdx,
-        `Expected inner sublayer @layer ${layer} in order inside dist/picotol.layer.css`
-      );
-      prevIdx = idx;
+    let layerIdx = -1;
+    for (const l of ["picotol.tokens", "picotol.reset", "picotol.base", "picotol.components", "picotol.utilities"]) {
+      const idx = layerCss.indexOf(`@layer ${l}`);
+      assert.ok(idx > layerIdx, `dist/picotol.layer.css must preserve @layer ${l} in sequential cascade order`);
+      layerIdx = idx;
     }
 
-    assert.ok(baseCss.includes("@layer reset {"), "src/base.css must define @layer reset");
-    assert.ok(baseCss.includes("@layer base {"), "src/base.css must define @layer base");
-    assert.ok(baseCss.includes("@layer utilities {"), "src/base.css must define @layer utilities");
-    assert.ok(layoutCss.includes("@layer base {"), "src/layout.css must define @layer base");
-    assert.ok(layoutCss.includes("@layer utilities {"), "src/layout.css must define @layer utilities");
-    assert.ok(compCss.includes("@layer components {"), "src/components.css must define @layer components");
+    // Verify all 6 dist files contain zero un-namespaced @layer declarations
+    const distFiles = [
+      "dist/picotol.css",
+      "dist/picotol.min.css",
+      "dist/picotol.core.css",
+      "dist/picotol.core.min.css",
+      "dist/picotol.layer.css",
+      "dist/picotol.layer.min.css",
+    ];
+    const unnamespacedLayerRegex = /@layer\s+(?:tokens|reset|base|components|utilities)[\s,{]/;
+    for (const file of distFiles) {
+      const content = fs.readFileSync(path.join(ROOT, file), "utf8");
+      assert.ok(
+        !unnamespacedLayerRegex.test(content),
+        `${file} must not contain un-namespaced @layer declarations`
+      );
+    }
+
+    assert.ok(baseCss.includes("@layer picotol.reset {"), "src/base.css must define @layer picotol.reset");
+    assert.ok(baseCss.includes("@layer picotol.base {"), "src/base.css must define @layer picotol.base");
+    assert.ok(baseCss.includes("@layer picotol.utilities {"), "src/base.css must define @layer picotol.utilities");
+    assert.ok(layoutCss.includes("@layer picotol.base {"), "src/layout.css must define @layer picotol.base");
+    assert.ok(layoutCss.includes("@layer picotol.utilities {"), "src/layout.css must define @layer picotol.utilities");
+    assert.ok(compCss.includes("@layer picotol.components {"), "src/components.css must define @layer picotol.components");
 
     const downstreamSnippet = `
       @layer picotol.tokens, my-theme, picotol.reset, picotol.base, picotol.components, my-components, picotol.utilities;
@@ -984,28 +996,24 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
       "LightningCSS must cleanly transform and retain downstream @layer picotol.* references"
     );
 
-    const utilitiesIdx = layerCss.indexOf("@layer utilities {");
-    assert.ok(utilitiesIdx !== -1, "@layer utilities must be defined in dist/picotol.layer.css");
+    const utilitiesIdx = layerCss.indexOf("@layer picotol.utilities {");
+    assert.ok(utilitiesIdx !== -1, "@layer picotol.utilities must be defined in dist/picotol.layer.css");
     assert.ok(
       layerCss.indexOf(".skip-to-content:is(:focus, :focus-visible)", utilitiesIdx) !== -1,
-      ".skip-to-content focus rule must compile inside @layer utilities"
+      ".skip-to-content focus rule must compile inside @layer picotol.utilities"
     );
     assert.ok(
       layerCss.indexOf(".sr-only", utilitiesIdx) !== -1,
-      ".sr-only utility must compile inside @layer utilities"
+      ".sr-only utility must compile inside @layer picotol.utilities"
     );
     assert.ok(
       layerCss.indexOf(".table-container", utilitiesIdx) !== -1,
-      ".table-container utility must compile inside @layer utilities"
+      ".table-container utility must compile inside @layer picotol.utilities"
     );
 
     assert.ok(
-      readme.includes("@layer tokens, reset, base, components, utilities;"),
-      "README must document 5-tier architecture layer declaration"
-    );
-    assert.ok(
       readme.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
-      "README must document nested @layer taxonomy declaration"
+      "README must document 5-tier architecture layer declaration"
     );
     const defaultLightPrimary = getPicotolTokens().getToken("--pt-primary", "light", "blue");
     assert.ok(

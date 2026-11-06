@@ -1,4 +1,4 @@
-@layer utilities {
+@layer picotol.utilities {
   :where(.pt-tabular--align-end) {
     text-align: end;
     justify-content: flex-end;
