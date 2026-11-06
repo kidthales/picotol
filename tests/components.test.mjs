@@ -1022,10 +1022,14 @@ describe("Meters, Gauges, and Range Markers", () => {
 
   // 4. Status color modifiers
   assert.ok(
-    fullCss.includes(".pt-progress-success") &&
+    fullCss.includes(".pt-progress-ok") &&
     fullCss.includes(".pt-progress-warning") &&
-    fullCss.includes(".pt-progress-danger"),
+    fullCss.includes(".pt-progress-critical"),
     "Full bundle must provide Paul Tol status modifiers for progress & gauge components"
+  );
+  assert.ok(
+    !fullCss.includes(".pt-progress-success") && !fullCss.includes(".pt-progress-danger"),
+    "Full bundle must not contain deprecated .pt-progress-success or .pt-progress-danger aliases"
   );
 
   // 5. Two-Tier Isolation: core bundle excludes progress and meter primitives
@@ -1043,7 +1047,7 @@ describe("Meters, Gauges, and Range Markers", () => {
     "Demo HTML must showcase gauge marker pins"
   );
   assert.ok(
-    demoHtml.includes("pt-progress-success") && demoHtml.includes("pt-progress-warning"),
+    demoHtml.includes("pt-progress-ok") && demoHtml.includes("pt-progress-warning"),
     "Demo HTML must showcase status modifiers"
   );
 });
@@ -2113,7 +2117,7 @@ describe("Dialogs, Modals, Drawers, and Toasts", () => {
   );
   assert.match(
     demoJs,
-    /function showToast\(msg\)\s*\{\s*if\s*\(!toast\)\s*return;\s*toast\.classList\.add\('(?:pt-)?show'\);\s*toast\.textContent\s*=\s*msg;/,
+    /function showToast\(msg\)\s*\{\s*if\s*\(!toast\)\s*return;\s*toast\.classList\.add\('pt-show'\);\s*toast\.textContent\s*=\s*msg;/,
     "Demo showToast() must add .pt-show before setting textContent"
   );
   assert.match(changelog, /### Deprecated[\s\S]*?\[aria-hidden="false"\][\s\S]*?v0\.7\.0/, "CHANGELOG must include a ### Deprecated entry for [aria-hidden=\"false\"] removal in v0.7.0");

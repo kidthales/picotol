@@ -320,7 +320,7 @@ ${rowsHtml}
 
     <section id="typography">
       <h2>3. Typography &amp; Inline Semantics</h2>
-      <p class="pt-measure">Body copy uses the system font stack with fluid root sizing via <code>clamp(100%, 95% + 0.4vw, 125%)</code> and an opt-in <code>75ch</code> reading measure via <code>:where(.measure, .prose)</code>. Links like <a href="#typography">primary link</a>, <a href="#typography" class="pt-secondary">secondary link</a>, <a href="#typography" class="pt-contrast">contrast link</a>, and <a href="https://github.com/kidthales/tol-palettes" target="_blank" rel="noopener noreferrer">external link<span class="pt-sr-only"> (opens in a new tab)</span></a> step along Paul Tol's qualitative lightness ladder on hover.</p>
+      <p class="pt-measure">Body copy uses the system font stack with fluid root sizing via <code>clamp(100%, 95% + 0.4vw, 125%)</code> and an opt-in <code>75ch</code> reading measure via <code>:where(.pt-measure, .pt-prose)</code>. Links like <a href="#typography">primary link</a>, <a href="#typography" class="pt-secondary">secondary link</a>, <a href="#typography" class="pt-contrast">contrast link</a>, and <a href="https://github.com/kidthales/tol-palettes" target="_blank" rel="noopener noreferrer">external link<span class="pt-sr-only"> (opens in a new tab)</span></a> step along Paul Tol's qualitative lightness ladder on hover.</p>
       <p>Inline elements include <strong>strong</strong>, <em>emphasis</em>, <mark>highlighted mark</mark>, <ins>inserted text</ins>, <del>deleted text</del>, <code>inline code</code>, <kbd>Ctrl + K</kbd>, and <abbr title="Paul Tol Colour Schemes">PTCS</abbr> (<span data-tooltip="Pure CSS tooltip via [data-tooltip]" aria-label="hover or focus for tooltip: Pure CSS tooltip via [data-tooltip]" tabindex="0">hover or focus for tooltip</span>).</p>
       <blockquote>
         "The contrast ratio between each colour in the dark scheme and white is at least 4.5 for people with moderately low vision."
@@ -368,14 +368,14 @@ ${rowsHtml}
         <button type="button" class="pt-outline">Paste</button>
         <button type="button" class="pt-secondary">Format</button>
       </div>
-      <h3>Class Parity (.btn, .button) &amp; Compact Sizing (.small, .sm)</h3>
+      <h3>Button Classes (.pt-btn, .pt-button) &amp; Compact Sizing (.pt-small, .pt-sm)</h3>
       <p>
-        <a href="#buttons" class="pt-btn" role="button">Link as .btn</a>
-        <a href="#buttons" class="pt-button pt-secondary" role="button">Link as .button</a>
-        <button type="button" class="pt-btn pt-small">Compact .btn.small</button>
-        <button type="button" class="pt-outline pt-sm">Compact Outline .sm</button>
+        <a href="#buttons" class="pt-btn" role="button">Link as .pt-btn</a>
+        <a href="#buttons" class="pt-button pt-secondary" role="button">Link as .pt-button</a>
+        <button type="button" class="pt-btn pt-small">Compact .pt-btn.pt-small</button>
+        <button type="button" class="pt-outline pt-sm">Compact Outline .pt-sm</button>
       </p>
-      <h3>Dedicated Square Icon Buttons (<code>.btn-icon</code>, <code>.icon-btn</code>)</h3>
+      <h3>Dedicated Square Icon Buttons (<code>.pt-btn-icon</code>, <code>.pt-icon-btn</code>)</h3>
       <p style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
         <button type="button" class="pt-btn-icon" aria-label="Search" title="Search">
           <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -458,7 +458,7 @@ ${rowsHtml}
           <input type="search" placeholder="Search color tokens..." aria-label="Search color tokens">
           <button type="submit">Search</button>
         </div>
-        <h3>Horizontal Form Row Alignment (.form-row, .inline-form)</h3>
+        <h3>Horizontal Form Row Alignment (.pt-form-row, .pt-inline-form)</h3>
         <div class="pt-form-row">
           <input type="email" placeholder="user@example.com" aria-label="Email address">
           <select aria-label="Role selection">
@@ -475,7 +475,7 @@ ${rowsHtml}
 
     <section id="tables">
       <h2>6. Semantic Data Tables &amp; Operational Monitor</h2>
-      <p>Data tables feature automatic tabular numeric alignment, alternating zebra stripes via <code>table.striped</code>, status dot indicators, and horizontal scrolling via responsive <code>figure:has(&gt; table)</code> and <code>.overflow-auto</code>.</p>
+      <p>Data tables feature automatic tabular numeric alignment, alternating zebra stripes via <code>table.pt-striped</code>, status dot indicators, and horizontal scrolling via responsive <code>figure:has(&gt; table)</code> and <code>.pt-overflow-auto</code>.</p>
       <figure>
         <figcaption>Cluster Infrastructure Node Fleet Status (Production US-East)</figcaption>
         <table class="pt-striped">
@@ -536,8 +536,8 @@ ${rowsHtml}
         </table>
       </figure>
 
-      <h3>Table Container Utility (<code>.overflow-auto</code> / <code>.table-container</code>)</h3>
-      <p>Multi-column wide tabular datasets wrapped in <code>.overflow-auto</code> or <code>.table-container</code> maintain localized horizontal scrolling without window blowouts:</p>
+      <h3>Table Container Utility (<code>.pt-overflow-auto</code> / <code>.pt-table-container</code>)</h3>
+      <p>Multi-column wide tabular datasets wrapped in <code>.pt-overflow-auto</code> or <code>.pt-table-container</code> maintain localized horizontal scrolling without window blowouts:</p>
       <div class="pt-overflow-auto pt-table-container">
         <table class="pt-striped">
           <thead>
@@ -682,7 +682,7 @@ ${rowsHtml}
           <button type="button" data-dialog-close="demo-sheet-left">Close</button>
         </div>
       </dialog>
-      <h3>Card Component Parity (&lt;article&gt; vs .card)</h3>
+      <h3>Card Component Parity (&lt;article&gt; vs .pt-card)</h3>
       <div class="pt-grid">
         <article>
           <header><strong>Native &lt;article&gt; Card</strong></header>
@@ -693,9 +693,9 @@ ${rowsHtml}
           <footer><small>Footer landmark (auto-docked)</small></footer>
         </article>
         <div class="pt-card">
-          <header><strong>Class Parity <code>.card</code></strong></header>
+          <header><strong>Component Class <code>.pt-card</code></strong></header>
           <div class="pt-card-body">
-            <p>Generic div or section styled with <code>.card</code> for ergonomic framework interoperability.</p>
+            <p>Generic div or section styled with <code>.pt-card</code> for ergonomic framework interoperability.</p>
           </div>
           <footer><small>Footer landmark (auto-docked)</small></footer>
         </div>
@@ -715,14 +715,14 @@ ${rowsHtml}
           <footer><small>Tokenized 0.5rem primitive with wash halo and forced-colors border</small></footer>
         </article>
         <article>
-          <header><strong>Status Dots (<code>.status-dot</code>)</strong></header>
+          <header><strong>Status Dots (<code>[data-status]</code>)</strong></header>
           <main>
-            <p><span class="pt-dot pt-dot--ok"></span><strong>Operational</strong> <code>.status-dot.success</code></p>
-            <p><span class="pt-dot pt-dot--warning"></span><strong>Warning</strong> <code>.status-dot.warning</code></p>
-            <p><span class="pt-dot pt-dot--critical"></span><strong>Critical</strong> <code>.status-dot.danger</code></p>
-            <p><span class="pt-dot pt-dot--info"></span><strong>Active</strong> <code>.status-dot.info</code></p>
-            <p><span class="pt-dot"></span><strong>Neutral</strong> <code>.status-dot.neutral</code></p>
-            <p><span class="pt-dot" data-status="idle"></span><strong>Idle</strong> <code>.status-dot.idle</code></p>
+            <p><span class="pt-dot pt-dot--ok"></span><strong>Operational</strong> <code>[data-status="ok"]</code></p>
+            <p><span class="pt-dot pt-dot--warning"></span><strong>Warning</strong> <code>[data-status="warning"]</code></p>
+            <p><span class="pt-dot pt-dot--critical"></span><strong>Critical</strong> <code>[data-status="critical"]</code></p>
+            <p><span class="pt-dot pt-dot--info"></span><strong>Active</strong> <code>[data-status="info"]</code></p>
+            <p><span class="pt-dot"></span><strong>Neutral</strong> <code>[data-status="neutral"]</code></p>
+            <p><span class="pt-dot" data-status="idle"></span><strong>Idle</strong> <code>[data-status="idle"]</code></p>
           </main>
           <footer><small>WCAG 2.2 §1.4.11 contrast compliant (&ge; 3:1) with forced-colors outline</small></footer>
         </article>
@@ -734,7 +734,7 @@ ${rowsHtml}
             <p><span class="pt-badge pt-invalid"><span class="pt-dot pt-dot--critical"></span> Node Offline</span></p>
             <p><span class="pt-badge pt-primary"><span class="pt-dot pt-dot--info"></span> Job Running</span></p>
             <p><span class="pt-badge"><span class="pt-dot" data-status="idle"></span> Service Idle</span></p>
-            <p style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;"><span class="pt-dot pt-no-margin pt-dot--ok" style="flex-shrink: 0;"></span><small style="white-space: nowrap;">Flex gap layout (<code>.no-margin</code> / <code>.m-0</code>)</small></p>
+            <p style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;"><span class="pt-dot pt-no-margin pt-dot--ok" style="flex-shrink: 0;"></span><small style="white-space: nowrap;">Flex gap layout (<code>.pt-no-margin</code> / <code>.pt-m-0</code>)</small></p>
           </main>
           <footer><small>Contextual inline spacing without margin compounding</small></footer>
         </article>
@@ -844,9 +844,9 @@ ${rowsHtml}
           <main>
             <p><small>Default accent, compact height, and accessible semantic modifiers.</small></p>
             <progress value="65" max="100"></progress>
-            <progress value="85" max="100" class="pt-progress-success"></progress>
+            <progress value="85" max="100" class="pt-progress-ok"></progress>
             <progress value="50" max="100" class="pt-progress-warning"></progress>
-            <progress value="92" max="100" class="pt-progress-danger"></progress>
+            <progress value="92" max="100" class="pt-progress-critical"></progress>
           </main>
           <footer><small>Native engine rendering via <code>--pt-progress-*</code> tokens</small></footer>
         </article>
@@ -857,7 +857,7 @@ ${rowsHtml}
             <div class="pt-progress" role="progressbar" aria-valuenow="72" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 72%;">
               <div class="pt-progress-fill"></div>
             </div>
-            <div class="pt-progress pt-progress-success" role="progressbar" aria-valuenow="94" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 94%;">
+            <div class="pt-progress pt-progress-ok" role="progressbar" aria-valuenow="94" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 94%;">
               <div class="pt-progress-fill"></div>
             </div>
             <div class="pt-progress pt-progress-warning" role="progressbar" aria-valuenow="48" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 48%;">
@@ -880,9 +880,9 @@ ${rowsHtml}
               </div>
             </div>
             <div class="pt-meter" style="margin-top: 1.5rem;">
-              <div class="pt-progress pt-progress-danger" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 92%;">
+              <div class="pt-progress pt-progress-critical" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 92%;">
                 <div class="pt-progress-fill pt-meter-fill"></div>
-                <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><span class="pt-gauge-label">70% Warn</span></div>
+                <div class="pt-gauge-marker pt-progress-warning" style="--pt-marker-pos: 70%;"><span class="pt-gauge-label">70% Warn</span></div>
                 <div class="pt-meter-mark pt-critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
               </div>
             </div>
@@ -923,19 +923,19 @@ ${rowsHtml}
           <header><strong>Status Triad Badges (<code>.pt-badge</code>)</strong></header>
           <main>
             <p><span class="pt-badge" data-status="ok"><span class="pt-dot pt-dot--ok"></span> Operational</span> <code>[data-status="ok"]</code></p>
-            <p><span class="pt-badge pt-warning"><span class="pt-dot pt-dot--warning"></span> Degraded</span> <code>.warning</code></p>
-            <p><span class="pt-badge pt-critical"><span class="pt-dot pt-dot--critical"></span> Outage</span> <code>.critical</code></p>
-            <p><span class="pt-badge pt-info"><span class="pt-dot pt-dot--info"></span> Rebalancing</span> <code>.info</code></p>
+            <p><span class="pt-badge pt-warning"><span class="pt-dot pt-dot--warning"></span> Degraded</span> <code>.pt-warning</code></p>
+            <p><span class="pt-badge pt-critical"><span class="pt-dot pt-dot--critical"></span> Outage</span> <code>.pt-critical</code></p>
+            <p><span class="pt-badge pt-info"><span class="pt-dot pt-dot--info"></span> Rebalancing</span> <code>.pt-info</code></p>
           </main>
           <footer><small>Natively bound to <code>--pt-status-*-{fg,bg,border}</code></small></footer>
         </article>
         <article class="pt-card">
           <header><strong>Status Indicators &amp; Semantic Chips (<code>.pt-indicator</code> / <code>.pt-chip</code>)</strong></header>
           <main>
-            <p><span class="pt-indicator pt-ok">Online</span> <span class="pt-chip pt-ok">v0.5.0</span> <code>.ok</code></p>
-            <p><span class="pt-indicator pt-warning">Pressure</span> <span class="pt-chip pt-warning">high-load</span> <code>.warning</code></p>
-            <p><span class="pt-indicator pt-critical">Failing</span> <span class="pt-chip pt-critical">p0-crit</span> <code>.critical</code></p>
-            <p><span class="pt-indicator pt-info">Syncing</span> <span class="pt-chip pt-info">telemetry</span> <code>.info</code></p>
+            <p><span class="pt-indicator pt-ok">Online</span> <span class="pt-chip pt-ok">v0.5.0</span> <code>.pt-ok</code></p>
+            <p><span class="pt-indicator pt-warning">Pressure</span> <span class="pt-chip pt-warning">high-load</span> <code>.pt-warning</code></p>
+            <p><span class="pt-indicator pt-critical">Failing</span> <span class="pt-chip pt-critical">p0-crit</span> <code>.pt-critical</code></p>
+            <p><span class="pt-indicator pt-info">Syncing</span> <span class="pt-chip pt-info">telemetry</span> <code>.pt-info</code></p>
           </main>
           <footer><small>Inline-flex alignment with zero boilerplate overrides</small></footer>
         </article>
@@ -952,7 +952,7 @@ ${rowsHtml}
         </article>
       </div>
 
-      <h3>Native Accessible Disclosures, Accordion Cards &amp; Popovers (<code>.pt-details</code> / <code>.accordion-card</code> / <code>.pt-popover</code>)</h3>
+      <h3>Native Accessible Disclosures, Accordion Cards &amp; Popovers (<code>.pt-details</code> / <code>.pt-accordion-card</code> / <code>.pt-popover</code>)</h3>
       <div class="pt-grid">
         <article class="pt-card pt-accordion-card">
           <details class="pt-card-disclosure" open>
@@ -994,7 +994,7 @@ ${rowsHtml}
         </div>
       </div>
 
-      <h3>Equal-Fill Segmented Controls (<code>.segmented.segmented-fill</code> / <code>.segmented-equal</code>)</h3>
+      <h3>Equal-Fill Segmented Controls (<code>.pt-segmented.pt-segmented-fill</code> / <code>.pt-segmented-equal</code>)</h3>
       <div class="pt-grid">
         <div>
           <p><small>Equal distribution across items (<code>flex: 1 1 0</code>) with automatic text ellipsis on narrow containers.</small></p>
@@ -1006,7 +1006,7 @@ ${rowsHtml}
           </div>
         </div>
         <div>
-          <p><small>Toolbar mode switch with <code>.segmented-equal</code> alias and compact viewport resilience.</small></p>
+          <p><small>Toolbar mode switch with <code>.pt-segmented-equal</code> alias and compact viewport resilience.</small></p>
           <nav role="tablist" class="pt-segmented pt-segmented-equal" aria-label="Display mode switch">
             <button type="button" role="tab" aria-selected="false">Grid</button>
             <button type="button" role="tab" aria-selected="true">List</button>
@@ -1101,7 +1101,7 @@ ${rowsHtml}
 
       <!-- Tabpanel 3: System Logs -->
       <div id="panel-logs" role="tabpanel" aria-labelledby="tab-logs" hidden>
-        <aside role="alert">
+        <aside role="alert" class="pt-callout">
           <p><strong>System Log Notice:</strong> Automated failover drill completed successfully on <code>edge-us-east-03</code>.</p>
         </aside>
         <pre><code>[2026-10-19T18:20:00Z] INFO [telemetry] Heartbeat verified for 128 nodes.
@@ -1378,7 +1378,7 @@ export function generateDemoJs() {
           document.getElementById('stat-mem'),
         ];
 
-        statEls.forEach((el) => { if (el) el.classList.add('skeleton'); });
+        statEls.forEach((el) => { if (el) el.classList.add('pt-skeleton'); });
 
         setTimeout(() => {
           const st = document.getElementById('stat-throughput');
@@ -1399,7 +1399,7 @@ export function generateDemoJs() {
           if (pcpu) pcpu.value = data.cpuVal;
           if (pmem) pmem.value = data.memVal;
 
-          statEls.forEach((el) => { if (el) el.classList.remove('skeleton'); });
+          statEls.forEach((el) => { if (el) el.classList.remove('pt-skeleton'); });
         }, 300);
       });
     });

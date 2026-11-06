@@ -1218,7 +1218,7 @@
     --pt-progress-height: .375rem;
   }
 
-  :is(.pt-progress-success, [data-status="success"]) {
+  :is(.pt-progress-ok, [data-status="ok"]) {
     --pt-progress-fill: var(--pt-valid);
     --pt-marker-color: var(--pt-valid);
   }
@@ -1228,7 +1228,7 @@
     --pt-marker-color: var(--pt-warning);
   }
 
-  :is(.pt-progress-danger, [data-status="danger"]) {
+  :is(.pt-progress-critical, [data-status="critical"]) {
     --pt-progress-fill: var(--pt-invalid);
     --pt-marker-color: var(--pt-invalid);
   }

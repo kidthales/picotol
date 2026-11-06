@@ -124,7 +124,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.6.0/dist/picotol.min.css" integrity="sha384-sGttkhc/L+pKdhLJBmhjn4wX3WW0bGfTOu2oA470/FC1S3g/MZW1UKdAi7O+t4IX" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.6.0/dist/picotol.min.css" integrity="sha384-hBl5xZv+J2dmQr6XH/HcXT30ckI6J/pP40UW7NSicJhH6fN6kwNVlaRSMl+sIztH" crossorigin="anonymous" />
 ```
 
 ---
@@ -166,7 +166,7 @@ import "@kidthales/picotol/palettes";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.6.0/dist/picotol.min.css" integrity="sha384-sGttkhc/L+pKdhLJBmhjn4wX3WW0bGfTOu2oA470/FC1S3g/MZW1UKdAi7O+t4IX" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.6.0/dist/picotol.min.css" integrity="sha384-hBl5xZv+J2dmQr6XH/HcXT30ckI6J/pP40UW7NSicJhH6fN6kwNVlaRSMl+sIztH" crossorigin="anonymous" />
     <title>Semantic HTML with Accessible Design Tokens</title>
   </head>
   <body class="pt-app">
@@ -367,7 +367,7 @@ Downstream consumers can hook directly into specific sublayers without battling 
 <style>
   @layer picotol, app-theme, app-components, app-utilities;
 </style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.6.0/dist/picotol.layer.min.css" integrity="sha384-sGttkhc/L+pKdhLJBmhjn4wX3WW0bGfTOu2oA470/FC1S3g/MZW1UKdAi7O+t4IX" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.6.0/dist/picotol.layer.min.css" integrity="sha384-hBl5xZv+J2dmQr6XH/HcXT30ckI6J/pP40UW7NSicJhH6fN6kwNVlaRSMl+sIztH" crossorigin="anonymous" />
 <link rel="stylesheet" href="/css/theme.css" layer="app-theme" />
 <link rel="stylesheet" href="/css/components.css" layer="app-components" />
 <link rel="stylesheet" href="/css/utilities.css" layer="app-utilities" />
@@ -840,6 +840,7 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
   - `data-align="center"` or `.pt-meter-mark--center`: Explicitly resets to centered default (`transform: translateX(-50%)`).
   - **Pin Centering Invariant**: The marker pin (`&::before`) remains strictly centered (`transform: translateX(-50%)`) at the target percentage tick.
 - **Tokenized Stacking Layers**: Sub-primitives stack predictably via tokenized z-index layers: `--pt-meter-range-z: 1` (`.pt-meter-range`), `--pt-meter-fill-z: 2` (`.pt-meter-fill`), and `--pt-meter-mark-z: 3` (`.pt-meter-mark`, `.pt-meter-label`, `.pt-gauge-marker`).
+- **Status Modifiers**: Progress containers and meters support canonical status modifiers (`.pt-progress-ok`, `.pt-progress-warning`, `.pt-progress-critical`, or `[data-status="ok|warning|critical"]`).
 
 ```html
 <div class="pt-meter">
@@ -854,9 +855,15 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
   </div>
 </div>
 
-<!-- Determinate Progress Bar with Status Warning -->
+<!-- Determinate Progress Bars with Status Modifiers -->
+<div class="pt-progress pt-progress-ok" role="progressbar" aria-valuenow="100">
+  <div class="pt-progress-fill" style="width: 100%;"></div>
+</div>
 <div class="pt-progress pt-progress-warning" role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">
   <div class="pt-progress-fill" style="width: 65%;"></div>
+</div>
+<div class="pt-progress pt-progress-critical" role="progressbar" aria-valuenow="25">
+  <div class="pt-progress-fill" style="width: 25%;"></div>
 </div>
 ```
 

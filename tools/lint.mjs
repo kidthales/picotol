@@ -815,9 +815,7 @@ export function runLint() {
       if (distContent.includes('picotol.legacy')) {
         errors.push(`[dist/${f}] Deprecated layer "picotol.legacy" must not appear in distribution builds.`);
       }
-      if (!f.includes('.min.')) {
-        errors.push(...lintClassNamingConventions(distContent, `dist/${f}`));
-      }
+      errors.push(...lintClassNamingConventions(distContent, `dist/${f}`));
     }
   }
 
