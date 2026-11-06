@@ -52,10 +52,10 @@ export const BUNDLE_BUDGETS = [
     tier: 'full',
     variant: 'minified',
     pairFile: 'dist/picotol.css',
-    maxBytes: 40 * KB,
+    maxBytes: 44 * KB,
     maxGzipBytes: 9 * KB,
     maxBrotliBytes: 8 * KB,
-    readmeTierText: '**`dist/picotol.min.css`** (<= 40.0 KB minified, <= 9.0 KB gzip)',
+    readmeTierText: '**`dist/picotol.min.css`** (<= 44.0 KB minified, <= 9.0 KB gzip)',
   },
   {
     file: 'dist/picotol.layer.css',
@@ -73,20 +73,22 @@ export const BUNDLE_BUDGETS = [
     tier: 'layer',
     variant: 'minified',
     pairFile: 'dist/picotol.layer.css',
-    maxBytes: 40 * KB,
+    maxBytes: 44 * KB,
     maxGzipBytes: 9 * KB,
     maxBrotliBytes: 8 * KB,
-    readmeTierText: '**`dist/picotol.layer.min.css`** (<= 40.0 KB minified, <= 9.0 KB gzip)',
+    readmeTierText: '**`dist/picotol.layer.min.css`** (<= 44.0 KB minified, <= 9.0 KB gzip)',
   },
 ];
 
 export const EXPECTED_README_BADGE =
-  'https://img.shields.io/badge/bundle%20size-%E2%89%A4%2040%20KB%20min%20%7C%20%E2%89%A4%209%20KB%20gzip-117733.svg';
+  'https://img.shields.io/badge/bundle%20size-%E2%89%A4%2044%20KB%20min%20%7C%20%E2%89%A4%209%20KB%20gzip-117733.svg';
 
 export const STALE_README_PATTERNS = [
+  'bundle%20size-%E2%89%A4%2040%20KB',
   'bundle%20size-%E2%89%A4%2038%20KB',
   'bundle%20size-%E2%89%A4%2032%20KB',
   'bundle%20size-%E2%89%A4%208%20KB',
+  '<= 40.0 KB minified',
   '<= 38.0 KB minified',
   '<= 36.0 KB minified',
   '<= 13.0 KB minified',

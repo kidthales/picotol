@@ -5,7 +5,7 @@
 [![CI](https://github.com/kidthales/picotol/actions/workflows/ci.yml/badge.svg)](https://github.com/kidthales/picotol/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@kidthales/picotol.svg?style=flat&color=332288)](https://www.npmjs.com/package/@kidthales/picotol)
 [![License: MIT](https://img.shields.io/badge/License-MIT-44AA99.svg)](LICENSE)
-[![Bundle Size](https://img.shields.io/badge/bundle%20size-%E2%89%A4%2040%20KB%20min%20%7C%20%E2%89%A4%209%20KB%20gzip-117733.svg)](dist/sri.json)
+[![Bundle Size](https://img.shields.io/badge/bundle%20size-%E2%89%A4%2044%20KB%20min%20%7C%20%E2%89%A4%209%20KB%20gzip-117733.svg)](dist/sri.json)
 [![WCAG 2.2 AA / AAA](https://img.shields.io/badge/WCAG%202.2-AA%20%2F%20AAA-88CCEE.svg)](tests/picotol.test.mjs)
 [![Interactive Demo](https://img.shields.io/badge/demo-interactive%20showcase-AA4499.svg)](https://picotol.kidthales.com/)
 
@@ -47,8 +47,8 @@
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
   - **`dist/picotol.core.min.css`** (<= 14.0 KB minified, <= 4.5 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 40.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.pt-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-meter` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
-  - **`dist/picotol.layer.min.css`** (<= 40.0 KB minified, <= 9.0 KB gzip): Full framework namespaced under `@layer picotol.*` for host applications using CSS cascade layers (retained alias of `picotol.min.css`).
+  - **`dist/picotol.min.css`** (<= 44.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.pt-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-meter` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.layer.min.css`** (<= 44.0 KB minified, <= 9.0 KB gzip): Full framework namespaced under `@layer picotol.*` for host applications using CSS cascade layers (retained alias of `picotol.min.css`).
 
 ---
 
@@ -125,7 +125,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-vK6+aQ5wHmQ5XFfZECq9CORe5eOUUs/6bd86qK+EqqOAYyEE9eCxvH5+wfqNCXPW" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-Hk1tHg8VBTCCamaRfrmGJUca4nInW3siPB5Qby5IKnV4LsogtZKUeMueuvhJgbph" crossorigin="anonymous" />
 ```
 
 ---
@@ -167,7 +167,7 @@ import "@kidthales/picotol/palettes";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-vK6+aQ5wHmQ5XFfZECq9CORe5eOUUs/6bd86qK+EqqOAYyEE9eCxvH5+wfqNCXPW" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.5.1/dist/picotol.min.css" integrity="sha384-Hk1tHg8VBTCCamaRfrmGJUca4nInW3siPB5Qby5IKnV4LsogtZKUeMueuvhJgbph" crossorigin="anonymous" />
     <title>Semantic HTML with Paul Tol Colors</title>
   </head>
   <body>
@@ -355,7 +355,7 @@ Downstream consumers can hook directly into specific sublayers without battling 
 <style>
   @layer picotol, app-theme, app-components, app-utilities;
 </style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-vK6+aQ5wHmQ5XFfZECq9CORe5eOUUs/6bd86qK+EqqOAYyEE9eCxvH5+wfqNCXPW" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.5.1/dist/picotol.layer.min.css" integrity="sha384-Hk1tHg8VBTCCamaRfrmGJUca4nInW3siPB5Qby5IKnV4LsogtZKUeMueuvhJgbph" crossorigin="anonymous" />
 <link rel="stylesheet" href="/css/theme.css" layer="app-theme" />
 <link rel="stylesheet" href="/css/components.css" layer="app-components" />
 <link rel="stylesheet" href="/css/utilities.css" layer="app-utilities" />

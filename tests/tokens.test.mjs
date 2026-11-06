@@ -557,7 +557,7 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     const fullCss = getDistCss();
     const coreCss = getCoreCss();
 
-    const secondarySelector = ':where(.secondary, [type="reset"])';
+    const secondarySelector = ':where(.pt-secondary, .secondary, [type="reset"])';
     assert.ok(fullCss.includes(secondarySelector), "Secondary selector present in dist/picotol.css");
     assert.ok(coreCss.includes(secondarySelector), "Secondary selector present in dist/picotol.core.css");
 
@@ -1000,7 +1000,7 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     const utilitiesIdx = layerCss.indexOf("@layer picotol.utilities {");
     assert.ok(utilitiesIdx !== -1, "@layer picotol.utilities must be defined in dist/picotol.layer.css");
     assert.ok(
-      layerCss.indexOf(".skip-to-content:is(:focus, :focus-visible)", utilitiesIdx) !== -1,
+      layerCss.indexOf(".skip-to-content", utilitiesIdx) !== -1 && layerCss.indexOf(":is(:focus, :focus-visible)", utilitiesIdx) !== -1,
       ".skip-to-content focus rule must compile inside @layer picotol.utilities"
     );
     assert.ok(

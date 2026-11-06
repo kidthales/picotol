@@ -139,11 +139,118 @@ Update status dot markup and status class bindings across your templates:
 
 > Tracked in [#214](https://github.com/kidthales/picotol/issues/214). Unprefixed generic classes and `--marker-pos` remain as deprecated aliases in `v0.6.0` and will be removed in **v0.7.0**.
 
-All public classes and custom properties in `@kidthales/picotol` now have `pt-` / `--pt-` prefixed canonical names to avoid collisions with Bootstrap and application CSS.
+All public classes and custom properties in `@kidthales/picotol` now have `pt-` / `--pt-` prefixed canonical names to avoid collisions with Bootstrap, Tailwind, and host application stylesheets.
+
+### Custom Property Hook
+
+| Deprecated Hook (`v0.5.x`) | Canonical Hook (`v0.6.0`) | Fallback Behavior |
+| :--- | :--- | :--- |
+| `--marker-pos` | `--pt-marker-pos` | `--pt-marker-pos: var(--marker-pos, 0%)` (transparent backward compatibility until `v0.7.0`) |
+
+### Class Selector 1:1 Mapping Table (76 Deprecated Classes)
+
+| Category | Deprecated Selector (`v0.5.x`, Removed in `v0.7.0`) | Canonical Replacement (`v0.6.0`) |
+| :--- | :--- | :--- |
+| **Accessibility** | `.skip-to-content` | `.pt-skip-to-content` |
+| | `.sr-only` | `.pt-sr-only` |
+| | `.sr-only-focusable` | `.pt-sr-only-focusable` |
+| | `.visually-hidden` | `.pt-visually-hidden` |
+| | `.visually-hidden-focusable` | `.pt-visually-hidden-focusable` |
+| **Forms** | `.form-row` | `.pt-form-row` |
+| | `.inline-form` | `.pt-inline-form` |
+| **Layout & Containers** | `.container` | `.pt-container` |
+| | `.container-fluid` | `.pt-container-fluid` |
+| | `.card` | `.pt-card` |
+| | `.flex` | `.pt-flex` |
+| | `.grid` | `.pt-grid` |
+| | `.mb-0` | `.pt-mb-0` |
+| | `.no-margin-bottom` | `.pt-no-margin-bottom` |
+| | `.overflow-auto` | `.pt-overflow-auto` |
+| | `.table-container` | `.pt-table-container` |
+| **Typography & Content** | `.measure` | `.pt-measure` |
+| | `.prose` | `.pt-prose` |
+| | `.secondary` | `.pt-secondary` |
+| | `.button` | `.pt-button` |
+| | `.btn` | `.pt-btn` |
+| | `.outline` | `.pt-outline` |
+| | `.small` | `.pt-small` |
+| | `.sm` | `.pt-sm` |
+| | `.nowrap` | `.pt-nowrap` |
+| | `.swatch` | `.pt-swatch` |
+| | `.striped` | `.pt-striped` |
+| | `.icon` | `.pt-icon` |
+| | `.solid` | `.pt-solid` |
+| | `.tabular-nums` | `.pt-tabular-nums` |
+| **Components: Cards & Structure** | `.accordion-card` | `.pt-accordion-card` |
+| | `.card-body` | `.pt-card-body` |
+| | `.body` | `.pt-body` |
+| | `.contrast` | `.pt-contrast` |
+| **Components: Dialogs & Sheets** | `.sheet` | `.pt-sheet` |
+| | `.sheet-right` | `.pt-sheet-right` |
+| | `.sheet-left` | `.pt-sheet-left` |
+| | `.sheet-header` | `.pt-sheet-header` |
+| | `.sheet-body` | `.pt-sheet-body` |
+| | `.sheet-footer` | `.pt-sheet-footer` |
+| | `.close` | `.pt-close` |
+| **Components: Navigation & Badges** | `.badge` | `.pt-badge` |
+| | `.segmented` | `.pt-segmented` |
+| | `.segmented-fill` | `.pt-segmented-fill` |
+| | `.segmented-equal` | `.pt-segmented-equal` |
+| | `.fill` | `.pt-fill` |
+| | `.btn-icon` | `.pt-btn-icon` |
+| | `.icon-btn` | `.pt-icon-btn` |
+| | `.active` | `.pt-active` |
+| | `.dropdown` | `.pt-dropdown` |
+| | `.toast` | `.pt-toast` |
+| | `.show` | `.pt-show` |
+| | `.skeleton` | `.pt-skeleton` |
+| | `.stat` | `.pt-stat` |
+| | `.stats` | `.pt-stats` |
+| | `.label` | `.pt-label` |
+| | `.value` | `.pt-value` |
+| | `.description` | `.pt-description` |
+| | `.trend` | `.pt-trend` |
+| | `.bottom` | `.pt-bottom` |
+| | `.end` | `.pt-end` |
+| **Status & Indicator Triads** | `.status-dot` | `.pt-dot` |
+| | `.ok` | `.pt-ok` (or `[data-status="ok"]`) |
+| | `.success` | `.pt-ok` (or `[data-status="ok"]`) |
+| | `.warning` | `.pt-warning` (or `[data-status="warning"]`) |
+| | `.critical` | `.pt-critical` (or `[data-status="critical"]`) |
+| | `.danger` | `.pt-critical` (or `[data-status="critical"]`) |
+| | `.info` | `.pt-info` (or `[data-status="info"]`) |
+| | `.primary` | `.pt-primary` |
+| | `.valid` | `.pt-valid` |
+| | `.invalid` | `.pt-invalid` |
+| | `.neutral` | `.pt-dot` (dot neutral) |
+| | `.idle` | `.pt-dot` (dot idle) |
+| | `.pulse` | `.pt-pulse` |
+| | `.m-0` | `.pt-m-0` |
+| | `.no-margin` | `.pt-no-margin` |
 
 ### Action Required
-- Replace `--marker-pos` with `--pt-marker-pos` on `.pt-meter-mark` / `.pt-gauge-marker` elements.
-- Replace unprefixed generic component and utility classes (`.badge`, `.toast`, `.show`, `.active`, `.small`, `.close`, `.card`, etc.) with their `pt-`-prefixed equivalents (complete 1:1 class mapping table populated in [#214](https://github.com/kidthales/picotol/issues/214)).
+- Replace `--marker-pos: <val>` with `--pt-marker-pos: <val>` on gauge/meter markers.
+- Migrate template markup from generic classes to `pt-`-prefixed classes:
+
+```html
+<!-- v0.5.x (deprecated in v0.6.0, unstyled in v0.7.0) -->
+<button class="btn btn-icon close" aria-label="Close"></button>
+<div class="card card-body">...</div>
+<div class="toast show">Saved</div>
+<div class="segmented segmented-fill">
+  <button class="active">Tab 1</button>
+  <button>Tab 2</button>
+</div>
+
+<!-- v0.6.0 (canonical) -->
+<button class="pt-btn pt-btn-icon pt-close" aria-label="Close"></button>
+<div class="pt-card pt-card-body">...</div>
+<div class="pt-toast pt-show">Saved</div>
+<div class="pt-segmented pt-segmented-fill">
+  <button class="pt-active">Tab 1</button>
+  <button>Tab 2</button>
+</div>
+```
 
 ---
 
