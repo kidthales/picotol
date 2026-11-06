@@ -212,7 +212,7 @@ export function lintDeprecatedSelectorAnnotations(content, filename = 'snippet.c
 
   const lines = content.split(/\r?\n/);
   const deprecatedSelectorTokenRe =
-    /(?:\.(?:pt-)?status-dot\b|\.pt-(?:progress|callout|dot)--(?:success|danger)\b|\.pt-(?:progress|callout)-(?:success|danger)\b|(?<![a-zA-Z0-9_$-])\.(?:success|danger)\b|\[data-status=["'](?:success|danger)["']\])/;
+    /(?:\.(?:pt-)?status-dot\b|\.pt-(?:progress|callout|dot)--(?:success|danger)\b|\.pt-(?:progress|callout)-(?:success|danger)\b|(?<![a-zA-Z0-9_$-])\.(?:success|danger)\b|\[data-status=["'](?:success|danger|backlog|no-status)["']\])/;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];

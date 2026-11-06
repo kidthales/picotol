@@ -1762,6 +1762,10 @@
       margin: 0;
     }
 
+    &:is([data-status="idle"], [data-status="neutral"]) {
+      background-color: var(--pt-muted-border);
+    }
+
     &:is(.pt-dot--ok, .pt-dot--success) {
       background-color: var(--pt-status-ok-fg);
       box-shadow: 0 0 0 2px var(--pt-status-ok-bg);

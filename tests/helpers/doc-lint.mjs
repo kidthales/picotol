@@ -1,5 +1,6 @@
 // Markdown token extraction and CSS selector/custom-property existence helpers for tests/doc-lint.test.mjs.
-import { stripCssCommentsAndStrings, stripNotPseudoClasses } from '../../tools/lint.mjs';
+import { transform, Features } from 'lightningcss';
+import { stripCssCommentsAndStrings, stripNotPseudoClasses, extractClassesFromAst } from '../../tools/lint.mjs';
 
 export function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -101,6 +102,9 @@ export function extractTokenOccurrencesFromMarkdown(content) {
       }
       currentProseLines.push(line);
     } else {
+      if (new RegExp(`^${escapeRegex(fenceChar)}{${fenceLen},}[a-zA-Z0-9_-]+`).test(trimmed)) {
+        throw new Error(`Nested or unclosed fenced code block opener detected: "${trimmed}"`);
+      }
       const closeRe = new RegExp(`^${escapeRegex(fenceChar)}{${fenceLen},}\\s*$`);
       if (closeRe.test(trimmed)) {
         codeSegments.push(currentFenceLines.join('\n'));
@@ -330,3 +334,74 @@ export function validateDocCdn(content, sriManifest = null, file = '', requireIn
 
   return errors;
 }
+
+export const REVERSE_DOC_ALLOWLIST = new Set([
+  // Internal sub-elements and compound children
+  '.pt-gauge-label--center',
+  '.pt-gauge-label--end',
+  '.pt-gauge-label--start',
+  '.pt-gauge-marker--center',
+  '.pt-gauge-marker--end',
+  '.pt-gauge-marker--start',
+  '.pt-meter-label--center',
+  '.pt-meter-label--end',
+  '.pt-meter-label--start',
+
+  // Deprecated aliases documented in docs/migrate-0.6.md (removed in v0.7.0)
+  '.pt-callout-danger',
+  '.pt-callout-success',
+  '.pt-dot--danger',
+  '.pt-dot--success',
+  '.pt-progress-danger',
+  '.pt-progress-success',
+  '.pt-pulse',
+  '.pt-status-dot',
+  '.pt-status-dot-critical',
+  '.pt-status-dot-danger',
+  '.pt-status-dot-info',
+  '.pt-status-dot-ok',
+  '.pt-status-dot-success',
+  '.pt-status-dot-warning',
+]);
+
+export function extractCssClassesFromSource(cssContent, filename = 'bundle.css') {
+  const classSet = new Set();
+  transform({
+    filename,
+    code: Buffer.from(cssContent, 'utf8'),
+    targets: {
+      chrome: 130 << 16,
+      firefox: 130 << 16,
+      safari: 18 << 16,
+    },
+    exclude: Features.VendorPrefixes,
+    errorRecovery: false,
+    visitor: {
+      Rule(r) {
+        if (r.type === 'style' && r.value && r.value.selectors) {
+          extractClassesFromAst(r.value.selectors, classSet);
+        }
+      },
+    },
+  });
+  return classSet;
+}
+
+export function findUndocumentedCssClasses(cssContent, docContent, allowlist = REVERSE_DOC_ALLOWLIST) {
+  const cssClasses = extractCssClassesFromSource(cssContent);
+  const documentedTokens = new Set(extractTokenOccurrencesFromMarkdown(docContent));
+  const undocumented = [];
+
+  for (const cls of cssClasses) {
+    if (!cls.startsWith('pt-')) continue;
+    const token = `.${cls}`;
+    if (allowlist.has(token) || allowlist.has(cls)) continue;
+    if (!documentedTokens.has(token)) {
+      undocumented.push(token);
+    }
+  }
+
+  undocumented.sort();
+  return undocumented;
+}
+

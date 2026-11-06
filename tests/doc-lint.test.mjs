@@ -15,6 +15,9 @@ import {
   extractCdnLinkTags,
   isDeprecatedDocToken,
   DEPRECATED_DOC_TOKENS,
+  REVERSE_DOC_ALLOWLIST,
+  extractCssClassesFromSource,
+  findUndocumentedCssClasses,
 } from './helpers/doc-lint.mjs';
 import { DEPRECATED_CLASS_ALLOWLIST } from '../tools/lint.mjs';
 
@@ -515,3 +518,72 @@ test('doc-lint: README.md strictly uses canonical v0.6.0 selectors and zero depr
 
   assert.deepEqual(violations, [], `README.md contains non-canonical/deprecated classes:\n  • ${violations.join('\n  • ')}`);
 });
+
+test('reverse doc-lint: all canonical public .pt-* classes defined in CSS are documented in README.md (Issue #227)', () => {
+  const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
+  const readmeContent = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+
+  const undocumented = findUndocumentedCssClasses(distCss, readmeContent, REVERSE_DOC_ALLOWLIST);
+  assert.deepEqual(
+    undocumented,
+    [],
+    `Canonical public .pt-* classes defined in CSS are missing from README.md:\n  • ${undocumented.join('\n  • ')}`
+  );
+});
+
+test('reverse doc-lint: unallowlisted/undocumented public classes fail closed and allowlist suppresses internal sub-elements (Issue #227)', () => {
+  const sampleCss = `
+    .pt-documented { color: var(--pt-color); }
+    .pt-undocumented-phantom { color: var(--pt-color); }
+    .pt-internal-subelement { color: var(--pt-color); }
+  `;
+  const sampleMd = `
+    Use \`.pt-documented\` in markup.
+  `;
+  const customAllowlist = new Set(['.pt-internal-subelement']);
+
+  const missing = findUndocumentedCssClasses(sampleCss, sampleMd, customAllowlist);
+  assert.deepEqual(missing, ['.pt-undocumented-phantom'], 'Phantom class not in docs or allowlist must be flagged');
+
+  // Verify allowlisted internal sub-element does not fail
+  const cleanAllowlistResult = findUndocumentedCssClasses(
+    '.pt-internal-subelement { color: red; }',
+    'No classes here',
+    customAllowlist
+  );
+  assert.deepEqual(cleanAllowlistResult, [], 'Allowlisted internal sub-element must not be flagged as undocumented');
+});
+
+test('reverse doc-lint: REVERSE_DOC_ALLOWLIST entries are stale if documented in README.md (Issue #227)', () => {
+  const readmeContent = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const documentedTokens = new Set(extractTokenOccurrencesFromMarkdown(readmeContent));
+
+  const staleEntries = [];
+  for (const item of REVERSE_DOC_ALLOWLIST) {
+    if (documentedTokens.has(item)) {
+      staleEntries.push(item);
+    }
+  }
+
+  assert.deepEqual(
+    staleEntries,
+    [],
+    `Allowlist entries in REVERSE_DOC_ALLOWLIST are documented in README.md and must be removed from allowlist:\n  • ${staleEntries.join('\n  • ')}`
+  );
+});
+
+test('doc-lint: reject nested or corrupted code fence openers within markdown code blocks (Issue #227)', () => {
+  const corruptedMd = [
+    '```',
+    '<div class="pt-meter">',
+    '```html',
+    '<section>',
+    '```',
+  ].join('\n');
+
+  assert.throws(
+    () => extractTokenOccurrencesFromMarkdown(corruptedMd),
+    /Nested or unclosed fenced code block opener detected/
+  );
+});
+
