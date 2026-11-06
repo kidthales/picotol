@@ -319,6 +319,78 @@ describe("Callouts, Alerts, Badges, and Dots", () => {
   );
 });
 
+  test("Class-gating bare role=status and aside selectors via @layer picotol.legacy (Issue #207)", () => {
+    const compCss = getSrcComponentsCss();
+    const fullCss = getDistCss();
+    const layerCss = getLayerCss();
+
+    // 1. Deprecation annotation and legacy layer declaration in src/components.css
+    assert.ok(
+      compCss.includes("/* @deprecated: removed in v0.7.0 */"),
+      "src/components.css must annotate @layer picotol.legacy with deprecation notice"
+    );
+    assert.ok(
+      compCss.includes("@layer picotol.legacy {"),
+      "src/components.css must declare @layer picotol.legacy"
+    );
+
+    // 2. Extract isolated layer blocks from src/components.css
+    const legacyBlock = extractLayerBlock(compCss, "legacy");
+    const componentsBlock = extractLayerBlock(compCss, "components");
+    assert.ok(legacyBlock, "Must extract @layer picotol.legacy block from src/components.css");
+    assert.ok(componentsBlock, "Must extract @layer picotol.components block from src/components.css");
+
+    // 3. Bare selectors must be quarantined strictly inside @layer picotol.legacy
+    assert.ok(
+      legacyBlock.includes("aside:not(nav *)"),
+      "@layer picotol.legacy must contain bare aside:not(nav *) selector"
+    );
+    assert.ok(
+      legacyBlock.includes('[role="alert"]'),
+      "@layer picotol.legacy must contain bare [role=\"alert\"] selector"
+    );
+    assert.ok(
+      legacyBlock.includes('[role="status"]'),
+      "@layer picotol.legacy must contain bare [role=\"status\"] selector"
+    );
+
+    // 4. Bare selectors must NOT appear in @layer picotol.components
+    assert.ok(
+      !componentsBlock.includes("aside:not"),
+      "@layer picotol.components must not style bare aside elements"
+    );
+    assert.ok(
+      !componentsBlock.includes('[role="status"]'),
+      "@layer picotol.components must not style bare [role=\"status\"] elements"
+    );
+
+    // 5. Callouts and badges in @layer picotol.components require explicit classes
+    assert.ok(
+      componentsBlock.includes(":where(.pt-callout)"),
+      "@layer picotol.components must require explicit .pt-callout class for callouts"
+    );
+    assert.ok(
+      componentsBlock.includes(":where(.badge, .pt-badge, .pt-indicator)"),
+      "@layer picotol.components must require explicit classes (.badge, .pt-badge, .pt-indicator) for badges"
+    );
+
+    // 6. Layer preamble order in distribution builds: picotol.legacy is declared first (lowest priority)
+    const expectedPreamble = "@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;";
+    assert.ok(
+      fullCss.includes(expectedPreamble),
+      "dist/picotol.css must declare picotol.legacy first in cascade preamble"
+    );
+    assert.ok(
+      layerCss.includes(expectedPreamble),
+      "dist/picotol.layer.css must declare picotol.legacy first in cascade preamble"
+    );
+
+    // 7. Cascade override parity: verify that rules in subsequent layers defeat picotol.legacy rules
+    const legacyIdx = fullCss.indexOf("@layer picotol.legacy");
+    const componentsIdx = fullCss.indexOf("@layer picotol.components");
+    assert.ok(legacyIdx !== -1 && componentsIdx !== -1, "Both legacy and components layers must compile into dist");
+  });
+
   test("Accessible Callout Banners, Status Dots, and Copy Pill Primitives (Issue #95)", () => {
   const fullCss = fs.readFileSync(path.join(ROOT, "dist/picotol.css"), "utf8");
   const fullMin = fs.readFileSync(path.join(ROOT, "dist/picotol.min.css"), "utf8");

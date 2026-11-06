@@ -42,7 +42,7 @@ export const BUNDLE_BUDGETS = [
     tier: 'full',
     variant: 'expanded',
     pairFile: 'dist/picotol.min.css',
-    maxBytes: 52 * KB,
+    maxBytes: 56 * KB,
     maxGzipBytes: 10.5 * KB,
     maxBrotliBytes: 9 * KB,
   },

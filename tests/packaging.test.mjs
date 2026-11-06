@@ -474,15 +474,15 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
     assert.equal(layerMinCss, fullMinCss, "dist/picotol.layer.min.css must emit identical output to dist/picotol.min.css per ADR 0001");
 
     assert.ok(
-      layerCss.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
+      layerCss.includes("@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
       "dist/picotol.layer.css must export nested layer definitions preamble"
     );
     assert.ok(
-      layerMinCss.includes("@layer picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;"),
+      layerMinCss.includes("@layer picotol.legacy,picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;"),
       "dist/picotol.layer.min.css must export nested layer definitions preamble"
     );
 
-    const layers = ["tokens", "reset", "base", "components", "utilities"];
+    const layers = ["legacy", "tokens", "reset", "base", "components", "utilities"];
     for (const layer of layers) {
       assert.ok(
         layerMinCss.includes(`@layer picotol.${layer}{`),
@@ -490,7 +490,7 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
       );
     }
 
-    const unnamespacedRegex = /@layer\s+(?:tokens|reset|base|components|utilities)[\s,{]/;
+    const unnamespacedRegex = /@layer\s+(?:legacy|tokens|reset|base|components|utilities)[\s,{]/;
     assert.ok(
       !unnamespacedRegex.test(layerCss),
       "dist/picotol.layer.css must contain no un-namespaced @layer declarations"

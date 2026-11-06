@@ -1,3 +1,71 @@
+/* @deprecated: removed in v0.7.0 */
+@layer picotol.legacy {
+  /* Legacy bare semantic callouts (aside, [role="alert"]) */
+  :where(aside:not(nav *), [role="alert"]) {
+    margin-bottom: var(--pt-spacing);
+    padding: var(--pt-spacing);
+    border-radius: var(--pt-border-radius);
+    border-inline-start: 0.25rem solid var(--pt-muted-border);
+    background: var(--pt-surface-subtle);
+    color: var(--pt-color);
+
+    &:is(.primary, [data-accent]) {
+      border-inline-start-color: var(--pt-primary);
+    }
+    &:is([role="alert"], .invalid) {
+      border-inline-start-color: var(--pt-invalid);
+    }
+    &.warning {
+      border-inline-start-color: var(--pt-warning);
+    }
+    &.valid {
+      border-inline-start-color: var(--pt-valid);
+    }
+  }
+
+  /* Legacy bare ARIA live status badge ([role="status"]) */
+  :where([role="status"]) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    padding: 0.125em 0.5em;
+    border-radius: 99px;
+    border: 1px solid var(--pt-muted-border);
+    background: var(--pt-surface-subtle);
+    color: var(--pt-color);
+    font-size: var(--pt-font-size-xs, 0.75em);
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
+    font-variant-numeric: tabular-nums;
+
+    &:is(.primary, [data-accent]) {
+      border-color: var(--pt-primary);
+      --pt-icon-color: var(--pt-primary);
+    }
+    &:is([role="alert"], .invalid) {
+      border-color: var(--pt-invalid);
+      --pt-icon-color: var(--pt-invalid);
+    }
+    &.warning {
+      border-color: var(--pt-warning);
+      --pt-icon-color: var(--pt-warning);
+    }
+    &.valid {
+      border-color: var(--pt-valid);
+      --pt-icon-color: var(--pt-valid);
+    }
+
+    & > :where(svg, .status-dot, .pt-status-dot, .pt-dot) {
+      margin: 0;
+    }
+    & > :where(svg, [data-icon]) {
+      color: var(--pt-icon-color, currentColor);
+    }
+  }
+}
+
 @layer picotol.components {
   /* 1. Card (<article>, .card) */
   :where(article, .card) {
@@ -827,31 +895,10 @@
     }
   }
 
-  /* 10. Semantic Callout */
-  :where(aside:not(nav *), [role="alert"]) {
-    margin-bottom: var(--pt-spacing);
-    padding: var(--pt-spacing);
-    border-radius: var(--pt-border-radius);
-    border-inline-start: 0.25rem solid var(--pt-muted-border);
-    background: var(--pt-surface-subtle);
-    color: var(--pt-color);
-
-    &:is(.primary, [data-accent]) {
-      border-inline-start-color: var(--pt-primary);
-    }
-    &:is([role="alert"], .invalid) {
-      border-inline-start-color: var(--pt-invalid);
-    }
-    &.warning {
-      border-inline-start-color: var(--pt-warning);
-    }
-    &.valid {
-      border-inline-start-color: var(--pt-valid);
-    }
-  }
+  /* 10. Callouts are class-gated via .pt-callout (see Section 17); bare aside and [role="alert"] are quarantined in @layer picotol.legacy */
 
   /* 11. Status Badges & Indicators */
-  :where(.badge, [role="status"], .pt-badge, .pt-indicator) {
+  :where(.badge, .pt-badge, .pt-indicator) {
     display: inline-flex;
     align-items: center;
     gap: 0.35em;
