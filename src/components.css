@@ -1004,6 +1004,7 @@
       margin: 0;
     }
 
+    /* .pt-dot--success is @deprecated: removed in v0.7.0 */
     &:is(.pt-dot--ok, .pt-dot--success) {
       background-color: var(--pt-status-ok-fg);
       box-shadow: 0 0 0 2px var(--pt-status-ok-bg);
@@ -1011,6 +1012,7 @@
     &:is(.pt-dot--warning) {
       background-color: var(--pt-status-warning-fg);
     }
+    /* .pt-dot--danger is @deprecated: removed in v0.7.0 */
     &:is(.pt-dot--critical, .pt-dot--danger) {
       background-color: var(--pt-status-critical-fg);
     }
@@ -1032,6 +1034,7 @@
     }
   }
 
+  /* @deprecated: removed in v0.7.0 */
   :where(.status-dot, .pt-status-dot) {
     display: inline-block;
     width: 0.5rem;

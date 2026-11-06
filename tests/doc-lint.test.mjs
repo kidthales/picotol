@@ -13,6 +13,8 @@ import {
   extractCdnUrlsFromMarkdown,
   isCdnUrlPinned,
   extractCdnLinkTags,
+  isDeprecatedDocToken,
+  DEPRECATED_DOC_TOKENS,
 } from './helpers/doc-lint.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,6 +38,7 @@ test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs
   const readmeResult = validateDocTokens(readmeContent, distCss, 'README.md', TEMPORARY_ALLOWLIST);
   assert.ok(readmeResult.tokens.length > 0, 'README.md must contain documented tokens');
   assert.deepEqual(readmeResult.missing, [], `README.md contains undocumented tokens: ${readmeResult.missing.join(', ')}`);
+  assert.deepEqual(readmeResult.deprecated, [], `README.md contains deprecated tokens: ${readmeResult.deprecated.join(', ')}`);
 
   // 2. CHANGELOG.md scoped strictly to current release header (e.g. ## [0.5.0])
   const changelogContent = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8');
@@ -426,4 +429,37 @@ test('doc-lint: negative tests: unpinned CDN URLs, missing integrity, and mismat
     ['https://unpkg.com/@kidthales/picotol@0.5.0/dist/picotol.min.css'],
     'Must parse URL cleanly without trailing backtick'
   );
+});
+
+test('doc-lint: flags deprecated status dot primitives and aliases in docs (Issue #208)', () => {
+  const distCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
+
+  // 1. Canonical README.md has zero deprecated tokens
+  const readmeContent = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const readmeResult = validateDocTokens(readmeContent, distCss, 'README.md');
+  assert.deepEqual(readmeResult.deprecated, [], `README.md contains deprecated tokens: ${readmeResult.deprecated.join(', ')}`);
+
+  // 2. Negative test: each deprecated dot primitive/alias fails closed when used in markdown
+  const deprecatedSnippet = [
+    'Use `.status-dot` and `.pt-status-dot` with `.pt-status-dot-success` and `.pt-status-dot-danger`.',
+    'Also old `.pt-dot--success` and `.pt-dot--danger`.',
+    '```html',
+    '<span class="status-dot success"></span>',
+    '<span class="pt-status-dot pt-status-dot-warning"></span>',
+    '```',
+  ].join('\n');
+  const negResult = validateDocTokens(deprecatedSnippet, distCss, 'sample.md');
+  assert.ok(negResult.deprecated.includes('.status-dot'), 'Must flag .status-dot');
+  assert.ok(negResult.deprecated.includes('.pt-status-dot'), 'Must flag .pt-status-dot');
+  assert.ok(negResult.deprecated.includes('.pt-status-dot-success'), 'Must flag .pt-status-dot-success');
+  assert.ok(negResult.deprecated.includes('.pt-status-dot-danger'), 'Must flag .pt-status-dot-danger');
+  assert.ok(negResult.deprecated.includes('.pt-status-dot-warning'), 'Must flag .pt-status-dot-warning');
+  assert.ok(negResult.deprecated.includes('.pt-dot--success'), 'Must flag .pt-dot--success');
+  assert.ok(negResult.deprecated.includes('.pt-dot--danger'), 'Must flag .pt-dot--danger');
+
+  // 3. Allowlist suppresses deprecated warnings when explicitly allowlisted (e.g. for migration docs)
+  const allowed = validateDocTokens('Use `.status-dot` for migration.', distCss, 'migrate.md', [
+    { file: 'migrate.md', token: '.status-dot', count: 1 },
+  ]);
+  assert.deepEqual(allowed.deprecated, []);
 });
