@@ -102,6 +102,36 @@ Status naming across tokens, attributes, and classes is unified on the four-stat
 | `.status-dot.warning`, `.pt-status-dot.warning`, `.pt-status-dot-warning` | `.pt-dot.pt-dot--warning` |
 | `.pt-dot--danger`, `.status-dot.critical`, `.status-dot.danger`, `.pt-status-dot.critical`, `.pt-status-dot-critical`, `.pt-status-dot-danger` | `.pt-dot.pt-dot--critical` |
 | `.status-dot.pulse`, `.pt-status-dot.pulse`, `.pt-status-dot.pt-pulse` | `.pt-dot.pt-dot--pulse` |
+| `.status-dot.neutral`, `.status-dot.idle`, `.pt-status-dot` (base without modifier) | `.pt-dot` |
+
+### Status Vocabulary Mapping
+
+| Component Surface | `v0.5.x` (Deprecated) | `v0.6.0` Canonical |
+| :--- | :--- | :--- |
+| **Status Attributes** | `[data-status="success"]`, `[data-status="danger"]` | `[data-status="ok"]`, `[data-status="critical"]` |
+| **Callout Variants** | `.pt-callout-success`, `.pt-callout-danger` | `.pt-callout-ok`, `.pt-callout-critical` |
+| **Progress Variants** | `.pt-progress-success`, `.pt-progress-danger` | `.pt-progress-ok`, `.pt-progress-critical` |
+| **Status Classes** | `.success`, `.danger`, `.valid`, `.invalid` | `[data-status="ok|info|warning|critical"]` (or `.pt-ok`, `.pt-critical`) |
+
+### Action Required
+
+Update status dot markup and status class bindings across your templates:
+
+```html
+<!-- v0.5.x (deprecated in v0.6.0, unstyled in v0.7.0) -->
+<span class="status-dot success"></span>
+<span class="pt-status-dot pt-status-dot-danger pulse"></span>
+<span class="pt-dot pt-dot--success"></span>
+<aside class="pt-callout pt-callout-danger">...</aside>
+<span class="pt-badge" data-status="success">...</span>
+
+<!-- v0.6.0 (canonical) -->
+<span class="pt-dot pt-dot--ok"></span>
+<span class="pt-dot pt-dot--critical pt-dot--pulse"></span>
+<span class="pt-dot pt-dot--ok"></span>
+<aside class="pt-callout pt-callout-critical">...</aside>
+<span class="pt-badge" data-status="ok">...</span>
+```
 
 ---
 

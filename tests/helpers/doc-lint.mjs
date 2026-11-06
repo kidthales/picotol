@@ -120,11 +120,11 @@ export function extractTokenOccurrencesFromMarkdown(content) {
   flushProseParagraphs();
 
   const occurrences = [];
-  const tokenRe = /(\.(?:pt|segmented)-[a-zA-Z0-9_*-]+|(?<![\w-])--pt-[a-zA-Z0-9_*-]+)(?![\w*-])/g;
+  const tokenRe = /(\.(?:pt|segmented|status)-[a-zA-Z0-9_*-]+|(?<![\w-])--pt-[a-zA-Z0-9_*-]+)(?![\w*-])/g;
   const braceTokenRe =
-    /(?:\.(?:pt|segmented)|--pt|(?<=[\s"'=])(?:pt|segmented))-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
+    /(?:\.(?:pt|segmented|status)|--pt|(?<=[\s"'=])(?:pt|segmented|status))-[a-zA-Z0-9_*-]*(?:\{[a-zA-Z0-9_-]+(?:,[a-zA-Z0-9_-]+)+\}[a-zA-Z0-9_*-]*)+/g;
   const htmlClassAttrRe = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g;
-  const bareClassTokenRe = /^(?:pt|segmented)-[a-zA-Z0-9_*-]+$/;
+  const bareClassTokenRe = /^(?:pt|segmented|status)-[a-zA-Z0-9_*-]+$/;
 
   for (const rawSegment of codeSegments) {
     const expandedSegment = rawSegment.replace(braceTokenRe, (match) =>
@@ -190,6 +190,25 @@ export function tokenExistsInCss(token, cssContent) {
   return false;
 }
 
+export const DEPRECATED_DOC_TOKENS = new Set([
+  '.pt-dot--success',
+  '.pt-dot--danger',
+  '.status-dot',
+  '.pt-status-dot',
+  '.pt-status-dot-ok',
+  '.pt-status-dot-success',
+  '.pt-status-dot-warning',
+  '.pt-status-dot-danger',
+  '.pt-status-dot-critical',
+  '.pt-status-dot-info',
+]);
+
+export function isDeprecatedDocToken(token) {
+  if (token === '.pt-dot--success' || token === '.pt-dot--danger') return true;
+  if (token === '.status-dot' || token.startsWith('.pt-status-dot')) return true;
+  return false;
+}
+
 export function validateDocTokens(content, distCss, file = '', allowlistOrFn = []) {
   const allowlistFn =
     typeof allowlistOrFn === 'function'
@@ -202,13 +221,17 @@ export function validateDocTokens(content, distCss, file = '', allowlistOrFn = [
   }
   const tokens = [...counts.keys()];
   const missing = [];
+  const deprecated = [];
   for (const token of tokens) {
     if (allowlistFn(token, file, counts.get(token))) continue;
     if (!tokenExistsInCss(token, distCss)) {
       missing.push(token);
     }
+    if (isDeprecatedDocToken(token)) {
+      deprecated.push(token);
+    }
   }
-  return { tokens, missing, counts };
+  return { tokens, missing, deprecated, counts };
 }
 
 export function extractCdnUrlsFromMarkdown(content) {

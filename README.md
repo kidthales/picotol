@@ -47,7 +47,7 @@
   - Zero horizontal overflow at `320px` CSS width (WCAG 2.2 SC 1.4.10 Reflow), `.skip-to-content`, `.sr-only` / `.visually-hidden`, `.overflow-auto`, and `@media print` ink-saving styles.
 - **Ultra-Minified Distribution Tiers** (bundled & AST-minified via [LightningCSS](https://lightningcss.dev/) with SHA-384 Subresource Integrity manifest in `dist/sri.json`):
   - **`dist/picotol.core.min.css`** (<= 14.0 KB minified, <= 4.5 KB gzip): Landmarks (`body > header, main, footer`), `.container`, `.grid` (`min-width: 0`), fluid typography, tables, code blocks, native forms, and configurable `nav`.
-  - **`dist/picotol.min.css`** (<= 40.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.pt-dot`, `.status-dot` & `.pt-status-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-meter` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
+  - **`dist/picotol.min.css`** (<= 40.0 KB minified, <= 9.0 KB gzip): Core + `<article>` cards, `<details>` accordions & dropdowns, `<dialog>` modals, `.pt-dot`, `.pt-badge` & `.pt-indicator`, `.pt-callout` banners, `.pt-copy-pill` & `.pt-chip`, equal-fill segmented controls (`.segmented-fill`), square icon buttons (`.btn-icon`), `<progress>`, `.pt-meter` & gauge pins, `[role="switch"]`, `[aria-busy="true"]`, `[role="group"]`, and `[data-tooltip]`.
   - **`dist/picotol.layer.min.css`** (<= 40.0 KB minified, <= 9.0 KB gzip): Full framework namespaced under `@layer picotol.*` for host applications using CSS cascade layers (retained alias of `picotol.min.css`).
 
 ---
@@ -612,7 +612,7 @@ Callouts and status badges require explicit classes (`.pt-callout`, `.pt-badge`,
 | **Critical / Danger** | `--pt-status-critical-*` | Paul Tol Red (`#CC3311`) | Paul Tol Red (`#EE6677`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
 | **Info** | `--pt-status-info-*` | Paul Tol Blue (`#4477AA`) | Paul Tol Cyan (`#66CCEE`) | $\ge 4.5:1$ text, $\ge 3:1$ non-text |
 
-These tokens automatically power `.pt-status-dot`, `.status-dot`, `.pt-badge`, `.pt-indicator`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
+These tokens automatically power `.pt-dot`, `.pt-badge`, `.pt-indicator`, `.badge`, `.pt-callout`, and `.pt-meter-range` threshold indicators.
 
 > **Status Contrast Policy**: In accordance with WCAG 2.2 §1.4.1 (Use of Color) and §1.4.3 (Contrast (Minimum)), Paul Tol semantic status hues carry only non-text signals (borders, dots, and icons via `--pt-icon-color`). Status callout and badge text uses the high-contrast body foreground token (`--pt-color`), certifying $\ge 4.5:1$ text contrast on 8% alpha washes across both light and dark themes. Nested icons (`svg`, `[data-icon]`) automatically inherit the status hue via `--pt-icon-color`. Every documented status callout and badge requires a descriptive status word or icon so colour is never the sole carrier of state.
 
@@ -622,10 +622,10 @@ Ready-to-use component primitives (`.pt-badge` and `.pt-indicator`) map natively
 
 ```html
 <!-- Native Status Badges with Nested Status Dots -->
-<span class="pt-badge" data-status="ok"><span class="pt-status-dot ok"></span> Operational</span>
-<span class="pt-badge warning"><span class="pt-status-dot warning"></span> Degraded</span>
-<span class="pt-badge critical"><span class="pt-status-dot critical"></span> Outage</span>
-<span class="pt-badge info"><span class="pt-status-dot info"></span> Rebalancing</span>
+<span class="pt-badge" data-status="ok"><span class="pt-dot pt-dot--ok"></span> Operational</span>
+<span class="pt-badge warning"><span class="pt-dot pt-dot--warning"></span> Degraded</span>
+<span class="pt-badge critical"><span class="pt-dot pt-dot--critical"></span> Outage</span>
+<span class="pt-badge info"><span class="pt-dot pt-dot--info"></span> Rebalancing</span>
 
 <!-- Status Indicators & Semantic Chips -->
 <span class="pt-indicator ok">Online</span>
@@ -638,14 +638,14 @@ All status badges and indicators default to `font-variant-numeric: tabular-nums`
 
 ```html
 <!-- Tabular Numbers on Numeric Badges and Telemetry Indicators -->
-<span class="pt-badge pt-badge--numeric" data-status="ok"><span class="pt-status-dot ok"></span> 99.98% SLA</span>
-<span class="pt-badge pt-badge--numeric warning"><span class="pt-status-dot warning"></span> 1,420 ms P99</span>
+<span class="pt-badge pt-badge--numeric" data-status="ok"><span class="pt-dot pt-dot--ok"></span> 99.98% SLA</span>
+<span class="pt-badge pt-badge--numeric warning"><span class="pt-dot pt-dot--warning"></span> 1,420 ms P99</span>
 <span class="pt-indicator pt-indicator--numeric info">Turn #042</span>
 <span class="pt-indicator pt-tabular ok">1,842 tok/s</span>
 <span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span>
 ```
 
-High-density status dots (`.pt-dot`, `.pt-dot--ok`, `.status-dot`, `.pt-status-dot`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
+High-density status dots (`.pt-dot`, `.pt-dot--ok`, `.pt-dot--warning`, `.pt-dot--critical`, `.pt-dot--info`) map directly to Paul Tol's qualitative color ladder with WCAG 2.2 §1.4.11 contrast compliance ($\ge 3:1$) and Windows High Contrast support (`forced-colors: active`):
 
 ```html
 <!-- Standalone Status Dots (.pt-dot primitive) -->
@@ -668,7 +668,7 @@ High-contrast, unignorable severity banners (`.pt-callout`) feature 4px solid st
 <!-- Severity Callout -->
 <aside class="pt-callout pt-callout-critical">
   <strong>Critical Incident (#379)</strong>
-  <p><span class="pt-status-dot pt-status-dot-danger pulse"></span> High-severity degradation on primary cluster node.</p>
+  <p><span class="pt-dot pt-dot--critical pt-dot--pulse"></span> High-severity degradation on primary cluster node.</p>
   <p><button type="button" class="pt-copy-pill">kubectl logs pod/cluster-edge-01</button> <span class="pt-chip">p0-crit</span></p>
 </aside>
 ```
@@ -792,8 +792,8 @@ For data-dense applications, dashboards, and narrow IDE corridors, apply `[data-
         <tr><th>Host</th><th>Status</th><th>Latency</th></tr>
       </thead>
       <tbody>
-        <tr><td>edge-01.us-east</td><td><span class="pt-status-dot pt-status-dot-success"></span> Online</td><td>14ms</td></tr>
-        <tr><td>edge-02.eu-west</td><td><span class="pt-status-dot pt-status-dot-warning"></span> Degraded</td><td>142ms</td></tr>
+        <tr><td>edge-01.us-east</td><td><span class="pt-dot pt-dot--ok"></span> Online</td><td>14ms</td></tr>
+        <tr><td>edge-02.eu-west</td><td><span class="pt-dot pt-dot--warning"></span> Degraded</td><td>142ms</td></tr>
       </tbody>
     </table>
   </figure>
@@ -837,7 +837,7 @@ Toggle switches (`[role="switch"]`) provide native zero-JS toggle semantics with
 The interactive demonstration suite at `dist/demo/index.html` showcases:
 - **Opt-in `@layer picotol` Integration**: Cascade layer containment for modular host application embedding.
 - **Concurrent 4-Accent Subtree Theming**: `blue`, `cyan`, `purple`, and `magenta` run simultaneously in isolated scopes via `[data-accent]`.
-- **Operational Data Tables**: Responsive infrastructure monitor wrapped in `figure:has(> table)` and `.table-container` with `.tabular-nums` alignment, `.status-dot` indicators, and `table.striped`.
+- **Operational Data Tables**: Responsive infrastructure monitor wrapped in `figure:has(> table)` and `.table-container` with `.tabular-nums` alignment, `.pt-dot` indicators, and `table.striped`.
 - **Equal-Fill Segmented Controls & Icon Buttons**: View navigators with `flex: 1 1 0` equal distribution and 1:1 square icon buttons (`.btn-icon`, `.icon-btn`).
 - **Interactive Dashboard Console**: Tabpanel switching (`Overview`, `Analytics`, `System Logs`) and segmented time filters (`1H`, `24H`, `7D`, `30D`) with zero-CLS skeleton loading transitions (`.skeleton`).
 - **Paul Tol Canonical Palette Explorer**: Swatch grid of all canonical colours loaded from `data/tol-qualitative.json` with live search filtering and click-to-copy tokens.
