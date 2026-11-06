@@ -19,7 +19,22 @@ import {
   extractCssClassesFromSource,
   findUndocumentedCssClasses,
 } from './helpers/doc-lint.mjs';
-import { DEPRECATED_CLASS_ALLOWLIST } from '../tools/lint.mjs';
+
+const REMOVED_LEGACY_CLASSES = new Set([
+  'accordion-card', 'active', 'badge', 'body', 'bottom', 'btn', 'btn-icon',
+  'button', 'card', 'card-body', 'close', 'container', 'container-fluid',
+  'contrast', 'critical', 'danger', 'description', 'dropdown', 'end', 'fill',
+  'flex', 'form-row', 'grid', 'icon', 'icon-btn', 'idle', 'info',
+  'inline-form', 'invalid', 'label', 'm-0', 'mb-0', 'measure', 'neutral',
+  'no-margin', 'no-margin-bottom', 'nowrap', 'ok', 'outline', 'overflow-auto',
+  'primary', 'prose', 'pulse', 'secondary', 'segmented', 'segmented-equal',
+  'segmented-fill', 'sheet', 'sheet-body', 'sheet-footer', 'sheet-header',
+  'sheet-left', 'sheet-right', 'show', 'skeleton', 'skip-to-content', 'sm',
+  'small', 'solid', 'sr-only', 'sr-only-focusable', 'stat', 'stats',
+  'status-dot', 'striped', 'success', 'swatch', 'table-container',
+  'tabular-nums', 'toast', 'trend', 'valid', 'value', 'visually-hidden',
+  'visually-hidden-focusable', 'warning',
+]);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -37,9 +52,19 @@ export const HISTORICAL_DOC_ALLOWLIST = [
   { file: 'CHANGELOG.md', token: '--pt-form-element-spacing-vertical', count: 2 },
   { file: 'CHANGELOG.md', token: '--pt-form-element-spacing-horizontal', count: 2 },
   { file: 'CHANGELOG.md', token: '--pt-btn-padding-block', count: 2 },
+  { file: 'CHANGELOG.md', token: '.pt-status-dot*', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_1_0.md', token: '.status-dot', count: 2 },
+  { file: 'docs/RELEASE_NOTES_V0_1_0.md', token: '.pt-status-dot', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_1_0.md', token: '.segmented-fill', count: 1 },
   { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-form-element-spacing-vertical', count: 1 },
   { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-form-element-spacing-horizontal', count: 1 },
   { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '--pt-btn-padding-block', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '.status-dot', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_2_0.md', token: '.pt-status-dot', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_4_0.md', token: '.segmented-fill', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.segmented-fill', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_5_0.md', token: '.segmented-equal', count: 1 },
+  { file: 'docs/RELEASE_NOTES_V0_6_0.md', token: '.pt-status-dot*', count: 1 },
 ];
 
 test('doc-lint: validate README.md, CHANGELOG.md (current version), and all docs/RELEASE_NOTES_*.md against dist/picotol.css', () => {
@@ -180,7 +205,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
 
   // Valid wildcard and brace patterns pass against dist/picotol.css
   const validPatternsResult = validateDocTokens(
-    'Valid `--pt-*`, `--pt-status-*-fg`, `.pt-meter-mark--*`, `.segmented-{fill,equal}`, and `--pt-status-{ok,warning}-{fg,bg}`.',
+    'Valid `--pt-*`, `--pt-status-*-fg`, `.pt-meter-mark--*`, `.pt-segmented-{fill,equal}`, and `--pt-status-{ok,warning}-{fg,bg}`.',
     distCss,
     'README.md',
     TEMPORARY_ALLOWLIST
@@ -189,7 +214,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
 
   // Phantom wildcard and phantom brace branches fail closed against dist/picotol.css
   const phantomPatternsResult = validateDocTokens(
-    'Invalid `--pt-phantom-*-fg`, `.pt-phantom--*`, `.segmented-{fill,phantom}`, and `--pt-status-{ok,phantom}-fg`.',
+    'Invalid `--pt-phantom-*-fg`, `.pt-phantom--*`, `.pt-segmented-{fill,phantom}`, and `--pt-status-{ok,phantom}-fg`.',
     distCss,
     'README.md',
     TEMPORARY_ALLOWLIST
@@ -197,7 +222,7 @@ test('doc-lint: parser handles compound selectors, wildcard/brace validation, fe
   assert.deepEqual(phantomPatternsResult.missing, [
     '--pt-phantom-*-fg',
     '.pt-phantom--*',
-    '.segmented-phantom',
+    '.pt-segmented-phantom',
     '--pt-status-phantom-fg',
   ]);
 
@@ -490,7 +515,7 @@ test('doc-lint: flags deprecated status dot primitives and aliases in docs (Issu
   assert.deepEqual(allowed.deprecated, []);
 });
 
-test('doc-lint: README.md strictly uses canonical v0.6.0 selectors and zero deprecated class aliases (ADR 0001 §7)', () => {
+test('doc-lint: README.md strictly uses canonical v0.7.0 selectors and zero deprecated class aliases (ADR 0001 §7, Issue #275)', () => {
   const readmeContent = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   const violations = [];
 
@@ -500,7 +525,7 @@ test('doc-lint: README.md strictly uses canonical v0.6.0 selectors and zero depr
   while ((cm = htmlClassAttrRe.exec(readmeContent)) !== null) {
     const classVal = cm[1] ?? cm[2] ?? cm[3] ?? '';
     for (const cls of classVal.split(/\s+/).filter(Boolean)) {
-      if (DEPRECATED_CLASS_ALLOWLIST.has(cls)) {
+      if (REMOVED_LEGACY_CLASSES.has(cls)) {
         violations.push(`HTML class="${classVal}" uses deprecated class ".${cls}"`);
       }
     }
@@ -511,7 +536,7 @@ test('doc-lint: README.md strictly uses canonical v0.6.0 selectors and zero depr
   let sm;
   while ((sm = codeSpanRe.exec(readmeContent)) !== null) {
     const cls = sm[1];
-    if (DEPRECATED_CLASS_ALLOWLIST.has(cls)) {
+    if (REMOVED_LEGACY_CLASSES.has(cls)) {
       violations.push(`Code span uses deprecated class ".${cls}"`);
     }
   }

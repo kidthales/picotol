@@ -20,7 +20,6 @@ import {
   stripCssCommentsAndStrings,
   lintClassNamingConventions,
   lintDeprecatedSelectorAnnotations,
-  DEPRECATED_CLASS_ALLOWLIST,
   DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST,
 } from '../tools/lint.mjs';
 import {
@@ -315,32 +314,28 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
     '[fixtures/str-comment-bundle.css] Undefined CSS custom property referenced: --pt-hidden-undefined',
   ]);
 
-  const badBundledCss = `:root { --pt-defined: #4477AA; } .btn { color: var(--pt-defined); background: var(--pt-undefined-var); border-color: var(--pt-btn-color, #4477AA); left: var(--marker-pos, 50%); }`;
+  const badBundledCss = `:root { --pt-defined: #4477AA; } .pt-btn { color: var(--pt-defined); background: var(--pt-undefined-var); border-color: var(--pt-btn-color, #4477AA); left: var(--pt-marker-pos, 50%); }`;
   const bundleErrors = lintBundledCss(badBundledCss, 'fixtures/bundle.css');
   assert.deepEqual(bundleErrors, [
     '[fixtures/bundle.css] Undefined CSS custom property referenced: --pt-undefined-var',
   ]);
-  const noFallbackHookCss = `.btn { color: var(--pt-btn-color); left: var(--marker-pos); }`;
+  const noFallbackHookCss = `.pt-btn { color: var(--pt-btn-color); left: var(--marker-pos); }`;
   assert.deepEqual(lintBundledCss(noFallbackHookCss, 'fixtures/no-fallback.css'), [
     '[fixtures/no-fallback.css] Undefined CSS custom property referenced: --pt-btn-color',
     '[fixtures/no-fallback.css] Undefined CSS custom property referenced: --marker-pos',
   ]);
-  const ptMarkerPosHookCss = `.btn { left: var(--pt-marker-pos, 0%); }`;
+  const ptMarkerPosHookCss = `.pt-btn { left: var(--pt-marker-pos, 0%); }`;
   assert.deepEqual(lintBundledCss(ptMarkerPosHookCss, 'fixtures/pt-marker.css'), []);
 
-  // Canonical class prefix & deprecated alias allowlist validation (Issue #214)
-  assert.equal(DEPRECATED_CLASS_ALLOWLIST.size, 76, 'DEPRECATED_CLASS_ALLOWLIST must contain exactly 76 entries');
-  assert.ok(DEPRECATED_CLASS_ALLOWLIST.has('card'));
-  assert.ok(DEPRECATED_CLASS_ALLOWLIST.has('badge'));
-  assert.ok(DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST.has('--marker-pos'));
+  // Canonical class prefix & removal of deprecated alias allowlist (Issue #214, #275)
+  assert.ok(!DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST.has('--marker-pos'));
 
-  const badPrefixCss = `.pt-valid-class { color: #4477AA; } .unprefixed-bogus { color: #4477AA; }`;
+  const badPrefixCss = `.pt-valid-class { color: #4477AA; } .unprefixed-bogus { color: #4477AA; } .card { color: #4477AA; }`;
   const prefixErrors = lintClassNamingConventions(badPrefixCss, 'src/components.css');
   assert.deepEqual(prefixErrors, [
-    '[src/components.css] Invalid public class ".unprefixed-bogus" (must be pt- prefixed or explicitly allowlisted as a deprecated alias)',
+    '[src/components.css] Invalid public class ".unprefixed-bogus" (must be pt- prefixed)',
+    '[src/components.css] Invalid public class ".card" (must be pt- prefixed)',
   ]);
-  const allowedDeprecatedCss = `.card { color: #4477AA; } .pt-card { color: #4477AA; }`;
-  assert.deepEqual(lintClassNamingConventions(allowedDeprecatedCss, 'src/components.css'), []);
   assert.deepEqual(lintClassNamingConventions(badPrefixCss, 'fixtures/other.css'), []);
 
   // Deprecated status & dot selector annotation gate validation (ADR 0001 §3, Issue #208)
@@ -366,9 +361,9 @@ test('tools/lint.mjs: fixture tests for lintCssSnippet and runLint', () => {
   const annotatedBacklogCss = `/* @deprecated: removed in v0.7.0 */\n[data-status="backlog"] { color: #4477AA; }`;
   assert.deepEqual(lintDeprecatedSelectorAnnotations(annotatedBacklogCss, 'src/components.css'), []);
 
-  const incompleteDistCss = `:focus-visible { outline: 2px solid #4477AA; } .skip-to-content {} .sr-only {}`;
+  const incompleteDistCss = `:focus-visible { outline: 2px solid #4477AA; } .pt-skip-to-content {} .pt-sr-only {}`;
   const distRuleErrors = lintDistAccessibilityRules(incompleteDistCss, 'fixtures/dist.css');
-  assert.ok(distRuleErrors.some((e) => e.includes('".overflow-auto"')));
+  assert.ok(distRuleErrors.some((e) => e.includes('".pt-overflow-auto"')));
   assert.ok(distRuleErrors.some((e) => e.includes('"prefers-reduced-motion: reduce"')));
   assert.ok(distRuleErrors.some((e) => e.includes('"forced-colors: active"')));
   assert.ok(distRuleErrors.some((e) => e.includes('"@media print"')));

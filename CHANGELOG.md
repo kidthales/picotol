@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+- **Removal of `@layer picotol.legacy`**: Completely removed `@layer picotol.legacy` and deprecated bare semantic selectors (`aside:not(...)`, `[role="alert"]`, `[role="status"]`) from all source and distribution bundles. Cascade layer preamble is now `@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;` (#275).
+- **Removal of Unprefixed Class Aliases**: Removed all legacy unprefixed class aliases (`.card`, `.grid`, `.flex`, `.button`, `.btn`, `.sheet`, `.dialog`, `.primary`, `.secondary`, `.contrast`, `.outline`, `.small`, `.sm`, `.striped`, `.solid`, `.swatch`, `.nowrap`, `.end`, `.fill`, `.show`, `.sr-only`, `.visually-hidden`, `.skip-to-content`, `.overflow-auto`, `.table-container`, etc.) across all stylesheets. All public classes are now strictly canonical and prefixed with `pt-` (#275).
+- **Removal of Deprecated Status and Dot Aliases**: Removed legacy status dot primitives and vocabulary aliases: `.status-dot`, `.pt-status-dot*`, `.pulse`, `.pt-callout-success`, `.pt-callout-danger`, `.pt-dot--success`, `.pt-dot--danger`, and bare status classes (`.ok`, `.info`, `.warning`, `.critical`, `.success`, `.danger`, `.valid`, `.invalid`) in favor of canonical `.pt-dot`, `.pt-pulse`, and canonical status vocabulary `ok | info | warning | critical` (#275).
+- **Removal of Deprecated `--marker-pos` Fallback**: Removed legacy `--marker-pos` custom property fallback read in `src/components.css` and removed from `DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST` in favor of canonical `--pt-marker-pos` (#275).
+
 ## [0.6.0] - 2026-11-05
 
 Eighth public open-source pre-release of `@kidthales/picotol`. Major breaking API consolidation milestone introducing namespaced cascade layers (`@layer picotol.*`), canonical `pt-*` class prefixing, four-state status vocabulary (`ok | info | warning | critical`), opt-in flex column body layout (`body.pt-app`), and removal of deprecated derived density tokens. For detailed narrative and migration guidance, see [Release Notes v0.6.0](docs/RELEASE_NOTES_V0_6_0.md) and [v0.6 Migration Guide](docs/migrate-0.6.md).

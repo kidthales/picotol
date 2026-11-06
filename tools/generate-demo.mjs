@@ -77,13 +77,13 @@ function badgeHtml(ratioNum) {
 }
 
 function swatchHtml(hex) {
-  return `<span class="swatch" aria-hidden="true" style="background:${hex};"></span>`;
+  return `<span class="pt-swatch" aria-hidden="true" style="background:${hex};"></span>`;
 }
 
 function formatScoreCell(hex, token, ratioNum, hoverHex, hoverRatioNum) {
   const ratio = ratioNum.toFixed(2);
   const hoverRatio = hoverRatioNum.toFixed(2);
-  return `<div class="nowrap">${swatchHtml(hex)}<code>${hex}</code> · <strong>${ratio}:1</strong> ${badgeHtml(ratioNum)} <small>(${token})</small></div><small class="nowrap">Hover: ${swatchHtml(hoverHex)}<code>${hoverHex}</code> · <strong>${hoverRatio}:1</strong> ${badgeHtml(hoverRatioNum)}</small>`;
+  return `<div class="pt-nowrap">${swatchHtml(hex)}<code>${hex}</code> · <strong>${ratio}:1</strong> ${badgeHtml(ratioNum)} <small>(${token})</small></div><small class="pt-nowrap">Hover: ${swatchHtml(hoverHex)}<code>${hoverHex}</code> · <strong>${hoverRatio}:1</strong> ${badgeHtml(hoverRatioNum)}</small>`;
 }
 
 export function generateDemoHtml(fullMinCss, stats) {
@@ -148,13 +148,13 @@ export function generateDemoHtml(fullMinCss, stats) {
     });
   }
 
-  const swatchCardsHtml = swatches.map((sw) => `        <article data-swatch="true" data-search="${sw.scheme} ${sw.name} ${sw.token} ${sw.hex.toLowerCase()}" class="mb-0" style="cursor:pointer;" tabindex="0" role="button" aria-label="Copy ${sw.token} (${sw.hex}) to clipboard">
+  const swatchCardsHtml = swatches.map((sw) => `        <article data-swatch="true" data-search="${sw.scheme} ${sw.name} ${sw.token} ${sw.hex.toLowerCase()}" class="pt-mb-0" style="cursor:pointer;" tabindex="0" role="button" aria-label="Copy ${sw.token} (${sw.hex}) to clipboard">
           <div style="height:3.5rem;background:${sw.hex};border-radius:var(--pt-border-radius);border:1px solid var(--pt-muted-border);margin-bottom:0.75rem;" aria-hidden="true"></div>
           <div style="display:flex;flex-direction:column;gap:0.35rem;">
             <p style="margin:0;font-size:0.95rem;"><strong><code>${sw.token}</code></strong></p>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <code style="font-size:0.85rem;">${sw.hex}</code>
-              <span class="badge" style="font-size:0.75rem;">${sw.scheme}</span>
+              <span class="pt-badge" style="font-size:0.75rem;">${sw.scheme}</span>
             </div>
           </div>
         </article>`).join('\n');
@@ -169,7 +169,7 @@ export function generateDemoHtml(fullMinCss, stats) {
   <style>${fullMinCss}</style>
 </head>
 <body class="pt-app">
-  <a href="#main-content" class="skip-to-content">Skip to main content</a>
+  <a href="#main-content" class="pt-skip-to-content">Skip to main content</a>
   <header>
     <nav>
       <ul>
@@ -187,22 +187,22 @@ export function generateDemoHtml(fullMinCss, stats) {
       </ul>
       <ul>
         <li>
-          <div role="group" aria-label="Visual Accent Selector" class="mb-0">
-            <button type="button" class="outline small" data-set-accent="blue" title="Blue Accent">Blue</button>
-            <button type="button" class="outline small" data-set-accent="cyan" title="Cyan Accent">Cyan</button>
-            <button type="button" class="outline small" data-set-accent="purple" title="Purple Accent">Purple</button>
-            <button type="button" class="outline small" data-set-accent="magenta" title="Magenta Accent">Magenta</button>
+          <div role="group" aria-label="Visual Accent Selector" class="pt-mb-0">
+            <button type="button" class="pt-outline pt-small" data-set-accent="blue" title="Blue Accent">Blue</button>
+            <button type="button" class="pt-outline pt-small" data-set-accent="cyan" title="Cyan Accent">Cyan</button>
+            <button type="button" class="pt-outline pt-small" data-set-accent="purple" title="Purple Accent">Purple</button>
+            <button type="button" class="pt-outline pt-small" data-set-accent="magenta" title="Magenta Accent">Magenta</button>
           </div>
         </li>
         <li>
-          <select id="accent-select" class="small mb-0" aria-label="Select accent hue">
+          <select id="accent-select" class="pt-small pt-mb-0" aria-label="Select accent hue">
             <option value="blue">Accent: Blue</option>
             <option value="cyan">Accent: Cyan</option>
             <option value="purple">Accent: Purple</option>
             <option value="magenta">Accent: Magenta</option>
           </select>
         </li>
-        <li><button type="button" id="theme-toggle" class="outline small">☀️ Light</button></li>
+        <li><button type="button" id="theme-toggle" class="pt-outline pt-small">☀️ Light</button></li>
       </ul>
     </nav>
   </header>
@@ -224,7 +224,7 @@ export function generateDemoHtml(fullMinCss, stats) {
 
     <section id="scorecard">
       <h2>1. Bundle Size &amp; WCAG 2.2 Contrast Scorecard</h2>
-      <div class="grid">
+      <div class="pt-grid">
         <article>
           <header><strong>Core Bundle (<code>picotol.core.min.css</code>)</strong></header>
           <main>
@@ -247,14 +247,14 @@ export function generateDemoHtml(fullMinCss, stats) {
           <footer><small>Namespaced in <code>@layer picotol.*</code> for cascade containment</small></footer>
         </article>
       </div>
-      <aside>
+      <aside class="pt-callout">
         <p><strong>Host Cascade Integration (<code>@layer picotol</code>):</strong> For applications using CSS <code>@layer</code>, import the layered build to guarantee seamless token overriding without specificity conflicts:</p>
         <pre><code>@layer host, picotol, overrides;
 @import "@kidthales/picotol/layer";</code></pre>
       </aside>
       <p><small><strong>How to read contrast ratios:</strong> Luminance contrast ranges from <code>1:1</code> (invisible) to <code>21:1</code> (pure black on white). <ins><strong>✓ AAA</strong></ins> (<code>&ge; 7.0:1</code>) is the highest W3C tier (enhanced low-vision legibility); <mark><strong>✓ AA</strong></mark> (<code>&ge; 4.5:1</code>) is the standard pass threshold for normal body text and UI controls.</small></p>
-      <div class="overflow-auto">
-        <table class="striped">
+      <div class="pt-overflow-auto">
+        <table class="pt-striped">
           <thead>
             <tr>
               <th>Accent (<code>[data-accent]</code>)</th>
@@ -276,39 +276,39 @@ ${rowsHtml}
     <section id="subtrees">
       <h2>2. Concurrent Subtree Theming</h2>
       <p>Picotol provides container-level <code>[data-accent]</code> scoping without color-scheme leakage. Multiple distinct accent trees run concurrently side-by-side in isolated container scopes with distinct buttons, switches, badges, and progress indicators.</p>
-      <div class="grid">
+      <div class="pt-grid">
         <article data-accent="blue">
           <header><strong>Blue Subtree</strong></header>
-          <p><span class="badge primary">Blue Accent</span> <span class="badge">Neutral</span></p>
+          <p><span class="pt-badge pt-primary">Blue Accent</span> <span class="pt-badge">Neutral</span></p>
           <p><button type="button">Primary</button></p>
-          <p><button type="button" class="outline">Outline</button></p>
+          <p><button type="button" class="pt-outline">Outline</button></p>
           <label><input type="checkbox" role="switch" checked> Active Switch</label>
           <progress value="65" max="100"></progress>
           <footer><small>Scoped via <code>data-accent="blue"</code></small></footer>
         </article>
         <article data-accent="cyan">
           <header><strong>Cyan Subtree</strong></header>
-          <p><span class="badge primary">Cyan Accent</span> <span class="badge">Neutral</span></p>
+          <p><span class="pt-badge pt-primary">Cyan Accent</span> <span class="pt-badge">Neutral</span></p>
           <p><button type="button">Primary</button></p>
-          <p><button type="button" class="outline">Outline</button></p>
+          <p><button type="button" class="pt-outline">Outline</button></p>
           <label><input type="checkbox" role="switch" checked> Active Switch</label>
           <progress value="80" max="100"></progress>
           <footer><small>Scoped via <code>data-accent="cyan"</code></small></footer>
         </article>
         <article data-accent="purple">
           <header><strong>Purple Subtree</strong></header>
-          <p><span class="badge primary">Purple Accent</span> <span class="badge">Neutral</span></p>
+          <p><span class="pt-badge pt-primary">Purple Accent</span> <span class="pt-badge">Neutral</span></p>
           <p><button type="button">Primary</button></p>
-          <p><button type="button" class="outline">Outline</button></p>
+          <p><button type="button" class="pt-outline">Outline</button></p>
           <label><input type="checkbox" role="switch" checked> Active Switch</label>
           <progress value="45" max="100"></progress>
           <footer><small>Scoped via <code>data-accent="purple"</code></small></footer>
         </article>
         <article data-accent="magenta">
           <header><strong>Magenta Subtree</strong></header>
-          <p><span class="badge primary">Magenta Accent</span> <span class="badge">Neutral</span></p>
+          <p><span class="pt-badge pt-primary">Magenta Accent</span> <span class="pt-badge">Neutral</span></p>
           <p><button type="button">Primary</button></p>
-          <p><button type="button" class="outline">Outline</button></p>
+          <p><button type="button" class="pt-outline">Outline</button></p>
           <label><input type="checkbox" role="switch" checked> Active Switch</label>
           <progress value="90" max="100"></progress>
           <footer><small>Scoped via <code>data-accent="magenta"</code></small></footer>
@@ -320,13 +320,13 @@ ${rowsHtml}
 
     <section id="typography">
       <h2>3. Typography &amp; Inline Semantics</h2>
-      <p class="measure">Body copy uses the system font stack with fluid root sizing via <code>clamp(100%, 95% + 0.4vw, 125%)</code> and an opt-in <code>75ch</code> reading measure via <code>:where(.measure, .prose)</code>. Links like <a href="#typography">primary link</a>, <a href="#typography" class="secondary">secondary link</a>, <a href="#typography" class="contrast">contrast link</a>, and <a href="https://github.com/kidthales/tol-palettes" target="_blank" rel="noopener noreferrer">external link<span class="sr-only"> (opens in a new tab)</span></a> step along Paul Tol's qualitative lightness ladder on hover.</p>
+      <p class="pt-measure">Body copy uses the system font stack with fluid root sizing via <code>clamp(100%, 95% + 0.4vw, 125%)</code> and an opt-in <code>75ch</code> reading measure via <code>:where(.measure, .prose)</code>. Links like <a href="#typography">primary link</a>, <a href="#typography" class="pt-secondary">secondary link</a>, <a href="#typography" class="pt-contrast">contrast link</a>, and <a href="https://github.com/kidthales/tol-palettes" target="_blank" rel="noopener noreferrer">external link<span class="pt-sr-only"> (opens in a new tab)</span></a> step along Paul Tol's qualitative lightness ladder on hover.</p>
       <p>Inline elements include <strong>strong</strong>, <em>emphasis</em>, <mark>highlighted mark</mark>, <ins>inserted text</ins>, <del>deleted text</del>, <code>inline code</code>, <kbd>Ctrl + K</kbd>, and <abbr title="Paul Tol Colour Schemes">PTCS</abbr> (<span data-tooltip="Pure CSS tooltip via [data-tooltip]" aria-label="hover or focus for tooltip: Pure CSS tooltip via [data-tooltip]" tabindex="0">hover or focus for tooltip</span>).</p>
       <blockquote>
         "The contrast ratio between each colour in the dark scheme and white is at least 4.5 for people with moderately low vision."
         <footer>— <cite>Paul Tol, SRON Notes on Colour Schemes</cite></footer>
       </blockquote>
-      <div class="grid">
+      <div class="pt-grid">
         <div>
           <h3>Unordered List</h3>
           <ul>
@@ -351,46 +351,46 @@ ${rowsHtml}
       <h2>4. Buttons &amp; Role Variants</h2>
       <p>
         <button type="button">Primary</button>
-        <button type="button" class="secondary">Secondary</button>
-        <button type="button" class="contrast">Contrast</button>
+        <button type="button" class="pt-secondary">Secondary</button>
+        <button type="button" class="pt-contrast">Contrast</button>
         <button type="button" disabled>Disabled</button>
       </p>
       <p>
-        <button type="button" class="outline">Primary Outline</button>
-        <button type="button" class="outline secondary">Secondary Outline</button>
-        <button type="button" class="outline contrast">Contrast Outline</button>
+        <button type="button" class="pt-outline">Primary Outline</button>
+        <button type="button" class="pt-outline pt-secondary">Secondary Outline</button>
+        <button type="button" class="pt-outline pt-contrast">Contrast Outline</button>
         <button type="button" aria-busy="true">Loading</button>
       </p>
       <h3>Connected Button Group Toolbar</h3>
       <div role="group" aria-label="Document actions">
         <button type="button">Cut</button>
-        <button type="button" class="outline">Copy</button>
-        <button type="button" class="outline">Paste</button>
-        <button type="button" class="secondary">Format</button>
+        <button type="button" class="pt-outline">Copy</button>
+        <button type="button" class="pt-outline">Paste</button>
+        <button type="button" class="pt-secondary">Format</button>
       </div>
       <h3>Class Parity (.btn, .button) &amp; Compact Sizing (.small, .sm)</h3>
       <p>
-        <a href="#buttons" class="btn" role="button">Link as .btn</a>
-        <a href="#buttons" class="button secondary" role="button">Link as .button</a>
-        <button type="button" class="btn small">Compact .btn.small</button>
-        <button type="button" class="outline sm">Compact Outline .sm</button>
+        <a href="#buttons" class="pt-btn" role="button">Link as .btn</a>
+        <a href="#buttons" class="pt-button pt-secondary" role="button">Link as .button</a>
+        <button type="button" class="pt-btn pt-small">Compact .btn.small</button>
+        <button type="button" class="pt-outline pt-sm">Compact Outline .sm</button>
       </p>
       <h3>Dedicated Square Icon Buttons (<code>.btn-icon</code>, <code>.icon-btn</code>)</h3>
       <p style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-        <button type="button" class="btn-icon" aria-label="Search" title="Search">
-          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <button type="button" class="pt-btn-icon" aria-label="Search" title="Search">
+          <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         </button>
-        <button type="button" class="btn-icon secondary" aria-label="Settings" title="Settings">
-          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <button type="button" class="pt-btn-icon pt-secondary" aria-label="Settings" title="Settings">
+          <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
-        <button type="button" class="icon-btn outline" aria-label="Refresh" title="Refresh">
-          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        <button type="button" class="pt-icon-btn pt-outline" aria-label="Refresh" title="Refresh">
+          <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
         </button>
-        <button type="button" class="icon-btn contrast" aria-label="Bookmark" title="Bookmark">
-          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+        <button type="button" class="pt-icon-btn pt-contrast" aria-label="Bookmark" title="Bookmark">
+          <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
         </button>
-        <button type="button" class="btn-icon small outline secondary" aria-label="Filter (Compact)" title="Filter">
-          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+        <button type="button" class="pt-btn-icon pt-small pt-outline pt-secondary" aria-label="Filter (Compact)" title="Filter">
+          <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
         </button>
       </p>
     </section>
@@ -400,7 +400,7 @@ ${rowsHtml}
     <section id="forms">
       <h2>5. Native Forms &amp; Extended Controls</h2>
       <form>
-        <div class="grid">
+        <div class="pt-grid">
           <label>
             Project Name
             <input type="text" placeholder="picotol" required>
@@ -414,7 +414,7 @@ ${rowsHtml}
             </select>
           </label>
         </div>
-        <div class="grid">
+        <div class="pt-grid">
           <div>
             <label for="valid-input">Verified Input (<code>aria-invalid="false"</code>)</label>
             <input id="valid-input" type="text" value="#4477AA" aria-invalid="false" aria-describedby="valid-help">
@@ -426,7 +426,7 @@ ${rowsHtml}
             <small id="invalid-help">Hex literal is not in tol-palettes.</small>
           </div>
         </div>
-        <div class="grid">
+        <div class="pt-grid">
           <div>
             <label for="file-upload">Attachment Upload</label>
             <input id="file-upload" type="file">
@@ -451,22 +451,22 @@ ${rowsHtml}
         </label>
         <div role="group" aria-label="Form Submission Controls">
           <button type="submit">Submit Form</button>
-          <button type="reset" class="secondary">Reset</button>
-          <button type="button" class="outline contrast">Cancel</button>
+          <button type="reset" class="pt-secondary">Reset</button>
+          <button type="button" class="pt-outline pt-contrast">Cancel</button>
         </div>
         <div role="search">
           <input type="search" placeholder="Search color tokens..." aria-label="Search color tokens">
           <button type="submit">Search</button>
         </div>
         <h3>Horizontal Form Row Alignment (.form-row, .inline-form)</h3>
-        <div class="form-row">
+        <div class="pt-form-row">
           <input type="email" placeholder="user@example.com" aria-label="Email address">
           <select aria-label="Role selection">
             <option>Editor</option>
             <option>Admin</option>
             <option>Viewer</option>
           </select>
-          <button type="button" class="btn">Invite User</button>
+          <button type="button" class="pt-btn">Invite User</button>
         </div>
       </form>
     </section>
@@ -478,7 +478,7 @@ ${rowsHtml}
       <p>Data tables feature automatic tabular numeric alignment, alternating zebra stripes via <code>table.striped</code>, status dot indicators, and horizontal scrolling via responsive <code>figure:has(&gt; table)</code> and <code>.overflow-auto</code>.</p>
       <figure>
         <figcaption>Cluster Infrastructure Node Fleet Status (Production US-East)</figcaption>
-        <table class="striped">
+        <table class="pt-striped">
           <thead>
             <tr>
               <th scope="col">Node ID</th>
@@ -493,44 +493,44 @@ ${rowsHtml}
             <tr>
               <td><code>edge-us-east-01</code></td>
               <td>us-east-1a</td>
-              <td class="tabular-nums">24.5%</td>
-              <td class="tabular-nums">3.8 / 16 GB</td>
-              <td class="tabular-nums">12 ms</td>
-              <td><span class="status-dot success"></span><span class="badge valid">Operational</span></td>
+              <td class="pt-tabular-nums">24.5%</td>
+              <td class="pt-tabular-nums">3.8 / 16 GB</td>
+              <td class="pt-tabular-nums">12 ms</td>
+              <td><span class="pt-dot pt-dot--ok"></span><span class="pt-badge pt-ok">Operational</span></td>
             </tr>
             <tr>
               <td><code>edge-us-east-02</code></td>
               <td>us-east-1b</td>
-              <td class="tabular-nums">78.2%</td>
-              <td class="tabular-nums">14.1 / 16 GB</td>
-              <td class="tabular-nums">28 ms</td>
-              <td><span class="status-dot warning"></span><span class="badge warning">Warning</span></td>
+              <td class="pt-tabular-nums">78.2%</td>
+              <td class="pt-tabular-nums">14.1 / 16 GB</td>
+              <td class="pt-tabular-nums">28 ms</td>
+              <td><span class="pt-dot pt-dot--warning"></span><span class="pt-badge pt-warning">Warning</span></td>
             </tr>
             <tr>
               <td><code>edge-us-east-03</code></td>
               <td>us-east-1c</td>
-              <td class="tabular-nums">96.8%</td>
-              <td class="tabular-nums">15.9 / 16 GB</td>
-              <td class="tabular-nums">145 ms</td>
-              <td><span class="status-dot danger"></span><span class="badge invalid">Critical</span></td>
+              <td class="pt-tabular-nums">96.8%</td>
+              <td class="pt-tabular-nums">15.9 / 16 GB</td>
+              <td class="pt-tabular-nums">145 ms</td>
+              <td><span class="pt-dot pt-dot--critical"></span><span class="pt-badge pt-invalid">Critical</span></td>
             </tr>
             <tr>
               <td><code>edge-us-east-04</code></td>
               <td>us-east-1d</td>
-              <td class="tabular-nums">18.0%</td>
-              <td class="tabular-nums">2.4 / 16 GB</td>
-              <td class="tabular-nums">9 ms</td>
-              <td><span class="status-dot success"></span><span class="badge valid">Operational</span></td>
+              <td class="pt-tabular-nums">18.0%</td>
+              <td class="pt-tabular-nums">2.4 / 16 GB</td>
+              <td class="pt-tabular-nums">9 ms</td>
+              <td><span class="pt-dot pt-dot--ok"></span><span class="pt-badge pt-ok">Operational</span></td>
             </tr>
           </tbody>
           <tfoot>
             <tr>
               <th scope="row">Cluster Average / Total</th>
               <td>4 Active Nodes</td>
-              <td class="tabular-nums">54.4% Avg</td>
-              <td class="tabular-nums">36.2 / 64 GB</td>
-              <td class="tabular-nums">48 ms P95</td>
-              <td><span class="status-dot info"></span><span class="badge primary">4 Monitored</span></td>
+              <td class="pt-tabular-nums">54.4% Avg</td>
+              <td class="pt-tabular-nums">36.2 / 64 GB</td>
+              <td class="pt-tabular-nums">48 ms P95</td>
+              <td><span class="pt-dot pt-dot--info"></span><span class="pt-badge pt-primary">4 Monitored</span></td>
             </tr>
           </tfoot>
         </table>
@@ -538,8 +538,8 @@ ${rowsHtml}
 
       <h3>Table Container Utility (<code>.overflow-auto</code> / <code>.table-container</code>)</h3>
       <p>Multi-column wide tabular datasets wrapped in <code>.overflow-auto</code> or <code>.table-container</code> maintain localized horizontal scrolling without window blowouts:</p>
-      <div class="overflow-auto table-container">
-        <table class="striped">
+      <div class="pt-overflow-auto pt-table-container">
+        <table class="pt-striped">
           <thead>
             <tr>
               <th scope="col">Service Name</th>
@@ -557,50 +557,50 @@ ${rowsHtml}
           <tbody>
             <tr>
               <td><strong>auth-service</strong></td>
-              <td><span class="status-dot success"></span>Healthy</td>
-              <td class="tabular-nums">1,240 req/s</td>
-              <td class="tabular-nums">1,180 req/s</td>
-              <td class="tabular-nums">0.01%</td>
-              <td class="tabular-nums">4.2 ms</td>
-              <td class="tabular-nums">18.4 ms</td>
-              <td class="tabular-nums">8 / 8</td>
-              <td class="tabular-nums">99.99%</td>
+              <td><span class="pt-dot pt-dot--ok"></span>Healthy</td>
+              <td class="pt-tabular-nums">1,240 req/s</td>
+              <td class="pt-tabular-nums">1,180 req/s</td>
+              <td class="pt-tabular-nums">0.01%</td>
+              <td class="pt-tabular-nums">4.2 ms</td>
+              <td class="pt-tabular-nums">18.4 ms</td>
+              <td class="pt-tabular-nums">8 / 8</td>
+              <td class="pt-tabular-nums">99.99%</td>
               <td><code>us-east-1a</code></td>
             </tr>
             <tr>
               <td><strong>billing-gateway</strong></td>
-              <td><span class="status-dot warning"></span>Degraded</td>
-              <td class="tabular-nums">420 req/s</td>
-              <td class="tabular-nums">390 req/s</td>
-              <td class="tabular-nums">1.45%</td>
-              <td class="tabular-nums">42.1 ms</td>
-              <td class="tabular-nums">280.0 ms</td>
-              <td class="tabular-nums">4 / 4</td>
-              <td class="tabular-nums">99.82%</td>
+              <td><span class="pt-dot pt-dot--warning"></span>Degraded</td>
+              <td class="pt-tabular-nums">420 req/s</td>
+              <td class="pt-tabular-nums">390 req/s</td>
+              <td class="pt-tabular-nums">1.45%</td>
+              <td class="pt-tabular-nums">42.1 ms</td>
+              <td class="pt-tabular-nums">280.0 ms</td>
+              <td class="pt-tabular-nums">4 / 4</td>
+              <td class="pt-tabular-nums">99.82%</td>
               <td><code>us-east-1b</code></td>
             </tr>
             <tr>
               <td><strong>telemetry-pipe</strong></td>
-              <td><span class="status-dot success"></span>Healthy</td>
-              <td class="tabular-nums">18,500 req/s</td>
-              <td class="tabular-nums">18,490 req/s</td>
-              <td class="tabular-nums">0.00%</td>
-              <td class="tabular-nums">1.1 ms</td>
-              <td class="tabular-nums">6.8 ms</td>
-              <td class="tabular-nums">16 / 16</td>
-              <td class="tabular-nums">100.0%</td>
+              <td><span class="pt-dot pt-dot--ok"></span>Healthy</td>
+              <td class="pt-tabular-nums">18,500 req/s</td>
+              <td class="pt-tabular-nums">18,490 req/s</td>
+              <td class="pt-tabular-nums">0.00%</td>
+              <td class="pt-tabular-nums">1.1 ms</td>
+              <td class="pt-tabular-nums">6.8 ms</td>
+              <td class="pt-tabular-nums">16 / 16</td>
+              <td class="pt-tabular-nums">100.0%</td>
               <td><code>us-east-1c</code></td>
             </tr>
             <tr>
               <td><strong>worker-ingest</strong></td>
-              <td><span class="status-dot danger"></span>Failing</td>
-              <td class="tabular-nums">85 req/s</td>
-              <td class="tabular-nums">12 req/s</td>
-              <td class="tabular-nums">24.8%</td>
-              <td class="tabular-nums">340.5 ms</td>
-              <td class="tabular-nums">1,820 ms</td>
-              <td class="tabular-nums">1 / 4</td>
-              <td class="tabular-nums">98.12%</td>
+              <td><span class="pt-dot pt-dot--critical"></span>Failing</td>
+              <td class="pt-tabular-nums">85 req/s</td>
+              <td class="pt-tabular-nums">12 req/s</td>
+              <td class="pt-tabular-nums">24.8%</td>
+              <td class="pt-tabular-nums">340.5 ms</td>
+              <td class="pt-tabular-nums">1,820 ms</td>
+              <td class="pt-tabular-nums">1 / 4</td>
+              <td class="pt-tabular-nums">98.12%</td>
               <td><code>us-east-1d</code></td>
             </tr>
           </tbody>
@@ -612,7 +612,7 @@ ${rowsHtml}
 
     <section id="components">
       <h2>7. Extended Components</h2>
-      <div class="grid">
+      <div class="pt-grid">
         <div>
           <details open>
             <summary>Accordion: Why drop Sass/SCSS?</summary>
@@ -627,8 +627,8 @@ ${rowsHtml}
           <p><strong>Progress Indicator</strong></p>
           <progress value="85" max="100"></progress>
           <p><strong>Dropdown Menu &amp; Modal Dialog</strong></p>
-          <div class="grid">
-            <details class="dropdown">
+          <div class="pt-grid">
+            <details class="pt-dropdown">
               <summary>Select Scheme</summary>
               <ul>
                 <li><a href="#components">Bright (7 colours)</a></li>
@@ -636,12 +636,12 @@ ${rowsHtml}
                 <li><a href="#components">Pale (7 colours)</a></li>
               </ul>
             </details>
-            <button type="button" class="secondary" data-dialog-open="demo-modal">Open Modal</button>
+            <button type="button" class="pt-secondary" data-dialog-open="demo-modal">Open Modal</button>
           </div>
-          <p><strong>Slide-Over Drawers (&lt;dialog class="sheet"&gt;)</strong></p>
-          <div class="grid">
-            <button type="button" class="outline" data-dialog-open="demo-sheet-right">Open Right Drawer</button>
-            <button type="button" class="outline" data-dialog-open="demo-sheet-left">Open Left Drawer</button>
+          <p><strong>Slide-Over Drawers (&lt;dialog class="pt-sheet"&gt;)</strong></p>
+          <div class="pt-grid">
+            <button type="button" class="pt-outline" data-dialog-open="demo-sheet-right">Open Right Drawer</button>
+            <button type="button" class="pt-outline" data-dialog-open="demo-sheet-left">Open Left Drawer</button>
           </div>
         </div>
       </div>
@@ -649,7 +649,7 @@ ${rowsHtml}
         <article>
           <header>
             <strong id="modal-title">Color &amp; Contrast Verification Modal</strong>
-            <button type="button" aria-label="Close" class="close" data-dialog-close="demo-modal"></button>
+            <button type="button" aria-label="Close" class="pt-close" data-dialog-close="demo-modal"></button>
           </header>
           <p>This native HTML5 <code>&lt;dialog&gt;</code> element is styled purely with <code>picotol.min.css</code>.</p>
           <footer>
@@ -657,33 +657,33 @@ ${rowsHtml}
           </footer>
         </article>
       </dialog>
-      <dialog id="demo-sheet-right" class="sheet sheet-right" aria-labelledby="sheet-right-title">
-        <div class="sheet-header">
+      <dialog id="demo-sheet-right" class="pt-sheet pt-sheet-right" aria-labelledby="sheet-right-title">
+        <div class="pt-sheet-header">
           <strong id="sheet-right-title">Telemetry &amp; Audit Drawer</strong>
-          <button type="button" aria-label="Close" class="close" data-dialog-close="demo-sheet-right"></button>
+          <button type="button" aria-label="Close" class="pt-close" data-dialog-close="demo-sheet-right"></button>
         </div>
-        <div class="sheet-body">
-          <p>Edge-anchored native <code>&lt;dialog class="sheet"&gt;</code> primitive with scrollable content.</p>
+        <div class="pt-sheet-body">
+          <p>Edge-anchored native <code>&lt;dialog class="pt-sheet"&gt;</code> primitive with scrollable content.</p>
           <p>Features pure CSS slide transition, native <code>::backdrop</code>, and responsive full-width collapse on viewports &le; 600px.</p>
         </div>
-        <div class="sheet-footer">
+        <div class="pt-sheet-footer">
           <button type="button" data-dialog-close="demo-sheet-right">Close</button>
         </div>
       </dialog>
-      <dialog id="demo-sheet-left" class="sheet sheet-left" aria-labelledby="sheet-left-title">
-        <div class="sheet-header">
+      <dialog id="demo-sheet-left" class="pt-sheet pt-sheet-left" aria-labelledby="sheet-left-title">
+        <div class="pt-sheet-header">
           <strong id="sheet-left-title">Navigation Drawer (Left)</strong>
-          <button type="button" aria-label="Close" class="close" data-dialog-close="demo-sheet-left"></button>
+          <button type="button" aria-label="Close" class="pt-close" data-dialog-close="demo-sheet-left"></button>
         </div>
-        <div class="sheet-body">
-          <p>Left-docked modifier <code>&lt;dialog class="sheet sheet-left"&gt;</code> for side navigation and drawers.</p>
+        <div class="pt-sheet-body">
+          <p>Left-docked modifier <code>&lt;dialog class="pt-sheet pt-sheet-left"&gt;</code> for side navigation and drawers.</p>
         </div>
-        <div class="sheet-footer">
+        <div class="pt-sheet-footer">
           <button type="button" data-dialog-close="demo-sheet-left">Close</button>
         </div>
       </dialog>
       <h3>Card Component Parity (&lt;article&gt; vs .card)</h3>
-      <div class="grid">
+      <div class="pt-grid">
         <article>
           <header><strong>Native &lt;article&gt; Card</strong></header>
           <main>
@@ -692,16 +692,16 @@ ${rowsHtml}
           </main>
           <footer><small>Footer landmark (auto-docked)</small></footer>
         </article>
-        <div class="card">
+        <div class="pt-card">
           <header><strong>Class Parity <code>.card</code></strong></header>
-          <div class="card-body">
+          <div class="pt-card-body">
             <p>Generic div or section styled with <code>.card</code> for ergonomic framework interoperability.</p>
           </div>
           <footer><small>Footer landmark (auto-docked)</small></footer>
         </div>
       </div>
       <h3>Status Dots &amp; Narrow-Corridor Reflow</h3>
-      <div class="grid">
+      <div class="pt-grid">
         <article>
           <header><strong>Status Dots (<code>.pt-dot</code>)</strong></header>
           <main>
@@ -717,24 +717,24 @@ ${rowsHtml}
         <article>
           <header><strong>Status Dots (<code>.status-dot</code>)</strong></header>
           <main>
-            <p><span class="status-dot success"></span><strong>Operational</strong> <code>.status-dot.success</code></p>
-            <p><span class="status-dot warning"></span><strong>Warning</strong> <code>.status-dot.warning</code></p>
-            <p><span class="status-dot danger"></span><strong>Critical</strong> <code>.status-dot.danger</code></p>
-            <p><span class="status-dot info"></span><strong>Active</strong> <code>.status-dot.info</code></p>
-            <p><span class="status-dot neutral"></span><strong>Neutral</strong> <code>.status-dot.neutral</code></p>
-            <p><span class="status-dot idle" data-status="idle"></span><strong>Idle</strong> <code>.status-dot.idle</code></p>
+            <p><span class="pt-dot pt-dot--ok"></span><strong>Operational</strong> <code>.status-dot.success</code></p>
+            <p><span class="pt-dot pt-dot--warning"></span><strong>Warning</strong> <code>.status-dot.warning</code></p>
+            <p><span class="pt-dot pt-dot--critical"></span><strong>Critical</strong> <code>.status-dot.danger</code></p>
+            <p><span class="pt-dot pt-dot--info"></span><strong>Active</strong> <code>.status-dot.info</code></p>
+            <p><span class="pt-dot"></span><strong>Neutral</strong> <code>.status-dot.neutral</code></p>
+            <p><span class="pt-dot" data-status="idle"></span><strong>Idle</strong> <code>.status-dot.idle</code></p>
           </main>
           <footer><small>WCAG 2.2 §1.4.11 contrast compliant (&ge; 3:1) with forced-colors outline</small></footer>
         </article>
         <article>
           <header><strong>Badge &amp; Dot Pairing</strong></header>
           <main>
-            <p><span class="badge"><span class="status-dot success"></span> Cluster Healthy</span></p>
-            <p><span class="badge warning"><span class="status-dot warning"></span> Memory Pressure</span></p>
-            <p><span class="badge invalid"><span class="status-dot danger"></span> Node Offline</span></p>
-            <p><span class="badge primary"><span class="status-dot info"></span> Job Running</span></p>
-            <p><span class="badge"><span class="status-dot idle" data-status="idle"></span> Service Idle</span></p>
-            <p style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;"><span class="status-dot success no-margin" style="flex-shrink: 0;"></span><small style="white-space: nowrap;">Flex gap layout (<code>.no-margin</code> / <code>.m-0</code>)</small></p>
+            <p><span class="pt-badge"><span class="pt-dot pt-dot--ok"></span> Cluster Healthy</span></p>
+            <p><span class="pt-badge pt-warning"><span class="pt-dot pt-dot--warning"></span> Memory Pressure</span></p>
+            <p><span class="pt-badge pt-invalid"><span class="pt-dot pt-dot--critical"></span> Node Offline</span></p>
+            <p><span class="pt-badge pt-primary"><span class="pt-dot pt-dot--info"></span> Job Running</span></p>
+            <p><span class="pt-badge"><span class="pt-dot" data-status="idle"></span> Service Idle</span></p>
+            <p style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;"><span class="pt-dot pt-no-margin pt-dot--ok" style="flex-shrink: 0;"></span><small style="white-space: nowrap;">Flex gap layout (<code>.no-margin</code> / <code>.m-0</code>)</small></p>
           </main>
           <footer><small>Contextual inline spacing without margin compounding</small></footer>
         </article>
@@ -742,10 +742,10 @@ ${rowsHtml}
           <header><strong>Narrow-Corridor Reflow (320px)</strong></header>
           <main>
             <p><small>Flex and grid children declare <code>min-width: 0</code> to prevent wide controls or long titles from blowing out containers.</small></p>
-            <div class="form-row">
-              <span class="status-dot success"></span>
-              <input type="text" value="cluster-telemetry-node-01.us-east.internal" class="small" readonly aria-label="Cluster telemetry node address">
-              <button type="button" class="btn small">Ping</button>
+            <div class="pt-form-row">
+              <span class="pt-dot pt-dot--ok"></span>
+              <input type="text" value="cluster-telemetry-node-01.us-east.internal" class="pt-small" readonly aria-label="Cluster telemetry node address">
+              <button type="button" class="pt-btn pt-small">Ping</button>
             </div>
           </main>
           <footer><small>Shrinks cleanly without horizontal document overflow</small></footer>
@@ -769,7 +769,7 @@ ${rowsHtml}
         </article>
       </div>
       <h3>Compact Mode &amp; Tabular Numerics (<code>[data-density="compact"]</code> / <code>.pt-compact</code> / <code>.pt-tabular</code>)</h3>
-      <div class="grid">
+      <div class="pt-grid">
         <article>
           <header><strong>Standard Density</strong></header>
           <main>
@@ -785,27 +785,27 @@ ${rowsHtml}
           <header><strong>Compact Mode (<code>data-density="compact"</code>)</strong></header>
           <main>
             <p>Cascading padding into inputs, buttons, tables, and grid gaps.</p>
-            <table class="striped" style="margin-bottom: 0.5rem;">
+            <table class="pt-striped" style="margin-bottom: 0.5rem;">
               <thead><tr><th>Node</th><th>Status</th><th>P99</th></tr></thead>
               <tbody>
-                <tr><td>edge-01</td><td><span class="pt-status-dot pt-status-dot-success"></span> Online</td><td class="pt-tabular">12.4ms</td></tr>
-                <tr><td>edge-02</td><td><span class="pt-status-dot pt-status-dot-warning"></span> Degraded</td><td class="pt-tabular">45.8ms</td></tr>
+                <tr><td>edge-01</td><td><span class="pt-dot pt-dot--ok"></span> Online</td><td class="pt-tabular">12.4ms</td></tr>
+                <tr><td>edge-02</td><td><span class="pt-dot pt-dot--warning"></span> Degraded</td><td class="pt-tabular">45.8ms</td></tr>
               </tbody>
             </table>
-            <div class="form-row">
+            <div class="pt-form-row">
               <input type="text" value="cluster-us-east" readonly aria-label="Cluster name">
-              <button type="button" class="btn">Deploy</button>
+              <button type="button" class="pt-btn">Deploy</button>
             </div>
           </main>
           <footer><small>Cascades <code>--pt-table-cell-padding-*</code> and <code>--pt-form-element-spacing-*</code></small></footer>
         </article>
-        <div class="card pt-compact">
+        <div class="pt-card pt-compact">
           <header><strong>Compact Utility (<code>.pt-compact</code>)</strong></header>
-          <div class="card-body">
+          <div class="pt-card-body">
             <p>Applied via class modifier to any container or component.</p>
-            <div class="form-row">
-              <input type="text" value="compact-node-01" class="small" readonly aria-label="Compact node address">
-              <button type="button" class="btn small">Inspect</button>
+            <div class="pt-form-row">
+              <input type="text" value="compact-node-01" class="pt-small" readonly aria-label="Compact node address">
+              <button type="button" class="pt-btn pt-small">Inspect</button>
             </div>
           </div>
           <footer><small>Zero margin compounding on nested sections/cards</small></footer>
@@ -814,22 +814,22 @@ ${rowsHtml}
           <header><strong>Tight Density (<code>data-density="tight"</code>)</strong></header>
           <main>
             <p>Ultra-compact 0.25rem spacing and micro-type for narrow embedded panels.</p>
-            <div class="form-row">
+            <div class="pt-form-row">
               <input type="text" value="worker-01.local" readonly aria-label="Worker host address">
-              <button type="button" class="btn">Sync</button>
+              <button type="button" class="pt-btn">Sync</button>
             </div>
-            <div class="card pt-card--dense">
+            <div class="pt-card pt-card--dense">
               <header><strong>Nested Card (<small>&lt; 300px width</small>)</strong></header>
               <main><small>Nested cards inherit <code>min-width: 0</code> with zero scroll blowout.</small></main>
             </div>
           </main>
           <footer><small>Ultra-compact <code>--pt-spacing: 0.25rem</code></small></footer>
         </article>
-        <div class="card pt-card--dense pt-tight">
+        <div class="pt-card pt-card--dense pt-tight">
           <header><strong>Dense Card Modifier (<code>.pt-card--dense</code>)</strong></header>
-          <div class="card-body">
+          <div class="pt-card-body">
             <p>Direct card-level <code>--pt-card-padding: 0.25rem</code> modifier.</p>
-            <div class="card pt-card--dense">
+            <div class="pt-card pt-card--dense">
               <header><strong>Sub-Panel Layer</strong></header>
               <main><small>No horizontal blowout or text clipping.</small></main>
             </div>
@@ -838,7 +838,7 @@ ${rowsHtml}
         </div>
       </div>
       <h3>Meters, Progressbars &amp; Gauge Threshold Pins (<code>.pt-progress</code> / <code>.pt-gauge-marker</code>)</h3>
-      <div class="grid">
+      <div class="pt-grid">
         <article>
           <header><strong>Native &lt;progress&gt; &amp; Status</strong></header>
           <main>
@@ -871,9 +871,9 @@ ${rowsHtml}
           <main>
             <p><small>Positioned threshold pins with canonical <code>data-placement</code>, <code>.pt-meter-label</code>, and shaded <code>.pt-meter-range</code> bands.</small></p>
             <div class="pt-meter">
-              <div class="pt-meter-range ok" style="--pt-range-start: 0%; --pt-range-end: 60%;"></div>
-              <div class="pt-meter-range warning" style="--pt-range-start: 60%; --pt-range-end: 85%;"></div>
-              <div class="pt-meter-range critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
+              <div class="pt-meter-range pt-ok" style="--pt-range-start: 0%; --pt-range-end: 60%;"></div>
+              <div class="pt-meter-range pt-warning" style="--pt-range-start: 60%; --pt-range-end: 85%;"></div>
+              <div class="pt-meter-range pt-critical" style="--pt-range-start: 85%; --pt-range-end: 100%;"></div>
               <div class="pt-progress" role="progressbar" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 78%;">
                 <div class="pt-progress-fill pt-meter-fill"></div>
                 <div class="pt-meter-mark" data-placement="top" style="--pt-marker-pos: 80%;"><span class="pt-meter-label">80% SLA</span></div>
@@ -883,7 +883,7 @@ ${rowsHtml}
               <div class="pt-progress pt-progress-danger" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" style="--pt-progress-value: 92%;">
                 <div class="pt-progress-fill pt-meter-fill"></div>
                 <div class="pt-gauge-marker pt-progress-warning" style="--marker-pos: 70%;"><span class="pt-gauge-label">70% Warn</span></div>
-                <div class="pt-meter-mark critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
+                <div class="pt-meter-mark pt-critical" data-placement="bottom" style="--pt-marker-pos: 90%;"><span class="pt-meter-label" data-label>90% Crit</span></div>
               </div>
             </div>
             <div class="pt-meter" style="margin-top: 2.75rem;">
@@ -899,53 +899,53 @@ ${rowsHtml}
         </article>
       </div>
       <h3>Accessible Callouts, Status Dots &amp; Copy Pills (<code>.pt-callout</code> / <code>.pt-copy-pill</code>)</h3>
-      <div class="grid">
+      <div class="pt-grid">
         <aside class="pt-callout pt-callout-critical">
           <strong>Critical Incident (#379)</strong>
-          <p><span class="pt-status-dot pt-status-dot-danger pulse"></span> High-severity degradation on primary cluster node.</p>
+          <p><span class="pt-dot pt-dot--pulse pt-dot--critical"></span> High-severity degradation on primary cluster node.</p>
           <p><button type="button" class="pt-copy-pill">kubectl logs pod/cluster-edge-01</button> <span class="pt-chip">p0-crit</span></p>
         </aside>
         <aside class="pt-callout pt-callout-warning">
           <strong>Capacity Warning (#360)</strong>
-          <p><span class="pt-status-dot pt-status-dot-warning"></span> Memory threshold approaching 85% headroom limit.</p>
+          <p><span class="pt-dot pt-dot--warning"></span> Memory threshold approaching 85% headroom limit.</p>
           <p><button type="button" class="pt-copy-pill">curl -X POST /api/scale</button> <span class="pt-chip">warning</span></p>
         </aside>
         <aside class="pt-callout pt-callout-info">
           <strong>Operational Notice</strong>
-          <p><span class="pt-status-dot pt-status-dot-success"></span> All satellite sync nodes operational and healthy.</p>
+          <p><span class="pt-dot pt-dot--ok"></span> All satellite sync nodes operational and healthy.</p>
           <p><button type="button" class="pt-copy-pill">git status --short</button> <span class="pt-chip">steady</span></p>
         </aside>
       </div>
 
       <h3>Native Status Badges, Indicators &amp; Triads (<code>.pt-badge</code> / <code>.pt-indicator</code>)</h3>
-      <div class="grid">
-        <article class="card">
+      <div class="pt-grid">
+        <article class="pt-card">
           <header><strong>Status Triad Badges (<code>.pt-badge</code>)</strong></header>
           <main>
-            <p><span class="pt-badge" data-status="ok"><span class="pt-status-dot ok"></span> Operational</span> <code>[data-status="ok"]</code></p>
-            <p><span class="pt-badge warning"><span class="pt-status-dot warning"></span> Degraded</span> <code>.warning</code></p>
-            <p><span class="pt-badge critical"><span class="pt-status-dot critical"></span> Outage</span> <code>.critical</code></p>
-            <p><span class="pt-badge info"><span class="pt-status-dot info"></span> Rebalancing</span> <code>.info</code></p>
+            <p><span class="pt-badge" data-status="ok"><span class="pt-dot pt-dot--ok"></span> Operational</span> <code>[data-status="ok"]</code></p>
+            <p><span class="pt-badge pt-warning"><span class="pt-dot pt-dot--warning"></span> Degraded</span> <code>.warning</code></p>
+            <p><span class="pt-badge pt-critical"><span class="pt-dot pt-dot--critical"></span> Outage</span> <code>.critical</code></p>
+            <p><span class="pt-badge pt-info"><span class="pt-dot pt-dot--info"></span> Rebalancing</span> <code>.info</code></p>
           </main>
           <footer><small>Natively bound to <code>--pt-status-*-{fg,bg,border}</code></small></footer>
         </article>
-        <article class="card">
+        <article class="pt-card">
           <header><strong>Status Indicators &amp; Semantic Chips (<code>.pt-indicator</code> / <code>.pt-chip</code>)</strong></header>
           <main>
-            <p><span class="pt-indicator ok">Online</span> <span class="pt-chip ok">v0.5.0</span> <code>.ok</code></p>
-            <p><span class="pt-indicator warning">Pressure</span> <span class="pt-chip warning">high-load</span> <code>.warning</code></p>
-            <p><span class="pt-indicator critical">Failing</span> <span class="pt-chip critical">p0-crit</span> <code>.critical</code></p>
-            <p><span class="pt-indicator info">Syncing</span> <span class="pt-chip info">telemetry</span> <code>.info</code></p>
+            <p><span class="pt-indicator pt-ok">Online</span> <span class="pt-chip pt-ok">v0.5.0</span> <code>.ok</code></p>
+            <p><span class="pt-indicator pt-warning">Pressure</span> <span class="pt-chip pt-warning">high-load</span> <code>.warning</code></p>
+            <p><span class="pt-indicator pt-critical">Failing</span> <span class="pt-chip pt-critical">p0-crit</span> <code>.critical</code></p>
+            <p><span class="pt-indicator pt-info">Syncing</span> <span class="pt-chip pt-info">telemetry</span> <code>.info</code></p>
           </main>
           <footer><small>Inline-flex alignment with zero boilerplate overrides</small></footer>
         </article>
-        <article class="card">
+        <article class="pt-card">
           <header><strong>Tabular Numbers &amp; Dynamic Badges (<code>.pt-badge--numeric</code>)</strong></header>
           <main>
-            <p><span class="pt-badge pt-badge--numeric" data-status="ok"><span class="pt-status-dot ok"></span> 99.98%</span> Uptime SLA</p>
-            <p><span class="pt-badge pt-badge--numeric warning"><span class="pt-status-dot warning"></span> 1,420 ms</span> P99 Latency</p>
-            <p><span class="pt-badge pt-badge--numeric critical"><span class="pt-status-dot critical"></span> 0.042%</span> Drop Rate</p>
-            <p><span class="pt-indicator pt-indicator--numeric info" id="live-indicator-count">Turn #042</span> <span class="pt-badge pt-badge--numeric info" id="live-badge-count">1,842 tok/s</span></p>
+            <p><span class="pt-badge pt-badge--numeric" data-status="ok"><span class="pt-dot pt-dot--ok"></span> 99.98%</span> Uptime SLA</p>
+            <p><span class="pt-badge pt-badge--numeric pt-warning"><span class="pt-dot pt-dot--warning"></span> 1,420 ms</span> P99 Latency</p>
+            <p><span class="pt-badge pt-badge--numeric pt-critical"><span class="pt-dot pt-dot--critical"></span> 0.042%</span> Drop Rate</p>
+            <p><span class="pt-indicator pt-indicator--numeric pt-info" id="live-indicator-count">Turn #042</span> <span class="pt-badge pt-badge--numeric pt-info" id="live-badge-count">1,842 tok/s</span></p>
             <p style="display: flex; justify-content: space-between; align-items: center;"><code>.pt-tabular--align-end</code> <span class="pt-tabular pt-tabular--align-end">42,810 ops/sec</span></p>
           </main>
           <footer><small><code>font-variant-numeric: tabular-nums lining-nums</code> and <code>font-feature-settings: "tnum" 1</code> eliminate layout jitter</small></footer>
@@ -953,8 +953,8 @@ ${rowsHtml}
       </div>
 
       <h3>Native Accessible Disclosures, Accordion Cards &amp; Popovers (<code>.pt-details</code> / <code>.accordion-card</code> / <code>.pt-popover</code>)</h3>
-      <div class="grid">
-        <article class="card accordion-card">
+      <div class="pt-grid">
+        <article class="pt-card pt-accordion-card">
           <details class="pt-card-disclosure" open>
             <summary>Platform Architecture &amp; Layer Isolation</summary>
             <p>Strict five-tier nested cascade layer isolation ensures design tokens and reset styles never bleed into extended component boundaries.</p>
@@ -969,11 +969,11 @@ ${rowsHtml}
           </details>
         </article>
         <div>
-          <details class="card accordion-card pt-card-disclosure" open>
+          <details class="pt-card pt-accordion-card pt-card-disclosure" open>
             <summary>Standalone Collapsible Card (<code>.pt-card-disclosure</code>)</summary>
             <p>Self-contained disclosure card with integrated surface styling, elevated header transition, and flush content padding.</p>
           </details>
-          <div class="grid" style="margin-top: 1rem;">
+          <div class="pt-grid" style="margin-top: 1rem;">
             <details class="pt-popover pt-popover--start">
               <summary role="button">Action Popover (Start)</summary>
               <div class="pt-popover-content pt-popover-menu">
@@ -984,8 +984,8 @@ ${rowsHtml}
               </div>
             </details>
             <details class="pt-popover pt-popover--end">
-              <summary role="button" class="secondary">Options (End)</summary>
-              <div class="pt-popover-content pt-popover-menu end">
+              <summary role="button" class="pt-secondary">Options (End)</summary>
+              <div class="pt-popover-content pt-popover-menu pt-end">
                 <a href="#components">Export Config</a>
                 <a href="#components">Verify Contrast</a>
               </div>
@@ -995,10 +995,10 @@ ${rowsHtml}
       </div>
 
       <h3>Equal-Fill Segmented Controls (<code>.segmented.segmented-fill</code> / <code>.segmented-equal</code>)</h3>
-      <div class="grid">
+      <div class="pt-grid">
         <div>
           <p><small>Equal distribution across items (<code>flex: 1 1 0</code>) with automatic text ellipsis on narrow containers.</small></p>
-          <div role="tablist" class="segmented segmented-fill" aria-label="Equal fill view options">
+          <div role="tablist" class="pt-segmented pt-segmented-fill" aria-label="Equal fill view options">
             <button type="button" role="tab" aria-selected="true">Daily View</button>
             <button type="button" role="tab" aria-selected="false">Weekly View</button>
             <button type="button" role="tab" aria-selected="false">Monthly View</button>
@@ -1007,7 +1007,7 @@ ${rowsHtml}
         </div>
         <div>
           <p><small>Toolbar mode switch with <code>.segmented-equal</code> alias and compact viewport resilience.</small></p>
-          <nav role="tablist" class="segmented segmented-equal" aria-label="Display mode switch">
+          <nav role="tablist" class="pt-segmented pt-segmented-equal" aria-label="Display mode switch">
             <button type="button" role="tab" aria-selected="false">Grid</button>
             <button type="button" role="tab" aria-selected="true">List</button>
             <button type="button" role="tab" aria-selected="false">Kanban</button>
@@ -1029,7 +1029,7 @@ ${rowsHtml}
           <button type="button" role="tab" id="tab-analytics" aria-controls="panel-analytics" aria-selected="false">Analytics</button>
           <button type="button" role="tab" id="tab-logs" aria-controls="panel-logs" aria-selected="false">System Logs</button>
         </nav>
-        <div role="tablist" class="segmented" id="time-filter" aria-label="Time period filter">
+        <div role="tablist" class="pt-segmented" id="time-filter" aria-label="Time period filter">
           <button type="button" role="tab" data-period="1H" aria-selected="false">1H</button>
           <button type="button" role="tab" data-period="24H" aria-selected="true">24H</button>
           <button type="button" role="tab" data-period="7D" aria-selected="false">7D</button>
@@ -1040,56 +1040,56 @@ ${rowsHtml}
       <!-- Tabpanel 1: Overview -->
       <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
         <!-- KPI Stat Cards -->
-        <dl class="stats">
-          <div class="stat">
+        <dl class="pt-stats">
+          <div class="pt-stat">
             <dt>Total Network Throughput</dt>
-            <dd id="stat-throughput" class="tabular-nums">1.42 TB</dd>
-            <div class="trend"><span class="badge valid">+12.4%</span> vs previous period</div>
+            <dd id="stat-throughput" class="pt-tabular-nums">1.42 TB</dd>
+            <div class="pt-trend"><span class="pt-badge pt-ok">+12.4%</span> vs previous period</div>
           </div>
-          <div class="stat">
+          <div class="pt-stat">
             <dt>Active Edge Clusters</dt>
-            <dd id="stat-clusters" class="tabular-nums">128 / 130</dd>
-            <div class="trend"><span class="badge primary">98.5%</span> online</div>
+            <dd id="stat-clusters" class="pt-tabular-nums">128 / 130</dd>
+            <div class="pt-trend"><span class="pt-badge pt-primary">98.5%</span> online</div>
           </div>
-          <div class="stat">
+          <div class="pt-stat">
             <dt>Mean Edge Latency</dt>
-            <dd id="stat-latency" class="tabular-nums">18.4 ms</dd>
-            <div class="trend"><span class="badge valid">-2.1 ms</span> p95 response</div>
+            <dd id="stat-latency" class="pt-tabular-nums">18.4 ms</dd>
+            <div class="pt-trend"><span class="pt-badge pt-ok">-2.1 ms</span> p95 response</div>
           </div>
-          <div class="stat">
+          <div class="pt-stat">
             <dt>Unresolved Error Rate</dt>
-            <dd id="stat-errors" class="tabular-nums">0.012%</dd>
-            <div class="trend"><span class="badge invalid">+0.003%</span> 3 throttles</div>
+            <dd id="stat-errors" class="pt-tabular-nums">0.012%</dd>
+            <div class="pt-trend"><span class="pt-badge pt-invalid">+0.003%</span> 3 throttles</div>
           </div>
         </dl>
 
-        <div class="grid">
-          <article class="stat">
+        <div class="pt-grid">
+          <article class="pt-stat">
             <header><strong>CPU Fleet Utilization</strong></header>
-            <strong id="stat-cpu" class="tabular-nums" style="font-size:2rem;">42.8%</strong>
+            <strong id="stat-cpu" class="pt-tabular-nums" style="font-size:2rem;">42.8%</strong>
             <progress id="stat-cpu-progress" value="43" max="100"></progress>
             <footer><small>Calculated across 512 virtual cores</small></footer>
           </article>
-          <article class="stat">
+          <article class="pt-stat">
             <header><strong>Memory Allocation</strong></header>
-            <strong id="stat-mem" class="tabular-nums" style="font-size:2rem;">64.2%</strong>
+            <strong id="stat-mem" class="pt-tabular-nums" style="font-size:2rem;">64.2%</strong>
             <progress id="stat-mem-progress" value="64" max="100"></progress>
             <footer><small>263 GB utilized of 410 GB pool</small></footer>
           </article>
         </div>
 
-        <aside class="valid">
+        <aside class="pt-callout pt-ok">
           <p><strong>System Health Normal:</strong> All cluster telemetry reporting within nominal accessibility thresholds.</p>
         </aside>
       </div>
 
       <!-- Tabpanel 2: Analytics -->
       <div id="panel-analytics" role="tabpanel" aria-labelledby="tab-analytics" hidden>
-        <div class="grid">
+        <div class="pt-grid">
           <article>
             <header><strong>Traffic Ingestion Pipeline</strong></header>
             <p>Ingestion pipeline telemetry streaming at <strong>48.6 MB/s</strong> across 6 regional endpoints.</p>
-            <p><span class="badge valid">Healthy</span> <span class="badge" data-accent="purple">Buffering: 1.2%</span></p>
+            <p><span class="pt-badge pt-ok">Healthy</span> <span class="pt-badge" data-accent="purple">Buffering: 1.2%</span></p>
           </article>
           <article>
             <header><strong>Cache Hit Ratio</strong></header>
@@ -1111,28 +1111,28 @@ ${rowsHtml}
 
       <!-- Status Badges & Universal Icons in Action -->
       <p>
-        <span class="badge">Neutral Badge</span>
-        <span class="badge primary">Primary Accent</span>
-        <span class="pt-badge ok">Operational</span>
-        <span class="pt-badge warning">Warning</span>
-        <span class="pt-badge critical">Critical</span>
-        <span class="pt-badge info">Information</span>
-        <span class="badge" data-accent="purple">Purple Accent</span>
-        <span class="pt-badge pt-badge--numeric ok">99.98%</span>
-        <span class="pt-indicator pt-indicator--numeric info">Turn #042</span>
+        <span class="pt-badge">Neutral Badge</span>
+        <span class="pt-badge pt-primary">Primary Accent</span>
+        <span class="pt-badge pt-ok">Operational</span>
+        <span class="pt-badge pt-warning">Warning</span>
+        <span class="pt-badge pt-critical">Critical</span>
+        <span class="pt-badge pt-info">Information</span>
+        <span class="pt-badge" data-accent="purple">Purple Accent</span>
+        <span class="pt-badge pt-badge--numeric pt-ok">99.98%</span>
+        <span class="pt-indicator pt-indicator--numeric pt-info">Turn #042</span>
       </p>
 
       <p>
         <button type="button">
-          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
           Info Action
         </button>
-        <button type="button" class="outline">
-          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <button type="button" class="pt-outline">
+          <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
         </button>
         <button type="button" aria-label="Settings">
-          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="pt-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
       </p>
     </section>
@@ -1142,11 +1142,11 @@ ${rowsHtml}
     <section id="rtl" dir="rtl">
       <h2>9. Right-to-Left (RTL) Logical Layout</h2>
       <p>Native RTL layout support using CSS Logical Properties (<code>inset-inline-*</code>, <code>margin-inline-*</code>, <code>text-align: end</code>, <code>float: inline-start</code>, and <code>:dir(rtl)</code> overrides).</p>
-      <div class="grid">
-        <article class="card">
+      <div class="pt-grid">
+        <article class="pt-card">
           <header><strong>RTL Form Controls</strong></header>
           <label for="rtl-select">Select with Logical Chevron</label>
-          <select id="rtl-select" class="mb-0">
+          <select id="rtl-select" class="pt-mb-0">
             <option>Option 1 (RTL Chevron)</option>
             <option>Option 2</option>
           </select>
@@ -1155,7 +1155,7 @@ ${rowsHtml}
             Checkbox with logical inline-end margin
           </label>
         </article>
-        <article class="card">
+        <article class="pt-card">
           <header><strong>RTL Badges &amp; Breadcrumb</strong></header>
           <nav aria-label="breadcrumb">
             <ul>
@@ -1164,7 +1164,7 @@ ${rowsHtml}
               <li><a href="#rtl" aria-current="page">RTL</a></li>
             </ul>
           </nav>
-          <div class="flex">
+          <div class="pt-flex">
             <span class="pt-badge pt-badge--numeric">#42</span>
             <span class="pt-tabular pt-tabular--align-end">1,234.50</span>
           </div>
@@ -1180,11 +1180,11 @@ ${rowsHtml}
       <div role="search">
         <input type="search" id="palette-search" placeholder="Search by scheme (e.g. vibrant), name (e.g. cyan), token, or hex..." aria-label="Search colorblind-safe palettes">
       </div>
-      <div id="palette-grid" class="grid" style="grid-template-columns:repeat(auto-fill, minmax(13rem, 1fr));gap:1rem;">
+      <div id="palette-grid" class="pt-grid" style="grid-template-columns:repeat(auto-fill, minmax(13rem, 1fr));gap:1rem;">
 ${swatchCardsHtml}
       </div>
       <p id="palette-empty" hidden>No matching color tokens found.</p>
-      <div role="status" aria-live="polite"><div id="toast" class="toast"></div></div>
+      <div role="status" aria-live="polite"><div id="toast" class="pt-toast"></div></div>
     </section>
   </main>
 
@@ -1428,11 +1428,11 @@ export function generateDemoJs() {
 
   function showToast(msg) {
     if (!toast) return;
-    toast.classList.add('show');
+    toast.classList.add('pt-show');
     toast.textContent = msg;
     clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => {
-      toast.classList.remove('show');
+      toast.classList.remove('pt-show');
     }, 2000);
   }
 

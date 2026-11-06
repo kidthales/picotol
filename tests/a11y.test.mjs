@@ -243,7 +243,7 @@ describe("WCAG 2.2 Contrast Verification", () => {
     const tokens = getPicotolTokens();
 
     assert.ok(
-      /:where\([^)]*\bpt-badge\b[^)]*\bpt-indicator\b[^)]*\bbadge\b[^)]*\)/.test(compCss) &&
+      /:where\([^)]*\bpt-badge\b[^)]*\bpt-indicator\b[^)]*\)/.test(compCss) &&
       compCss.includes("color: var(--pt-color)"),
       "src/components.css must establish color: var(--pt-color) on baseline status badges and indicators"
     );
@@ -382,28 +382,25 @@ describe("WCAG 2.2 Contrast Verification", () => {
 });
 
 describe("Component Semantics and Non-Text Affordances", () => {
-  test("Paul Tol Accessible Status Dots: .status-dot dimensions, semantic mapping, forced-colors, and SC 1.4.11 contrast", () => {
+  test("Paul Tol Accessible Status Dots: .pt-dot dimensions, semantic mapping, forced-colors, and SC 1.4.11 contrast", () => {
     const fullCss = getDistCss();
     const fullMin = getDistMinCss();
 
-    assert.ok(fullCss.includes(".status-dot"), "Full CSS must include .status-dot");
-    assert.ok(fullMin.includes("status-dot"), "Minified CSS must include status-dot");
+    assert.ok(fullCss.includes(".pt-dot"), "Full CSS must include canonical .pt-dot");
+    assert.ok(fullMin.includes("pt-dot"), "Minified CSS must include pt-dot");
+    assert.ok(!fullCss.includes(".status-dot"), "Full CSS must not include deprecated .status-dot");
 
     assert.ok(
       fullCss.includes("width: .5rem;") && fullCss.includes("height: .5rem;") && fullCss.includes("50%"),
       "Status dot must declare 0.5rem dimensions and 50% radius"
     );
 
-    assert.ok(fullCss.includes("var(--pt-valid)"), "Status dot maps success/valid to --pt-valid");
-    assert.ok(fullCss.includes("var(--pt-warning)"), "Status dot maps warning to --pt-warning");
-    assert.ok(fullCss.includes("var(--pt-invalid)"), "Status dot maps danger/invalid to --pt-invalid");
-    assert.ok(fullCss.includes("var(--pt-primary)"), "Status dot maps info/primary to --pt-primary");
+    assert.ok(fullCss.includes("var(--pt-status-ok-fg)"), "Status dot maps ok to --pt-status-ok-fg");
+    assert.ok(fullCss.includes("var(--pt-status-warning-fg)"), "Status dot maps warning to --pt-status-warning-fg");
+    assert.ok(fullCss.includes("var(--pt-status-critical-fg)"), "Status dot maps critical to --pt-status-critical-fg");
+    assert.ok(fullCss.includes("var(--pt-status-info-fg)"), "Status dot maps info to --pt-status-info-fg");
     assert.ok(fullCss.includes("var(--pt-muted-border)"), "Status dot maps neutral/idle to --pt-muted-border");
 
-    assert.ok(
-      fullCss.includes(".neutral") && fullCss.includes(".idle"),
-      "Status dot must support .neutral and .idle class modifiers"
-    );
     assert.ok(
       fullCss.includes('[data-status="neutral"]'),
       "Status dot must support data-status=neutral"
@@ -413,12 +410,12 @@ describe("Component Semantics and Non-Text Affordances", () => {
       "Status dot must support data-status=idle"
     );
     assert.ok(
-      fullCss.includes('[data-status="backlog"]'),
-      "Status dot must support data-status=backlog"
+      !fullCss.includes('[data-status="backlog"]'),
+      "Status dot must not support deprecated data-status=backlog"
     );
     assert.ok(
-      fullCss.includes('[data-status="no-status"]'),
-      "Status dot must support data-status=no-status"
+      !fullCss.includes('[data-status="no-status"]'),
+      "Status dot must not support deprecated data-status=no-status"
     );
 
     assert.ok(
@@ -430,8 +427,12 @@ describe("Component Semantics and Non-Text Affordances", () => {
       "Status dot preserves default inline spacing when not only or last child"
     );
     assert.ok(
-      fullCss.includes(".no-margin") && fullCss.includes(".m-0"),
-      "Status dot must support .no-margin and .m-0 modifiers"
+      fullCss.includes(".pt-no-margin") && fullCss.includes(".pt-m-0"),
+      "Status dot must support .pt-no-margin and .pt-m-0 modifiers"
+    );
+    assert.ok(
+      !fullCss.includes(".no-margin") && !fullCss.includes(".m-0"),
+      "Status dot must not contain unprefixed .no-margin or .m-0"
     );
     assert.ok(
       fullCss.includes("margin-inline-end: 0"),
@@ -513,16 +514,16 @@ describe("Assistive Technology, Media Queries, and CSP", () => {
     const sriPath = path.join(ROOT, "dist/sri.json");
 
     for (const selector of [
-      ".skip-to-content",
-      ".sr-only",
-      ".visually-hidden",
-      ".sr-only-focusable",
-      ".visually-hidden-focusable",
+      ".pt-skip-to-content",
+      ".pt-sr-only",
+      ".pt-visually-hidden",
+      ".pt-sr-only-focusable",
+      ".pt-visually-hidden-focusable",
       '[tabindex="-1"]:focus:not(:focus-visible)',
-      ".measure",
-      ".prose",
+      ".pt-measure",
+      ".pt-prose",
       "75ch",
-      ".overflow-auto",
+      ".pt-overflow-auto",
       ":focus-visible",
       "forced-colors: active",
       "@media print",
@@ -530,6 +531,22 @@ describe("Assistive Technology, Media Queries, and CSP", () => {
       assert.ok(
         fullCss.includes(selector),
         `Expected accessibility/reflow selector "${selector}" in dist/picotol.css`
+      );
+    }
+
+    for (const unprefixed of [
+      ".skip-to-content",
+      ".sr-only",
+      ".visually-hidden",
+      ".sr-only-focusable",
+      ".visually-hidden-focusable",
+      ".measure",
+      ".prose",
+      ".overflow-auto",
+    ]) {
+      assert.ok(
+        !fullCss.includes(unprefixed),
+        `Unprefixed selector "${unprefixed}" must not be present in dist/picotol.css`
       );
     }
 

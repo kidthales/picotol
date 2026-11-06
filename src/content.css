@@ -3,7 +3,7 @@
     margin: 0 0 var(--pt-spacing);
   }
 
-  :where(.pt-measure, .pt-prose, /* @deprecated: removed in v0.7.0 */ .measure, /* @deprecated: removed in v0.7.0 */ .prose) {
+  :where(.pt-measure, .pt-prose) {
     max-width: 75ch;
   }
 
@@ -49,27 +49,27 @@
   hr {
     border: 0;
     border-top: var(--pt-border);
-    :where(.pt-flex, .pt-grid, /* @deprecated: removed in v0.7.0 */ .flex, /* @deprecated: removed in v0.7.0 */ .grid, [style*="gap"]) > &,
+    :where(.pt-flex, .pt-grid, [style*="gap"]) > &,
     :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) & {
       margin-block: 0;
     }
   }
 
 
-  :where(.pt-secondary, /* @deprecated: removed in v0.7.0 */ .secondary, [type="reset"]) {
+  :where(.pt-secondary, [type="reset"]) {
     --pt-primary: var(--pt-muted-color);
     --pt-primary-hover: var(--pt-color);
     --pt-primary-bg: var(--pt-surface);
     --pt-primary-hover-bg: var(--pt-muted-border);
   }
 
-  :where(a:not(.pt-button, .pt-btn, /* @deprecated: removed in v0.7.0 */ .button, /* @deprecated: removed in v0.7.0 */ .btn, [role="button"])) {
+  :where(a:not(.pt-button, .pt-btn, [role="button"])) {
     color: var(--pt-primary);
     text-decoration: underline;
     &:is(:hover, :active, :focus-visible) { color: var(--pt-primary-hover); }
   }
 
-  :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"], .pt-button, .pt-btn, /* @deprecated: removed in v0.7.0 */ .button, /* @deprecated: removed in v0.7.0 */ .btn) {
+  :where(button, [type="submit"], [type="reset"], [type="button"], [role="button"], .pt-button, .pt-btn) {
     display: inline-block;
     padding: var(--pt-btn-padding-block, var(--pt-form-y)) var(--pt-form-x);
     border: 1px solid var(--pt-primary);
@@ -82,24 +82,24 @@
     transition: var(--pt-transition);
 
     &:is(:hover, :active) { background: var(--pt-primary-hover-bg); }
-    &:is(.pt-outline, /* @deprecated: removed in v0.7.0 */ .outline) {
+    &:is(.pt-outline) {
       background: none;
       color: var(--pt-primary);
       &:is(:hover, :active) { background: var(--pt-surface-subtle); }
     }
   }
 
-  :where(button, input, select, .pt-button, .pt-btn, /* @deprecated: removed in v0.7.0 */ .button, /* @deprecated: removed in v0.7.0 */ .btn):is(.pt-small, .pt-sm, /* @deprecated: removed in v0.7.0 */ .small, /* @deprecated: removed in v0.7.0 */ .sm) {
+  :where(button, input, select, .pt-button, .pt-btn):is(.pt-small, .pt-sm) {
     --pt-form-y: 0.25rem;
     --pt-form-x: 0.5rem;
     font-size: 0.8125rem;
   }
 
-  :is(.pt-nowrap, /* @deprecated: removed in v0.7.0 */ .nowrap) {
+  .pt-nowrap {
     white-space: nowrap;
   }
 
-  :where(.pt-swatch, /* @deprecated: removed in v0.7.0 */ .swatch) {
+  .pt-swatch {
     display: inline-block;
     width: 0.8em;
     height: 0.8em;
@@ -135,13 +135,13 @@
   table { width: 100%; border-collapse: collapse; }
   :where(th, td) { padding: var(--pt-table-cell-padding-block) var(--pt-table-cell-padding-inline); border-bottom: var(--pt-border); text-align: start; }
   :where(thead, tfoot) :where(th, td) { border-bottom-width: 2px; }
-  table:is(.pt-striped, /* @deprecated: removed in v0.7.0 */ .striped) tbody tr:nth-child(odd) { background: var(--pt-surface-subtle); }
+  table.pt-striped tbody tr:nth-child(odd) { background: var(--pt-surface-subtle); }
 
   img, video { max-width: 100%; height: auto; }
   :where(figure:has(> table)) { overflow-x: auto; }
 
   /* SVG Icon Ergonomics */
-  :where(svg:is(.pt-icon, /* @deprecated: removed in v0.7.0 */ .icon), [data-icon]) {
+  :where(svg.pt-icon, [data-icon]) {
     display: inline-block;
     width: 1.15em;
     height: 1.15em;
@@ -150,13 +150,13 @@
     stroke: currentColor;
     stroke-width: 2;
 
-    &:is([fill]:not([fill="none"]), [data-filled], .pt-solid, /* @deprecated: removed in v0.7.0 */ .solid) {
+    &:is([fill]:not([fill="none"]), [data-filled], .pt-solid) {
       fill: currentColor;
       stroke: none;
     }
   }
 
-  :where(button, .pt-button, .pt-btn, /* @deprecated: removed in v0.7.0 */ .button, /* @deprecated: removed in v0.7.0 */ .btn, a):has(> :where(svg:is(.pt-icon, /* @deprecated: removed in v0.7.0 */ .icon), [data-icon])) {
+  :where(button, .pt-button, .pt-btn, a):has(> :where(svg.pt-icon, [data-icon])) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -164,7 +164,7 @@
     gap: 0.5rem;
   }
 
-  :where(button, .pt-button, .pt-btn, /* @deprecated: removed in v0.7.0 */ .button, /* @deprecated: removed in v0.7.0 */ .btn):is([aria-label], [aria-labelledby], [title]):has(> :where(svg:is(.pt-icon, /* @deprecated: removed in v0.7.0 */ .icon), [data-icon]):only-child) {
+  :where(button, .pt-button, .pt-btn):is([aria-label], [aria-labelledby], [title]):has(> :where(svg.pt-icon, [data-icon]):only-child) {
     padding: var(--pt-form-y);
     height: calc(1lh + 2 * var(--pt-form-y) + 2px);
     aspect-ratio: 1;
@@ -172,7 +172,7 @@
 }
 
 @layer picotol.utilities {
-  :where(.pt-tabular, .pt-tabular-nums, /* @deprecated: removed in v0.7.0 */ .tabular-nums) {
+  :where(.pt-tabular, .pt-tabular-nums) {
     font-variant-numeric: tabular-nums lining-nums;
   }
 }

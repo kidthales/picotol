@@ -227,11 +227,11 @@
 
   function showToast(msg) {
     if (!toast) return;
-    toast.classList.add('show');
+    toast.classList.add('pt-show');
     toast.textContent = msg;
     clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => {
-      toast.classList.remove('show');
+      toast.classList.remove('pt-show');
     }, 2000);
   }
 

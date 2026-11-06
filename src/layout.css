@@ -1,53 +1,53 @@
 @layer picotol.base {
-  :where(body > header, body > main, body > footer, .pt-container, /* @deprecated: removed in v0.7.0 */ .container) {
+  :where(body > header, body > main, body > footer, .pt-container) {
     width: 100%;
     max-width: var(--pt-container-max);
     margin-inline: auto;
     padding: var(--pt-spacing);
   }
 
-  :is(.pt-container-fluid, /* @deprecated: removed in v0.7.0 */ .container-fluid) {
+  .pt-container-fluid {
     width: 100%;
     padding: var(--pt-spacing);
   }
 
   :where(section) {
     margin-bottom: calc(var(--pt-spacing) * 1.5);
-    :where(.pt-flex, .pt-grid, /* @deprecated: removed in v0.7.0 */ .flex, /* @deprecated: removed in v0.7.0 */ .grid, [style*="gap"]) > &,
+    :where(.pt-flex, .pt-grid, [style*="gap"]) > &,
     :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) & {
       margin-bottom: 0;
     }
   }
 
-  :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) :where(section, article, .pt-card, /* @deprecated: removed in v0.7.0 */ .card, hr) {
+  :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) :where(section, article, .pt-card, hr) {
     margin-block: 0;
   }
 
-  :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) :where(.pt-flex, .pt-grid, /* @deprecated: removed in v0.7.0 */ .flex, /* @deprecated: removed in v0.7.0 */ .grid, [style*="display: flex"], [style*="display: grid"]) > :where(section, article, .pt-card, /* @deprecated: removed in v0.7.0 */ .card) {
+  :where([data-density="compact"], .pt-compact, [data-density="tight"], .pt-tight) :where(.pt-flex, .pt-grid, [style*="display: flex"], [style*="display: grid"]) > :where(section, article, .pt-card) {
     margin-block: 0;
   }
 }
 
 @layer picotol.utilities {
-  :where(.pt-mb-0, .pt-no-margin-bottom, /* @deprecated: removed in v0.7.0 */ .mb-0, /* @deprecated: removed in v0.7.0 */ .no-margin-bottom) { margin-bottom: 0 !important; }
+  :where(.pt-mb-0, .pt-no-margin-bottom) { margin-bottom: 0 !important; }
 
-  :where(.pt-grid, .pt-flex, /* @deprecated: removed in v0.7.0 */ .grid, /* @deprecated: removed in v0.7.0 */ .flex) {
+  :where(.pt-grid, .pt-flex) {
     gap: var(--pt-grid-gap, var(--pt-spacing));
     & > * { min-width: 0; }
   }
 
-  :is(.pt-grid, /* @deprecated: removed in v0.7.0 */ .grid) {
+  .pt-grid {
     display: grid;
     @media (min-width: 48rem) {
       grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--pt-grid-min)), 1fr));
     }
   }
 
-  :where(.pt-flex, /* @deprecated: removed in v0.7.0 */ .flex) {
+  .pt-flex {
     display: flex;
   }
 
-  :where(.pt-overflow-auto, .pt-table-container, /* @deprecated: removed in v0.7.0 */ .overflow-auto, /* @deprecated: removed in v0.7.0 */ .table-container) {
+  :where(.pt-overflow-auto, .pt-table-container) {
     max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;

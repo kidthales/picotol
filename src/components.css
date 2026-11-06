@@ -1,74 +1,6 @@
-/* @deprecated: removed in v0.7.0 */
-@layer picotol.legacy {
-  /* Legacy bare semantic callouts (aside, [role="alert"]) */
-  :where(aside:not(nav *, .pt-callout), [role="alert"]:not(.pt-callout, .pt-badge, .pt-indicator)) {
-    margin-bottom: var(--pt-spacing);
-    padding: var(--pt-spacing);
-    border-radius: var(--pt-border-radius);
-    border-inline-start: 0.25rem solid var(--pt-muted-border);
-    background: var(--pt-surface-subtle);
-    color: var(--pt-color);
-
-    &:is(.pt-primary, /* @deprecated: removed in v0.7.0 */ .primary, [data-accent]) {
-      border-inline-start-color: var(--pt-primary);
-    }
-    &:is([role="alert"], .pt-invalid, /* @deprecated: removed in v0.7.0 */ .invalid) {
-      border-inline-start-color: var(--pt-invalid);
-    }
-    &:is(.pt-warning, /* @deprecated: removed in v0.7.0 */ .warning) {
-      border-inline-start-color: var(--pt-warning);
-    }
-    &:is(.pt-valid, /* @deprecated: removed in v0.7.0 */ .valid) {
-      border-inline-start-color: var(--pt-valid);
-    }
-  }
-
-  /* Legacy bare ARIA live status badge ([role="status"]) */
-  :where([role="status"]:not(.pt-badge, .pt-indicator, .pt-callout, .pt-chip)) {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35em;
-    padding: 0.125em 0.5em;
-    border-radius: 99px;
-    border: 1px solid var(--pt-muted-border);
-    background: var(--pt-surface-subtle);
-    color: var(--pt-color);
-    font-size: var(--pt-font-size-xs, 0.75em);
-    font-weight: 600;
-    line-height: 1;
-    white-space: nowrap;
-    vertical-align: middle;
-    font-variant-numeric: tabular-nums;
-
-    &:is(.pt-primary, /* @deprecated: removed in v0.7.0 */ .primary, [data-accent]) {
-      border-color: var(--pt-primary);
-      --pt-icon-color: var(--pt-primary);
-    }
-    &:is([role="alert"], .pt-invalid, /* @deprecated: removed in v0.7.0 */ .invalid) {
-      border-color: var(--pt-invalid);
-      --pt-icon-color: var(--pt-invalid);
-    }
-    &:is(.pt-warning, /* @deprecated: removed in v0.7.0 */ .warning) {
-      border-color: var(--pt-warning);
-      --pt-icon-color: var(--pt-warning);
-    }
-    &:is(.pt-valid, /* @deprecated: removed in v0.7.0 */ .valid) {
-      border-color: var(--pt-valid);
-      --pt-icon-color: var(--pt-valid);
-    }
-
-    & > :where(svg, .pt-dot, /* @deprecated: removed in v0.7.0 */ :is(.status-dot, .pt-status-dot)) {
-      margin: 0;
-    }
-    & > :where(svg, [data-icon]) {
-      color: var(--pt-icon-color, currentColor);
-    }
-  }
-}
-
 @layer picotol.components {
-  /* 1. Card (<article>, .pt-card, .card) */
-  :where(article, .pt-card, /* @deprecated: removed in v0.7.0 */ .card) {
+  /* 1. Card (<article>, .pt-card) */
+  :where(article, .pt-card) {
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -81,7 +13,7 @@
     box-shadow: var(--pt-box-shadow);
     overflow: hidden;
 
-    :where(.pt-flex, .pt-grid, /* @deprecated: removed in v0.7.0 */ .flex, /* @deprecated: removed in v0.7.0 */ .grid, [style*="gap"]) > & {
+    :where(.pt-flex, .pt-grid, [style*="gap"]) > & {
       height: 100%;
       margin-bottom: 0;
     }
@@ -90,7 +22,7 @@
       margin-bottom: 0;
     }
 
-    & > :where(main, .pt-card-body, [data-card-body], /* @deprecated: removed in v0.7.0 */ :is(.card-body, .body)) {
+    & > :where(main, .pt-card-body, [data-card-body]) {
       flex: 1 1 auto;
       min-width: 0;
     }
@@ -116,12 +48,12 @@
     }
   }
 
-  :where(article, .pt-card, /* @deprecated: removed in v0.7.0 */ .card):is(.pt-card--dense),
+  :where(article, .pt-card):is(.pt-card--dense),
   .pt-card--dense {
     --pt-card-padding: 0.25rem;
   }
 
-  :where(.pt-contrast, /* @deprecated: removed in v0.7.0 */ .contrast) {
+  :where(.pt-contrast) {
     --pt-primary: var(--pt-color);
     --pt-primary-hover: var(--pt-muted-color);
     --pt-primary-bg: var(--pt-color);
@@ -161,8 +93,8 @@
     }
   }
 
-  /* 3. Dropdown & Native Popover (details.dropdown, .pt-popover, .pt-dropdown, details[role="menu"]) */
-  :where(details:is(.pt-dropdown, /* @deprecated: removed in v0.7.0 */ .dropdown), .pt-popover, .pt-dropdown, details[role="menu"]) {
+  /* 3. Dropdown & Native Popover (details.pt-dropdown, .pt-popover, details[role="menu"]) */
+  :where(details.pt-dropdown, .pt-popover, .pt-dropdown, details[role="menu"]) {
     position: relative;
     border: 0;
     padding: 0;
@@ -191,7 +123,7 @@
   }
 
   :where(
-    details:is(.pt-dropdown, /* @deprecated: removed in v0.7.0 */ .dropdown) > ul,
+    details.pt-dropdown > ul,
     .pt-popover-menu,
     .pt-popover-content,
     .pt-popover > :not(summary),
@@ -212,7 +144,7 @@
     box-shadow: var(--pt-box-shadow);
     list-style: none;
 
-    &:is(.pt-end, /* @deprecated: removed in v0.7.0 */ .end), &[data-align="end"] {
+    &:is(.pt-end, [data-align="end"]) {
       inset-inline-start: auto;
       inset-inline-end: 0;
     }
@@ -261,7 +193,7 @@
   }
 
   /* Accordion Cards & Card Disclosures */
-  :where(.pt-accordion-card, /* @deprecated: removed in v0.7.0 */ .accordion-card) {
+  :where(.pt-accordion-card) {
     padding: 0;
     overflow: hidden;
 
@@ -280,7 +212,7 @@
     }
   }
 
-  :where(details:is(.pt-accordion-card, .pt-card-disclosure, /* @deprecated: removed in v0.7.0 */ .accordion-card)) {
+  :where(details:is(.pt-accordion-card, .pt-card-disclosure)) {
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
     background-color: var(--pt-card-bg);
@@ -313,7 +245,7 @@
         border-end-end-radius: 0;
       }
     }
-    & > :where(button, [type="submit"], [type="button"], [type="reset"], [role="button"], .pt-button, .pt-btn, /* @deprecated: removed in v0.7.0 */ .button, /* @deprecated: removed in v0.7.0 */ .btn) {
+    & > :where(button, [type="submit"], [type="button"], [type="reset"], [role="button"], .pt-button, .pt-btn) {
       flex: 0 0 auto;
       padding-inline: 1rem;
       white-space: nowrap;
@@ -340,7 +272,7 @@
   }
 
   /* 5. Modal (<dialog>) */
-  :where(dialog:not(.pt-sheet, .pt-sheet-right, .pt-sheet-left, /* @deprecated: removed in v0.7.0 */ .sheet, /* @deprecated: removed in v0.7.0 */ .sheet-right, /* @deprecated: removed in v0.7.0 */ .sheet-left)) {
+  :where(dialog:not(.pt-sheet, .pt-sheet-right, .pt-sheet-left)) {
     border: var(--pt-border);
     border-radius: var(--pt-border-radius);
     background-color: var(--pt-bg);
@@ -377,7 +309,7 @@
     &::backdrop {
       background-color: color-mix(in srgb, var(--pt-black) 65%, transparent);
     }
-    &:where(:not(.pt-sheet, .pt-sheet-right, .pt-sheet-left, /* @deprecated: removed in v0.7.0 */ .sheet, /* @deprecated: removed in v0.7.0 */ .sheet-right, /* @deprecated: removed in v0.7.0 */ .sheet-left)):has(> article) {
+    &:where(:not(.pt-sheet, .pt-sheet-right, .pt-sheet-left)):has(> article) {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -390,7 +322,7 @@
     }
   }
 
-  dialog button:is([aria-label="Close" i], [rel="prev"], .pt-close, /* @deprecated: removed in v0.7.0 */ .close) {
+  dialog button:is([aria-label="Close" i], [rel="prev"], .pt-close) {
     position: relative;
     width: 1.5rem;
     height: 1.5rem;
@@ -436,7 +368,7 @@
     }
   }
 
-  :where(.pt-sheet, .pt-sheet-right, .pt-sheet-left, /* @deprecated: removed in v0.7.0 */ .sheet, /* @deprecated: removed in v0.7.0 */ .sheet-right, /* @deprecated: removed in v0.7.0 */ .sheet-left) {
+  :where(.pt-sheet, .pt-sheet-right, .pt-sheet-left) {
     --pt-sheet-width: min(100vw, 24rem);
     position: fixed;
     inset-block: 0;
@@ -481,8 +413,8 @@
     }
   }
 
-  /* Right-docked default (.sheet, .sheet-right) */
-  :where(.pt-sheet, .pt-sheet-right, /* @deprecated: removed in v0.7.0 */ .sheet, /* @deprecated: removed in v0.7.0 */ .sheet-right):not(.pt-sheet-left, /* @deprecated: removed in v0.7.0 */ .sheet-left) {
+  /* Right-docked default (.pt-sheet, .pt-sheet-right) */
+  :where(.pt-sheet, .pt-sheet-right):not(.pt-sheet-left) {
     inset-inline: auto 0;
     margin-inline: auto 0;
     border-inline-start: var(--pt-border);
@@ -490,8 +422,8 @@
     &:dir(rtl) { animation-name: pt-sheet-slide-in-left; }
   }
 
-  /* Left-docked modifier (.sheet-left) */
-  :where(.pt-sheet-left, /* @deprecated: removed in v0.7.0 */ .sheet-left) {
+  /* Left-docked modifier (.pt-sheet-left) */
+  :where(.pt-sheet-left) {
     inset-inline: 0 auto;
     margin-inline: 0 auto;
     border-inline-end: var(--pt-border);
@@ -501,7 +433,7 @@
   }
 
   /* Sub-elements: header, scrollable body, footer */
-  :where(.pt-sheet-header, /* @deprecated: removed in v0.7.0 */ .sheet-header) {
+  :where(.pt-sheet-header) {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -515,14 +447,14 @@
     & > * { min-width: 0; }
   }
 
-  :where(.pt-sheet-body, /* @deprecated: removed in v0.7.0 */ .sheet-body) {
+  :where(.pt-sheet-body) {
     flex: 1 1 auto;
     overflow-y: auto;
     padding: var(--pt-spacing);
     min-width: 0;
   }
 
-  :where(.pt-sheet-footer, /* @deprecated: removed in v0.7.0 */ .sheet-footer) {
+  :where(.pt-sheet-footer) {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -537,7 +469,7 @@
 
   /* Responsive full-width collapse on viewports <= 600px */
   @media (max-width: 600px) {
-    :where(.pt-sheet, .pt-sheet-right, .pt-sheet-left, /* @deprecated: removed in v0.7.0 */ .sheet, /* @deprecated: removed in v0.7.0 */ .sheet-right, /* @deprecated: removed in v0.7.0 */ .sheet-left) {
+    :where(.pt-sheet, .pt-sheet-right, .pt-sheet-left) {
       --pt-sheet-width: 100vw;
       width: 100vw;
       max-width: 100vw;
@@ -657,10 +589,10 @@
     pointer-events: none;
     border-radius: inherit;
 
-    &:is(.pt-ok, [data-status="ok"], /* @deprecated: removed in v0.7.0 */ :is(.ok, .success, [data-status="success"])) { --pt-range-color: var(--pt-status-ok-bg); }
-    &:is(.pt-warning, [data-status="warning"], /* @deprecated: removed in v0.7.0 */ .warning) { --pt-range-color: var(--pt-status-warning-bg); }
-    &:is(.pt-critical, [data-status="critical"], /* @deprecated: removed in v0.7.0 */ :is(.critical, .danger, [data-status="danger"])) { --pt-range-color: var(--pt-status-critical-bg); }
-    &:is(.pt-info, [data-status="info"], /* @deprecated: removed in v0.7.0 */ .info) { --pt-range-color: var(--pt-status-info-bg); }
+    &:is(.pt-ok, [data-status="ok"]) { --pt-range-color: var(--pt-status-ok-bg); }
+    &:is(.pt-warning, [data-status="warning"]) { --pt-range-color: var(--pt-status-warning-bg); }
+    &:is(.pt-critical, [data-status="critical"]) { --pt-range-color: var(--pt-status-critical-bg); }
+    &:is(.pt-info, [data-status="info"]) { --pt-range-color: var(--pt-status-info-bg); }
   }
 
   :where(.pt-gauge-marker, .pt-meter-mark, .pt-meter-mark--start, .pt-meter-mark--end, .pt-gauge-marker--start, .pt-gauge-marker--end) {
@@ -670,7 +602,7 @@
     height: var(--pt-progress-height);
     inset-inline-start: clamp(
       var(--pt-progress-radius, 0px),
-      var(--pt-marker-pos, var(--marker-pos, 0%)),
+      var(--pt-marker-pos, 0%),
       calc(100% - var(--pt-progress-radius, 0px))
     );
     display: inline-flex;
@@ -703,8 +635,8 @@
       &:dir(rtl) { transform: translateX(50%); }
     }
 
-    &:is(.pt-bottom, [data-placement="bottom"], /* @deprecated: removed in v0.7.0 */ .bottom) > *,
-    & > :is(.pt-bottom, [data-placement="bottom"], /* @deprecated: removed in v0.7.0 */ .bottom) {
+    &:is(.pt-bottom, [data-placement="bottom"]) > *,
+    & > :is(.pt-bottom, [data-placement="bottom"]) {
       bottom: auto;
       top: calc(100% + 4px);
     }
@@ -724,13 +656,13 @@
       transform: translateX(-50%);
     }
 
-    &:is(.pt-ok, [data-status="ok"], /* @deprecated: removed in v0.7.0 */ :is(.ok, .success)) { --pt-marker-color: var(--pt-status-ok-border); }
-    &:is(.pt-warning, [data-status="warning"], /* @deprecated: removed in v0.7.0 */ .warning) {
+    &:is(.pt-ok, [data-status="ok"]) { --pt-marker-color: var(--pt-status-ok-border); }
+    &:is(.pt-warning, [data-status="warning"]) {
       --pt-marker-color: var(--pt-status-warning-border);
       color: var(--pt-status-warning-fg);
     }
-    &:is(.pt-critical, [data-status="critical"], /* @deprecated: removed in v0.7.0 */ :is(.critical, .danger)) { --pt-marker-color: var(--pt-status-critical-border); }
-    &:is(.pt-info, [data-status="info"], /* @deprecated: removed in v0.7.0 */ .info) { --pt-marker-color: var(--pt-status-info-border); }
+    &:is(.pt-critical, [data-status="critical"]) { --pt-marker-color: var(--pt-status-critical-border); }
+    &:is(.pt-info, [data-status="info"]) { --pt-marker-color: var(--pt-status-info-border); }
   }
 
   .pt-meter-range {
@@ -859,7 +791,7 @@
    * :hover; no CSS Escape dismissal (use JS/Popover) or host ::before/::after support.
    * Pair with aria-describedby; interestfor (Nov 2026) is non-baseline.
    */
-  [data-tooltip]:not([aria-busy="true"], summary, [role="switch"], .pt-close, dialog button:is([aria-label="Close" i], [rel="prev"]), /* @deprecated: removed in v0.7.0 */ .close) {
+  [data-tooltip]:not([aria-busy="true"], summary, [role="switch"], .pt-close, dialog button:is([aria-label="Close" i], [rel="prev"])) {
     position: relative;
     &:not(a, button, input, [role="button"]) {
       border-bottom: 1px dotted;
@@ -896,10 +828,10 @@
     }
   }
 
-  /* 10. Callouts are class-gated via .pt-callout (see Section 17); bare aside and [role="alert"] are quarantined in @layer picotol.legacy */
+  /* 10. Callouts are class-gated via .pt-callout (see Section 17) */
 
   /* 11. Status Badges & Indicators */
-  :where(.pt-badge, .pt-indicator, /* @deprecated: removed in v0.7.0 */ .badge) {
+  :where(.pt-badge, .pt-indicator) {
     display: inline-flex;
     align-items: center;
     gap: 0.35em;
@@ -915,24 +847,24 @@
     vertical-align: middle;
     font-variant-numeric: tabular-nums;
 
-    &:is(.pt-primary, /* @deprecated: removed in v0.7.0 */ .primary, [data-accent]) {
+    &:is(.pt-primary, [data-accent]) {
       border-color: var(--pt-primary);
       --pt-icon-color: var(--pt-primary);
     }
-    &:is([role="alert"], .pt-invalid, /* @deprecated: removed in v0.7.0 */ .invalid) {
+    &:is([role="alert"], .pt-invalid) {
       border-color: var(--pt-invalid);
       --pt-icon-color: var(--pt-invalid);
     }
-    &:is(.pt-warning, /* @deprecated: removed in v0.7.0 */ .warning) {
+    &:is(.pt-warning) {
       border-color: var(--pt-warning);
       --pt-icon-color: var(--pt-warning);
     }
-    &:is(.pt-valid, /* @deprecated: removed in v0.7.0 */ .valid) {
+    &:is(.pt-valid) {
       border-color: var(--pt-valid);
       --pt-icon-color: var(--pt-valid);
     }
 
-    & > :where(svg, .pt-dot, /* @deprecated: removed in v0.7.0 */ :is(.status-dot, .pt-status-dot)) {
+    & > :where(svg, .pt-dot) {
       margin: 0;
     }
     & > :where(svg, [data-icon]) {
@@ -950,40 +882,40 @@
   }
 
   /* Status Triad Bindings for .pt-badge, .pt-indicator, and .pt-chip */
-  .pt-badge[data-status="ok"], .pt-badge.pt-ok, /* @deprecated: removed in v0.7.0 */ .pt-badge.ok, /* @deprecated: removed in v0.7.0 */ .pt-badge.success,
-  .pt-indicator[data-status="ok"], .pt-indicator.pt-ok, /* @deprecated: removed in v0.7.0 */ .pt-indicator.ok, /* @deprecated: removed in v0.7.0 */ .pt-indicator.success,
-  .pt-chip[data-status="ok"], .pt-chip.pt-ok, /* @deprecated: removed in v0.7.0 */ .pt-chip.ok, /* @deprecated: removed in v0.7.0 */ .pt-chip.success {
+  .pt-badge[data-status="ok"], .pt-badge.pt-ok,
+  .pt-indicator[data-status="ok"], .pt-indicator.pt-ok,
+  .pt-chip[data-status="ok"], .pt-chip.pt-ok {
     --pt-icon-color: var(--pt-status-ok-fg);
     color: var(--pt-color);
     background-color: var(--pt-status-ok-bg);
     border-color: var(--pt-status-ok-border);
   }
-  .pt-badge[data-status="warning"], .pt-badge.pt-warning, /* @deprecated: removed in v0.7.0 */ .pt-badge.warning,
-  .pt-indicator[data-status="warning"], .pt-indicator.pt-warning, /* @deprecated: removed in v0.7.0 */ .pt-indicator.warning,
-  .pt-chip[data-status="warning"], .pt-chip.pt-warning, /* @deprecated: removed in v0.7.0 */ .pt-chip.warning {
+  .pt-badge[data-status="warning"], .pt-badge.pt-warning,
+  .pt-indicator[data-status="warning"], .pt-indicator.pt-warning,
+  .pt-chip[data-status="warning"], .pt-chip.pt-warning {
     --pt-icon-color: var(--pt-status-warning-fg);
     color: var(--pt-color);
     background-color: var(--pt-status-warning-bg);
     border-color: var(--pt-status-warning-border);
   }
-  .pt-badge[data-status="critical"], .pt-badge.pt-critical, /* @deprecated: removed in v0.7.0 */ .pt-badge.critical, .pt-badge[data-status="danger"], /* @deprecated: removed in v0.7.0 */ .pt-badge.danger,
-  .pt-indicator[data-status="critical"], .pt-indicator.pt-critical, /* @deprecated: removed in v0.7.0 */ .pt-indicator.critical, .pt-indicator[data-status="danger"], /* @deprecated: removed in v0.7.0 */ .pt-indicator.danger,
-  .pt-chip[data-status="critical"], .pt-chip.pt-critical, /* @deprecated: removed in v0.7.0 */ .pt-chip.critical, .pt-chip[data-status="danger"], /* @deprecated: removed in v0.7.0 */ .pt-chip.danger {
+  .pt-badge[data-status="critical"], .pt-badge.pt-critical,
+  .pt-indicator[data-status="critical"], .pt-indicator.pt-critical,
+  .pt-chip[data-status="critical"], .pt-chip.pt-critical {
     --pt-icon-color: var(--pt-status-critical-fg);
     color: var(--pt-color);
     background-color: var(--pt-status-critical-bg);
     border-color: var(--pt-status-critical-border);
   }
-  .pt-badge[data-status="info"], .pt-badge.pt-info, /* @deprecated: removed in v0.7.0 */ .pt-badge.info,
-  .pt-indicator[data-status="info"], .pt-indicator.pt-info, /* @deprecated: removed in v0.7.0 */ .pt-indicator.info,
-  .pt-chip[data-status="info"], .pt-chip.pt-info, /* @deprecated: removed in v0.7.0 */ .pt-chip.info {
+  .pt-badge[data-status="info"], .pt-badge.pt-info,
+  .pt-indicator[data-status="info"], .pt-indicator.pt-info,
+  .pt-chip[data-status="info"], .pt-chip.pt-info {
     --pt-icon-color: var(--pt-status-info-fg);
     color: var(--pt-color);
     background-color: var(--pt-status-info-bg);
     border-color: var(--pt-status-info-border);
   }
 
-  /* 11b. Status Indicator Dots (.pt-dot, .status-dot, .pt-status-dot) */
+  /* 11b. Status Indicator Dots (.pt-dot) */
   :where(.pt-dot) {
     display: inline-block;
     width: 0.5rem;
@@ -997,11 +929,11 @@
       margin-inline-end: 0.35rem;
     }
 
-    :where(.pt-grid, .pt-flex, /* @deprecated: removed in v0.7.0 */ .grid, /* @deprecated: removed in v0.7.0 */ .flex, [style*="gap"], [role="group"]) > & {
+    :where(.pt-grid, .pt-flex, [style*="gap"], [role="group"]) > & {
       margin-inline-end: 0;
     }
 
-    &:is(.pt-no-margin, .pt-m-0, /* @deprecated: removed in v0.7.0 */ .no-margin, /* @deprecated: removed in v0.7.0 */ .m-0) {
+    &:is(.pt-no-margin, .pt-m-0) {
       margin: 0;
     }
 
@@ -1009,16 +941,14 @@
       background-color: var(--pt-muted-border);
     }
 
-    /* .pt-dot--success is @deprecated: removed in v0.7.0 */
-    &:is(.pt-dot--ok, .pt-dot--success) {
+    &:is(.pt-dot--ok) {
       background-color: var(--pt-status-ok-fg);
       box-shadow: 0 0 0 2px var(--pt-status-ok-bg);
     }
     &:is(.pt-dot--warning) {
       background-color: var(--pt-status-warning-fg);
     }
-    /* .pt-dot--danger is @deprecated: removed in v0.7.0 */
-    &:is(.pt-dot--critical, .pt-dot--danger) {
+    &:is(.pt-dot--critical) {
       background-color: var(--pt-status-critical-fg);
     }
     &:is(.pt-dot--info) {
@@ -1036,58 +966,6 @@
 
     @media (forced-colors: active) {
       border: 1px solid CanvasText;
-    }
-  }
-
-  /* @deprecated: removed in v0.7.0 */
-  :where(.status-dot, .pt-status-dot) {
-    display: inline-block;
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    vertical-align: middle;
-    flex-shrink: 0;
-    background-color: var(--pt-muted-border);
-
-    &:where(:not(:only-child, :last-child)) {
-      margin-inline-end: 0.35rem;
-    }
-
-    :where(.pt-grid, .pt-flex, /* @deprecated: removed in v0.7.0 */ .grid, /* @deprecated: removed in v0.7.0 */ .flex, [style*="gap"], [role="group"]) > & {
-      margin-inline-end: 0;
-    }
-
-    &:is(.pt-no-margin, .pt-m-0, /* @deprecated: removed in v0.7.0 */ .no-margin, /* @deprecated: removed in v0.7.0 */ .m-0) {
-      margin: 0;
-    }
-
-    /* @deprecated: removed in v0.7.0 */
-    &:is(.neutral, .idle, [data-status="neutral"], [data-status="idle"], /* @deprecated: removed in v0.7.0 */ [data-status="backlog"], /* @deprecated: removed in v0.7.0 */ [data-status="no-status"]) {
-      background-color: var(--pt-muted-border);
-    }
-    /* @deprecated: removed in v0.7.0 */
-    &:is(.success, .valid, .ok, .pt-status-dot-success, .pt-status-dot-ok, [data-status="success"], [data-status="valid"], [data-status="ok"]) {
-      background-color: var(--pt-status-ok-border, var(--pt-valid));
-    }
-    /* @deprecated: removed in v0.7.0 */
-    &:is(.warning, .pt-status-dot-warning, [data-status="warning"]) {
-      background-color: var(--pt-status-warning-border, var(--pt-warning));
-    }
-    /* @deprecated: removed in v0.7.0 */
-    &:is(.danger, .invalid, .critical, .pt-status-dot-danger, .pt-status-dot-critical, [data-status="danger"], [data-status="invalid"], [data-status="critical"]) {
-      background-color: var(--pt-status-critical-border, var(--pt-invalid));
-    }
-    /* @deprecated: removed in v0.7.0 */
-    &:is(.info, .primary, .pt-status-dot-info, [data-status="info"], [data-status="primary"]) {
-      background-color: var(--pt-status-info-border, var(--pt-primary));
-    }
-    /* @deprecated: removed in v0.7.0 */
-    &:is(.pulse, .pt-pulse) {
-      animation: pt-pulse 1.5s ease-in-out infinite;
-    }
-
-    @media (forced-colors: active) {
-      outline: 1px solid CanvasText;
     }
   }
 
@@ -1130,7 +1008,7 @@
       transform: translateY(1px);
     }
 
-    & > :where(svg, .pt-dot, /* @deprecated: removed in v0.7.0 */ :is(.status-dot, .pt-status-dot)) {
+    & > :where(svg, .pt-dot) {
       margin: 0;
     }
   }
@@ -1141,13 +1019,13 @@
   }
 
   /* 12. Accessible Tabs & Segmented Controls */
-  :where([role="tablist"], .pt-segmented, /* @deprecated: removed in v0.7.0 */ .segmented) {
+  :where([role="tablist"], .pt-segmented) {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
     margin-bottom: var(--pt-spacing);
 
-    &:not(.pt-segmented, /* @deprecated: removed in v0.7.0 */ .segmented) {
+    &:not(.pt-segmented) {
       border-bottom: 2px solid var(--pt-muted-border);
     }
 
@@ -1165,27 +1043,26 @@
       &:is(:hover, :focus-visible) {
         color: var(--pt-color);
       }
-      &:is([aria-selected="true"], [aria-current="page"], .pt-active, /* @deprecated: removed in v0.7.0 */ .active) {
+      &:is([aria-selected="true"], [aria-current="page"], .pt-active) {
         color: var(--pt-primary);
         font-weight: 600;
       }
     }
 
-    &:not(.pt-segmented, /* @deprecated: removed in v0.7.0 */ .segmented) > * {
+    &:not(.pt-segmented) > * {
       border-bottom: 2px solid transparent;
       margin-bottom: -2px;
 
       &:is(:hover, :focus-visible) {
         border-bottom-color: var(--pt-muted-border);
       }
-      &:is([aria-selected="true"], [aria-current="page"], .pt-active, /* @deprecated: removed in v0.7.0 */ .active) {
+      &:is([aria-selected="true"], [aria-current="page"], .pt-active) {
         border-bottom-color: var(--pt-primary);
       }
     }
 
     &.pt-segmented,
-    /* @deprecated: removed in v0.7.0 */ &.segmented,
-    &:is(.pt-segmented-fill, .pt-segmented-equal, /* @deprecated: removed in v0.7.0 */ :is(.segmented-fill, .segmented-equal)) {
+    &:is(.pt-segmented-fill, .pt-segmented-equal) {
       display: inline-flex;
       padding: 0.25rem;
       border: var(--pt-border);
@@ -1198,7 +1075,7 @@
         border-radius: calc(var(--pt-border-radius) * 0.75);
         padding: 0.25rem 0.75rem;
 
-        &:is([aria-selected="true"], [aria-current="page"], .pt-active, /* @deprecated: removed in v0.7.0 */ .active) {
+        &:is([aria-selected="true"], [aria-current="page"], .pt-active) {
           background: var(--pt-bg);
           color: var(--pt-color);
           box-shadow: var(--pt-box-shadow);
@@ -1206,7 +1083,7 @@
       }
 
       @media (forced-colors: active) {
-        & > :is([aria-selected="true"], [aria-current="page"], .pt-active, /* @deprecated: removed in v0.7.0 */ .active) {
+        & > :is([aria-selected="true"], [aria-current="page"], .pt-active) {
           outline: 2px solid Highlight;
           outline-offset: -2px;
           background-color: Highlight;
@@ -1214,7 +1091,7 @@
         }
       }
 
-      &:is(.pt-segmented-fill, .pt-segmented-equal, .pt-fill, /* @deprecated: removed in v0.7.0 */ :is(.segmented-fill, .segmented-equal, .fill)) {
+      &:is(.pt-segmented-fill, .pt-segmented-equal, .pt-fill) {
         display: flex;
         width: 100%;
 
@@ -1231,8 +1108,8 @@
     }
   }
 
-  /* 13. Dedicated Square Icon Buttons (.btn-icon, .icon-btn) */
-  :where(.pt-btn-icon, .pt-icon-btn, /* @deprecated: removed in v0.7.0 */ :is(.btn-icon, .icon-btn)) {
+  /* 13. Dedicated Square Icon Buttons (.pt-btn-icon, .pt-icon-btn) */
+  :where(.pt-btn-icon, .pt-icon-btn) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1249,13 +1126,13 @@
   }
 
   /* 14. KPI Stat Cards */
-  :where(article:is(.pt-stat, /* @deprecated: removed in v0.7.0 */ .stat), dl:is(.pt-stats, /* @deprecated: removed in v0.7.0 */ .stats) > :is(div, article)) {
+  :where(article:is(.pt-stat), dl:is(.pt-stats) > :is(div, article)) {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
   }
 
-  dl:is(.pt-stats, /* @deprecated: removed in v0.7.0 */ .stats) {
+  dl:is(.pt-stats) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
     gap: var(--pt-spacing);
@@ -1272,15 +1149,15 @@
     }
   }
 
-  :where(article:is(.pt-stat, /* @deprecated: removed in v0.7.0 */ .stat), dl:is(.pt-stats, /* @deprecated: removed in v0.7.0 */ .stats)) {
-    & :where(dt, small, .pt-label, /* @deprecated: removed in v0.7.0 */ .label) {
+  :where(article:is(.pt-stat), dl:is(.pt-stats)) {
+    & :where(dt, small, .pt-label) {
       color: var(--pt-muted-color);
       font-size: 0.875rem;
       font-weight: 500;
       margin: 0;
     }
 
-    & :where(dd, strong, .pt-value, /* @deprecated: removed in v0.7.0 */ .value) {
+    & :where(dd, strong, .pt-value) {
       font-size: clamp(1.75rem, 4vw, 2.5rem);
       font-weight: 700;
       line-height: 1.1;
@@ -1289,7 +1166,7 @@
       margin: 0;
     }
 
-    & :where(footer, .pt-description, .pt-trend, /* @deprecated: removed in v0.7.0 */ :is(.description, .trend)) {
+    & :where(footer, .pt-description, .pt-trend) {
       font-size: 0.875rem;
       color: var(--pt-muted-color);
       margin-top: 0.25rem;
@@ -1297,7 +1174,7 @@
   }
 
   /* 15. Skeleton Loaders */
-  :where(.pt-skeleton, /* @deprecated: removed in v0.7.0 */ .skeleton) {
+  :where(.pt-skeleton) {
     display: inline-block;
     width: 100%;
     min-height: 1.2em;
@@ -1323,13 +1200,13 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    :where(.pt-skeleton, /* @deprecated: removed in v0.7.0 */ .skeleton) {
+    :where(.pt-skeleton) {
       opacity: 0.6;
     }
   }
 
-  /* 16. Toast Notification (.show; [aria-hidden="false"] deprecated alias until v0.7.0) */
-  :where(.pt-toast, /* @deprecated: removed in v0.7.0 */ .toast) {
+  /* 16. Toast Notification (.pt-show) */
+  :where(.pt-toast) {
     position: fixed;
     bottom: 1.5rem;
     inset-inline-end: 1.5rem;
@@ -1345,7 +1222,7 @@
     pointer-events: none;
     transform: translateY(1rem);
 
-    &:is(.pt-show, /* @deprecated: removed in v0.7.0 */ .show, [aria-hidden="false"]) {
+    &:is(.pt-show) {
       opacity: 1;
       visibility: visible;
       transition-delay: 0s;
@@ -1368,7 +1245,7 @@
     background-color: var(--pt-callout-bg);
     color: var(--pt-color);
 
-    &:where(.pt-flex > *, .pt-grid > *, /* @deprecated: removed in v0.7.0 */ :is(.flex > *, .grid > *), :last-child) {
+    &:where(.pt-flex > *, .pt-grid > *, :last-child) {
       margin-bottom: 0;
     }
 
@@ -1376,19 +1253,19 @@
       color: var(--pt-color);
     }
 
-    &:is(.pt-callout-ok, .pt-ok, /* @deprecated: removed in v0.7.0 */ :is(.pt-callout-success, .ok, .success)) {
+    &:is(.pt-callout-ok, .pt-ok) {
       --pt-callout-border: var(--pt-status-ok-border);
       --pt-callout-bg: var(--pt-status-ok-bg);
     }
-    &:is(.pt-callout-critical, .pt-critical, /* @deprecated: removed in v0.7.0 */ :is(.pt-callout-danger, .critical, .danger)) {
+    &:is(.pt-callout-critical, .pt-critical) {
       --pt-callout-border: var(--pt-status-critical-border);
       --pt-callout-bg: var(--pt-status-critical-bg);
     }
-    &:is(.pt-callout-warning, .pt-warning, /* @deprecated: removed in v0.7.0 */ .warning) {
+    &:is(.pt-callout-warning, .pt-warning) {
       --pt-callout-border: var(--pt-status-warning-border);
       --pt-callout-bg: var(--pt-status-warning-bg);
     }
-    &:is(.pt-callout-info, .pt-info, .pt-primary, /* @deprecated: removed in v0.7.0 */ :is(.info, .primary)) {
+    &:is(.pt-callout-info, .pt-info, .pt-primary) {
       --pt-callout-border: var(--pt-status-info-border);
       --pt-callout-bg: var(--pt-status-info-bg);
     }
