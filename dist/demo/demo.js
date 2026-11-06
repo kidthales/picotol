@@ -177,7 +177,7 @@
           document.getElementById('stat-mem'),
         ];
 
-        statEls.forEach((el) => { if (el) el.classList.add('skeleton'); });
+        statEls.forEach((el) => { if (el) el.classList.add('pt-skeleton'); });
 
         setTimeout(() => {
           const st = document.getElementById('stat-throughput');
@@ -198,7 +198,7 @@
           if (pcpu) pcpu.value = data.cpuVal;
           if (pmem) pmem.value = data.memVal;
 
-          statEls.forEach((el) => { if (el) el.classList.remove('skeleton'); });
+          statEls.forEach((el) => { if (el) el.classList.remove('pt-skeleton'); });
         }, 300);
       });
     });
@@ -227,11 +227,11 @@
 
   function showToast(msg) {
     if (!toast) return;
-    toast.classList.add('show');
+    toast.classList.add('pt-show');
     toast.textContent = msg;
     clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => {
-      toast.classList.remove('show');
+      toast.classList.remove('pt-show');
     }, 2000);
   }
 

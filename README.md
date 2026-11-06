@@ -124,7 +124,7 @@ if ($hash -ne $exp) { throw "SHA256 mismatch" }
 When serving from CDNs, assert SRI digests from `dist/sri.json`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.6.0/dist/picotol.min.css" integrity="sha384-nrNLsgH1BLMYZSz54HA5tYuAq0ZcR7/r7ru4t/GltEX794pCjrJA19L9UF4eUJTE" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.6.0/dist/picotol.min.css" integrity="sha384-hBl5xZv+J2dmQr6XH/HcXT30ckI6J/pP40UW7NSicJhH6fN6kwNVlaRSMl+sIztH" crossorigin="anonymous" />
 ```
 
 ---
@@ -166,7 +166,7 @@ import "@kidthales/picotol/palettes";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.6.0/dist/picotol.min.css" integrity="sha384-nrNLsgH1BLMYZSz54HA5tYuAq0ZcR7/r7ru4t/GltEX794pCjrJA19L9UF4eUJTE" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.6.0/dist/picotol.min.css" integrity="sha384-hBl5xZv+J2dmQr6XH/HcXT30ckI6J/pP40UW7NSicJhH6fN6kwNVlaRSMl+sIztH" crossorigin="anonymous" />
     <title>Semantic HTML with Accessible Design Tokens</title>
   </head>
   <body class="pt-app">
@@ -258,12 +258,11 @@ No JavaScript runtime, polyfills, or build steps are required downstream. Browse
 ## Architecture & Cascade Layers
 
 ```css
-@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
+@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
 ```
 
 | Layer | Source Files | Responsibility |
 | :--- | :--- | :--- |
-| `picotol.legacy` | [`src/components.css`](src/components.css) | Deprecated bare semantic selectors (`aside:not(nav *)`, `[role="alert"]`, `[role="status"]`) scheduled for removal in v0.7.0 |
 | `picotol.tokens` | [`src/tokens.css`](src/tokens.css), [`src/palettes.css`](src/palettes.css) | Auto-generated canonical `--tol-*` scheme constants, `--pt-*` semantic tokens, `[data-theme]` & `[data-accent]` ladders |
 | `picotol.reset` | [`src/base.css`](src/base.css) | Modern box-sizing reset, `body` zero-margin and flex column root, button font normalization, `[hidden]` display reset |
 | `picotol.base` | [`src/base.css`](src/base.css), [`src/layout.css`](src/layout.css), [`src/content.css`](src/content.css), [`src/forms.css`](src/forms.css), [`src/nav.css`](src/nav.css) | Document defaults, `:focus-visible`, `[tabindex="-1"]` guard, `@media print`, typography/content hierarchy, form controls, semantic landmarks, `.pt-container` |
@@ -287,7 +286,7 @@ No JavaScript runtime, polyfills, or build steps are required downstream. Browse
 5. **Theme-Reactive Selection Contrast (`::selection`)**:
    `::selection` binds dynamically to `background-color: var(--pt-primary-bg); color: var(--pt-color);`. This guarantees WCAG AA/AAA text contrast ($\ge 4.5:1$ across all four accent palettes) in both light mode and dark mode without translucent washout, preserving crisp text legibility during copy-paste and text inspection.
 6. **Accessible Toasts (`.pt-toast`) & Accessibility Tree**:
-   Hidden toasts use `visibility: hidden` (delayed via `transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;`, or immediate under `prefers-reduced-motion: reduce`) so inactive toasts leave the accessibility tree. Activate with `.pt-show` (`visibility: visible; transition-delay: 0s;`); never pair `.pt-show` with `aria-hidden="true"` (which hides visible toasts from assistive tech). Keep `role="status"`, `role="alert"`, or `aria-live` on a persistent wrapper or inject message text after `.pt-show` becomes visible so `visibility` toggling does not suppress announcements. Legacy `[aria-hidden="false"]` is a deprecated alias until v0.7.0.
+   Hidden toasts use `visibility: hidden` (delayed via `transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;`, or immediate under `prefers-reduced-motion: reduce`) so inactive toasts leave the accessibility tree. Activate with `.pt-show` (`visibility: visible; transition-delay: 0s;`); never pair `.pt-show` with `aria-hidden="true"` (which hides visible toasts from assistive tech). Keep `role="status"`, `role="alert"`, or `aria-live` on a persistent wrapper or inject message text after `.pt-show` becomes visible so `visibility` toggling does not suppress announcements.
 
 ---
 
@@ -312,10 +311,10 @@ Declare layer order upfront in your root stylesheet or HTML document to control 
 
 Starting in `v0.6.0`, all Picotol distribution bundles (`dist/picotol.css`, `dist/picotol.min.css`, `dist/picotol.core.css`, `dist/picotol.layer.css`, and `dist/picotol.layer.min.css`) natively namespace their internal rules under `picotol.*`. The bundle [`dist/picotol.layer.min.css`](dist/picotol.layer.min.css) is retained as an identical alias of `dist/picotol.min.css` for backward-compatible package imports (`@import "@kidthales/picotol/layer"`) without double-nesting (`picotol.picotol.*`).
 
-Every bundle declares its 6-tier nested sublayer hierarchy upfront:
+Every bundle declares its 5-tier nested sublayer hierarchy upfront:
 
 ```css
-@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
+@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;
 ```
 
 ##### Granular Sublayer Extension (`@layer picotol.*`)
@@ -333,7 +332,7 @@ Downstream consumers can hook directly into specific sublayers without battling 
 - **Hooking into `@layer picotol.components`**: Override component styling without breaking utility precedence:
   ```css
   @layer picotol.components {
-    article.card {
+    article.pt-card {
       border-radius: 1rem;
     }
   }
@@ -368,7 +367,7 @@ Downstream consumers can hook directly into specific sublayers without battling 
 <style>
   @layer picotol, app-theme, app-components, app-utilities;
 </style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.6.0/dist/picotol.layer.min.css" integrity="sha384-nrNLsgH1BLMYZSz54HA5tYuAq0ZcR7/r7ru4t/GltEX794pCjrJA19L9UF4eUJTE" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.6.0/dist/picotol.layer.min.css" integrity="sha384-hBl5xZv+J2dmQr6XH/HcXT30ckI6J/pP40UW7NSicJhH6fN6kwNVlaRSMl+sIztH" crossorigin="anonymous" />
 <link rel="stylesheet" href="/css/theme.css" layer="app-theme" />
 <link rel="stylesheet" href="/css/components.css" layer="app-components" />
 <link rel="stylesheet" href="/css/utilities.css" layer="app-utilities" />
@@ -841,6 +840,7 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
   - `data-align="center"` or `.pt-meter-mark--center`: Explicitly resets to centered default (`transform: translateX(-50%)`).
   - **Pin Centering Invariant**: The marker pin (`&::before`) remains strictly centered (`transform: translateX(-50%)`) at the target percentage tick.
 - **Tokenized Stacking Layers**: Sub-primitives stack predictably via tokenized z-index layers: `--pt-meter-range-z: 1` (`.pt-meter-range`), `--pt-meter-fill-z: 2` (`.pt-meter-fill`), and `--pt-meter-mark-z: 3` (`.pt-meter-mark`, `.pt-meter-label`, `.pt-gauge-marker`).
+- **Status Modifiers**: Progress containers and meters support canonical status modifiers (`.pt-progress-ok`, `.pt-progress-warning`, `.pt-progress-critical`, or `[data-status="ok|warning|critical"]`).
 
 ```html
 <div class="pt-meter">
@@ -855,9 +855,15 @@ For narrow IDE corridors ($\le 360\text{px}$) and compact viewports, equal-fill 
   </div>
 </div>
 
-<!-- Determinate Progress Bar with Status Warning -->
+<!-- Determinate Progress Bars with Status Modifiers -->
+<div class="pt-progress pt-progress-ok" role="progressbar" aria-valuenow="100">
+  <div class="pt-progress-fill" style="width: 100%;"></div>
+</div>
 <div class="pt-progress pt-progress-warning" role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">
   <div class="pt-progress-fill" style="width: 65%;"></div>
+</div>
+<div class="pt-progress pt-progress-critical" role="progressbar" aria-valuenow="25">
+  <div class="pt-progress-fill" style="width: 25%;"></div>
 </div>
 ```
 

@@ -55,13 +55,13 @@
       --pt-bg: #fff;
       --pt-color: #000;
     }
-    :where(nav, dialog, .pt-skip-to-content, /* @deprecated: removed in v0.7.0 */ .skip-to-content) { display: none !important; }
+    :where(nav, dialog, .pt-skip-to-content) { display: none !important; }
     :where(pre, blockquote, table, article, figure) { break-inside: avoid; }
   }
 }
 
 @layer picotol.utilities {
-  :is(.pt-skip-to-content, /* @deprecated: removed in v0.7.0 */ .skip-to-content):is(:focus, :focus-visible) {
+  .pt-skip-to-content:is(:focus, :focus-visible) {
     position: fixed;
     top: 0.5rem;
     inset-inline-start: 0.5rem;
@@ -78,10 +78,7 @@
   :where(
     .pt-sr-only,
     .pt-visually-hidden,
-    :is(.pt-skip-to-content, .pt-sr-only-focusable, .pt-visually-hidden-focusable):not(:focus, :focus-visible),
-    /* @deprecated: removed in v0.7.0 */ .sr-only,
-    /* @deprecated: removed in v0.7.0 */ .visually-hidden,
-    /* @deprecated: removed in v0.7.0 */ :is(.skip-to-content, .sr-only-focusable, .visually-hidden-focusable):not(:focus, :focus-visible)
+    :is(.pt-skip-to-content, .pt-sr-only-focusable, .pt-visually-hidden-focusable):not(:focus, :focus-visible)
   ) {
     position: absolute;
     width: 1px;

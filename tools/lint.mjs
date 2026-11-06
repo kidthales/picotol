@@ -71,89 +71,9 @@ export const CSS_NAMED_COLORS = new Set([
 ]);
 
 export const DEPRECATED_CUSTOM_PROPERTY_ALLOWLIST = new Set([
-  '--marker-pos',
   '--pt-form-element-spacing-vertical',
   '--pt-form-element-spacing-horizontal',
   '--pt-btn-padding-block',
-]);
-
-export const DEPRECATED_CLASS_ALLOWLIST = new Set([
-  'accordion-card',
-  'active',
-  'badge',
-  'body',
-  'bottom',
-  'btn',
-  'btn-icon',
-  'button',
-  'card',
-  'card-body',
-  'close',
-  'container',
-  'container-fluid',
-  'contrast',
-  'critical',
-  'danger',
-  'description',
-  'dropdown',
-  'end',
-  'fill',
-  'flex',
-  'form-row',
-  'grid',
-  'icon',
-  'icon-btn',
-  'idle',
-  'info',
-  'inline-form',
-  'invalid',
-  'label',
-  'm-0',
-  'mb-0',
-  'measure',
-  'neutral',
-  'no-margin',
-  'no-margin-bottom',
-  'nowrap',
-  'ok',
-  'outline',
-  'overflow-auto',
-  'primary',
-  'prose',
-  'pulse',
-  'secondary',
-  'segmented',
-  'segmented-equal',
-  'segmented-fill',
-  'sheet',
-  'sheet-body',
-  'sheet-footer',
-  'sheet-header',
-  'sheet-left',
-  'sheet-right',
-  'show',
-  'skeleton',
-  'skip-to-content',
-  'sm',
-  'small',
-  'solid',
-  'sr-only',
-  'sr-only-focusable',
-  'stat',
-  'stats',
-  'status-dot',
-  'striped',
-  'success',
-  'swatch',
-  'table-container',
-  'tabular-nums',
-  'toast',
-  'trend',
-  'valid',
-  'value',
-  'visually-hidden',
-  'visually-hidden-focusable',
-  'warning',
 ]);
 
 export function extractClassesFromAst(selectors, set = new Set()) {
@@ -173,7 +93,7 @@ export function extractClassesFromAst(selectors, set = new Set()) {
 export function lintClassNamingConventions(content, filename = 'snippet.css') {
   const errors = [];
   const normFilename = filename.replaceAll('\\', '/');
-  if (!normFilename.startsWith('src/')) return errors;
+  if (!normFilename.startsWith('src/') && !normFilename.startsWith('dist/')) return errors;
 
   const classSet = new Set();
   try {
@@ -196,9 +116,9 @@ export function lintClassNamingConventions(content, filename = 'snippet.css') {
   }
 
   for (const cls of classSet) {
-    if (!cls.startsWith('pt-') && !DEPRECATED_CLASS_ALLOWLIST.has(cls)) {
+    if (!cls.startsWith('pt-')) {
       errors.push(
-        `[${filename}] Invalid public class ".${cls}" (must be pt- prefixed or explicitly allowlisted as a deprecated alias)`
+        `[${filename}] Invalid public class ".${cls}" (must be pt- prefixed)`
       );
     }
   }
@@ -638,9 +558,9 @@ export function lintDistAccessibilityRules(fullDistCss, filename = 'dist/picotol
   const errors = [];
   for (const requiredRule of [
     ':focus-visible',
-    '.skip-to-content',
-    '.sr-only',
-    '.overflow-auto',
+    '.pt-skip-to-content',
+    '.pt-sr-only',
+    '.pt-overflow-auto',
     'prefers-reduced-motion: reduce',
     'forced-colors: active',
     '@media print',
@@ -885,6 +805,19 @@ export function runLint() {
 
   const fullDistCss = fs.readFileSync(path.join(ROOT, 'dist/picotol.css'), 'utf8');
   errors.push(...lintDistAccessibilityRules(fullDistCss, 'dist/picotol.css'));
+
+  // Ensure picotol.legacy is completely absent from all dist/*.css builds and zero unprefixed classes in dist builds
+  const distDir = path.join(ROOT, 'dist');
+  if (fs.existsSync(distDir)) {
+    const distCssFiles = fs.readdirSync(distDir).filter((f) => f.endsWith('.css'));
+    for (const f of distCssFiles) {
+      const distContent = fs.readFileSync(path.join(distDir, f), 'utf8');
+      if (distContent.includes('picotol.legacy')) {
+        errors.push(`[dist/${f}] Deprecated layer "picotol.legacy" must not appear in distribution builds.`);
+      }
+      errors.push(...lintClassNamingConventions(distContent, `dist/${f}`));
+    }
+  }
 
   // 6. Demo HTML structural & accessibility linting
   const demoPath = path.join(ROOT, 'dist/demo/index.html');

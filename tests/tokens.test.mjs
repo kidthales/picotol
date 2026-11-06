@@ -557,7 +557,7 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     const fullCss = getDistCss();
     const coreCss = getCoreCss();
 
-    const secondarySelector = ':where(.pt-secondary, .secondary, [type="reset"])';
+    const secondarySelector = ':where(.pt-secondary, [type="reset"])';
     assert.ok(fullCss.includes(secondarySelector), "Secondary selector present in dist/picotol.css");
     assert.ok(coreCss.includes(secondarySelector), "Secondary selector present in dist/picotol.core.css");
 
@@ -913,8 +913,8 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     const compCss = getSrcComponentsCss();
     const readme = getReadme();
 
-    const expectedPreamble = "@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;";
-    const expectedMinPreamble = "@layer picotol.legacy,picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;";
+    const expectedPreamble = "@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;";
+    const expectedMinPreamble = "@layer picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;";
 
     assert.ok(
       layerCss.includes(expectedPreamble),
@@ -926,11 +926,11 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     );
 
     assert.ok(
-      tokensCss.includes("@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
+      tokensCss.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
       "src/tokens.css must declare layer ordering"
     );
     let fullIdx = -1;
-    for (const l of ["picotol.legacy", "picotol.tokens", "picotol.reset", "picotol.base", "picotol.components", "picotol.utilities"]) {
+    for (const l of ["picotol.tokens", "picotol.reset", "picotol.base", "picotol.components", "picotol.utilities"]) {
       const idx = fullCss.indexOf(`@layer ${l}`);
       assert.ok(idx > fullIdx, `dist/picotol.css must preserve @layer ${l} in sequential cascade order`);
       fullIdx = idx;
@@ -943,7 +943,7 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     }
 
     let layerIdx = -1;
-    for (const l of ["picotol.legacy", "picotol.tokens", "picotol.reset", "picotol.base", "picotol.components", "picotol.utilities"]) {
+    for (const l of ["picotol.tokens", "picotol.reset", "picotol.base", "picotol.components", "picotol.utilities"]) {
       const idx = layerCss.indexOf(`@layer ${l}`);
       assert.ok(idx > layerIdx, `dist/picotol.layer.css must preserve @layer ${l} in sequential cascade order`);
       layerIdx = idx;
@@ -972,7 +972,7 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     assert.ok(baseCss.includes("@layer picotol.utilities {"), "src/base.css must define @layer picotol.utilities");
     assert.ok(layoutCss.includes("@layer picotol.base {"), "src/layout.css must define @layer picotol.base");
     assert.ok(layoutCss.includes("@layer picotol.utilities {"), "src/layout.css must define @layer picotol.utilities");
-    assert.ok(compCss.includes("@layer picotol.legacy {"), "src/components.css must define @layer picotol.legacy");
+    assert.ok(!compCss.includes("@layer picotol.legacy"), "src/components.css must not define @layer picotol.legacy");
     assert.ok(compCss.includes("@layer picotol.components {"), "src/components.css must define @layer picotol.components");
 
     const downstreamSnippet = `
@@ -981,10 +981,10 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
         :root { --pt-primary: #123456; }
       }
       @layer picotol.components {
-        article.card { border-radius: 1.5rem; }
+        article.pt-card { border-radius: 1.5rem; }
       }
       @layer my-components {
-        article.card { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+        article.pt-card { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
       }
     `;
     const downstreamTransformed = transform({
@@ -1001,20 +1001,20 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
     assert.ok(utilitiesIdx !== -1, "@layer picotol.utilities must be defined in dist/picotol.layer.css");
     assert.match(
       layerCss.slice(utilitiesIdx),
-      /:is\([^)]*\.skip-to-content[^)]*\):is\(:focus,\s*:focus-visible\)/,
-      ".skip-to-content focus rule must compile inside @layer picotol.utilities"
+      /\.pt-skip-to-content:is\(:focus,\s*:focus-visible\)/,
+      ".pt-skip-to-content focus rule must compile inside @layer picotol.utilities"
     );
     assert.ok(
-      layerCss.indexOf(".sr-only", utilitiesIdx) !== -1,
-      ".sr-only utility must compile inside @layer picotol.utilities"
+      layerCss.indexOf(".pt-sr-only", utilitiesIdx) !== -1,
+      ".pt-sr-only utility must compile inside @layer picotol.utilities"
     );
     assert.ok(
-      layerCss.indexOf(".table-container", utilitiesIdx) !== -1,
-      ".table-container utility must compile inside @layer picotol.utilities"
+      layerCss.indexOf(".pt-table-container", utilitiesIdx) !== -1,
+      ".pt-table-container utility must compile inside @layer picotol.utilities"
     );
 
     assert.ok(
-      readme.includes("@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
+      readme.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
       "README must document layer declaration preamble"
     );
     const defaultLightPrimary = getPicotolTokens().getToken("--pt-primary", "light", "blue");
@@ -1024,7 +1024,7 @@ describe("Architecture, Cascade Layers, and Token Scoping", () => {
       `README must document downstream @layer picotol.tokens override pattern with token-derived fallback (${defaultLightPrimary})`
     );
     assert.ok(
-      readme.includes("@layer picotol.components") && readme.includes("article.card"),
+      readme.includes("@layer picotol.components") && readme.includes("article.pt-card"),
       "README must document downstream @layer picotol.components override pattern"
     );
   });

@@ -474,15 +474,19 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
     assert.equal(layerMinCss, fullMinCss, "dist/picotol.layer.min.css must emit identical output to dist/picotol.min.css per ADR 0001");
 
     assert.ok(
-      layerCss.includes("@layer picotol.legacy, picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
+      layerCss.includes("@layer picotol.tokens, picotol.reset, picotol.base, picotol.components, picotol.utilities;"),
       "dist/picotol.layer.css must export nested layer definitions preamble"
     );
     assert.ok(
-      layerMinCss.includes("@layer picotol.legacy,picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;"),
+      layerMinCss.includes("@layer picotol.tokens,picotol.reset,picotol.base,picotol.components,picotol.utilities;"),
       "dist/picotol.layer.min.css must export nested layer definitions preamble"
     );
+    assert.ok(
+      !layerCss.includes("picotol.legacy") && !layerMinCss.includes("picotol.legacy"),
+      "dist/picotol.layer.css must not contain picotol.legacy"
+    );
 
-    const layers = ["legacy", "tokens", "reset", "base", "components", "utilities"];
+    const layers = ["tokens", "reset", "base", "components", "utilities"];
     for (const layer of layers) {
       assert.ok(
         layerMinCss.includes(`@layer picotol.${layer}{`),
