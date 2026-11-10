@@ -19,7 +19,7 @@
 .PARAMETER Gate0Only
     Runs Gate 0 workflow single-source-of-truth drift audit only and exits. Forbidden in -CI mode.
 .PARAMETER WorkflowsPath
-    Custom path to workflow directory to audit in Gate 0. Forbidden in -CI mode.
+    Custom path to workflow directory to audit in Gate 0. Requires -Gate0Only. Forbidden in -CI mode.
 .EXAMPLE
     pwsh ./scripts/ci-local.ps1
     pwsh ./scripts/ci-local.ps1 -Quick
@@ -80,9 +80,20 @@ if ($IsCI) {
     if ($Quick) { $rejectedFlags += "-Quick" }
     if ($SkipGenerate) { $rejectedFlags += "-SkipGenerate" }
     if ($Gate0Only) { $rejectedFlags += "-Gate0Only" }
-    if ($WorkflowsPath) { $rejectedFlags += "-WorkflowsPath" }
+    if ($PSBoundParameters.ContainsKey('WorkflowsPath')) { $rejectedFlags += "-WorkflowsPath" }
     if ($rejectedFlags.Count -gt 0) {
         Write-Fail "CI mode forbids $($rejectedFlags -join ', ') flags; the full verification pipeline must execute."
+        exit 1
+    }
+}
+
+if ($PSBoundParameters.ContainsKey('WorkflowsPath')) {
+    if ([string]::IsNullOrWhiteSpace($WorkflowsPath)) {
+        Write-Fail "-WorkflowsPath requires a non-empty directory path."
+        exit 1
+    }
+    if (-not $Gate0Only) {
+        Write-Fail "-WorkflowsPath requires -Gate0Only; full pipeline runs must audit the canonical .github/workflows directory."
         exit 1
     }
 }
@@ -100,6 +111,14 @@ $GateResults = [ordered]@{
 
 function Write-GateSummary {
     Write-Host "`nGate Summary:" -ForegroundColor Cyan
+    $activeFlags = @()
+    if ($Quick) { $activeFlags += "-Quick" }
+    if ($SkipGenerate) { $activeFlags += "-SkipGenerate" }
+    if ($Gate0Only) { $activeFlags += "-Gate0Only" }
+    if ($WorkflowsPath) { $activeFlags += "-WorkflowsPath" }
+    if ($activeFlags.Count -gt 0) {
+        Write-Host "  Flags: $($activeFlags -join ' ')"
+    }
     foreach ($k in $GateResults.Keys) {
         $v = "$($GateResults[$k])".ToUpperInvariant()
         Write-Host "  [${k}: $v]"

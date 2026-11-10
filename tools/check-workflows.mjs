@@ -33,8 +33,12 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
   let workflowsDir = null;
   if (typeof options === 'string') {
     workflowsDir = options;
-  } else if (options && typeof options === 'object' && options.workflowsDir) {
+  } else if (options && typeof options === 'object' && options.workflowsDir !== undefined) {
     workflowsDir = options.workflowsDir;
+  }
+
+  if (workflowsDir !== null && (typeof workflowsDir !== 'string' || workflowsDir.trim() === '')) {
+    return ['Invalid workflows directory specified: path must be a non-empty string.'];
   }
 
   const workflowDir = workflowsDir ? path.resolve(workflowsDir) : path.join(rootDir, '.github', 'workflows');
@@ -51,8 +55,17 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
     return errors;
   }
 
+  const resolveReal = (p) => {
+    try {
+      return fs.realpathSync.native ? fs.realpathSync.native(p) : fs.realpathSync(p);
+    } catch {
+      return path.resolve(p);
+    }
+  };
+
   const requiredWorkflows = ['ci.yml', 'release.yml', 'pages.yml'];
-  const isRootWorkflows = path.resolve(workflowDir) === path.join(ROOT, '.github', 'workflows');
+  const rootWfDir = path.join(ROOT, '.github', 'workflows');
+  const isRootWorkflows = resolveReal(workflowDir).toLowerCase() === resolveReal(rootWfDir).toLowerCase();
   if (isRootWorkflows) {
     for (const req of requiredWorkflows) {
       if (!files.includes(req)) {
@@ -312,11 +325,16 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
           }
         }
         const attachSteps = Array.isArray(attachJob.steps) ? attachJob.steps : [];
-        const hasAttest = attachSteps.some(
+        const attestStep = attachSteps.find(
           (s) => s && typeof s === 'object' && typeof s.uses === 'string' && (s.uses.startsWith('actions/attest@') || s.uses === 'actions/attest')
         );
-        if (!hasAttest) {
+        if (!attestStep) {
           errors.push('release.yml attach-assets job must contain an actions/attest step for provenance attestation.');
+        } else {
+          const subjectPath = attestStep.with && attestStep.with['subject-path'];
+          if (typeof subjectPath !== 'string' || subjectPath.trim().length === 0) {
+            errors.push("release.yml attach-assets actions/attest step must declare a non-empty 'with.subject-path'.");
+          }
         }
       }
 
@@ -480,12 +498,22 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const arg = args[i];
     if (arg === '--workflows-dir') {
       const next = args[i + 1];
-      if (next && !next.startsWith('-')) {
-        workflowsDir = next;
-        i++;
+      if (!next || next.startsWith('-')) {
+        console.error('✖ Usage error: --workflows-dir requires a valid directory path argument.');
+        process.exit(1);
       }
+      workflowsDir = next;
+      i++;
     } else if (arg.startsWith('--workflows-dir=')) {
-      workflowsDir = arg.slice('--workflows-dir='.length);
+      const val = arg.slice('--workflows-dir='.length).trim();
+      if (!val) {
+        console.error('✖ Usage error: --workflows-dir= requires a non-empty directory path argument.');
+        process.exit(1);
+      }
+      workflowsDir = val;
+    } else if (arg.startsWith('-')) {
+      console.error(`✖ Unknown flag: ${arg}`);
+      process.exit(1);
     }
   }
 

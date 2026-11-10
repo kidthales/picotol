@@ -1491,6 +1491,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: "dist/manifest.json"
   notify:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -1548,6 +1550,8 @@ jobs:
       deployments: write
     steps:
       - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: "dist/manifest.json"
   notify:
     runs-on: ubuntu-latest
     timeout-minutes: 5
