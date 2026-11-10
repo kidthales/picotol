@@ -24,25 +24,34 @@ export function hasUnescapedExpression(runScript) {
 /**
  * Audits all GitHub Actions workflows in .github/workflows/ using the `yaml` parser.
  * @param {string} [rootDir=ROOT] - Project root directory
+ * @param {string|object} [options] - Workflows dir path or options object { workflowsDir }
  * @returns {string[]} Array of violation messages (empty on success)
  */
-export function auditWorkflows(rootDir = ROOT) {
-  const workflowDir = path.join(rootDir, '.github', 'workflows');
+export function auditWorkflows(rootDir = ROOT, options = {}) {
+  let workflowsDir = null;
+  if (typeof options === 'string') {
+    workflowsDir = options;
+  } else if (options && typeof options === 'object' && options.workflowsDir) {
+    workflowsDir = options.workflowsDir;
+  }
+
+  const workflowDir = workflowsDir ? path.resolve(workflowsDir) : path.join(rootDir, '.github', 'workflows');
   const errors = [];
 
   if (!fs.existsSync(workflowDir)) {
-    errors.push('No workflow files found in .github/workflows/.');
+    errors.push(workflowsDir ? `Workflows directory not found: ${workflowsDir}` : 'No workflow files found in .github/workflows/.');
     return errors;
   }
 
   const files = fs.readdirSync(workflowDir).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
   if (files.length === 0) {
-    errors.push('No workflow files found in .github/workflows/.');
+    errors.push(workflowsDir ? `No workflow files found in ${workflowsDir}.` : 'No workflow files found in .github/workflows/.');
     return errors;
   }
 
   const requiredWorkflows = ['ci.yml', 'release.yml', 'pages.yml'];
-  if (path.resolve(rootDir) === ROOT) {
+  const isRootWorkflows = path.resolve(workflowDir) === path.join(ROOT, '.github', 'workflows');
+  if (isRootWorkflows) {
     for (const req of requiredWorkflows) {
       if (!files.includes(req)) {
         errors.push(`Missing required workflow file: .github/workflows/${req}`);
@@ -414,7 +423,7 @@ export function auditWorkflows(rootDir = ROOT) {
     }
   }
 
-  if (!ciInvokesScript && (files.includes('ci.yml') || path.resolve(rootDir) === ROOT)) {
+  if (!ciInvokesScript && (files.includes('ci.yml') || isRootWorkflows)) {
     errors.push("ci.yml must invoke 'pwsh ./scripts/ci-local.ps1 -CI' in a 'run:' step.");
   }
 
@@ -423,7 +432,22 @@ export function auditWorkflows(rootDir = ROOT) {
 
 // CLI entry point
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const errors = auditWorkflows(ROOT);
+  let workflowsDir = null;
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--workflows-dir') {
+      const next = args[i + 1];
+      if (next && !next.startsWith('-')) {
+        workflowsDir = next;
+        i++;
+      }
+    } else if (arg.startsWith('--workflows-dir=')) {
+      workflowsDir = arg.slice('--workflows-dir='.length);
+    }
+  }
+
+  const errors = auditWorkflows(ROOT, { workflowsDir });
   if (errors.length > 0) {
     for (const err of errors) {
       console.error(`✖ ${err}`);

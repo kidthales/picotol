@@ -672,18 +672,32 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
         !ciLocalPs1.includes("gate9_cross_compile"),
       "scripts/ci-local.ps1 must not leak foundry Go gates into receipt generation"
     );
-    const expectedNativeGates = [
-      "gate0_workflow_contract=$Gate0Status",
-      "gate1_action_pins=$Gate1ActionPinsStatus",
-      "gate1_agent_leaks=$Gate1Status",
-      "gate2_pwsh_ast=$Gate2Status",
-      "gate3_dist_drift=$Gate3Status",
-      "gate4_npm_test_and_pack=$Gate4Status",
+    assert.ok(
+      ciLocalPs1.includes("Gate Summary:") &&
+        ciLocalPs1.includes("Write-GateSummary") &&
+        ciLocalPs1.includes("[${k}: $v]"),
+      "scripts/ci-local.ps1 must emit structured 'Gate Summary:' lines for seldon ci run Schema v2 parsing"
+    );
+    assert.ok(
+      !ciLocalPs1.includes("seldon ci receipt"),
+      "scripts/ci-local.ps1 must not invoke deprecated standalone 'seldon ci receipt'"
+    );
+    assert.ok(
+      !ciLocalPs1.includes("$SeldonBin"),
+      "scripts/ci-local.ps1 must not perform deprecated $SeldonBin lookup"
+    );
+    const expectedNativeGateKeys = [
+      "gate0_workflow_contract",
+      "gate1_action_pins",
+      "gate1_agent_leaks",
+      "gate2_pwsh_ast",
+      "gate3_dist_drift",
+      "gate4_npm_test_and_pack",
     ];
-    for (const gate of expectedNativeGates) {
+    for (const gateKey of expectedNativeGateKeys) {
       assert.ok(
-        ciLocalPs1.includes(`"${gate}"`),
-        `scripts/ci-local.ps1 must record native gate "${gate}"`
+        ciLocalPs1.includes(`"${gateKey}"`),
+        `scripts/ci-local.ps1 must record native gate "${gateKey}" in $GateResults`
       );
     }
 

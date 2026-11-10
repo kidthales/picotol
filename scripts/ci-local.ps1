@@ -13,18 +13,27 @@
 .PARAMETER SkipGenerate
     Skips Gate 3 distribution regeneration and drift verification. Forbidden in -CI mode.
 .PARAMETER CI
-    Enables strict CI mode (auto-enabled when $env:GITHUB_ACTIONS is set): rejects -Quick and -SkipGenerate,
-    emits GitHub Actions ::group::/::endgroup:: and ::error:: annotations, and guarantees non-zero exit on failure.
+    Enables strict CI mode (auto-enabled when $env:GITHUB_ACTIONS is set): rejects -Quick, -SkipGenerate,
+    -Gate0Only, and -WorkflowsPath flags, emits GitHub Actions ::group::/::endgroup:: and ::error:: annotations,
+    and guarantees non-zero exit on failure.
+.PARAMETER Gate0Only
+    Runs Gate 0 workflow single-source-of-truth drift audit only and exits. Forbidden in -CI mode.
+.PARAMETER WorkflowsPath
+    Custom path to workflow directory to audit in Gate 0. Forbidden in -CI mode.
 .EXAMPLE
     pwsh ./scripts/ci-local.ps1
     pwsh ./scripts/ci-local.ps1 -Quick
     pwsh ./scripts/ci-local.ps1 -CI
+    pwsh ./scripts/ci-local.ps1 -Gate0Only
+    pwsh ./scripts/ci-local.ps1 -Gate0Only -WorkflowsPath ./custom/workflows
 #>
 [CmdletBinding()]
 param(
     [switch]$Quick,
     [switch]$SkipGenerate,
-    [switch]$CI
+    [switch]$CI,
+    [switch]$Gate0Only,
+    [string]$WorkflowsPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -66,18 +75,36 @@ Write-Host " picotol Single-Source-of-Truth CI Pipeline$(if ($IsCI) { ' [CI Mode
 Write-Host " Root: $RootDir" -ForegroundColor Gray
 Write-Host "====================================================" -ForegroundColor Cyan
 
-if ($IsCI -and ($Quick -or $SkipGenerate)) {
-    Write-Fail "CI mode forbids -Quick and -SkipGenerate flags; the full verification pipeline must execute."
-    exit 1
+if ($IsCI) {
+    $rejectedFlags = @()
+    if ($Quick) { $rejectedFlags += "-Quick" }
+    if ($SkipGenerate) { $rejectedFlags += "-SkipGenerate" }
+    if ($Gate0Only) { $rejectedFlags += "-Gate0Only" }
+    if ($WorkflowsPath) { $rejectedFlags += "-WorkflowsPath" }
+    if ($rejectedFlags.Count -gt 0) {
+        Write-Fail "CI mode forbids $($rejectedFlags -join ', ') flags; the full verification pipeline must execute."
+        exit 1
+    }
 }
 
 $MaxGate = 4
-$Gate0Status = "fail"
-$Gate1ActionPinsStatus = "fail"
-$Gate1Status = "fail"
-$Gate2Status = "fail"
-$Gate3Status = "fail"
-$Gate4Status = "fail"
+
+$GateResults = [ordered]@{
+    "gate0_workflow_contract" = "not-applicable"
+    "gate1_action_pins"       = "not-applicable"
+    "gate1_agent_leaks"       = "not-applicable"
+    "gate2_pwsh_ast"          = "not-applicable"
+    "gate3_dist_drift"        = "not-applicable"
+    "gate4_npm_test_and_pack" = "not-applicable"
+}
+
+function Write-GateSummary {
+    Write-Host "`nGate Summary:" -ForegroundColor Cyan
+    foreach ($k in $GateResults.Keys) {
+        $v = "$($GateResults[$k])".ToUpperInvariant()
+        Write-Host "  [${k}: $v]"
+    }
+}
 
 Push-Location $RootDir
 try {
@@ -92,9 +119,15 @@ try {
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
     Enter-Gate 0 $MaxGate "Auditing GitHub Actions workflows for CI drift (Node YAML parser)"
+    $GateResults["gate0_workflow_contract"] = "fail"
+    $GateResults["gate1_action_pins"] = "fail"
 
     $WorkflowCheckPath = Join-Path $RootDir "tools/check-workflows.mjs"
-    $WorkflowCheckOutput = & node $WorkflowCheckPath 2>&1
+    $WorkflowArgs = @($WorkflowCheckPath)
+    if ($WorkflowsPath) {
+        $WorkflowArgs += @("--workflows-dir", $WorkflowsPath)
+    }
+    $WorkflowCheckOutput = & node @WorkflowArgs 2>&1
     if ($LASTEXITCODE -ne 0) {
         foreach ($err in $WorkflowCheckOutput) {
             Write-Fail $err
@@ -102,15 +135,24 @@ try {
         throw "Gate 0 Failed: Workflow drift detected. scripts/ci-local.ps1 must remain the sole source of CI test truth."
     }
 
-    $Gate0Status = "pass"
-    $Gate1ActionPinsStatus = "pass"
+    $GateResults["gate0_workflow_contract"] = "pass"
+    $GateResults["gate1_action_pins"] = "pass"
     Exit-GatePass "All workflows delegate verification to scripts/ci-local.ps1 with zero drift." $StepTimer
+
+    if ($Gate0Only) {
+        Write-GateSummary
+        Write-Host "`n====================================================" -ForegroundColor Green
+        Write-Host " Gate 0 CI Verification Checks PASSED" -ForegroundColor Green
+        Write-Host "====================================================" -ForegroundColor Cyan
+        exit 0
+    }
 
     # -------------------------------------------------------------
     # Gate 1: Agent & Scratch File Leak Audit
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
     Enter-Gate 1 $MaxGate "Auditing for agent & scratch file leaks"
+    $GateResults["gate1_agent_leaks"] = "fail"
 
     $AgentFilePattern = '^(\.agents?/|\.gemini/|\.ai/|\.cursor/|\.claude/|scratch/|docs/learnings/|AGENTS\.md$|GEMINI\.md$|CLAUDE\.md$)'
 
@@ -153,7 +195,7 @@ try {
         throw "Gate 1 Failed: Agent files, scratch artifacts, or private repository references detected."
     }
 
-    $Gate1Status = "pass"
+    $GateResults["gate1_agent_leaks"] = "pass"
     Exit-GatePass "No tracked or untracked agent files detected." $StepTimer
 
     # -------------------------------------------------------------
@@ -161,6 +203,7 @@ try {
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
     Enter-Gate 2 $MaxGate "Running PowerShell AST parse validation (*.ps1)"
+    $GateResults["gate2_pwsh_ast"] = "fail"
 
     $Ps1Files = Get-ChildItem -Path $RootDir -Recurse -Filter "*.ps1" | Where-Object { $_.FullName -notmatch '[\\/](\.git|node_modules)[\\/]' }
     $ParseErrors = 0
@@ -177,7 +220,7 @@ try {
         throw "Gate 2 Failed: $ParseErrors PowerShell script(s) failed AST parse validation."
     }
 
-    $Gate2Status = "pass"
+    $GateResults["gate2_pwsh_ast"] = "pass"
     Exit-GatePass "PowerShell AST validation passed ($($Ps1Files.Count) script(s))." $StepTimer
 
     # -------------------------------------------------------------
@@ -187,6 +230,7 @@ try {
     Enter-Gate 3 $MaxGate "Verifying generated distribution outputs are up to date"
 
     if (-not $SkipGenerate -and -not $Quick) {
+        $GateResults["gate3_dist_drift"] = "fail"
         Write-Host "  -> Running npm run generate..." -ForegroundColor DarkGray
         & npm run generate
         if ($LASTEXITCODE -ne 0) {
@@ -204,10 +248,10 @@ try {
             throw "Gate 3 Failed: Generated distribution drift detected."
         }
 
-        $Gate3Status = "pass"
+        $GateResults["gate3_dist_drift"] = "pass"
         Exit-GatePass "Generated outputs are up to date and clean." $StepTimer
     } else {
-        $Gate3Status = "not-applicable"
+        $GateResults["gate3_dist_drift"] = "not-applicable"
         Write-Host "  -> Skipping distribution regeneration (-SkipGenerate or -Quick)." -ForegroundColor Gray
         if ($IsCI -and $script:InGroup) {
             Write-Host "::endgroup::"
@@ -220,6 +264,7 @@ try {
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
     Enter-Gate 4 $MaxGate "Running composite test suite (npm test) and packaging verification (npm pack --dry-run)"
+    $GateResults["gate4_npm_test_and_pack"] = "fail"
 
     $PreTestStatus = (& git status --porcelain | Out-String)
     Write-Host "  -> Running npm test (lint + check:budgets + node --test)..." -ForegroundColor DarkGray
@@ -251,9 +296,9 @@ try {
             Write-Fail "npm pack --dry-run failed with exit code $LASTEXITCODE."
             throw "Gate 4 Failed: Package packaging dry-run failed."
         }
-        $Gate4Status = "pass"
+        $GateResults["gate4_npm_test_and_pack"] = "pass"
     } else {
-        $Gate4Status = "not-applicable"
+        $GateResults["gate4_npm_test_and_pack"] = "not-applicable"
         Write-Host "  -> Skipping npm pack --dry-run (-Quick)." -ForegroundColor Gray
     }
 
@@ -263,67 +308,17 @@ try {
     # Summary
     # -------------------------------------------------------------
     $TotalElapsed = [math]::Round($TotalTimer.Elapsed.TotalSeconds, 2)
+    Write-GateSummary
     Write-Host "`n====================================================" -ForegroundColor Green
     Write-Host " All CI Verification Checks PASSED (${TotalElapsed}s)" -ForegroundColor Green
     Write-Host "====================================================" -ForegroundColor Cyan
-
-    # -------------------------------------------------------------
-    # Write Verifiable Local CI Receipt (.ci-local/receipt.json)
-    # -------------------------------------------------------------
-    # Skipped under -CI mode or when seldon is absent.
-    if ($IsCI) {
-        Write-Host "`n  -> Skipping local CI receipt generation under -CI mode." -ForegroundColor Gray
-    } else {
-        $SeldonBin = $null
-        if ($env:SELDON_BIN) {
-            if ($env:SELDON_BIN -ne "none" -and (Test-Path $env:SELDON_BIN)) {
-                $SeldonBin = $env:SELDON_BIN
-            }
-        } else {
-            $PathCmd = Get-Command "seldon" -ErrorAction SilentlyContinue
-            if ($PathCmd) {
-                $SeldonBin = $PathCmd.Source
-            }
-        }
-
-        if (-not $SeldonBin) {
-            Write-Host "`n  -> Skipping local CI receipt generation (seldon binary not found)." -ForegroundColor Gray
-        } else {
-            # seldon ci receipt requires explicit --gates statuses to record .ci-local/receipt.json for --local-ci review gates
-            Write-Host "`n[Receipt] Recording local CI receipt via seldon ci receipt..." -ForegroundColor Yellow
-            $GateResults = @(
-                "gate0_workflow_contract=$Gate0Status",
-                "gate1_action_pins=$Gate1ActionPinsStatus",
-                "gate1_agent_leaks=$Gate1Status",
-                "gate2_pwsh_ast=$Gate2Status",
-                "gate3_dist_drift=$Gate3Status",
-                "gate4_npm_test_and_pack=$Gate4Status"
-            )
-            $ReceiptArgs = @(
-                "ci", "receipt",
-                "--dir", $RootDir,
-                "--script-path", "scripts/ci-local.ps1",
-                "--gates", ($GateResults -join ",")
-            )
-            $ActiveFlags = @()
-            if ($Quick) { $ActiveFlags += "-Quick" }
-            if ($SkipGenerate) { $ActiveFlags += "-SkipGenerate" }
-            if ($ActiveFlags.Count -gt 0) {
-                $ReceiptArgs += @("--flags", ($ActiveFlags -join ","))
-            }
-            & $SeldonBin @ReceiptArgs
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to write local CI receipt via seldon ci receipt."
-            }
-            Write-Host "  -> Local CI receipt written to .ci-local/receipt.json." -ForegroundColor Green
-        }
-    }
 } catch {
     if ($IsCI -and $script:InGroup) {
         Write-Host "::endgroup::"
         $script:InGroup = $false
     }
     Write-Fail $_.Exception.Message
+    Write-GateSummary
     exit 1
 } finally {
     Pop-Location
