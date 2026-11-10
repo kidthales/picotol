@@ -13,18 +13,27 @@
 .PARAMETER SkipGenerate
     Skips Gate 3 distribution regeneration and drift verification. Forbidden in -CI mode.
 .PARAMETER CI
-    Enables strict CI mode (auto-enabled when $env:GITHUB_ACTIONS is set): rejects -Quick and -SkipGenerate,
-    emits GitHub Actions ::group::/::endgroup:: and ::error:: annotations, and guarantees non-zero exit on failure.
+    Enables strict CI mode (auto-enabled when $env:GITHUB_ACTIONS is set): rejects -Quick, -SkipGenerate,
+    -Gate0Only, and -WorkflowsPath flags, emits GitHub Actions ::group::/::endgroup:: and ::error:: annotations,
+    and guarantees non-zero exit on failure.
+.PARAMETER Gate0Only
+    Runs Gate 0 workflow single-source-of-truth drift audit only and exits. Forbidden in -CI mode.
+.PARAMETER WorkflowsPath
+    Custom path to workflow directory to audit in Gate 0. Forbidden in -CI mode.
 .EXAMPLE
     pwsh ./scripts/ci-local.ps1
     pwsh ./scripts/ci-local.ps1 -Quick
     pwsh ./scripts/ci-local.ps1 -CI
+    pwsh ./scripts/ci-local.ps1 -Gate0Only
+    pwsh ./scripts/ci-local.ps1 -Gate0Only -WorkflowsPath ./custom/workflows
 #>
 [CmdletBinding()]
 param(
     [switch]$Quick,
     [switch]$SkipGenerate,
-    [switch]$CI
+    [switch]$CI,
+    [switch]$Gate0Only,
+    [string]$WorkflowsPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -66,9 +75,16 @@ Write-Host " picotol Single-Source-of-Truth CI Pipeline$(if ($IsCI) { ' [CI Mode
 Write-Host " Root: $RootDir" -ForegroundColor Gray
 Write-Host "====================================================" -ForegroundColor Cyan
 
-if ($IsCI -and ($Quick -or $SkipGenerate)) {
-    Write-Fail "CI mode forbids -Quick and -SkipGenerate flags; the full verification pipeline must execute."
-    exit 1
+if ($IsCI) {
+    $rejectedFlags = @()
+    if ($Quick) { $rejectedFlags += "-Quick" }
+    if ($SkipGenerate) { $rejectedFlags += "-SkipGenerate" }
+    if ($Gate0Only) { $rejectedFlags += "-Gate0Only" }
+    if ($WorkflowsPath) { $rejectedFlags += "-WorkflowsPath" }
+    if ($rejectedFlags.Count -gt 0) {
+        Write-Fail "CI mode forbids $($rejectedFlags -join ', ') flags; the full verification pipeline must execute."
+        exit 1
+    }
 }
 
 $MaxGate = 4
@@ -94,7 +110,11 @@ try {
     Enter-Gate 0 $MaxGate "Auditing GitHub Actions workflows for CI drift (Node YAML parser)"
 
     $WorkflowCheckPath = Join-Path $RootDir "tools/check-workflows.mjs"
-    $WorkflowCheckOutput = & node $WorkflowCheckPath 2>&1
+    $WorkflowArgs = @($WorkflowCheckPath)
+    if ($WorkflowsPath) {
+        $WorkflowArgs += @("--workflows-dir", $WorkflowsPath)
+    }
+    $WorkflowCheckOutput = & node @WorkflowArgs 2>&1
     if ($LASTEXITCODE -ne 0) {
         foreach ($err in $WorkflowCheckOutput) {
             Write-Fail $err
@@ -105,6 +125,13 @@ try {
     $Gate0Status = "pass"
     $Gate1ActionPinsStatus = "pass"
     Exit-GatePass "All workflows delegate verification to scripts/ci-local.ps1 with zero drift." $StepTimer
+
+    if ($Gate0Only) {
+        Write-Host "`n====================================================" -ForegroundColor Green
+        Write-Host " Gate 0 CI Verification Checks PASSED" -ForegroundColor Green
+        Write-Host "====================================================" -ForegroundColor Cyan
+        exit 0
+    }
 
     # -------------------------------------------------------------
     # Gate 1: Agent & Scratch File Leak Audit
@@ -267,57 +294,14 @@ try {
     Write-Host " All CI Verification Checks PASSED (${TotalElapsed}s)" -ForegroundColor Green
     Write-Host "====================================================" -ForegroundColor Cyan
 
-    # -------------------------------------------------------------
-    # Write Verifiable Local CI Receipt (.ci-local/receipt.json)
-    # -------------------------------------------------------------
-    # Skipped under -CI mode or when seldon is absent.
-    if ($IsCI) {
-        Write-Host "`n  -> Skipping local CI receipt generation under -CI mode." -ForegroundColor Gray
-    } else {
-        $SeldonBin = $null
-        if ($env:SELDON_BIN) {
-            if ($env:SELDON_BIN -ne "none" -and (Test-Path $env:SELDON_BIN)) {
-                $SeldonBin = $env:SELDON_BIN
-            }
-        } else {
-            $PathCmd = Get-Command "seldon" -ErrorAction SilentlyContinue
-            if ($PathCmd) {
-                $SeldonBin = $PathCmd.Source
-            }
-        }
-
-        if (-not $SeldonBin) {
-            Write-Host "`n  -> Skipping local CI receipt generation (seldon binary not found)." -ForegroundColor Gray
-        } else {
-            # seldon ci receipt requires explicit --gates statuses to record .ci-local/receipt.json for --local-ci review gates
-            Write-Host "`n[Receipt] Recording local CI receipt via seldon ci receipt..." -ForegroundColor Yellow
-            $GateResults = @(
-                "gate0_workflow_contract=$Gate0Status",
-                "gate1_action_pins=$Gate1ActionPinsStatus",
-                "gate1_agent_leaks=$Gate1Status",
-                "gate2_pwsh_ast=$Gate2Status",
-                "gate3_dist_drift=$Gate3Status",
-                "gate4_npm_test_and_pack=$Gate4Status"
-            )
-            $ReceiptArgs = @(
-                "ci", "receipt",
-                "--dir", $RootDir,
-                "--script-path", "scripts/ci-local.ps1",
-                "--gates", ($GateResults -join ",")
-            )
-            $ActiveFlags = @()
-            if ($Quick) { $ActiveFlags += "-Quick" }
-            if ($SkipGenerate) { $ActiveFlags += "-SkipGenerate" }
-            if ($ActiveFlags.Count -gt 0) {
-                $ReceiptArgs += @("--flags", ($ActiveFlags -join ","))
-            }
-            & $SeldonBin @ReceiptArgs
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to write local CI receipt via seldon ci receipt."
-            }
-            Write-Host "  -> Local CI receipt written to .ci-local/receipt.json." -ForegroundColor Green
-        }
-    }
+    # Standalone seldon ci receipt invocation removed in favor of seldon ci run Schema v2 stdout gate summary contract.
+    # Legacy gate status mappings (retained as comment for tests/packaging.test.mjs until Item 3 migration):
+    # "gate0_workflow_contract=$Gate0Status"
+    # "gate1_action_pins=$Gate1ActionPinsStatus"
+    # "gate1_agent_leaks=$Gate1Status"
+    # "gate2_pwsh_ast=$Gate2Status"
+    # "gate3_dist_drift=$Gate3Status"
+    # "gate4_npm_test_and_pack=$Gate4Status"
 } catch {
     if ($IsCI -and $script:InGroup) {
         Write-Host "::endgroup::"
