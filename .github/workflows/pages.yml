@@ -24,6 +24,7 @@ jobs:
     name: Build & Package Showcase
     needs: [verify]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -54,6 +55,7 @@ jobs:
     name: Deploy to GitHub Pages
     needs: [build]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write
@@ -70,6 +72,7 @@ jobs:
     needs: [verify, build, deploy]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
       WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK }}
     steps:

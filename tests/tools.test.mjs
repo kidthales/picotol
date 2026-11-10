@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -39,7 +39,7 @@ import {
   syncTokens,
 } from '../tools/sync-tokens.mjs';
 import { UPSTREAM_PICO_HEADER_ATTRIBUTION, buildAll } from '../tools/build.mjs';
-import { auditWorkflows, hasUnescapedExpression } from '../tools/check-workflows.mjs';
+import { auditWorkflows, hasUnescapedExpression, DEFAULT_MAX_TIMEOUT_MINUTES } from '../tools/check-workflows.mjs';
 import {
   DEFAULT_ZIP_MTIME,
   MAX_ZIP_ENTRIES,
@@ -931,6 +931,7 @@ permissions:
 jobs:
   tag-guard:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
     steps:
@@ -952,6 +953,7 @@ jobs:
   publish-npm:
     needs: [verify]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -959,6 +961,7 @@ jobs:
   publish-gpr:
     needs: [verify]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -966,12 +969,21 @@ jobs:
   attach-assets:
     needs: [verify]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: "dist/manifest.json"
   notify:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - env:
           ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
@@ -990,6 +1002,7 @@ jobs:
   build:
     needs: [verify]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -997,6 +1010,7 @@ jobs:
   deploy:
     needs: [build]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write
@@ -1172,6 +1186,578 @@ jobs:
     assert.ok(errs.some((e) => e.includes("release.yml publish-gpr job actions/setup-node step must set 'package-manager-cache: false'.")));
     assert.ok(errs.some((e) => e.includes("release.yml attach-assets job actions/setup-node step must set 'package-manager-cache: false'.")));
   });
+
+  // 18. DEFAULT_MAX_TIMEOUT_MINUTES and job timeout-minutes enforcement (missing, non-integer, >30)
+  assert.equal(DEFAULT_MAX_TIMEOUT_MINUTES, 30);
+
+  // 18a. Missing timeout-minutes on step-executing job
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("ci.yml job 'test' must explicitly define 'timeout-minutes' (<= 30).")));
+  });
+
+  // 18b. Non-integer or non-positive timeout-minutes
+  for (const badTimeout of ['"30"', '0', '-5', '12.5']) {
+    withTempWorkflows({
+      'ci.yml': `
+name: CI
+on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${badTimeout}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+`
+    }, (tempRoot) => {
+      const errs = auditWorkflows(tempRoot);
+      assert.ok(errs.some((e) => e.includes("ci.yml job 'test' 'timeout-minutes' must be a positive integer.")));
+    });
+  }
+
+  // 18c. Timeout-minutes exceeding maximum allowed limit (>30)
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("ci.yml job 'test' timeout-minutes 35 exceeds maximum allowed limit of 30 minutes.")));
+  });
+
+  // 18d. Non-step workflow call job is not required to define timeout-minutes
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on:
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: \${{ github.workflow }}-\${{ github.ref }}
+  cancel-in-progress: \${{ github.workflow == 'CI' }}
+jobs:
+  call-verify:
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(!errs.some((e) => e.includes("must explicitly define 'timeout-minutes'")));
+  });
+
+  // 19. step.with.script unescaped ${{ ... }} expression detection
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Dynamic Script
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        with:
+          script: |
+            const branch = "\${{ github.ref_name }}";
+            console.log(branch);
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("ci.yml step 'Dynamic Script' contains unescaped ${{ ... }} expression inside 'with.script' block (potential script injection). Pass values via 'env:' instead.")));
+  });
+
+  withTempWorkflows({
+    'ci.yml': `
+name: CI
+on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Safe Script
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        env:
+          REF_NAME: \${{ github.ref_name }}
+        with:
+          script: |
+            console.log(process.env.REF_NAME);
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(!errs.some((e) => e.includes("with.script")));
+  });
+
+  // 20. release.yml attach-assets provenance attestation step and scoped permissions
+  // 20a. Missing actions/attest step in attach-assets
+  withTempWorkflows({
+    'release.yml': `
+name: Release
+on: [release]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes('release.yml attach-assets job must contain an actions/attest step for provenance attestation.')));
+  });
+
+  // 20b. attach-assets missing required permissions (attestations / id-token)
+  withTempWorkflows({
+    'release.yml': `
+name: Release
+on: [release]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: "dist/manifest.json"
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes('release.yml attach-assets job must explicitly scope permissions (contents: write, attestations: write, id-token: write).')));
+  });
+
+  // 20c. attach-assets granting unauthorized write permissions
+  withTempWorkflows({
+    'release.yml': `
+name: Release
+on: [release]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+      packages: write
+    steps:
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: "dist/manifest.json"
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes('release.yml attach-assets job must not grant unauthorized write permissions.')));
+  });
+
+  // 20d. attach-assets with actions/attest step missing or empty with.subject-path
+  withTempWorkflows({
+    'release.yml': `
+name: Release
+on: [release]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+    steps:
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+`
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("release.yml attach-assets actions/attest step must declare a non-empty 'with.subject-path'.")));
+  });
+});
+
+test('scripts/ci-local.ps1: Gate Summary contract, -Gate0Only, -WorkflowsPath, and -CI flag enforcement', (t) => {
+  const ciLocalPath = path.join(ROOT, 'scripts/ci-local.ps1');
+  const ciContent = fs.readFileSync(ciLocalPath, 'utf8');
+
+  // Static runner invariants
+  assert.ok(!ciContent.includes('seldon ci receipt'), 'Must not contain deprecated standalone "seldon ci receipt"');
+  assert.ok(!ciContent.includes('$SeldonBin'), 'Must not contain legacy $SeldonBin resolution');
+  assert.ok(ciContent.includes('[switch]$Gate0Only'), 'Must declare [switch]$Gate0Only parameter');
+  assert.ok(ciContent.includes('[string]$WorkflowsPath'), 'Must declare [string]$WorkflowsPath parameter');
+  assert.ok(ciContent.includes('function Write-GateSummary'), 'Must define Write-GateSummary function');
+
+  const expectedGateKeys = [
+    'gate0_workflow_contract',
+    'gate1_action_pins',
+    'gate1_agent_leaks',
+    'gate2_pwsh_ast',
+    'gate3_dist_drift',
+    'gate4_npm_test_and_pack',
+  ];
+  for (const gateKey of expectedGateKeys) {
+    assert.ok(ciContent.includes(`"${gateKey}"`), `Must register "${gateKey}" in GateResults hashtable`);
+    assert.match(
+      ciContent,
+      new RegExp(`\\$GateResults\\["${gateKey}"\\]\\s*=\\s*"pass"`),
+      `Must assign "pass" to "${gateKey}" upon success`
+    );
+    assert.match(
+      ciContent,
+      new RegExp(`\\$GateResults\\["${gateKey}"\\]\\s*=\\s*"(?:fail|not-applicable)"`),
+      `Must assign "fail" or "not-applicable" to "${gateKey}" before execution or under skipping flags`
+    );
+  }
+
+  // CLI --workflows-dir flag contract for tools/check-workflows.mjs
+  const cliSeparate = execFileSync(
+    process.execPath,
+    [path.join(ROOT, 'tools/check-workflows.mjs'), '--workflows-dir', path.join(ROOT, '.github/workflows')],
+    { encoding: 'utf8' }
+  );
+  assert.ok(cliSeparate.includes('All GitHub Actions workflows verified with zero drift'));
+
+  const cliEquals = execFileSync(
+    process.execPath,
+    [path.join(ROOT, 'tools/check-workflows.mjs'), `--workflows-dir=${path.join(ROOT, '.github/workflows')}`],
+    { encoding: 'utf8' }
+  );
+  assert.ok(cliEquals.includes('All GitHub Actions workflows verified with zero drift'));
+
+  // Negative tests for tools/check-workflows.mjs CLI --workflows-dir
+  const cliMissingArg = spawnSync(
+    process.execPath,
+    [path.join(ROOT, 'tools/check-workflows.mjs'), '--workflows-dir'],
+    { encoding: 'utf8' }
+  );
+  assert.equal(cliMissingArg.status, 1, '--workflows-dir with no argument must exit 1');
+  assert.ok(cliMissingArg.stderr.includes('Usage error: --workflows-dir requires a valid directory path argument.'));
+
+  const cliDashArg = spawnSync(
+    process.execPath,
+    [path.join(ROOT, 'tools/check-workflows.mjs'), '--workflows-dir', '--other-flag'],
+    { encoding: 'utf8' }
+  );
+  assert.equal(cliDashArg.status, 1, '--workflows-dir followed by flag must exit 1');
+  assert.ok(cliDashArg.stderr.includes('Usage error: --workflows-dir requires a valid directory path argument.'));
+
+  const cliEmptyEquals = spawnSync(
+    process.execPath,
+    [path.join(ROOT, 'tools/check-workflows.mjs'), '--workflows-dir='],
+    { encoding: 'utf8' }
+  );
+  assert.equal(cliEmptyEquals.status, 1, '--workflows-dir= with empty value must exit 1');
+  assert.ok(cliEmptyEquals.stderr.includes('Usage error: --workflows-dir= requires a non-empty directory path argument.'));
+
+  const pwshBin = (() => {
+    if (process.platform === 'win32') {
+      try {
+        const probe = spawnSync('pwsh', ['-v'], { stdio: 'ignore' });
+        if (probe.status === 0) return 'pwsh';
+      } catch {
+        // ignore
+      }
+      return 'powershell';
+    }
+    return 'pwsh';
+  })();
+
+  // Check if PowerShell environment is runnable
+  let pwshAvailable = false;
+  try {
+    const probe = spawnSync(pwshBin, ['-NoProfile', '-Command', 'Write-Output 1'], { encoding: 'utf8' });
+    pwshAvailable = probe.status === 0;
+  } catch {
+    pwshAvailable = false;
+  }
+
+  if (!pwshAvailable) {
+    if (process.env.CI) {
+      assert.fail('PowerShell (pwsh or powershell) must be available in CI environments.');
+    }
+    t.skip('PowerShell is not available in this environment');
+    return;
+  }
+
+  const baseEnv = { ...process.env, GITHUB_ACTIONS: '' };
+
+  // 1. -Gate0Only execution: exits 0 and emits structured Gate Summary
+  const gate0Res = spawnSync(
+    pwshBin,
+    ['-NoProfile', '-File', ciLocalPath, '-Gate0Only'],
+    { cwd: ROOT, env: baseEnv, encoding: 'utf8' }
+  );
+  assert.equal(gate0Res.status, 0, `ci-local.ps1 -Gate0Only failed (${gate0Res.status}): ${gate0Res.stderr || gate0Res.stdout}`);
+  assert.ok(gate0Res.stdout.includes('Gate Summary:'), 'Must output "Gate Summary:" header');
+  assert.ok(gate0Res.stdout.includes('Flags: -Gate0Only'), 'Gate Summary must record active -Gate0Only flag');
+  assert.ok(gate0Res.stdout.includes('[gate0_workflow_contract: PASS]'), 'gate0 must PASS');
+  assert.ok(gate0Res.stdout.includes('[gate1_action_pins: PASS]'), 'gate1_action_pins must PASS');
+  assert.ok(gate0Res.stdout.includes('[gate1_agent_leaks: NOT-APPLICABLE]'), 'gate1_agent_leaks must be NOT-APPLICABLE');
+  assert.ok(gate0Res.stdout.includes('[gate2_pwsh_ast: NOT-APPLICABLE]'), 'gate2_pwsh_ast must be NOT-APPLICABLE');
+  assert.ok(gate0Res.stdout.includes('[gate3_dist_drift: NOT-APPLICABLE]'), 'gate3_dist_drift must be NOT-APPLICABLE');
+  assert.ok(gate0Res.stdout.includes('[gate4_npm_test_and_pack: NOT-APPLICABLE]'), 'gate4_npm_test_and_pack must be NOT-APPLICABLE');
+  assert.ok(gate0Res.stdout.includes('Gate 0 CI Verification Checks PASSED'), 'Must print Gate 0 pass header');
+  assert.ok(!gate0Res.stdout.includes('[Gate 1/4]'), 'Must skip Gate 1 under -Gate0Only');
+  assert.ok(!gate0Res.stdout.includes('[Gate 4/4]'), 'Must skip Gate 4 under -Gate0Only');
+
+  // 2. -Gate0Only -WorkflowsPath valid & invalid fixtures
+  const customPassRes = spawnSync(
+    pwshBin,
+    ['-NoProfile', '-File', ciLocalPath, '-Gate0Only', '-WorkflowsPath', path.join(ROOT, '.github/workflows')],
+    { cwd: ROOT, env: baseEnv, encoding: 'utf8' }
+  );
+  assert.equal(customPassRes.status, 0, `Custom valid workflows dir must pass (${customPassRes.status})`);
+  assert.ok(customPassRes.stdout.includes('[gate0_workflow_contract: PASS]'));
+
+  // Negative test: -WorkflowsPath without -Gate0Only must be rejected (Finding 1)
+  const customWithoutGate0 = spawnSync(
+    pwshBin,
+    ['-NoProfile', '-File', ciLocalPath, '-WorkflowsPath', path.join(ROOT, '.github/workflows')],
+    { cwd: ROOT, env: baseEnv, encoding: 'utf8' }
+  );
+  assert.equal(customWithoutGate0.status, 1, '-WorkflowsPath without -Gate0Only must exit 1');
+  assert.ok(customWithoutGate0.stdout.includes('-WorkflowsPath requires -Gate0Only'));
+
+  // Negative test: -Gate0Only with empty -WorkflowsPath must be rejected
+  const customEmptyPath = spawnSync(
+    pwshBin,
+    ['-NoProfile', '-File', ciLocalPath, '-Gate0Only', '-WorkflowsPath', ''],
+    { cwd: ROOT, env: baseEnv, encoding: 'utf8' }
+  );
+  assert.equal(customEmptyPath.status, 1, '-WorkflowsPath "" must exit 1');
+  assert.ok(customEmptyPath.stdout.includes('-WorkflowsPath requires a non-empty directory path'));
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-wf-test-'));
+  try {
+    fs.writeFileSync(path.join(tempDir, 'invalid.yml'), 'name: Invalid\n', 'utf8');
+    const customFailRes = spawnSync(
+      pwshBin,
+      ['-NoProfile', '-File', ciLocalPath, '-Gate0Only', '-WorkflowsPath', tempDir],
+      { cwd: ROOT, env: baseEnv, encoding: 'utf8' }
+    );
+    assert.equal(customFailRes.status, 1, 'Invalid custom workflows dir must exit 1');
+    assert.ok(customFailRes.stdout.includes('Gate Summary:'), 'Must output Gate Summary on failure');
+    assert.ok(customFailRes.stdout.includes('[gate0_workflow_contract: FAIL]'), 'gate0 must FAIL');
+    assert.ok(customFailRes.stdout.includes('[gate1_action_pins: FAIL]'), 'gate1_action_pins must FAIL');
+    assert.ok(customFailRes.stdout.includes('[gate4_npm_test_and_pack: NOT-APPLICABLE]'), 'gate4 must be NOT-APPLICABLE');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+
+  // 3. -CI mode flag rejection (fail-closed)
+  const rejectedFlagSets = [
+    ['-Gate0Only'],
+    ['-WorkflowsPath', path.join(ROOT, '.github/workflows')],
+    ['-WorkflowsPath', ''],
+    ['-Quick'],
+    ['-SkipGenerate'],
+    ['-Quick', '-Gate0Only'],
+  ];
+
+  for (const flags of rejectedFlagSets) {
+    const ciRejectRes = spawnSync(
+      pwshBin,
+      ['-NoProfile', '-File', ciLocalPath, '-CI', ...flags],
+      { cwd: ROOT, env: baseEnv, encoding: 'utf8' }
+    );
+    assert.equal(ciRejectRes.status, 1, `-CI with ${flags.join(' ')} must exit with code 1`);
+    assert.ok(
+      ciRejectRes.stdout.includes('CI mode forbids') && ciRejectRes.stdout.includes(flags[0]),
+      `-CI must reject forbidden flag ${flags[0]}`
+    );
+  }
+
+  // 4. Implicit CI mode via GITHUB_ACTIONS env var
+  const envCiRes = spawnSync(
+    pwshBin,
+    ['-NoProfile', '-File', ciLocalPath, '-Gate0Only'],
+    { cwd: ROOT, env: { ...process.env, GITHUB_ACTIONS: 'true' }, encoding: 'utf8' }
+  );
+  assert.equal(envCiRes.status, 1, 'GITHUB_ACTIONS=true must enforce CI mode and reject -Gate0Only');
+  assert.ok(envCiRes.stdout.includes('CI mode forbids -Gate0Only'));
 });
 });
 

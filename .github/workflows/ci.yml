@@ -19,6 +19,7 @@ jobs:
   security:
     name: Security & Workflow Audits (Gitleaks & zizmor)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       security-events: write
@@ -43,6 +44,7 @@ jobs:
   verify:
     name: Build, Hex Purity & WCAG Verification (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -72,6 +74,7 @@ jobs:
     needs: [security, verify]
     if: always() && github.event_name != 'workflow_call' && github.workflow == 'CI'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
       WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK }}
     steps:

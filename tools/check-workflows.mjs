@@ -9,6 +9,8 @@ import YAML from 'yaml';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
+export const DEFAULT_MAX_TIMEOUT_MINUTES = 30;
+
 const FORBIDDEN_RUN_PATTERN = /\b(npm\s+(test|t|tst|run\s+test|run\s+lint|run\s+check:budgets|pack)|node\s+--test)\b/;
 
 /**
@@ -24,25 +26,47 @@ export function hasUnescapedExpression(runScript) {
 /**
  * Audits all GitHub Actions workflows in .github/workflows/ using the `yaml` parser.
  * @param {string} [rootDir=ROOT] - Project root directory
+ * @param {string|object} [options] - Workflows dir path or options object { workflowsDir }
  * @returns {string[]} Array of violation messages (empty on success)
  */
-export function auditWorkflows(rootDir = ROOT) {
-  const workflowDir = path.join(rootDir, '.github', 'workflows');
+export function auditWorkflows(rootDir = ROOT, options = {}) {
+  let workflowsDir = null;
+  if (typeof options === 'string') {
+    workflowsDir = options;
+  } else if (options && typeof options === 'object' && options.workflowsDir !== undefined) {
+    workflowsDir = options.workflowsDir;
+  }
+
+  if (workflowsDir !== null && (typeof workflowsDir !== 'string' || workflowsDir.trim() === '')) {
+    return ['Invalid workflows directory specified: path must be a non-empty string.'];
+  }
+
+  const workflowDir = workflowsDir ? path.resolve(workflowsDir) : path.join(rootDir, '.github', 'workflows');
   const errors = [];
 
   if (!fs.existsSync(workflowDir)) {
-    errors.push('No workflow files found in .github/workflows/.');
+    errors.push(workflowsDir ? `Workflows directory not found: ${workflowsDir}` : 'No workflow files found in .github/workflows/.');
     return errors;
   }
 
   const files = fs.readdirSync(workflowDir).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
   if (files.length === 0) {
-    errors.push('No workflow files found in .github/workflows/.');
+    errors.push(workflowsDir ? `No workflow files found in ${workflowsDir}.` : 'No workflow files found in .github/workflows/.');
     return errors;
   }
 
+  const resolveReal = (p) => {
+    try {
+      return fs.realpathSync.native ? fs.realpathSync.native(p) : fs.realpathSync(p);
+    } catch {
+      return path.resolve(p);
+    }
+  };
+
   const requiredWorkflows = ['ci.yml', 'release.yml', 'pages.yml'];
-  if (path.resolve(rootDir) === ROOT) {
+  const rootWfDir = path.join(ROOT, '.github', 'workflows');
+  const isRootWorkflows = resolveReal(workflowDir).toLowerCase() === resolveReal(rootWfDir).toLowerCase();
+  if (isRootWorkflows) {
     for (const req of requiredWorkflows) {
       if (!files.includes(req)) {
         errors.push(`Missing required workflow file: .github/workflows/${req}`);
@@ -103,6 +127,18 @@ export function auditWorkflows(rootDir = ROOT) {
       const jobPerms = job.permissions;
       if (jobPerms === 'write-all') {
         errors.push(`${file} job '${jobKey}' grants unauthorized write-all permissions.`);
+      }
+
+      // Check timeout-minutes on step-executing jobs
+      if (Array.isArray(job.steps)) {
+        const timeout = job['timeout-minutes'];
+        if (timeout === undefined || timeout === null) {
+          errors.push(`${file} job '${jobKey}' must explicitly define 'timeout-minutes' (<= ${DEFAULT_MAX_TIMEOUT_MINUTES}).`);
+        } else if (typeof timeout !== 'number' || !Number.isInteger(timeout) || timeout <= 0) {
+          errors.push(`${file} job '${jobKey}' 'timeout-minutes' must be a positive integer.`);
+        } else if (timeout > DEFAULT_MAX_TIMEOUT_MINUTES) {
+          errors.push(`${file} job '${jobKey}' timeout-minutes ${timeout} exceeds maximum allowed limit of ${DEFAULT_MAX_TIMEOUT_MINUTES} minutes.`);
+        }
       }
 
       const steps = Array.isArray(job.steps) ? job.steps : [];
@@ -170,6 +206,14 @@ export function auditWorkflows(rootDir = ROOT) {
             if (file === 'ci.yml' && /pwsh\b.*scripts\/ci-local\.ps1/.test(trimmedLine)) {
               ciInvokesScript = true;
             }
+          }
+        }
+
+        // with.script: script injection inspection
+        if (step.with && typeof step.with === 'object' && typeof step.with.script === 'string') {
+          const withScript = step.with.script;
+          if (hasUnescapedExpression(withScript)) {
+            errors.push(`${file} step '${step.name || 'unnamed'}' contains unescaped \${{ ... }} expression inside 'with.script' block (potential script injection). Pass values via 'env:' instead.`);
           }
         }
       }
@@ -265,6 +309,31 @@ export function auditWorkflows(rootDir = ROOT) {
                 errors.push(`release.yml ${pubJob} job actions/setup-node step must set 'package-manager-cache: false'.`);
               }
             }
+          }
+        }
+      }
+
+      const attachJob = jobs['attach-assets'];
+      if (attachJob && typeof attachJob === 'object') {
+        const attachPerms = (attachJob.permissions && typeof attachJob.permissions === 'object') ? attachJob.permissions : {};
+        if (attachPerms.contents !== 'write' || attachPerms.attestations !== 'write' || attachPerms['id-token'] !== 'write') {
+          errors.push('release.yml attach-assets job must explicitly scope permissions (contents: write, attestations: write, id-token: write).');
+        }
+        for (const [pKey, pVal] of Object.entries(attachPerms)) {
+          if (pKey !== 'contents' && pKey !== 'attestations' && pKey !== 'id-token' && pVal === 'write') {
+            errors.push('release.yml attach-assets job must not grant unauthorized write permissions.');
+          }
+        }
+        const attachSteps = Array.isArray(attachJob.steps) ? attachJob.steps : [];
+        const attestStep = attachSteps.find(
+          (s) => s && typeof s === 'object' && typeof s.uses === 'string' && (s.uses.startsWith('actions/attest@') || s.uses === 'actions/attest')
+        );
+        if (!attestStep) {
+          errors.push('release.yml attach-assets job must contain an actions/attest step for provenance attestation.');
+        } else {
+          const subjectPath = attestStep.with && attestStep.with['subject-path'];
+          if (typeof subjectPath !== 'string' || subjectPath.trim().length === 0) {
+            errors.push("release.yml attach-assets actions/attest step must declare a non-empty 'with.subject-path'.");
           }
         }
       }
@@ -414,7 +483,7 @@ export function auditWorkflows(rootDir = ROOT) {
     }
   }
 
-  if (!ciInvokesScript && (files.includes('ci.yml') || path.resolve(rootDir) === ROOT)) {
+  if (!ciInvokesScript && (files.includes('ci.yml') || isRootWorkflows)) {
     errors.push("ci.yml must invoke 'pwsh ./scripts/ci-local.ps1 -CI' in a 'run:' step.");
   }
 
@@ -423,7 +492,32 @@ export function auditWorkflows(rootDir = ROOT) {
 
 // CLI entry point
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const errors = auditWorkflows(ROOT);
+  let workflowsDir = null;
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--workflows-dir') {
+      const next = args[i + 1];
+      if (!next || next.startsWith('-')) {
+        console.error('✖ Usage error: --workflows-dir requires a valid directory path argument.');
+        process.exit(1);
+      }
+      workflowsDir = next;
+      i++;
+    } else if (arg.startsWith('--workflows-dir=')) {
+      const val = arg.slice('--workflows-dir='.length).trim();
+      if (!val) {
+        console.error('✖ Usage error: --workflows-dir= requires a non-empty directory path argument.');
+        process.exit(1);
+      }
+      workflowsDir = val;
+    } else if (arg.startsWith('-')) {
+      console.error(`✖ Unknown flag: ${arg}`);
+      process.exit(1);
+    }
+  }
+
+  const errors = auditWorkflows(ROOT, { workflowsDir });
   if (errors.length > 0) {
     for (const err of errors) {
       console.error(`✖ ${err}`);
