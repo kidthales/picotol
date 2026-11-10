@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import YAML from "yaml";
 import { parsePkZipEntries } from "../tools/package-assets.mjs";
+import { auditWorkflows, DEFAULT_MAX_TIMEOUT_MINUTES } from "../tools/check-workflows.mjs";
 import {
   BUNDLE_BUDGETS,
   EXPECTED_README_BADGE,
@@ -971,6 +972,42 @@ describe("GitHub Actions CI and Release Workflows", () => {
       /^ {4}needs:\s*\[verify\]\s*$/m,
       "release.yml attach-assets job must depend on verify"
     );
+    assert.match(
+      releaseParsed.jobs["attach-assets"],
+      /^ {4}timeout-minutes:\s*15\s*$/m,
+      "release.yml attach-assets job must specify timeout-minutes <= 30"
+    );
+    assert.match(
+      releaseParsed.jobs["attach-assets"],
+      /^ {4}permissions:\s*\n {6}contents:\s*write\s*\n {6}attestations:\s*write\s*\n {6}id-token:\s*write\s*$/m,
+      "release.yml attach-assets job must explicitly scope permissions: contents: write, attestations: write, id-token: write"
+    );
+    assert.doesNotMatch(
+      releaseParsed.jobs["attach-assets"],
+      /^ {6}(?!contents:\s*write\b|attestations:\s*write\b|id-token:\s*write\b)[a-z-]+\s*:\s*write\b|\bwrite-all\b/m,
+      "release.yml attach-assets job must not grant unauthorized write permissions"
+    );
+    assert.match(
+      releaseParsed.jobs["attach-assets"],
+      /uses:\s*actions\/attest@1e69f48acb82d1966a394da916b4c1698aa569d6\b/,
+      "release.yml attach-assets job must use actions/attest pinned to 1e69f48acb82d1966a394da916b4c1698aa569d6 (v4.2.2)"
+    );
+    assert.match(
+      releaseParsed.jobs["attach-assets"],
+      /create-storage-record:\s*false/,
+      "release.yml attach-assets actions/attest step must set create-storage-record: false"
+    );
+    for (const requiredAttestSubject of [
+      "dist/assets/picotol-v*.zip",
+      "dist/SHA256SUMS.txt",
+      "dist/manifest.json",
+      "dist/sri.json",
+    ]) {
+      assert.ok(
+        releaseParsed.jobs["attach-assets"].includes(requiredAttestSubject),
+        `release.yml attach-assets attest step must cover subject ${requiredAttestSubject}`
+      );
+    }
 
     const pagesYml = fs.readFileSync(path.join(workflowDir, "pages.yml"), "utf8");
     const pagesParsed = parseWorkflowJobs(pagesYml);
@@ -1224,6 +1261,304 @@ jobs:
       # run: \${{ should be ignored in YAML comment outside run block }}
 `;
     assert.deepStrictEqual(findScriptInjections(goodSafe), [], "Safe env-routed ${{ ... }} and YAML comments outside run blocks must pass without error");
+  });
+
+  test("GitHub Actions workflow Gate 0 AST verification: timeout bounds, with.script expression detection, and Sigstore provenance attestation", () => {
+    // 1. All root step-executing jobs must declare explicit positive integer timeout-minutes <= DEFAULT_MAX_TIMEOUT_MINUTES
+    const workflowDir = path.join(ROOT, ".github", "workflows");
+    const workflowFiles = ["ci.yml", "pages.yml", "release.yml"];
+
+    for (const wfFile of workflowFiles) {
+      const doc = YAML.parse(fs.readFileSync(path.join(workflowDir, wfFile), "utf8"));
+      for (const [jobKey, job] of Object.entries(doc.jobs || {})) {
+        if (job && Array.isArray(job.steps)) {
+          assert.equal(
+            typeof job["timeout-minutes"],
+            "number",
+            `${wfFile} job '${jobKey}' must define numeric timeout-minutes`
+          );
+          assert.ok(
+            Number.isInteger(job["timeout-minutes"]) && job["timeout-minutes"] > 0,
+            `${wfFile} job '${jobKey}' timeout-minutes must be a positive integer`
+          );
+          assert.ok(
+            job["timeout-minutes"] <= DEFAULT_MAX_TIMEOUT_MINUTES,
+            `${wfFile} job '${jobKey}' timeout-minutes (${job["timeout-minutes"]}) exceeds maximum allowed (${DEFAULT_MAX_TIMEOUT_MINUTES})`
+          );
+        }
+      }
+    }
+
+    // Helper for isolated workflow test fixtures
+    const withTempWorkflows = (filesObj, fn) => {
+      const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "picotol-pkg-wf-test-"));
+      const wfDir = path.join(tempRoot, ".github", "workflows");
+      fs.mkdirSync(wfDir, { recursive: true });
+      try {
+        for (const [name, content] of Object.entries(filesObj)) {
+          fs.writeFileSync(path.join(wfDir, name), content, "utf8");
+        }
+        return fn(tempRoot);
+      } finally {
+        fs.rmSync(tempRoot, { recursive: true, force: true });
+      }
+    };
+
+    // 2. Negative fixture tests: timeout-minutes bounds
+    withTempWorkflows({
+      "ci.yml": `
+name: CI
+on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+`
+    }, (tempRoot) => {
+      const errs = auditWorkflows(tempRoot);
+      assert.ok(errs.some((e) => e.includes("ci.yml job 'test' must explicitly define 'timeout-minutes' (<= 30).")));
+    });
+
+    for (const badTimeout of ['"20"', "0", "-10", "15.5"]) {
+      withTempWorkflows({
+        "ci.yml": `
+name: CI
+on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${badTimeout}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+`
+      }, (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(errs.some((e) => e.includes("ci.yml job 'test' 'timeout-minutes' must be a positive integer.")));
+      });
+    }
+
+    withTempWorkflows({
+      "ci.yml": `
+name: CI
+on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+`
+    }, (tempRoot) => {
+      const errs = auditWorkflows(tempRoot);
+      assert.ok(errs.some((e) => e.includes("ci.yml job 'test' timeout-minutes 40 exceeds maximum allowed limit of 30 minutes.")));
+    });
+
+    // 3. Negative fixture test: step.with.script unescaped expression detection
+    withTempWorkflows({
+      "ci.yml": `
+name: CI
+on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Injected Script
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        with:
+          script: |
+            const secret = "\${{ secrets.GITHUB_TOKEN }}";
+`
+    }, (tempRoot) => {
+      const errs = auditWorkflows(tempRoot);
+      assert.ok(errs.some((e) => e.includes("ci.yml step 'Injected Script' contains unescaped ${{ ... }} expression inside 'with.script' block (potential script injection). Pass values via 'env:' instead.")));
+    });
+
+    // 4. Negative fixture test: release.yml attach-assets provenance attestation step and scoped permissions
+    withTempWorkflows({
+      "release.yml": `
+name: Release
+on: [release]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+`
+    }, (tempRoot) => {
+      const errs = auditWorkflows(tempRoot);
+      assert.ok(errs.some((e) => e.includes("release.yml attach-assets job must contain an actions/attest step for provenance attestation.")));
+    });
+
+    withTempWorkflows({
+      "release.yml": `
+name: Release
+on: [release]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+`
+    }, (tempRoot) => {
+      const errs = auditWorkflows(tempRoot);
+      assert.ok(errs.some((e) => e.includes("release.yml attach-assets job must explicitly scope permissions (contents: write, attestations: write, id-token: write).")));
+    });
+
+    withTempWorkflows({
+      "release.yml": `
+name: Release
+on: [release]
+permissions:
+  contents: read
+jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+  verify:
+    needs: [tag-guard]
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: []
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+      deployments: write
+    steps:
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+`
+    }, (tempRoot) => {
+      const errs = auditWorkflows(tempRoot);
+      assert.ok(errs.some((e) => e.includes("release.yml attach-assets job must not grant unauthorized write permissions.")));
+    });
   });
 });
 
