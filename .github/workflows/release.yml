@@ -151,6 +151,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+      attestations: write
+      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -190,6 +192,16 @@ jobs:
             dist/manifest.json \
             dist/SHA256SUMS.txt \
             --clobber
+
+      - name: Attest Build Provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: |
+            dist/assets/picotol-v*.zip
+            dist/SHA256SUMS.txt
+            dist/manifest.json
+            dist/sri.json
+          create-storage-record: false
 
   notify:
     name: Discord Release Notification
