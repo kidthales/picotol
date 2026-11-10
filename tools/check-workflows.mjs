@@ -9,6 +9,8 @@ import YAML from 'yaml';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
+export const DEFAULT_MAX_TIMEOUT_MINUTES = 30;
+
 const FORBIDDEN_RUN_PATTERN = /\b(npm\s+(test|t|tst|run\s+test|run\s+lint|run\s+check:budgets|pack)|node\s+--test)\b/;
 
 /**
@@ -114,6 +116,18 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
         errors.push(`${file} job '${jobKey}' grants unauthorized write-all permissions.`);
       }
 
+      // Check timeout-minutes on step-executing jobs
+      if (Array.isArray(job.steps)) {
+        const timeout = job['timeout-minutes'];
+        if (timeout === undefined || timeout === null) {
+          errors.push(`${file} job '${jobKey}' must explicitly define 'timeout-minutes' (<= ${DEFAULT_MAX_TIMEOUT_MINUTES}).`);
+        } else if (typeof timeout !== 'number' || !Number.isInteger(timeout) || timeout <= 0) {
+          errors.push(`${file} job '${jobKey}' 'timeout-minutes' must be a positive integer.`);
+        } else if (timeout > DEFAULT_MAX_TIMEOUT_MINUTES) {
+          errors.push(`${file} job '${jobKey}' timeout-minutes ${timeout} exceeds maximum allowed limit of ${DEFAULT_MAX_TIMEOUT_MINUTES} minutes.`);
+        }
+      }
+
       const steps = Array.isArray(job.steps) ? job.steps : [];
       for (const step of steps) {
         if (!step || typeof step !== 'object') continue;
@@ -179,6 +193,14 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
             if (file === 'ci.yml' && /pwsh\b.*scripts\/ci-local\.ps1/.test(trimmedLine)) {
               ciInvokesScript = true;
             }
+          }
+        }
+
+        // with.script: script injection inspection
+        if (step.with && typeof step.with === 'object' && typeof step.with.script === 'string') {
+          const withScript = step.with.script;
+          if (hasUnescapedExpression(withScript)) {
+            errors.push(`${file} step '${step.name || 'unnamed'}' contains unescaped \${{ ... }} expression inside 'with.script' block (potential script injection). Pass values via 'env:' instead.`);
           }
         }
       }

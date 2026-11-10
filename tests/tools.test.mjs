@@ -931,6 +931,7 @@ permissions:
 jobs:
   tag-guard:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
     steps:
@@ -952,6 +953,7 @@ jobs:
   publish-npm:
     needs: [verify]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -959,6 +961,7 @@ jobs:
   publish-gpr:
     needs: [verify]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -966,12 +969,14 @@ jobs:
   attach-assets:
     needs: [verify]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
   notify:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - env:
           ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
@@ -990,6 +995,7 @@ jobs:
   build:
     needs: [verify]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -997,6 +1003,7 @@ jobs:
   deploy:
     needs: [build]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write
