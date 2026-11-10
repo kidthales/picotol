@@ -88,12 +88,6 @@ if ($IsCI) {
 }
 
 $MaxGate = 4
-$Gate0Status = "fail"
-$Gate1ActionPinsStatus = "fail"
-$Gate1Status = "fail"
-$Gate2Status = "fail"
-$Gate3Status = "fail"
-$Gate4Status = "fail"
 
 $GateResults = [ordered]@{
     "gate0_workflow_contract" = "not-applicable"
@@ -141,8 +135,6 @@ try {
         throw "Gate 0 Failed: Workflow drift detected. scripts/ci-local.ps1 must remain the sole source of CI test truth."
     }
 
-    $Gate0Status = "pass"
-    $Gate1ActionPinsStatus = "pass"
     $GateResults["gate0_workflow_contract"] = "pass"
     $GateResults["gate1_action_pins"] = "pass"
     Exit-GatePass "All workflows delegate verification to scripts/ci-local.ps1 with zero drift." $StepTimer
@@ -203,7 +195,6 @@ try {
         throw "Gate 1 Failed: Agent files, scratch artifacts, or private repository references detected."
     }
 
-    $Gate1Status = "pass"
     $GateResults["gate1_agent_leaks"] = "pass"
     Exit-GatePass "No tracked or untracked agent files detected." $StepTimer
 
@@ -229,7 +220,6 @@ try {
         throw "Gate 2 Failed: $ParseErrors PowerShell script(s) failed AST parse validation."
     }
 
-    $Gate2Status = "pass"
     $GateResults["gate2_pwsh_ast"] = "pass"
     Exit-GatePass "PowerShell AST validation passed ($($Ps1Files.Count) script(s))." $StepTimer
 
@@ -258,11 +248,9 @@ try {
             throw "Gate 3 Failed: Generated distribution drift detected."
         }
 
-        $Gate3Status = "pass"
         $GateResults["gate3_dist_drift"] = "pass"
         Exit-GatePass "Generated outputs are up to date and clean." $StepTimer
     } else {
-        $Gate3Status = "not-applicable"
         $GateResults["gate3_dist_drift"] = "not-applicable"
         Write-Host "  -> Skipping distribution regeneration (-SkipGenerate or -Quick)." -ForegroundColor Gray
         if ($IsCI -and $script:InGroup) {
@@ -308,10 +296,8 @@ try {
             Write-Fail "npm pack --dry-run failed with exit code $LASTEXITCODE."
             throw "Gate 4 Failed: Package packaging dry-run failed."
         }
-        $Gate4Status = "pass"
         $GateResults["gate4_npm_test_and_pack"] = "pass"
     } else {
-        $Gate4Status = "not-applicable"
         $GateResults["gate4_npm_test_and_pack"] = "not-applicable"
         Write-Host "  -> Skipping npm pack --dry-run (-Quick)." -ForegroundColor Gray
     }
@@ -326,15 +312,6 @@ try {
     Write-Host "`n====================================================" -ForegroundColor Green
     Write-Host " All CI Verification Checks PASSED (${TotalElapsed}s)" -ForegroundColor Green
     Write-Host "====================================================" -ForegroundColor Cyan
-
-    # Standalone seldon ci receipt invocation removed in favor of seldon ci run Schema v2 stdout gate summary contract.
-    # Legacy gate status mappings (retained as comment for tests/packaging.test.mjs until Item 3 migration):
-    # "gate0_workflow_contract=$Gate0Status"
-    # "gate1_action_pins=$Gate1ActionPinsStatus"
-    # "gate1_agent_leaks=$Gate1Status"
-    # "gate2_pwsh_ast=$Gate2Status"
-    # "gate3_dist_drift=$Gate3Status"
-    # "gate4_npm_test_and_pack=$Gate4Status"
 } catch {
     if ($IsCI -and $script:InGroup) {
         Write-Host "::endgroup::"
