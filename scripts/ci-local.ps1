@@ -95,6 +95,23 @@ $Gate2Status = "fail"
 $Gate3Status = "fail"
 $Gate4Status = "fail"
 
+$GateResults = [ordered]@{
+    "gate0_workflow_contract" = "not-applicable"
+    "gate1_action_pins"       = "not-applicable"
+    "gate1_agent_leaks"       = "not-applicable"
+    "gate2_pwsh_ast"          = "not-applicable"
+    "gate3_dist_drift"        = "not-applicable"
+    "gate4_npm_test_and_pack" = "not-applicable"
+}
+
+function Write-GateSummary {
+    Write-Host "`nGate Summary:" -ForegroundColor Cyan
+    foreach ($k in $GateResults.Keys) {
+        $v = "$($GateResults[$k])".ToUpperInvariant()
+        Write-Host "  [${k}: $v]"
+    }
+}
+
 Push-Location $RootDir
 try {
     $NodeVersionRaw = (& node -p "process.versions.node").Trim()
@@ -108,6 +125,8 @@ try {
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
     Enter-Gate 0 $MaxGate "Auditing GitHub Actions workflows for CI drift (Node YAML parser)"
+    $GateResults["gate0_workflow_contract"] = "fail"
+    $GateResults["gate1_action_pins"] = "fail"
 
     $WorkflowCheckPath = Join-Path $RootDir "tools/check-workflows.mjs"
     $WorkflowArgs = @($WorkflowCheckPath)
@@ -124,9 +143,12 @@ try {
 
     $Gate0Status = "pass"
     $Gate1ActionPinsStatus = "pass"
+    $GateResults["gate0_workflow_contract"] = "pass"
+    $GateResults["gate1_action_pins"] = "pass"
     Exit-GatePass "All workflows delegate verification to scripts/ci-local.ps1 with zero drift." $StepTimer
 
     if ($Gate0Only) {
+        Write-GateSummary
         Write-Host "`n====================================================" -ForegroundColor Green
         Write-Host " Gate 0 CI Verification Checks PASSED" -ForegroundColor Green
         Write-Host "====================================================" -ForegroundColor Cyan
@@ -138,6 +160,7 @@ try {
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
     Enter-Gate 1 $MaxGate "Auditing for agent & scratch file leaks"
+    $GateResults["gate1_agent_leaks"] = "fail"
 
     $AgentFilePattern = '^(\.agents?/|\.gemini/|\.ai/|\.cursor/|\.claude/|scratch/|docs/learnings/|AGENTS\.md$|GEMINI\.md$|CLAUDE\.md$)'
 
@@ -181,6 +204,7 @@ try {
     }
 
     $Gate1Status = "pass"
+    $GateResults["gate1_agent_leaks"] = "pass"
     Exit-GatePass "No tracked or untracked agent files detected." $StepTimer
 
     # -------------------------------------------------------------
@@ -188,6 +212,7 @@ try {
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
     Enter-Gate 2 $MaxGate "Running PowerShell AST parse validation (*.ps1)"
+    $GateResults["gate2_pwsh_ast"] = "fail"
 
     $Ps1Files = Get-ChildItem -Path $RootDir -Recurse -Filter "*.ps1" | Where-Object { $_.FullName -notmatch '[\\/](\.git|node_modules)[\\/]' }
     $ParseErrors = 0
@@ -205,6 +230,7 @@ try {
     }
 
     $Gate2Status = "pass"
+    $GateResults["gate2_pwsh_ast"] = "pass"
     Exit-GatePass "PowerShell AST validation passed ($($Ps1Files.Count) script(s))." $StepTimer
 
     # -------------------------------------------------------------
@@ -214,6 +240,7 @@ try {
     Enter-Gate 3 $MaxGate "Verifying generated distribution outputs are up to date"
 
     if (-not $SkipGenerate -and -not $Quick) {
+        $GateResults["gate3_dist_drift"] = "fail"
         Write-Host "  -> Running npm run generate..." -ForegroundColor DarkGray
         & npm run generate
         if ($LASTEXITCODE -ne 0) {
@@ -232,9 +259,11 @@ try {
         }
 
         $Gate3Status = "pass"
+        $GateResults["gate3_dist_drift"] = "pass"
         Exit-GatePass "Generated outputs are up to date and clean." $StepTimer
     } else {
         $Gate3Status = "not-applicable"
+        $GateResults["gate3_dist_drift"] = "not-applicable"
         Write-Host "  -> Skipping distribution regeneration (-SkipGenerate or -Quick)." -ForegroundColor Gray
         if ($IsCI -and $script:InGroup) {
             Write-Host "::endgroup::"
@@ -247,6 +276,7 @@ try {
     # -------------------------------------------------------------
     $StepTimer = [System.Diagnostics.Stopwatch]::StartNew()
     Enter-Gate 4 $MaxGate "Running composite test suite (npm test) and packaging verification (npm pack --dry-run)"
+    $GateResults["gate4_npm_test_and_pack"] = "fail"
 
     $PreTestStatus = (& git status --porcelain | Out-String)
     Write-Host "  -> Running npm test (lint + check:budgets + node --test)..." -ForegroundColor DarkGray
@@ -279,8 +309,10 @@ try {
             throw "Gate 4 Failed: Package packaging dry-run failed."
         }
         $Gate4Status = "pass"
+        $GateResults["gate4_npm_test_and_pack"] = "pass"
     } else {
         $Gate4Status = "not-applicable"
+        $GateResults["gate4_npm_test_and_pack"] = "not-applicable"
         Write-Host "  -> Skipping npm pack --dry-run (-Quick)." -ForegroundColor Gray
     }
 
@@ -290,6 +322,7 @@ try {
     # Summary
     # -------------------------------------------------------------
     $TotalElapsed = [math]::Round($TotalTimer.Elapsed.TotalSeconds, 2)
+    Write-GateSummary
     Write-Host "`n====================================================" -ForegroundColor Green
     Write-Host " All CI Verification Checks PASSED (${TotalElapsed}s)" -ForegroundColor Green
     Write-Host "====================================================" -ForegroundColor Cyan
@@ -308,6 +341,7 @@ try {
         $script:InGroup = $false
     }
     Write-Fail $_.Exception.Message
+    Write-GateSummary
     exit 1
 } finally {
     Pop-Location
