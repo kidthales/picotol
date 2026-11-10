@@ -970,10 +970,15 @@ jobs:
     needs: [verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
   notify:
     runs-on: ubuntu-latest
     timeout-minutes: 5

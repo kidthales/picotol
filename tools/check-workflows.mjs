@@ -300,6 +300,26 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
         }
       }
 
+      const attachJob = jobs['attach-assets'];
+      if (attachJob && typeof attachJob === 'object') {
+        const attachPerms = (attachJob.permissions && typeof attachJob.permissions === 'object') ? attachJob.permissions : {};
+        if (attachPerms.contents !== 'write' || attachPerms.attestations !== 'write' || attachPerms['id-token'] !== 'write') {
+          errors.push('release.yml attach-assets job must explicitly scope permissions (contents: write, attestations: write, id-token: write).');
+        }
+        for (const [pKey, pVal] of Object.entries(attachPerms)) {
+          if (pKey !== 'contents' && pKey !== 'attestations' && pKey !== 'id-token' && pVal === 'write') {
+            errors.push('release.yml attach-assets job must not grant unauthorized write permissions.');
+          }
+        }
+        const attachSteps = Array.isArray(attachJob.steps) ? attachJob.steps : [];
+        const hasAttest = attachSteps.some(
+          (s) => s && typeof s === 'object' && typeof s.uses === 'string' && (s.uses.startsWith('actions/attest@') || s.uses === 'actions/attest')
+        );
+        if (!hasAttest) {
+          errors.push('release.yml attach-assets job must contain an actions/attest step for provenance attestation.');
+        }
+      }
+
       const notifyJob = jobs.notify;
       if (notifyJob && typeof notifyJob === 'object') {
         const notifPerms = notifyJob.permissions;
