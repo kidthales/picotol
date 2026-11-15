@@ -833,12 +833,29 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
           2
         ) + "\n"
       );
+      const sha256 = (buf) => crypto.createHash("sha256").update(buf).digest("hex");
       fs.writeFileSync(
         path.join(distDir, "manifest.json"),
-        JSON.stringify({ name: "@kidthales/picotol", version: ver, artifacts: {} }, null, 2) + "\n"
+        JSON.stringify(
+          {
+            name: "@kidthales/picotol",
+            version: ver,
+            artifacts: {
+              "picotol.min.css": {
+                sha256: sha256(minCss),
+                size_bytes: minCss.byteLength,
+              },
+              "picotol.layer.min.css": {
+                sha256: sha256(layerMinCss),
+                size_bytes: layerMinCss.byteLength,
+              },
+            },
+          },
+          null,
+          2
+        ) + "\n"
       );
 
-      const sha256 = (buf) => crypto.createHash("sha256").update(buf).digest("hex");
       const sumsLines = [
         `${sha256(Buffer.from("MIT\n"))}  LICENSE`,
         `${sha256(zipBuf)}  picotol-v${ver}.zip`,
@@ -851,6 +868,7 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
         path.join(tmpRoot, "README.md"),
         [
           `curl -fsSLO https://github.com/kidthales/picotol/releases/download/v${ver}/picotol.layer.min.css`,
+          `curl -fsSLO https://github.com/kidthales/picotol/releases/download/v${ver}/picotol-v${ver}.zip`,
           `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@${ver}/dist/picotol.min.css" integrity="${minSri}" crossorigin="anonymous" />`,
           `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@${ver}/dist/picotol.layer.min.css" integrity="${layerSri}" crossorigin="anonymous" />`,
           `- kidthales. (2026). *@kidthales/picotol* (Version ${ver}) [Computer software].`,
@@ -878,25 +896,42 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
     });
     assert.ok(cffDrift.some((e) => e.includes("CITATION.cff version")));
 
-    // 2c. dist/sri.json version drift & disk integrity mismatch
+    // 2c. dist/sri.json version drift, disk integrity mismatch, and directory entry guard (no EISDIR)
     const sriDrift = withParityFixture((dir) => {
       const sriPath = path.join(dir, "dist", "sri.json");
       const doc = JSON.parse(fs.readFileSync(sriPath, "utf8"));
       doc.version = "0.7.0";
       doc.files["dist/picotol.min.css"].integrity = "sha384-STALEHASH";
+      doc.files["dist/assets"] = { integrity: "sha384-DIR" };
       fs.writeFileSync(sriPath, JSON.stringify(doc, null, 2));
     });
     assert.ok(sriDrift.some((e) => e.includes("dist/sri.json version")));
     assert.ok(sriDrift.some((e) => e.includes('dist/sri.json integrity mismatch for "dist/picotol.min.css"')));
+    assert.ok(sriDrift.some((e) => e.includes('dist/sri.json target "dist/assets" is not a regular file')));
 
-    // 2d. dist/manifest.json version drift
-    const manifestDrift = withParityFixture((dir) => {
+    // 2d. dist/manifest.json version drift, empty artifacts, digest/size mismatches, jail escape, and directory guard
+    const manifestVersionAndEmpty = withParityFixture((dir) => {
       fs.writeFileSync(
         path.join(dir, "dist", "manifest.json"),
         JSON.stringify({ name: "@kidthales/picotol", version: "0.7.0", artifacts: {} })
       );
     });
-    assert.ok(manifestDrift.some((e) => e.includes("dist/manifest.json version")));
+    assert.ok(manifestVersionAndEmpty.some((e) => e.includes("dist/manifest.json version")));
+    assert.ok(manifestVersionAndEmpty.some((e) => e.includes('[manifest] dist/manifest.json is missing non-empty "artifacts" map')));
+
+    const manifestArtifactDrift = withParityFixture((dir) => {
+      const manifestPath = path.join(dir, "dist", "manifest.json");
+      const doc = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+      doc.artifacts["picotol.min.css"].sha256 = "0".repeat(64);
+      doc.artifacts["picotol.min.css"].size_bytes = 999999;
+      doc.artifacts["../LICENSE"] = { sha256: "0".repeat(64), size_bytes: 4 };
+      doc.artifacts["assets"] = { sha256: "0".repeat(64), size_bytes: 0 };
+      fs.writeFileSync(manifestPath, JSON.stringify(doc, null, 2));
+    });
+    assert.ok(manifestArtifactDrift.some((e) => e.includes('dist/manifest.json sha256 mismatch for "picotol.min.css"')));
+    assert.ok(manifestArtifactDrift.some((e) => e.includes('dist/manifest.json size_bytes mismatch for "picotol.min.css"')));
+    assert.ok(manifestArtifactDrift.some((e) => e.includes('dist/manifest.json artifact "../LICENSE" escapes allowed directory')));
+    assert.ok(manifestArtifactDrift.some((e) => e.includes('dist/manifest.json artifact "assets" is not a regular file')));
 
     // 2e. Stale / duplicate / missing zip archives in dist/assets/
     const multiZipDrift = withParityFixture((dir) => {
@@ -910,12 +945,13 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
     });
     assert.ok(wrongZipDrift.some((e) => e.includes("[assets] Stale or mismatched archive")));
 
-    // 2f. README.md stale CDN version, mismatched SRI digest, stale release URL, and stale APA version
+    // 2f. README.md stale CDN version, mismatched SRI digest, stale release URL (including archive filename), and stale APA version
     const readmeDrift = withParityFixture((dir, { minSri }) => {
       fs.writeFileSync(
         path.join(dir, "README.md"),
         [
           "curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.7.0/picotol.layer.min.css",
+          "curl -fsSLO https://github.com/kidthales/picotol/releases/download/v1.0.0-alpha.1/picotol-v0.7.0.zip",
           '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.7.0/dist/picotol.min.css" integrity="' + minSri + '" crossorigin="anonymous" />',
           '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@1.0.0-alpha.1/dist/picotol.layer.min.css" integrity="sha384-WRONGDIGEST" crossorigin="anonymous" />',
           "- kidthales. (2026). *@kidthales/picotol* (Version 0.7.0) [Computer software].",
@@ -925,20 +961,63 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
     assert.ok(readmeDrift.some((e) => e.includes("[readme:cdn] Stale CDN URL version")));
     assert.ok(readmeDrift.some((e) => e.includes("[readme:sri] CDN <link> integrity mismatch")));
     assert.ok(readmeDrift.some((e) => e.includes("[readme:release] Stale GitHub release download version")));
+    assert.ok(readmeDrift.some((e) => e.includes('[readme:release] Stale GitHub release asset archive "picotol-v0.7.0.zip"')));
     assert.ok(readmeDrift.some((e) => e.includes("[readme:apa] Stale APA citation")));
 
-    // 2g. dist/SHA256SUMS.txt stale archive / digest mismatch
+    // 2g. dist/SHA256SUMS.txt stale archive / digest mismatch / directory entry guard (no EISDIR) / symlink jail
+    const externalSecretDir = fs.mkdtempSync(path.join(os.tmpdir(), "picotol-parity-secret-"));
+    t.after(() => fs.rmSync(externalSecretDir, { recursive: true, force: true }));
+    const externalSecretFile = path.join(externalSecretDir, "secret.css");
+    const secretContent = Buffer.from("/* outside-jail-secret */");
+    const secretHash = crypto.createHash("sha256").update(secretContent).digest("hex");
+    fs.writeFileSync(externalSecretFile, secretContent);
+
     const sumsDrift = withParityFixture((dir, { ver }) => {
       const sumsPath = path.join(dir, "dist", "SHA256SUMS.txt");
-      const badSums = fs
-        .readFileSync(sumsPath, "utf8")
-        .replace(`picotol-v${ver}.zip`, "picotol-v0.7.0.zip")
-        .replace(/^[a-f0-9]{64}(  LICENSE)$/m, `${"0".repeat(64)}$1`);
+      const escapedJunction = path.join(dir, "dist", "escaped-dir");
+      fs.symlinkSync(externalSecretDir, escapedJunction, process.platform === "win32" ? "junction" : "dir");
+      t.after(() => {
+        try {
+          if (process.platform === "win32") fs.rmdirSync(escapedJunction);
+          else fs.unlinkSync(escapedJunction);
+        } catch {}
+      });
+
+      const extraLines = [
+        `${"0".repeat(64)}  .`,
+        `${"0".repeat(64)}  assets`,
+        `${"0".repeat(64)}  escaped-dir`,
+      ];
+
+      const leakFileLink = path.join(dir, "dist", "leak.css");
+      let createdFileLink = false;
+      try {
+        fs.symlinkSync(externalSecretFile, leakFileLink, "file");
+        createdFileLink = true;
+      } catch (err) {
+        if (err.code !== "EPERM" && err.code !== "ENOSYS") throw err;
+        t.diagnostic(`Skipped file symlink sub-assertion (${err.code}); directory junction escape still ran.`);
+      }
+      if (createdFileLink) {
+        extraLines.push(`${"0".repeat(64)}  leak.css`);
+      }
+
+      const badSums =
+        fs
+          .readFileSync(sumsPath, "utf8")
+          .replace(`picotol-v${ver}.zip`, "picotol-v0.7.0.zip")
+          .replace(/^[a-f0-9]{64}(  LICENSE)$/m, `${"0".repeat(64)}$1`) +
+        extraLines.join("\n") +
+        "\n";
       fs.writeFileSync(sumsPath, badSums);
     });
     assert.ok(sumsDrift.some((e) => e.includes("[checksums] Stale archive entry")));
     assert.ok(sumsDrift.some((e) => e.includes("[checksums] Missing archive entry")));
     assert.ok(sumsDrift.some((e) => e.includes('[checksums] SHA-256 mismatch for "LICENSE"')));
+    assert.ok(sumsDrift.some((e) => e.includes('[checksums] Unsafe filename "." in dist/SHA256SUMS.txt')));
+    assert.ok(sumsDrift.some((e) => e.includes('[checksums] Asset "assets" in dist/SHA256SUMS.txt is not a regular file')));
+    assert.ok(sumsDrift.some((e) => e.includes('[checksums] Asset "escaped-dir" in dist/SHA256SUMS.txt escapes allowed directory')));
+    assert.ok(!sumsDrift.some((e) => e.includes(secretHash)), "Out-of-jail file digest must never be computed or leaked");
   });
 });
 

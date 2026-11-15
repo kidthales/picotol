@@ -5,7 +5,7 @@
 // package.json reads), and rewrites README.md pinned CDN URLs, SRI hashes,
 // release download URLs, and APA version metadata.
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,6 +13,11 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export const SEMVER_REGEX = /^\d+\.\d+\.\d+(-(alpha|beta|rc)\.[1-9]\d*)?$/;
 export const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const DEFAULT_SRI_KEYS = [
+  'dist/picotol.core.min.css',
+  'dist/picotol.min.css',
+  'dist/picotol.layer.min.css',
+];
 
 export function validateSemVer(version) {
   if (typeof version !== 'string' || !SEMVER_REGEX.test(version)) {
@@ -96,10 +101,15 @@ export function updatePackageLockContent(rawJson, version) {
   if (!lock || typeof lock !== 'object' || Array.isArray(lock)) {
     throw new Error('Invalid package-lock.json: root must be a JSON object');
   }
-  lock.version = validVersion;
-  if (lock.packages && typeof lock.packages === 'object' && lock.packages[''] && typeof lock.packages[''] === 'object') {
-    lock.packages[''].version = validVersion;
+  if (!lock.packages || typeof lock.packages !== 'object' || Array.isArray(lock.packages)) {
+    throw new Error('Invalid package-lock.json: missing "packages" object');
   }
+  const rootPkg = lock.packages[''];
+  if (!rootPkg || typeof rootPkg !== 'object' || Array.isArray(rootPkg)) {
+    throw new Error('Invalid package-lock.json: missing packages[""] object');
+  }
+  lock.version = validVersion;
+  rootPkg.version = validVersion;
   return JSON.stringify(lock, null, 2) + '\n';
 }
 
@@ -179,10 +189,12 @@ export function updateReadmeContent(rawReadme, version, sriManifest) {
   );
 
   updated = updated.replace(
-    /(https?:\/\/github\.com\/kidthales\/picotol\/releases\/download\/v)([^/\s"'`)]+)/g,
-    (_, prefix) => {
+    /(https?:\/\/github\.com\/kidthales\/picotol\/releases\/download\/v)([^/\s"'`)]+)(\/picotol-v([^/\s"'`)]+)\.zip)?/g,
+    (_, prefix, _tagVer, zipPart) => {
       releaseUrlsUpdated++;
-      return `${prefix}${validVersion}`;
+      return zipPart
+        ? `${prefix}${validVersion}/picotol-v${validVersion}.zip`
+        : `${prefix}${validVersion}`;
     }
   );
 
@@ -219,6 +231,93 @@ function defaultRunGenerate(targetRoot) {
   }
 }
 
+function assertReadmeUpdateStats(stats) {
+  if (stats.sriLinksUpdated === 0) {
+    throw new Error('README.md did not contain any CDN <link> tags to update');
+  }
+  if (stats.releaseUrlsUpdated === 0) {
+    throw new Error('README.md did not contain any GitHub release download URLs to update');
+  }
+  if (stats.apaUpdated === 0) {
+    throw new Error('README.md did not contain an APA "(Version <version>)" citation to update');
+  }
+}
+
+function buildDryRunSriManifest(validVersion, sriPath) {
+  let keys = DEFAULT_SRI_KEYS;
+  if (existsSync(sriPath) && statSync(sriPath).isFile()) {
+    try {
+      const existing = JSON.parse(readFileSync(sriPath, 'utf8'));
+      if (existing?.files && typeof existing.files === 'object' && !Array.isArray(existing.files)) {
+        const existingKeys = Object.keys(existing.files);
+        if (existingKeys.length > 0) {
+          keys = existingKeys;
+        }
+      }
+    } catch {
+      // Fall back to default SRI keys if pre-existing dist/sri.json is corrupt; runGenerate will regenerate it.
+    }
+  }
+  const placeholderIntegrity = 'sha384-' + 'A'.repeat(64);
+  const files = {};
+  for (const key of keys) {
+    files[key] = { integrity: placeholderIntegrity };
+  }
+  return {
+    package: '@kidthales/picotol',
+    version: validVersion,
+    files,
+  };
+}
+
+function snapshotDirTree(dirPath) {
+  let st;
+  try {
+    st = lstatSync(dirPath);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return { exists: false, dirs: [], files: [] };
+    }
+    throw err;
+  }
+  if (st.isSymbolicLink() || !st.isDirectory()) {
+    return null;
+  }
+  const dirs = [];
+  const files = [];
+  function walk(currentDir, relPrefix) {
+    for (const entry of readdirSync(currentDir, { withFileTypes: true })) {
+      const rel = relPrefix ? join(relPrefix, entry.name) : entry.name;
+      const fullPath = join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        dirs.push(rel);
+        walk(fullPath, rel);
+      } else if (entry.isFile()) {
+        files.push({ rel, data: readFileSync(fullPath) });
+      }
+    }
+  }
+  walk(dirPath, '');
+  return { exists: true, dirs, files };
+}
+
+function restoreDirTree(dirPath, snapshot) {
+  if (snapshot === null) {
+    return;
+  }
+  rmSync(dirPath, { recursive: true, force: true });
+  if (!snapshot.exists) {
+    return;
+  }
+  mkdirSync(dirPath, { recursive: true });
+  for (const relDir of snapshot.dirs) {
+    mkdirSync(join(dirPath, relDir), { recursive: true });
+  }
+  for (const { rel, data } of snapshot.files) {
+    writeFileSync(join(dirPath, rel), data);
+  }
+}
+
 export function syncVersion(version, opts = {}) {
   const validVersion = validateSemVer(version);
   const releaseDate = validateIsoDate(opts.date ?? new Date().toISOString().slice(0, 10));
@@ -229,7 +328,8 @@ export function syncVersion(version, opts = {}) {
   const lockPath = join(targetRoot, 'package-lock.json');
   const cffPath = join(targetRoot, 'CITATION.cff');
   const readmePath = join(targetRoot, 'README.md');
-  const sriPath = join(targetRoot, 'dist', 'sri.json');
+  const distPath = join(targetRoot, 'dist');
+  const sriPath = join(distPath, 'sri.json');
 
   for (const requiredPath of [pkgPath, lockPath, cffPath, readmePath]) {
     if (!existsSync(requiredPath)) {
@@ -242,10 +342,15 @@ export function syncVersion(version, opts = {}) {
   const origCff = readFileSync(cffPath, 'utf8');
   const origReadme = readFileSync(readmePath, 'utf8');
 
-  // Prepare source manifest updates before mutating any file on disk.
+  // Prepare and pre-validate all source updates before mutating any file on disk.
   const nextPkg = updatePackageJsonContent(origPkg, validVersion);
   const nextLock = updatePackageLockContent(origLock, validVersion);
   const nextCff = updateCitationCffContent(origCff, validVersion, releaseDate);
+  const dryRunSri = buildDryRunSriManifest(validVersion, sriPath);
+  const { stats: dryRunReadmeStats } = updateReadmeContent(origReadme, validVersion, dryRunSri);
+  assertReadmeUpdateStats(dryRunReadmeStats);
+
+  const distSnapshot = snapshotDirTree(distPath);
 
   try {
     writeFileSync(pkgPath, nextPkg, 'utf8');
@@ -259,16 +364,7 @@ export function syncVersion(version, opts = {}) {
     }
     const sriManifest = JSON.parse(readFileSync(sriPath, 'utf8'));
     const { content: nextReadme, stats: readmeStats } = updateReadmeContent(origReadme, validVersion, sriManifest);
-
-    if (readmeStats.sriLinksUpdated === 0) {
-      throw new Error('README.md did not contain any CDN <link> tags to update');
-    }
-    if (readmeStats.releaseUrlsUpdated === 0) {
-      throw new Error('README.md did not contain any GitHub release download URLs to update');
-    }
-    if (readmeStats.apaUpdated === 0) {
-      throw new Error('README.md did not contain an APA "(Version <version>)" citation to update');
-    }
+    assertReadmeUpdateStats(readmeStats);
 
     writeFileSync(readmePath, nextReadme, 'utf8');
 
@@ -279,11 +375,12 @@ export function syncVersion(version, opts = {}) {
       readmeStats,
     };
   } catch (err) {
-    // Roll back source manifests on failure so the tree is not left partially drifted.
+    // Roll back source manifests and generated dist/ tree on failure so no partial drift remains.
     writeFileSync(pkgPath, origPkg, 'utf8');
     writeFileSync(lockPath, origLock, 'utf8');
     writeFileSync(cffPath, origCff, 'utf8');
     writeFileSync(readmePath, origReadme, 'utf8');
+    restoreDirTree(distPath, distSnapshot);
     throw err;
   }
 }

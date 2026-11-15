@@ -728,9 +728,38 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
   return errors;
 }
 
-function readJsonRecord(filePath, label, errors) {
+/**
+ * Verifies that `diskPath` stays inside `jailDir`, exists on disk, and is a regular file.
+ */
+function assertJailedRegularFile(diskPath, jailDir, category, subject, errors) {
+  if (!isSameOrSubpath(diskPath, jailDir)) {
+    errors.push(`[${category}] ${subject} escapes allowed directory`);
+    return false;
+  }
+  if (!fs.existsSync(diskPath)) {
+    errors.push(`[${category}] ${subject} does not exist on disk`);
+    return false;
+  }
+  if (!fs.statSync(diskPath).isFile()) {
+    errors.push(`[${category}] ${subject} is not a regular file`);
+    return false;
+  }
+  return true;
+}
+
+function readJsonRecord(filePath, label, errors, jailDir = null) {
+  if (jailDir !== null) {
+    if (!isSameOrSubpath(filePath, jailDir)) {
+      errors.push(`[version] Required manifest "${label}" escapes repository root`);
+      return null;
+    }
+  }
   if (!fs.existsSync(filePath)) {
     errors.push(`[version] Required manifest missing: ${label}`);
+    return null;
+  }
+  if (!fs.statSync(filePath).isFile()) {
+    errors.push(`[version] Required manifest "${label}" is not a regular file`);
     return null;
   }
   try {
@@ -748,11 +777,12 @@ function readJsonRecord(filePath, label, errors) {
 
 /**
  * Verifies 5-manifest SemVer parity across package.json, package-lock.json,
- * CITATION.cff, dist/sri.json, and dist/manifest.json, plus dist/sri.json disk digests.
+ * CITATION.cff, dist/sri.json, and dist/manifest.json, plus dist/sri.json and
+ * dist/manifest.json disk digests.
  */
 export function lintManifestVersions(rootDir = ROOT) {
   const errors = [];
-  const pkg = readJsonRecord(path.join(rootDir, 'package.json'), 'package.json', errors);
+  const pkg = readJsonRecord(path.join(rootDir, 'package.json'), 'package.json', errors, rootDir);
   if (!pkg) {
     return { version: null, sriManifest: null, errors };
   }
@@ -763,7 +793,7 @@ export function lintManifestVersions(rootDir = ROOT) {
     return { version: null, sriManifest: null, errors };
   }
 
-  const lock = readJsonRecord(path.join(rootDir, 'package-lock.json'), 'package-lock.json', errors);
+  const lock = readJsonRecord(path.join(rootDir, 'package-lock.json'), 'package-lock.json', errors, rootDir);
   if (lock) {
     if (lock.version !== targetVersion) {
       errors.push(`[version] package-lock.json version "${lock.version}" does not match package.json "${targetVersion}"`);
@@ -779,7 +809,7 @@ export function lintManifestVersions(rootDir = ROOT) {
   const cffPath = path.join(rootDir, 'CITATION.cff');
   if (!fs.existsSync(cffPath)) {
     errors.push('[version] Required manifest missing: CITATION.cff');
-  } else {
+  } else if (assertJailedRegularFile(cffPath, rootDir, 'version', 'CITATION.cff', errors)) {
     const cffRaw = fs.readFileSync(cffPath, 'utf8');
     const cffMatch = cffRaw.match(/^version:\s*([^\r\n]+)$/m);
     if (!cffMatch) {
@@ -792,7 +822,7 @@ export function lintManifestVersions(rootDir = ROOT) {
     }
   }
 
-  const sri = readJsonRecord(path.join(rootDir, 'dist', 'sri.json'), 'dist/sri.json', errors);
+  const sri = readJsonRecord(path.join(rootDir, 'dist', 'sri.json'), 'dist/sri.json', errors, rootDir);
   if (sri) {
     if (sri.version !== targetVersion) {
       errors.push(`[version] dist/sri.json version "${sri.version}" does not match package.json "${targetVersion}"`);
@@ -802,12 +832,7 @@ export function lintManifestVersions(rootDir = ROOT) {
     } else {
       for (const [relPath, record] of Object.entries(sri.files)) {
         const bundlePath = path.resolve(rootDir, relPath);
-        if (!isSameOrSubpath(bundlePath, rootDir)) {
-          errors.push(`[sri] dist/sri.json path "${relPath}" escapes repository root`);
-          continue;
-        }
-        if (!fs.existsSync(bundlePath)) {
-          errors.push(`[sri] dist/sri.json target "${relPath}" does not exist on disk`);
+        if (!assertJailedRegularFile(bundlePath, rootDir, 'sri', `dist/sri.json target "${relPath}"`, errors)) {
           continue;
         }
         const expectedIntegrity = 'sha384-' + createHash('sha384').update(fs.readFileSync(bundlePath)).digest('base64');
@@ -820,9 +845,39 @@ export function lintManifestVersions(rootDir = ROOT) {
     }
   }
 
-  const manifest = readJsonRecord(path.join(rootDir, 'dist', 'manifest.json'), 'dist/manifest.json', errors);
-  if (manifest && manifest.version !== targetVersion) {
-    errors.push(`[version] dist/manifest.json version "${manifest.version}" does not match package.json "${targetVersion}"`);
+  const manifest = readJsonRecord(path.join(rootDir, 'dist', 'manifest.json'), 'dist/manifest.json', errors, rootDir);
+  if (manifest) {
+    if (manifest.version !== targetVersion) {
+      errors.push(`[version] dist/manifest.json version "${manifest.version}" does not match package.json "${targetVersion}"`);
+    }
+    if (
+      !manifest.artifacts ||
+      typeof manifest.artifacts !== 'object' ||
+      Array.isArray(manifest.artifacts) ||
+      Object.keys(manifest.artifacts).length === 0
+    ) {
+      errors.push('[manifest] dist/manifest.json is missing non-empty "artifacts" map');
+    } else {
+      const distDir = path.join(rootDir, 'dist');
+      for (const [relName, record] of Object.entries(manifest.artifacts)) {
+        const artifactPath = path.resolve(distDir, relName);
+        if (!assertJailedRegularFile(artifactPath, distDir, 'manifest', `dist/manifest.json artifact "${relName}"`, errors)) {
+          continue;
+        }
+        const artifactBytes = fs.readFileSync(artifactPath);
+        const expectedSha256 = createHash('sha256').update(artifactBytes).digest('hex');
+        if (record?.sha256 !== expectedSha256) {
+          errors.push(
+            `[manifest] dist/manifest.json sha256 mismatch for "${relName}": expected "${expectedSha256}", found "${record?.sha256}"`
+          );
+        }
+        if (record?.size_bytes !== artifactBytes.byteLength) {
+          errors.push(
+            `[manifest] dist/manifest.json size_bytes mismatch for "${relName}": expected ${artifactBytes.byteLength}, found ${record?.size_bytes}`
+          );
+        }
+      }
+    }
   }
 
   return { version: targetVersion, sriManifest: sri, errors };
@@ -837,8 +892,16 @@ export function lintAssetArchiveInvariant(rootDir = ROOT, expectedVersion) {
   const assetsDir = path.join(rootDir, 'dist', 'assets');
   const expectedZipName = `picotol-v${expectedVersion}.zip`;
 
+  if (!isSameOrSubpath(assetsDir, rootDir)) {
+    errors.push('[assets] Directory dist/assets/ escapes repository root');
+    return errors;
+  }
   if (!fs.existsSync(assetsDir)) {
     errors.push(`[assets] Missing directory dist/assets/ (expected ${expectedZipName})`);
+    return errors;
+  }
+  if (!fs.statSync(assetsDir).isDirectory()) {
+    errors.push(`[assets] Path dist/assets/ is not a directory (expected ${expectedZipName})`);
     return errors;
   }
 
@@ -875,6 +938,9 @@ export function lintSha256SumsParity(rootDir = ROOT, expectedVersion) {
     errors.push('[checksums] Missing dist/SHA256SUMS.txt');
     return errors;
   }
+  if (!assertJailedRegularFile(sumsPath, rootDir, 'checksums', 'dist/SHA256SUMS.txt', errors)) {
+    return errors;
+  }
 
   const lines = fs.readFileSync(sumsPath, 'utf8').split(/\r?\n/).filter(Boolean);
   if (lines.length === 0) {
@@ -896,7 +962,7 @@ export function lintSha256SumsParity(rootDir = ROOT, expectedVersion) {
     }
     seen.add(filename);
 
-    if (filename.includes('/') || filename.includes('\\') || filename === '..') {
+    if (filename.includes('/') || filename.includes('\\') || filename === '.' || filename === '..') {
       errors.push(`[checksums] Unsafe filename "${filename}" in dist/SHA256SUMS.txt`);
       continue;
     }
@@ -917,8 +983,7 @@ export function lintSha256SumsParity(rootDir = ROOT, expectedVersion) {
       diskPath = path.join(rootDir, 'dist', filename);
     }
 
-    if (!fs.existsSync(diskPath)) {
-      errors.push(`[checksums] Asset "${filename}" listed in dist/SHA256SUMS.txt does not exist on disk`);
+    if (!assertJailedRegularFile(diskPath, rootDir, 'checksums', `Asset "${filename}" in dist/SHA256SUMS.txt`, errors)) {
       continue;
     }
     const actualHash = createHash('sha256').update(fs.readFileSync(diskPath)).digest('hex');
@@ -945,6 +1010,9 @@ export function lintReadmeSriParity(rootDir = ROOT, expectedVersion, sriManifest
   const readmePath = path.join(rootDir, 'README.md');
   if (!fs.existsSync(readmePath)) {
     errors.push('[readme:sri] Missing README.md');
+    return errors;
+  }
+  if (!assertJailedRegularFile(readmePath, rootDir, 'readme:sri', 'README.md', errors)) {
     return errors;
   }
 
@@ -1002,13 +1070,20 @@ export function lintReadmeSriParity(rootDir = ROOT, expectedVersion, sriManifest
     errors.push('[readme:sri] README.md does not contain any CDN <link> tags to verify');
   }
 
-  const releaseUrlRe = /https?:\/\/github\.com\/kidthales\/picotol\/releases\/download\/v([^/\s"'`)]+)/g;
+  const releaseUrlRe =
+    /https?:\/\/github\.com\/kidthales\/picotol\/releases\/download\/v([^/\s"'`)]+)(\/picotol-v([^/\s"'`)]+)\.zip)?/g;
   let releaseUrlCount = 0;
   for (const match of readme.matchAll(releaseUrlRe)) {
     releaseUrlCount++;
-    if (match[1] !== expectedVersion) {
+    const [, tagVer, zipPart, zipVer] = match;
+    if (tagVer !== expectedVersion) {
       errors.push(
-        `[readme:release] Stale GitHub release download version "v${match[1]}" in README.md (expected "v${expectedVersion}")`
+        `[readme:release] Stale GitHub release download version "v${tagVer}" in README.md (expected "v${expectedVersion}")`
+      );
+    }
+    if (zipPart && zipVer !== expectedVersion) {
+      errors.push(
+        `[readme:release] Stale GitHub release asset archive "picotol-v${zipVer}.zip" in README.md (expected "picotol-v${expectedVersion}.zip")`
       );
     }
   }
