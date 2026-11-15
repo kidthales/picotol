@@ -9,13 +9,18 @@
 //   6. Demo HTML linter: verifies all classes, #hash anchors, aria-describedby,
 //      aria-labelledby, and keyboard tabindex on non-interactive [data-tooltip] nodes.
 //   7. Node.js syntax check (`node --check`), git agent-file guard, and export resolution.
+//   8. 5-manifest version parity, single-archive dist/assets/, SHA256SUMS.txt, and README SRI parity.
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bundle, transform, Features } from 'lightningcss';
 import { expandHex } from './color-utils.mjs';
 import { auditWorkflows } from './check-workflows.mjs';
+import { ASSET_ARCHIVE_PATTERN } from './package-assets.mjs';
+import { isSameOrSubpath } from './path-jail.mjs';
+import { SEMVER_REGEX } from './sync-version.mjs';
 
 export { expandHex, auditWorkflows };
 
@@ -723,6 +728,419 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
   return errors;
 }
 
+/**
+ * Verifies that `diskPath` stays inside `jailDir`, exists on disk, is not a
+ * symbolic link, and is a regular file (without following symlinks).
+ */
+function assertJailedRegularFile(diskPath, jailDir, category, subject, errors) {
+  if (!isSameOrSubpath(diskPath, jailDir)) {
+    errors.push(`[${category}] ${subject} escapes allowed directory`);
+    return false;
+  }
+  let st;
+  try {
+    st = fs.lstatSync(diskPath);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      errors.push(`[${category}] ${subject} does not exist on disk`);
+      return false;
+    }
+    throw err;
+  }
+  if (st.isSymbolicLink()) {
+    errors.push(`[${category}] ${subject} must not be a symbolic link`);
+    return false;
+  }
+  if (!st.isFile()) {
+    errors.push(`[${category}] ${subject} is not a regular file`);
+    return false;
+  }
+  return true;
+}
+
+function readJsonRecord(filePath, label, errors, jailDir = null) {
+  if (jailDir !== null) {
+    if (!isSameOrSubpath(filePath, jailDir)) {
+      errors.push(`[version] Required manifest "${label}" escapes repository root`);
+      return null;
+    }
+  }
+  let st;
+  try {
+    st = fs.lstatSync(filePath);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      errors.push(`[version] Required manifest missing: ${label}`);
+      return null;
+    }
+    throw err;
+  }
+  if (st.isSymbolicLink()) {
+    errors.push(`[version] Required manifest "${label}" must not be a symbolic link`);
+    return null;
+  }
+  if (!st.isFile()) {
+    errors.push(`[version] Required manifest "${label}" is not a regular file`);
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      errors.push(`[version] Invalid ${label}: root must be a JSON object`);
+      return null;
+    }
+    return parsed;
+  } catch (err) {
+    errors.push(`[version] Failed to parse ${label}: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Verifies 5-manifest SemVer parity across package.json, package-lock.json,
+ * CITATION.cff, dist/sri.json, and dist/manifest.json, plus dist/sri.json and
+ * dist/manifest.json disk digests.
+ */
+export function lintManifestVersions(rootDir = ROOT) {
+  const errors = [];
+  const pkg = readJsonRecord(path.join(rootDir, 'package.json'), 'package.json', errors, rootDir);
+  if (!pkg) {
+    return { version: null, sriManifest: null, errors };
+  }
+
+  const targetVersion = pkg.version;
+  if (typeof targetVersion !== 'string' || !SEMVER_REGEX.test(targetVersion)) {
+    errors.push(`[version] package.json version "${targetVersion}" must match ${SEMVER_REGEX.source}`);
+    return { version: null, sriManifest: null, errors };
+  }
+
+  const lock = readJsonRecord(path.join(rootDir, 'package-lock.json'), 'package-lock.json', errors, rootDir);
+  if (lock) {
+    if (lock.version !== targetVersion) {
+      errors.push(`[version] package-lock.json version "${lock.version}" does not match package.json "${targetVersion}"`);
+    }
+    const rootLockVersion = lock.packages?.['']?.version;
+    if (rootLockVersion !== targetVersion) {
+      errors.push(
+        `[version] package-lock.json packages[""].version "${rootLockVersion}" does not match package.json "${targetVersion}"`
+      );
+    }
+  }
+
+  const cffPath = path.join(rootDir, 'CITATION.cff');
+  if (!fs.existsSync(cffPath)) {
+    errors.push('[version] Required manifest missing: CITATION.cff');
+  } else if (assertJailedRegularFile(cffPath, rootDir, 'version', 'CITATION.cff', errors)) {
+    const cffRaw = fs.readFileSync(cffPath, 'utf8');
+    const cffMatch = cffRaw.match(/^version:\s*([^\r\n]+)$/m);
+    if (!cffMatch) {
+      errors.push('[version] CITATION.cff is missing top-level "version:" field');
+    } else {
+      const cffVersion = cffMatch[1].trim().replace(/^(['"])(.*)\1$/, '$2');
+      if (cffVersion !== targetVersion) {
+        errors.push(`[version] CITATION.cff version "${cffVersion}" does not match package.json "${targetVersion}"`);
+      }
+    }
+  }
+
+  const sri = readJsonRecord(path.join(rootDir, 'dist', 'sri.json'), 'dist/sri.json', errors, rootDir);
+  if (sri) {
+    if (sri.version !== targetVersion) {
+      errors.push(`[version] dist/sri.json version "${sri.version}" does not match package.json "${targetVersion}"`);
+    }
+    if (!sri.files || typeof sri.files !== 'object' || Array.isArray(sri.files) || Object.keys(sri.files).length === 0) {
+      errors.push('[sri] dist/sri.json is missing non-empty "files" map');
+    } else {
+      for (const [relPath, record] of Object.entries(sri.files)) {
+        const bundlePath = path.resolve(rootDir, relPath);
+        if (!assertJailedRegularFile(bundlePath, rootDir, 'sri', `dist/sri.json target "${relPath}"`, errors)) {
+          continue;
+        }
+        const expectedIntegrity = 'sha384-' + createHash('sha384').update(fs.readFileSync(bundlePath)).digest('base64');
+        if (record?.integrity !== expectedIntegrity) {
+          errors.push(
+            `[sri] dist/sri.json integrity mismatch for "${relPath}": expected "${expectedIntegrity}", found "${record?.integrity}"`
+          );
+        }
+      }
+    }
+  }
+
+  const manifest = readJsonRecord(path.join(rootDir, 'dist', 'manifest.json'), 'dist/manifest.json', errors, rootDir);
+  if (manifest) {
+    if (manifest.version !== targetVersion) {
+      errors.push(`[version] dist/manifest.json version "${manifest.version}" does not match package.json "${targetVersion}"`);
+    }
+    if (
+      !manifest.artifacts ||
+      typeof manifest.artifacts !== 'object' ||
+      Array.isArray(manifest.artifacts) ||
+      Object.keys(manifest.artifacts).length === 0
+    ) {
+      errors.push('[manifest] dist/manifest.json is missing non-empty "artifacts" map');
+    } else {
+      const distDir = path.join(rootDir, 'dist');
+      for (const [relName, record] of Object.entries(manifest.artifacts)) {
+        const artifactPath = path.resolve(distDir, relName);
+        if (!assertJailedRegularFile(artifactPath, distDir, 'manifest', `dist/manifest.json artifact "${relName}"`, errors)) {
+          continue;
+        }
+        const artifactBytes = fs.readFileSync(artifactPath);
+        const expectedSha256 = createHash('sha256').update(artifactBytes).digest('hex');
+        if (record?.sha256 !== expectedSha256) {
+          errors.push(
+            `[manifest] dist/manifest.json sha256 mismatch for "${relName}": expected "${expectedSha256}", found "${record?.sha256}"`
+          );
+        }
+        if (record?.size_bytes !== artifactBytes.byteLength) {
+          errors.push(
+            `[manifest] dist/manifest.json size_bytes mismatch for "${relName}": expected ${artifactBytes.byteLength}, found ${record?.size_bytes}`
+          );
+        }
+      }
+    }
+  }
+
+  return { version: targetVersion, sriManifest: sri, errors };
+}
+
+/**
+ * Enforces that dist/assets/ contains strictly one archive matching picotol-v*.zip
+ * and that its filename matches the active package version.
+ */
+export function lintAssetArchiveInvariant(rootDir = ROOT, expectedVersion) {
+  const errors = [];
+  const assetsDir = path.join(rootDir, 'dist', 'assets');
+  const expectedZipName = `picotol-v${expectedVersion}.zip`;
+
+  if (!isSameOrSubpath(assetsDir, rootDir)) {
+    errors.push('[assets] Directory dist/assets/ escapes repository root');
+    return errors;
+  }
+  if (!fs.existsSync(assetsDir)) {
+    errors.push(`[assets] Missing directory dist/assets/ (expected ${expectedZipName})`);
+    return errors;
+  }
+  if (!fs.statSync(assetsDir).isDirectory()) {
+    errors.push(`[assets] Path dist/assets/ is not a directory (expected ${expectedZipName})`);
+    return errors;
+  }
+
+  const archives = fs
+    .readdirSync(assetsDir, { withFileTypes: true })
+    .filter((entry) => (entry.isFile() || entry.isSymbolicLink()) && ASSET_ARCHIVE_PATTERN.test(entry.name))
+    .map((entry) => entry.name)
+    .sort();
+
+  if (archives.length === 0) {
+    errors.push(`[assets] Missing offline asset archive dist/assets/${expectedZipName}`);
+  } else if (archives.length > 1) {
+    errors.push(
+      `[assets] Expected strictly one archive matching picotol-v*.zip in dist/assets/, found ${archives.length}: ${archives.join(', ')}`
+    );
+  } else if (archives[0] !== expectedZipName) {
+    errors.push(
+      `[assets] Stale or mismatched archive in dist/assets/: expected "${expectedZipName}", found "${archives[0]}"`
+    );
+  }
+
+  return errors;
+}
+
+/**
+ * Enforces dist/SHA256SUMS.txt version-archive parity and SHA-256 disk digest integrity.
+ */
+export function lintSha256SumsParity(rootDir = ROOT, expectedVersion) {
+  const errors = [];
+  const sumsPath = path.join(rootDir, 'dist', 'SHA256SUMS.txt');
+  const expectedZipName = `picotol-v${expectedVersion}.zip`;
+
+  if (!fs.existsSync(sumsPath)) {
+    errors.push('[checksums] Missing dist/SHA256SUMS.txt');
+    return errors;
+  }
+  if (!assertJailedRegularFile(sumsPath, rootDir, 'checksums', 'dist/SHA256SUMS.txt', errors)) {
+    return errors;
+  }
+
+  const lines = fs.readFileSync(sumsPath, 'utf8').split(/\r?\n/).filter(Boolean);
+  if (lines.length === 0) {
+    errors.push('[checksums] dist/SHA256SUMS.txt is empty');
+    return errors;
+  }
+
+  const seen = new Set();
+  for (const line of lines) {
+    const match = line.match(/^([a-f0-9]{64})  (.+)$/);
+    if (!match) {
+      errors.push(`[checksums] Invalid dist/SHA256SUMS.txt line format: "${line}"`);
+      continue;
+    }
+    const [, expectedHash, filename] = match;
+    if (seen.has(filename)) {
+      errors.push(`[checksums] Duplicate entry "${filename}" in dist/SHA256SUMS.txt`);
+      continue;
+    }
+    seen.add(filename);
+
+    if (filename.includes('/') || filename.includes('\\') || filename === '.' || filename === '..') {
+      errors.push(`[checksums] Unsafe filename "${filename}" in dist/SHA256SUMS.txt`);
+      continue;
+    }
+
+    if (ASSET_ARCHIVE_PATTERN.test(filename) && filename !== expectedZipName) {
+      errors.push(
+        `[checksums] Stale archive entry "${filename}" in dist/SHA256SUMS.txt (expected "${expectedZipName}")`
+      );
+      continue;
+    }
+
+    let diskPath;
+    if (filename === 'LICENSE' || filename === 'NOTICE') {
+      diskPath = path.join(rootDir, filename);
+    } else if (filename === expectedZipName) {
+      diskPath = path.join(rootDir, 'dist', 'assets', filename);
+    } else {
+      diskPath = path.join(rootDir, 'dist', filename);
+    }
+
+    if (!assertJailedRegularFile(diskPath, rootDir, 'checksums', `Asset "${filename}" in dist/SHA256SUMS.txt`, errors)) {
+      continue;
+    }
+    const actualHash = createHash('sha256').update(fs.readFileSync(diskPath)).digest('hex');
+    if (actualHash !== expectedHash) {
+      errors.push(
+        `[checksums] SHA-256 mismatch for "${filename}" in dist/SHA256SUMS.txt: expected ${actualHash}, found ${expectedHash}`
+      );
+    }
+  }
+
+  if (!seen.has(expectedZipName)) {
+    errors.push(`[checksums] Missing archive entry "${expectedZipName}" in dist/SHA256SUMS.txt`);
+  }
+
+  return errors;
+}
+
+/**
+ * Enforces README.md version pinning, SHA-384 SRI digest parity against dist/sri.json,
+ * release download tag parity, and APA citation version parity.
+ */
+export function lintReadmeSriParity(rootDir = ROOT, expectedVersion, sriManifest) {
+  const errors = [];
+  const readmePath = path.join(rootDir, 'README.md');
+  if (!fs.existsSync(readmePath)) {
+    errors.push('[readme:sri] Missing README.md');
+    return errors;
+  }
+  if (!assertJailedRegularFile(readmePath, rootDir, 'readme:sri', 'README.md', errors)) {
+    return errors;
+  }
+
+  const readme = fs.readFileSync(readmePath, 'utf8');
+
+  const cdnUrlRe = /https?:\/\/(?:cdn\.jsdelivr\.net\/npm|unpkg\.com)\/@kidthales\/picotol(?:@([^/\s"'`>)]+))?(?:\/[^\s"'`>)]*)?/g;
+  for (const match of readme.matchAll(cdnUrlRe)) {
+    const [fullUrl, cdnVer] = match;
+    if (!cdnVer) {
+      errors.push(`[readme:cdn] Unpinned CDN URL "${fullUrl}" (expected @${expectedVersion})`);
+    } else if (cdnVer !== expectedVersion) {
+      errors.push(`[readme:cdn] Stale CDN URL version "@${cdnVer}" in "${fullUrl}" (expected @${expectedVersion})`);
+    }
+  }
+
+  const linkTagRe = /<link\b([^>]*\b(?:cdn\.jsdelivr\.net\/npm|unpkg\.com)\/@kidthales\/picotol[^>]*)>/gi;
+  let linkCount = 0;
+  for (const match of readme.matchAll(linkTagRe)) {
+    linkCount++;
+    const attrs = match[1];
+    const hrefMatch = attrs.match(/\bhref\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
+    const href = hrefMatch ? (hrefMatch[1] ?? hrefMatch[2] ?? hrefMatch[3]) : '';
+    const integrityMatch = attrs.match(/\bintegrity\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+    const integrity = integrityMatch ? (integrityMatch[1] ?? integrityMatch[2] ?? integrityMatch[3]) : '';
+    const crossoriginMatch = attrs.match(/\bcrossorigin\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+    const crossorigin = crossoriginMatch ? (crossoriginMatch[1] ?? crossoriginMatch[2] ?? crossoriginMatch[3]) : '';
+
+    const pathMatch = href.match(/@kidthales\/picotol@([^/]+)\/(dist\/[^\s"'?#]+)/);
+    if (!pathMatch) {
+      errors.push(`[readme:sri] CDN <link> href is malformed or unpinned: "${href}"`);
+      continue;
+    }
+
+    const [, linkVer, bundlePath] = pathMatch;
+    if (linkVer !== expectedVersion) {
+      errors.push(`[readme:sri] CDN <link> version "@${linkVer}" does not match "${expectedVersion}" for "${bundlePath}"`);
+    }
+    if (!integrity) {
+      errors.push(`[readme:sri] CDN <link> for "${bundlePath}" is missing integrity attribute`);
+    } else if (sriManifest?.files) {
+      const record = sriManifest.files[bundlePath];
+      if (!record) {
+        errors.push(`[readme:sri] dist/sri.json missing entry for "${bundlePath}"`);
+      } else if (integrity !== record.integrity) {
+        errors.push(
+          `[readme:sri] CDN <link> integrity mismatch for "${bundlePath}": expected "${record.integrity}", found "${integrity}"`
+        );
+      }
+    }
+    if (crossorigin !== 'anonymous') {
+      errors.push(`[readme:sri] CDN <link> for "${bundlePath}" must specify crossorigin="anonymous"`);
+    }
+  }
+  if (linkCount === 0) {
+    errors.push('[readme:sri] README.md does not contain any CDN <link> tags to verify');
+  }
+
+  const releaseUrlRe =
+    /https?:\/\/github\.com\/kidthales\/picotol\/releases\/download\/v([^/\s"'`)]+)(\/picotol-v([^/\s"'`)]+)\.zip)?/g;
+  let releaseUrlCount = 0;
+  for (const match of readme.matchAll(releaseUrlRe)) {
+    releaseUrlCount++;
+    const [, tagVer, zipPart, zipVer] = match;
+    if (tagVer !== expectedVersion) {
+      errors.push(
+        `[readme:release] Stale GitHub release download version "v${tagVer}" in README.md (expected "v${expectedVersion}")`
+      );
+    }
+    if (zipPart && zipVer !== expectedVersion) {
+      errors.push(
+        `[readme:release] Stale GitHub release asset archive "picotol-v${zipVer}.zip" in README.md (expected "picotol-v${expectedVersion}.zip")`
+      );
+    }
+  }
+  if (releaseUrlCount === 0) {
+    errors.push('[readme:release] README.md does not contain any GitHub release download URLs');
+  }
+
+  const apaRe = /\(Version\s+([^)]+)\)/g;
+  let apaCount = 0;
+  for (const match of readme.matchAll(apaRe)) {
+    apaCount++;
+    if (match[1] !== expectedVersion) {
+      errors.push(`[readme:apa] Stale APA citation "(Version ${match[1]})" in README.md (expected "${expectedVersion}")`);
+    }
+  }
+  if (apaCount === 0) {
+    errors.push('[readme:apa] README.md does not contain an APA "(Version <version>)" citation');
+  }
+
+  return errors;
+}
+
+/**
+ * Runs all release version, asset archive, checksum, and README SRI parity checks.
+ */
+export function lintReleaseParity(rootDir = ROOT) {
+  const { version, sriManifest, errors } = lintManifestVersions(rootDir);
+  if (!version) {
+    return errors;
+  }
+  errors.push(...lintAssetArchiveInvariant(rootDir, version));
+  errors.push(...lintSha256SumsParity(rootDir, version));
+  errors.push(...lintReadmeSriParity(rootDir, version, sriManifest));
+  return errors;
+}
+
 export function runLint() {
   const errors = [];
   const tolData = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/tol-qualitative.json'), 'utf8'));
@@ -826,6 +1244,9 @@ export function runLint() {
 
   // 7. GitHub Actions workflow AST & security validation (real YAML parser)
   errors.push(...auditWorkflows(ROOT));
+
+  // 8. 5-manifest version parity, single-archive dist/assets/, SHA256SUMS.txt, and README SRI parity
+  errors.push(...lintReleaseParity(ROOT));
 
   return errors;
 }

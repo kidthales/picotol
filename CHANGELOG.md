@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-alpha.1] - 2026-11-15
+
+Inaugural `v1.0.0` pre-release wave (`@kidthales/picotol@1.0.0-alpha.1` on the npm `next` dist-tag). Introduces deterministic release version synchronization (`npm run sync:version`), 5-manifest SemVer and SRI parity linting, 10-artifact Sigstore build provenance attestations, pre-release npm/GitHub Packages `--tag next` routing, Seldon Schema v2 local CI parity, and updated SRON primary attribution URLs while preserving the `v0.7.0` CSS token (`--pt-color`) and component (`.pt-app`, `.pt-card`, `.pt-callout`, `.pt-badge`) surface unchanged. For detailed installation and verification guidance, see [Release Notes v1.0.0-alpha.1](docs/RELEASE_NOTES_V1_0_0-alpha_1.md).
+
+### Added
+- Deterministic `npm run sync:version -- <semver> [--date YYYY-MM-DD]` CLI (`tools/sync-version.mjs`) synchronizing `package.json`, `package-lock.json`, `CITATION.cff`, `dist/` (via `npm run generate`), and `README.md` pinned CDN URLs, SHA-384 SRI hashes, GitHub release download URLs, and APA version metadata (#290).
+- 5-manifest SemVer parity, single-archive `dist/assets/picotol-v<version>.zip` invariant, `dist/SHA256SUMS.txt` disk digest verification, and `README.md` SRI/release/APA parity gates in `tools/lint.mjs` (#290).
+- Stale SRON URL and broken `README.md` badge target regression guards in `tests/doc-lint.test.mjs` and `tests/helpers/doc-lint.mjs` (#292).
+- `actions/attest@v4` build provenance attestation across all 10 generated release artifacts (`dist/picotol*.css`, `dist/manifest.json`, `dist/sri.json`, `dist/SHA256SUMS.txt`, and `dist/assets/picotol-v*.zip`) in `.github/workflows/release.yml` (#261, #291).
+
+### Changed
+- Routed SemVer pre-releases (`*-*`) to `--tag next` (and stable releases to `--tag latest`), added `refs/tags/${TAG}^{commit}` HEAD verification in `.github/workflows/release.yml`, and widened `.github/workflows/ci.yml` `pull_request` branch triggers to `[main, 'src-*/epic/**']` (#291).
+- Migrated `scripts/ci-local.ps1` to the Seldon Schema v2 `Gate Summary` contract with `-Gate0Only` / `-WorkflowsPath` modes, and enforced workflow `timeout-minutes` bounds and `with.script` expression inspection in `tools/check-workflows.mjs` (#261, #281, #282).
+- Updated `tools/package-assets.mjs` to purge stale `picotol-v*.zip` archives before packaging with path-jail and symlink guards (#290).
+- Updated relocated SRON attribution URLs to Paul Tol's canonical primary source (`https://sronpersonalpages.nl/~pault/`) across `NOTICE`, `CITATION.cff`, and `README.md`, and verified zero upstream palette drift against `kidthales/tol-palettes` (#292).
+
+### Fixed
+- Fixed the broken WCAG 2.2 badge link target in `README.md` (`tests/a11y.test.mjs`) (#292).
+
 ## [0.7.0] - 2026-11-06
 
 Ninth public open-source pre-release of `@kidthales/picotol`. Major breaking API consolidation release completing the v0.6 transition by removing `@layer picotol.legacy`, bare semantic selectors, legacy unprefixed class aliases, deprecated status dot primitives/vocabulary aliases, and legacy `--marker-pos` property reads (#275). Refactors demo presentation to reframe standalone bundle metrics (#273) and refines documentation copy to tone down repetitive brand references (#274). For detailed narrative and migration guidance, see [Release Notes v0.7.0](docs/RELEASE_NOTES_V0_7_0.md).

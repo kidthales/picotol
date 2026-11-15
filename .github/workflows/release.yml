@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to verify and publish (e.g., v1.0.0-alpha.1; defaults to current ref)"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -19,10 +24,13 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+    outputs:
+      sha: ${{ steps.verify-tag.outputs.sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
           persist-credentials: false
 
       - name: Setup Node.js
@@ -32,23 +40,36 @@ jobs:
           package-manager-cache: false
 
       - name: Verify release tag matches package.json version
+        id: verify-tag
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
           REF_NAME: ${{ github.ref_name }}
         run: |
           TAG="${RELEASE_TAG:-$REF_NAME}"
           PKG_VER=$(node -p "require('./package.json').version")
           EXPECTED_TAG="v${PKG_VER}"
+          SEMVER_TAG_RE='^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[1-9][0-9]*)?$'
           echo "Comparing release tag '$TAG' with expected tag '$EXPECTED_TAG'..."
           if [ -z "$TAG" ]; then
             echo "::error::No release tag or ref name found."
+            exit 1
+          fi
+          if [[ ! "$TAG" =~ $SEMVER_TAG_RE ]]; then
+            echo "::error::Release tag '$TAG' does not match required SemVer pattern '$SEMVER_TAG_RE'."
             exit 1
           fi
           if [ "$TAG" != "$EXPECTED_TAG" ]; then
             echo "::error::Release tag '$TAG' does not match expected tag '$EXPECTED_TAG' (v + package.json version)."
             exit 1
           fi
-          echo "Release tag '$TAG' matches package.json version $PKG_VER."
+          TAG_COMMIT=$(git rev-parse --verify --quiet "refs/tags/${TAG}^{commit}" || true)
+          HEAD_COMMIT=$(git rev-parse HEAD)
+          if [ -z "$TAG_COMMIT" ] || [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then
+            echo "::error::Checked-out commit ($HEAD_COMMIT) does not match git tag 'refs/tags/${TAG}' (${TAG_COMMIT:-missing})."
+            exit 1
+          fi
+          echo "sha=${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "Release tag '$TAG' ($HEAD_COMMIT) matches package.json version $PKG_VER."
 
   verify:
     name: Verify & Test
@@ -57,55 +78,66 @@ jobs:
       contents: read
       security-events: write
     uses: $/.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.tag-guard.outputs.sha }}
 
   publish-npm:
     name: Publish to npm Public Registry
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
       id-token: write
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@kidthales/picotol
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.tag-guard.outputs.sha }}
           persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: '>=24.5.0 <25' # Node >=24.5.0 natively bundles npm >=11.5.1 for OIDC Trusted Publishing
           package-manager-cache: false
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      # Trusted Publishing (OIDC) Evaluation (Audit A9 / Issue #212):
-      # npm trusted publishing enables keyless publishing via GitHub OIDC tokens (id-token: write is configured).
-      # However, trusted publishing requires the package owner to configure a trusted publisher binding
-      # on npmjs.com (linking github.com/kidthales/picotol to release.yml).
-      # Until registered on npmjs.com, removing NPM_TOKEN immediately breaks package releases with ENEEDAUTH.
-      # We retain NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} for operational continuity alongside id-token: write.
       - name: Publish to npm (Idempotent with Provenance)
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          is_valid_npm() {
+            node -e 'const m = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(process.argv[1].trim()); if (!m) process.exit(1); const maj = +m[1], min = +m[2], pat = +m[3], pre = m[4]; if (maj < 11 || (maj === 11 && (min < 5 || (min === 5 && (pat < 1 || (pat === 1 && pre !== undefined)))))) process.exit(1);' "$1"
+          }
+          NPM_VER=$(npm --version)
+          if ! is_valid_npm "$NPM_VER"; then
+            echo "::error::npm >= 11.5.1 is required for OIDC Trusted Publishing (found $NPM_VER)."
+            exit 1
+          fi
           PKG_NAME=$(node -p "require('./package.json').name")
           PKG_VER=$(node -p "require('./package.json').version")
+          if [[ "$PKG_VER" == *-* ]]; then
+            DIST_TAG="next"
+          else
+            DIST_TAG="latest"
+          fi
           echo "Checking if ${PKG_NAME}@${PKG_VER} already exists on npm public registry..."
           if npm view "${PKG_NAME}@${PKG_VER}" version --registry=https://registry.npmjs.org/ >/dev/null 2>&1; then
             echo "::notice ::Version ${PKG_VER} of ${PKG_NAME} is already published on npm. Skipping publish step."
           else
-            echo "Publishing ${PKG_NAME}@${PKG_VER} to npm with provenance..."
-            npm publish --provenance --access public
-            echo "Successfully published ${PKG_NAME}@${PKG_VER} to npm."
+            echo "Publishing ${PKG_NAME}@${PKG_VER} to npm with provenance (dist-tag: ${DIST_TAG})..."
+            npm publish --provenance --access public --tag "$DIST_TAG"
+            echo "Successfully published ${PKG_NAME}@${PKG_VER} to npm under dist-tag '${DIST_TAG}'."
           fi
 
   publish-gpr:
     name: Publish to GitHub Packages
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -115,6 +147,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.tag-guard.outputs.sha }}
           persist-credentials: false
 
       - name: Setup Node.js
@@ -125,27 +158,31 @@ jobs:
           registry-url: "https://npm.pkg.github.com"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      # zizmor: ignore[use-trusted-publishing] GitHub Packages authenticates via GITHUB_TOKEN packages:write, not OIDC trusted publishing
       - name: Publish to GitHub Packages (Idempotent)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PKG_NAME=$(node -p "require('./package.json').name")
           PKG_VER=$(node -p "require('./package.json').version")
+          if [[ "$PKG_VER" == *-* ]]; then
+            DIST_TAG="next"
+          else
+            DIST_TAG="latest"
+          fi
           echo "Checking if ${PKG_NAME}@${PKG_VER} already exists on GitHub Packages..."
           if npm view "${PKG_NAME}@${PKG_VER}" version --registry=https://npm.pkg.github.com/ >/dev/null 2>&1; then
             echo "::notice ::Version ${PKG_VER} of ${PKG_NAME} is already published on GitHub Packages. Skipping publish step."
           else
-            echo "Publishing ${PKG_NAME}@${PKG_VER} to GitHub Packages..."
-            npm publish --registry=https://npm.pkg.github.com/
-            echo "Successfully published ${PKG_NAME}@${PKG_VER} to GitHub Packages."
+            echo "Publishing ${PKG_NAME}@${PKG_VER} to GitHub Packages (dist-tag: ${DIST_TAG})..."
+            npm publish --registry=https://npm.pkg.github.com/ --tag "$DIST_TAG"
+            echo "Successfully published ${PKG_NAME}@${PKG_VER} to GitHub Packages under dist-tag '${DIST_TAG}'."
           fi
 
   attach-assets:
     name: Attach Release Asset Bundles
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 15
@@ -157,6 +194,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.tag-guard.outputs.sha }}
           persist-credentials: false
 
       - name: Setup Node.js
@@ -166,15 +204,24 @@ jobs:
           package-manager-cache: false
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build CSS bundles and generate standalone asset zip
         run: npm run build
+
+      - name: Verify clean working tree post-build
+        run: |
+          if ! test -z "$(git status --porcelain)"; then
+            echo "::error::Working tree is dirty after build:"
+            git status --porcelain
+            exit 1
+          fi
 
       - name: Attest Build Provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
+            dist/picotol*.css
             dist/assets/picotol-v*.zip
             dist/SHA256SUMS.txt
             dist/manifest.json
@@ -184,7 +231,7 @@ jobs:
       - name: Upload release assets to GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
           REF_NAME: ${{ github.ref_name }}
         run: |
           TAG_NAME="${RELEASE_TAG:-$REF_NAME}"
@@ -222,10 +269,12 @@ jobs:
           GPR_STATUS: ${{ needs.publish-gpr.result }}
           ASSETS_STATUS: ${{ needs.attach-assets.result || 'skipped' }}
           REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
           REF_NAME: ${{ github.ref_name }}
-          SHA: ${{ github.sha }}
+          SHA: ${{ needs.tag-guard.outputs.sha || github.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          TAG_NAME="${RELEASE_TAG:-$REF_NAME}"
           if [ "$JOB_STATUS" = "success" ]; then
             COLOR=2263091
             TITLE="🚀 Release Published — picotol"
@@ -241,7 +290,7 @@ jobs:
             --arg title "$TITLE" \
             --arg url "$RUN_URL" \
             --arg repo "$REPO" \
-            --arg tag "$REF_NAME" \
+            --arg tag "$TAG_NAME" \
             --arg sha "$SHA" \
             --arg npm "$NPM_STATUS" \
             --arg gpr "$GPR_STATUS" \

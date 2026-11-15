@@ -1,13 +1,20 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import YAML from "yaml";
-import { parsePkZipEntries } from "../tools/package-assets.mjs";
-import { auditWorkflows, DEFAULT_MAX_TIMEOUT_MINUTES } from "../tools/check-workflows.mjs";
+import { ASSET_ARCHIVE_PATTERN, parsePkZipEntries } from "../tools/package-assets.mjs";
+import { lintReleaseParity } from "../tools/lint.mjs";
+import {
+  auditWorkflows,
+  auditZizmorConfig,
+  DEFAULT_MAX_TIMEOUT_MINUTES,
+  REQUIRED_RELEASE_ATTEST_SUBJECTS,
+  SEMVER_RELEASE_TAG_REGEX,
+} from "../tools/check-workflows.mjs";
 import {
   BUNDLE_BUDGETS,
   EXPECTED_README_BADGE,
@@ -719,8 +726,20 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
     );
   });
 
-  test("dist/assets/picotol-v*.zip offline bundle exists, stays within 100 KB budget, and matches source/dist file hashes", () => {
-    const zipPath = path.join(ROOT, "dist", "assets", `picotol-v${pkg.version}.zip`);
+  test("dist/assets/picotol-v*.zip offline bundle exists, is the sole archive, stays within 100 KB budget, and matches source/dist file hashes", () => {
+    const assetsDir = path.join(ROOT, "dist", "assets");
+    const archives = fs
+      .readdirSync(assetsDir, { withFileTypes: true })
+      .filter((entry) => (entry.isFile() || entry.isSymbolicLink()) && ASSET_ARCHIVE_PATTERN.test(entry.name))
+      .map((entry) => entry.name)
+      .sort();
+    assert.deepEqual(
+      archives,
+      [`picotol-v${pkg.version}.zip`],
+      `dist/assets/ must contain strictly one current archive (picotol-v${pkg.version}.zip), found: ${archives.join(", ")}`
+    );
+
+    const zipPath = path.join(assetsDir, `picotol-v${pkg.version}.zip`);
     assert.ok(fs.existsSync(zipPath), `Asset bundle ${zipPath} must exist on disk (run "npm run build")`);
 
     const stat = fs.statSync(zipPath);
@@ -758,6 +777,267 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
         expectedSha256,
         `Zip entry "${archivePath}" content hash is stale and does not match ${path.relative(ROOT, sourcePath)}`
       );
+    }
+  });
+
+  test("5-manifest version parity, README SRI parity, SHA256SUMS parity, and negative drift guards (Issue #290)", (t) => {
+    // 1. Live repository parity must pass cleanly
+    const lock = JSON.parse(fs.readFileSync(path.join(ROOT, "package-lock.json"), "utf8"));
+    const cff = fs.readFileSync(path.join(ROOT, "CITATION.cff"), "utf8");
+    const sri = JSON.parse(fs.readFileSync(path.join(ROOT, "dist", "sri.json"), "utf8"));
+    const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "dist", "manifest.json"), "utf8"));
+
+    assert.equal(lock.version, pkg.version, "package-lock.json version must match package.json");
+    assert.equal(lock.packages?.[""]?.version, pkg.version, 'package-lock.json packages[""].version must match package.json');
+    assert.match(cff, new RegExp(`^version:\\s*${pkg.version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"), "CITATION.cff version must match package.json");
+    assert.equal(sri.version, pkg.version, "dist/sri.json version must match package.json");
+    assert.equal(manifest.version, pkg.version, "dist/manifest.json version must match package.json");
+    assert.deepEqual(lintReleaseParity(ROOT), [], "Live repository must have zero release/version/SRI parity errors");
+
+    // 2. Isolated negative drift tests
+    const withParityFixture = (mutateFn) => {
+      const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "picotol-parity-"));
+      t.after(() => fs.rmSync(tmpRoot, { recursive: true, force: true }));
+
+      const distDir = path.join(tmpRoot, "dist");
+      const assetsDir = path.join(distDir, "assets");
+      fs.mkdirSync(assetsDir, { recursive: true });
+
+      const ver = "1.0.0-alpha.1";
+      const minCss = Buffer.from("/*! @kidthales/picotol v1.0.0-alpha.1 */:root{--pt-a:#4477AA}");
+      const layerMinCss = Buffer.from("/*! @kidthales/picotol v1.0.0-alpha.1 */@layer picotol.tokens{:root{--pt-a:#4477AA}}");
+      const minSri = "sha384-" + crypto.createHash("sha384").update(minCss).digest("base64");
+      const layerSri = "sha384-" + crypto.createHash("sha384").update(layerMinCss).digest("base64");
+      const zipBuf = Buffer.from("PK-fixture");
+
+      fs.writeFileSync(path.join(distDir, "picotol.min.css"), minCss);
+      fs.writeFileSync(path.join(distDir, "picotol.layer.min.css"), layerMinCss);
+      fs.writeFileSync(path.join(assetsDir, `picotol-v${ver}.zip`), zipBuf);
+      fs.writeFileSync(path.join(tmpRoot, "LICENSE"), "MIT\n");
+
+      fs.writeFileSync(
+        path.join(tmpRoot, "package.json"),
+        JSON.stringify({ name: "@kidthales/picotol", version: ver }, null, 2) + "\n"
+      );
+      fs.writeFileSync(
+        path.join(tmpRoot, "package-lock.json"),
+        JSON.stringify({ name: "@kidthales/picotol", version: ver, packages: { "": { version: ver } } }, null, 2) + "\n"
+      );
+      fs.writeFileSync(path.join(tmpRoot, "CITATION.cff"), `cff-version: 1.2.0\nversion: ${ver}\ndate-released: 2026-11-15\n`);
+      fs.writeFileSync(
+        path.join(distDir, "sri.json"),
+        JSON.stringify(
+          {
+            package: "@kidthales/picotol",
+            version: ver,
+            files: {
+              "dist/picotol.min.css": { integrity: minSri },
+              "dist/picotol.layer.min.css": { integrity: layerSri },
+            },
+          },
+          null,
+          2
+        ) + "\n"
+      );
+      const sha256 = (buf) => crypto.createHash("sha256").update(buf).digest("hex");
+      fs.writeFileSync(
+        path.join(distDir, "manifest.json"),
+        JSON.stringify(
+          {
+            name: "@kidthales/picotol",
+            version: ver,
+            artifacts: {
+              "picotol.min.css": {
+                sha256: sha256(minCss),
+                size_bytes: minCss.byteLength,
+              },
+              "picotol.layer.min.css": {
+                sha256: sha256(layerMinCss),
+                size_bytes: layerMinCss.byteLength,
+              },
+            },
+          },
+          null,
+          2
+        ) + "\n"
+      );
+
+      const sumsLines = [
+        `${sha256(Buffer.from("MIT\n"))}  LICENSE`,
+        `${sha256(zipBuf)}  picotol-v${ver}.zip`,
+        `${sha256(minCss)}  picotol.min.css`,
+        `${sha256(layerMinCss)}  picotol.layer.min.css`,
+      ].join("\n") + "\n";
+      fs.writeFileSync(path.join(distDir, "SHA256SUMS.txt"), sumsLines);
+
+      fs.writeFileSync(
+        path.join(tmpRoot, "README.md"),
+        [
+          `curl -fsSLO https://github.com/kidthales/picotol/releases/download/v${ver}/picotol.layer.min.css`,
+          `curl -fsSLO https://github.com/kidthales/picotol/releases/download/v${ver}/picotol-v${ver}.zip`,
+          `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@${ver}/dist/picotol.min.css" integrity="${minSri}" crossorigin="anonymous" />`,
+          `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@${ver}/dist/picotol.layer.min.css" integrity="${layerSri}" crossorigin="anonymous" />`,
+          `- kidthales. (2026). *@kidthales/picotol* (Version ${ver}) [Computer software].`,
+        ].join("\n")
+      );
+
+      assert.deepEqual(lintReleaseParity(tmpRoot), [], "Baseline parity fixture must pass with zero errors");
+      mutateFn(tmpRoot, { ver, minSri, layerSri });
+      return lintReleaseParity(tmpRoot);
+    };
+
+    // 2a. package-lock.json drift (root and packages[""])
+    const lockDrift = withParityFixture((dir) => {
+      fs.writeFileSync(
+        path.join(dir, "package-lock.json"),
+        JSON.stringify({ name: "@kidthales/picotol", version: "0.7.0", packages: { "": { version: "0.7.0" } } })
+      );
+    });
+    assert.ok(lockDrift.some((e) => e.includes("package-lock.json version")));
+    assert.ok(lockDrift.some((e) => e.includes('package-lock.json packages[""].version')));
+
+    // 2b. CITATION.cff drift
+    const cffDrift = withParityFixture((dir) => {
+      fs.writeFileSync(path.join(dir, "CITATION.cff"), "cff-version: 1.2.0\nversion: 0.7.0\ndate-released: 2026-11-06\n");
+    });
+    assert.ok(cffDrift.some((e) => e.includes("CITATION.cff version")));
+
+    // 2c. dist/sri.json version drift, disk integrity mismatch, and directory entry guard (no EISDIR)
+    const sriDrift = withParityFixture((dir) => {
+      const sriPath = path.join(dir, "dist", "sri.json");
+      const doc = JSON.parse(fs.readFileSync(sriPath, "utf8"));
+      doc.version = "0.7.0";
+      doc.files["dist/picotol.min.css"].integrity = "sha384-STALEHASH";
+      doc.files["dist/assets"] = { integrity: "sha384-DIR" };
+      fs.writeFileSync(sriPath, JSON.stringify(doc, null, 2));
+    });
+    assert.ok(sriDrift.some((e) => e.includes("dist/sri.json version")));
+    assert.ok(sriDrift.some((e) => e.includes('dist/sri.json integrity mismatch for "dist/picotol.min.css"')));
+    assert.ok(sriDrift.some((e) => e.includes('dist/sri.json target "dist/assets" is not a regular file')));
+
+    // 2d. dist/manifest.json version drift, empty artifacts, digest/size mismatches, jail escape, and directory guard
+    const manifestVersionAndEmpty = withParityFixture((dir) => {
+      fs.writeFileSync(
+        path.join(dir, "dist", "manifest.json"),
+        JSON.stringify({ name: "@kidthales/picotol", version: "0.7.0", artifacts: {} })
+      );
+    });
+    assert.ok(manifestVersionAndEmpty.some((e) => e.includes("dist/manifest.json version")));
+    assert.ok(manifestVersionAndEmpty.some((e) => e.includes('[manifest] dist/manifest.json is missing non-empty "artifacts" map')));
+
+    const manifestArtifactDrift = withParityFixture((dir) => {
+      const manifestPath = path.join(dir, "dist", "manifest.json");
+      const doc = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+      doc.artifacts["picotol.min.css"].sha256 = "0".repeat(64);
+      doc.artifacts["picotol.min.css"].size_bytes = 999999;
+      doc.artifacts["../LICENSE"] = { sha256: "0".repeat(64), size_bytes: 4 };
+      doc.artifacts["assets"] = { sha256: "0".repeat(64), size_bytes: 0 };
+      fs.writeFileSync(manifestPath, JSON.stringify(doc, null, 2));
+    });
+    assert.ok(manifestArtifactDrift.some((e) => e.includes('dist/manifest.json sha256 mismatch for "picotol.min.css"')));
+    assert.ok(manifestArtifactDrift.some((e) => e.includes('dist/manifest.json size_bytes mismatch for "picotol.min.css"')));
+    assert.ok(manifestArtifactDrift.some((e) => e.includes('dist/manifest.json artifact "../LICENSE" escapes allowed directory')));
+    assert.ok(manifestArtifactDrift.some((e) => e.includes('dist/manifest.json artifact "assets" is not a regular file')));
+
+    // 2e. Stale / duplicate / missing zip archives in dist/assets/
+    const multiZipDrift = withParityFixture((dir) => {
+      fs.writeFileSync(path.join(dir, "dist", "assets", "picotol-v0.7.0.zip"), "stale");
+    });
+    assert.ok(multiZipDrift.some((e) => e.includes("[assets] Expected strictly one archive")));
+
+    const wrongZipDrift = withParityFixture((dir, { ver }) => {
+      fs.unlinkSync(path.join(dir, "dist", "assets", `picotol-v${ver}.zip`));
+      fs.writeFileSync(path.join(dir, "dist", "assets", "picotol-v0.7.0.zip"), "stale");
+    });
+    assert.ok(wrongZipDrift.some((e) => e.includes("[assets] Stale or mismatched archive")));
+
+    // 2f. README.md stale CDN version, mismatched SRI digest, stale release URL (including archive filename), and stale APA version
+    const readmeDrift = withParityFixture((dir, { minSri }) => {
+      fs.writeFileSync(
+        path.join(dir, "README.md"),
+        [
+          "curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.7.0/picotol.layer.min.css",
+          "curl -fsSLO https://github.com/kidthales/picotol/releases/download/v1.0.0-alpha.1/picotol-v0.7.0.zip",
+          '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.7.0/dist/picotol.min.css" integrity="' + minSri + '" crossorigin="anonymous" />',
+          '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@1.0.0-alpha.1/dist/picotol.layer.min.css" integrity="sha384-WRONGDIGEST" crossorigin="anonymous" />',
+          "- kidthales. (2026). *@kidthales/picotol* (Version 0.7.0) [Computer software].",
+        ].join("\n")
+      );
+    });
+    assert.ok(readmeDrift.some((e) => e.includes("[readme:cdn] Stale CDN URL version")));
+    assert.ok(readmeDrift.some((e) => e.includes("[readme:sri] CDN <link> integrity mismatch")));
+    assert.ok(readmeDrift.some((e) => e.includes("[readme:release] Stale GitHub release download version")));
+    assert.ok(readmeDrift.some((e) => e.includes('[readme:release] Stale GitHub release asset archive "picotol-v0.7.0.zip"')));
+    assert.ok(readmeDrift.some((e) => e.includes("[readme:apa] Stale APA citation")));
+
+    // 2g. dist/SHA256SUMS.txt stale archive / digest mismatch / directory entry guard (no EISDIR) / symlink jail
+    const externalSecretDir = fs.mkdtempSync(path.join(os.tmpdir(), "picotol-parity-secret-"));
+    t.after(() => fs.rmSync(externalSecretDir, { recursive: true, force: true }));
+    const externalSecretFile = path.join(externalSecretDir, "secret.css");
+    const secretContent = Buffer.from("/* outside-jail-secret */");
+    const secretHash = crypto.createHash("sha256").update(secretContent).digest("hex");
+    fs.writeFileSync(externalSecretFile, secretContent);
+
+    const sumsDrift = withParityFixture((dir, { ver }) => {
+      const sumsPath = path.join(dir, "dist", "SHA256SUMS.txt");
+      const escapedJunction = path.join(dir, "dist", "escaped-dir");
+      fs.symlinkSync(externalSecretDir, escapedJunction, process.platform === "win32" ? "junction" : "dir");
+      t.after(() => {
+        try {
+          if (process.platform === "win32") fs.rmdirSync(escapedJunction);
+          else fs.unlinkSync(escapedJunction);
+        } catch {}
+      });
+
+      const extraLines = [
+        `${"0".repeat(64)}  .`,
+        `${"0".repeat(64)}  assets`,
+        `${"0".repeat(64)}  escaped-dir`,
+      ];
+
+      const leakFileLink = path.join(dir, "dist", "leak.css");
+      let createdFileLink = false;
+      try {
+        fs.symlinkSync(externalSecretFile, leakFileLink, "file");
+        createdFileLink = true;
+      } catch (err) {
+        if (err.code !== "EPERM" && err.code !== "ENOSYS") throw err;
+        t.diagnostic(`Skipped file symlink sub-assertion (${err.code}); directory junction escape still ran.`);
+      }
+      if (createdFileLink) {
+        extraLines.push(`${"0".repeat(64)}  leak.css`);
+      }
+
+      const inJailFileLink = path.join(dir, "dist", "in-jail-link.css");
+      let createdInJailFileLink = false;
+      try {
+        fs.symlinkSync(path.join(dir, "dist", "picotol.min.css"), inJailFileLink, "file");
+        createdInJailFileLink = true;
+      } catch (err) {
+        if (err.code !== "EPERM" && err.code !== "ENOSYS") throw err;
+      }
+      if (createdInJailFileLink) {
+        extraLines.push(`${"0".repeat(64)}  in-jail-link.css`);
+      }
+
+      const badSums =
+        fs
+          .readFileSync(sumsPath, "utf8")
+          .replace(`picotol-v${ver}.zip`, "picotol-v0.7.0.zip")
+          .replace(/^[a-f0-9]{64}(  LICENSE)$/m, `${"0".repeat(64)}$1`) +
+        extraLines.join("\n") +
+        "\n";
+      fs.writeFileSync(sumsPath, badSums);
+    });
+    assert.ok(sumsDrift.some((e) => e.includes("[checksums] Stale archive entry")));
+    assert.ok(sumsDrift.some((e) => e.includes("[checksums] Missing archive entry")));
+    assert.ok(sumsDrift.some((e) => e.includes('[checksums] SHA-256 mismatch for "LICENSE"')));
+    assert.ok(sumsDrift.some((e) => e.includes('[checksums] Unsafe filename "." in dist/SHA256SUMS.txt')));
+    assert.ok(sumsDrift.some((e) => e.includes('[checksums] Asset "assets" in dist/SHA256SUMS.txt is not a regular file')));
+    assert.ok(sumsDrift.some((e) => e.includes('[checksums] Asset "escaped-dir" in dist/SHA256SUMS.txt escapes allowed directory')));
+    assert.ok(!sumsDrift.some((e) => e.includes(secretHash)), "Out-of-jail file digest must never be computed or leaked");
+    if (sumsDrift.some((e) => e.includes("in-jail-link.css"))) {
+      assert.ok(sumsDrift.some((e) => e.includes('Asset "in-jail-link.css" in dist/SHA256SUMS.txt must not be a symbolic link')));
     }
   });
 });
@@ -959,18 +1239,18 @@ describe("GitHub Actions CI and Release Workflows", () => {
     );
     assert.match(
       releaseParsed.jobs["publish-npm"],
-      /^ {4}needs:\s*\[verify\]\s*$/m,
-      "release.yml publish-npm job must depend on verify"
+      /^ {4}needs:\s*\[tag-guard,\s*verify\]\s*$/m,
+      "release.yml publish-npm job must depend on tag-guard and verify"
     );
     assert.match(
       releaseParsed.jobs["publish-gpr"],
-      /^ {4}needs:\s*\[verify\]\s*$/m,
-      "release.yml publish-gpr job must depend on verify"
+      /^ {4}needs:\s*\[tag-guard,\s*verify\]\s*$/m,
+      "release.yml publish-gpr job must depend on tag-guard and verify"
     );
     assert.match(
       releaseParsed.jobs["attach-assets"],
-      /^ {4}needs:\s*\[verify\]\s*$/m,
-      "release.yml attach-assets job must depend on verify"
+      /^ {4}needs:\s*\[tag-guard,\s*verify\]\s*$/m,
+      "release.yml attach-assets job must depend on tag-guard and verify"
     );
     assert.match(
       releaseParsed.jobs["attach-assets"],
@@ -1563,6 +1843,936 @@ jobs:
       const errs = auditWorkflows(tempRoot);
       assert.ok(errs.some((e) => e.includes("release.yml attach-assets job must not grant unauthorized write permissions.")));
     });
+  });
+
+  test("release.yml and ci.yml enforce prerelease channel routing, tag-locked checkouts, 10-artifact attestations, and Epic PR CI (Issue #291)", (t) => {
+    const workflowDir = path.join(ROOT, ".github", "workflows");
+    const ciDoc = YAML.parse(fs.readFileSync(path.join(workflowDir, "ci.yml"), "utf8"));
+    const releaseDoc = YAML.parse(fs.readFileSync(path.join(workflowDir, "release.yml"), "utf8"));
+
+    // 1. Live ci.yml pull_request branch coverage for Wave Epics & reusable workflow_call ref input
+    assert.deepEqual(
+      ciDoc.on?.pull_request?.branches,
+      ["main", "src-*/epic/**"],
+      "ci.yml on.pull_request.branches must target main and src-*/epic/**"
+    );
+    assert.deepEqual(ciDoc.on?.push?.branches, ["main"], "ci.yml on.push.branches must target main");
+    const wfCallRef = ciDoc.on?.workflow_call?.inputs?.ref;
+    assert.equal(wfCallRef?.type, "string", "ci.yml workflow_call.inputs.ref must have type: string");
+    assert.equal(wfCallRef?.required, false, "ci.yml workflow_call.inputs.ref must have required: false");
+    for (const ciJobName of ["security", "verify"]) {
+      const ciCheckout = (ciDoc.jobs?.[ciJobName]?.steps || []).find(
+        (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/checkout@")
+      );
+      assert.ok(ciCheckout, `ci.yml job '${ciJobName}' must include actions/checkout`);
+      assert.equal(
+        String(ciCheckout.with?.ref || "").replace(/\s+/g, "").replace(/"/g, "'"),
+        "${{inputs.ref||''}}",
+        `ci.yml job '${ciJobName}' actions/checkout must bind with.ref to \${{ inputs.ref || '' }}`
+      );
+    }
+
+    // 2. Live release.yml workflow_dispatch.inputs.tag, verify with.ref, and checkout ref pinning
+    const dispatchTag = releaseDoc.on?.workflow_dispatch?.inputs?.tag;
+    assert.equal(dispatchTag?.type, "string", "release.yml workflow_dispatch.inputs.tag must have type: string");
+    assert.equal(dispatchTag?.required, false, "release.yml workflow_dispatch.inputs.tag must have required: false");
+
+    const expectedRefNorm = "${{github.event.release.tag_name||inputs.tag||github.ref}}";
+    const expectedTagGuardShaNorm = "${{needs.tag-guard.outputs.sha}}";
+    assert.equal(
+      String(releaseDoc.jobs?.verify?.with?.ref || "").replace(/\s+/g, ""),
+      expectedTagGuardShaNorm,
+      "release.yml verify reusable workflow call must pass with.ref pinned to verified tag-guard sha"
+    );
+    const tagGuardCheckout = (releaseDoc.jobs?.["tag-guard"]?.steps || []).find(
+      (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/checkout@")
+    );
+    assert.ok(tagGuardCheckout, "release.yml job 'tag-guard' must include actions/checkout");
+    assert.equal(
+      String(tagGuardCheckout.with?.ref || "").replace(/\s+/g, ""),
+      expectedRefNorm,
+      "release.yml job 'tag-guard' actions/checkout must pin ref to ${{ github.event.release.tag_name || inputs.tag || github.ref }}"
+    );
+    for (const jobName of ["publish-npm", "publish-gpr", "attach-assets"]) {
+      const jobNeeds = releaseDoc.jobs?.[jobName]?.needs;
+      assert.ok(
+        Array.isArray(jobNeeds) && jobNeeds.includes("tag-guard") && jobNeeds.includes("verify"),
+        `release.yml job '${jobName}' must declare needs: [tag-guard, verify] to consume outputs.sha`
+      );
+      const steps = releaseDoc.jobs?.[jobName]?.steps || [];
+      const checkoutStep = steps.find(
+        (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/checkout@")
+      );
+      assert.ok(checkoutStep, `release.yml job '${jobName}' must include actions/checkout`);
+      assert.equal(
+        String(checkoutStep.with?.ref || "").replace(/\s+/g, ""),
+        expectedTagGuardShaNorm,
+        `release.yml job '${jobName}' actions/checkout must pin ref to \${{ needs.tag-guard.outputs.sha }}`
+      );
+    }
+
+    // 3. Live release.yml tag-guard SemVer pre-release guard, refs/tags commit check, and outputs.sha
+    const tagGuardJob = releaseDoc.jobs?.["tag-guard"];
+    assert.match(
+      String(tagGuardJob?.outputs?.sha || ""),
+      /outputs\.sha/,
+      "release.yml tag-guard must export verified commit sha output"
+    );
+    const tagGuardStep = (tagGuardJob?.steps || []).find((s) => typeof s?.run === "string");
+    assert.ok(tagGuardStep, "release.yml tag-guard must contain a run step");
+    assert.ok(
+      tagGuardStep.run.includes(SEMVER_RELEASE_TAG_REGEX),
+      "release.yml tag-guard must enforce strict SemVer pre-release regex"
+    );
+    assert.match(
+      tagGuardStep.run,
+      /refs\/tags\/\$\{?TAG\}?\^\{commit\}/,
+      "release.yml tag-guard must verify refs/tags/${TAG}^{commit} against HEAD"
+    );
+    assert.equal(
+      String(tagGuardStep.env?.RELEASE_TAG || "").replace(/\s+/g, ""),
+      "${{github.event.release.tag_name||inputs.tag}}",
+      "release.yml tag-guard must pass inputs.tag in RELEASE_TAG"
+    );
+    const notifyStep = (releaseDoc.jobs?.notify?.steps || []).find((s) => typeof s?.run === "string");
+    assert.equal(
+      String(notifyStep?.env?.SHA || "").replace(/\s+/g, ""),
+      "${{needs.tag-guard.outputs.sha||github.sha}}",
+      "release.yml notify must use verified tag-guard sha with github.sha fallback"
+    );
+
+    // 4. Live release.yml pre-release (--tag next) vs stable (--tag latest) routing
+    for (const pubJob of ["publish-npm", "publish-gpr"]) {
+      const pubStep = (releaseDoc.jobs?.[pubJob]?.steps || []).find(
+        (s) => typeof s?.run === "string" && s.run.includes("npm publish")
+      );
+      assert.ok(pubStep, `release.yml ${pubJob} must contain an npm publish step`);
+      assert.match(pubStep.run, /DIST_TAG="next"/, `release.yml ${pubJob} must route pre-releases to DIST_TAG="next"`);
+      assert.match(pubStep.run, /DIST_TAG="latest"/, `release.yml ${pubJob} must route stable releases to DIST_TAG="latest"`);
+      assert.match(pubStep.run, /npm publish[^\n]*--tag "\$DIST_TAG"/, `release.yml ${pubJob} must pass --tag "$DIST_TAG"`);
+    }
+
+    // 5. Live release.yml attach-assets clean-tree guard, TAG_NAME resolution, and 10-artifact attestation
+    const attachSteps = releaseDoc.jobs?.["attach-assets"]?.steps || [];
+    const cleanGuardStep = attachSteps.find(
+      (s) => typeof s?.run === "string" && s.run.includes("git status --porcelain")
+    );
+    assert.ok(cleanGuardStep, "release.yml attach-assets must verify post-build clean working tree");
+    const attestStep = attachSteps.find(
+      (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/attest@")
+    );
+    assert.ok(attestStep, "release.yml attach-assets must contain actions/attest step");
+    const subjectEntries = String(attestStep.with?.["subject-path"] || "").trim().split(/\s+/);
+    assert.deepEqual(
+      subjectEntries,
+      REQUIRED_RELEASE_ATTEST_SUBJECTS,
+      "release.yml actions/attest subject-path must cover all 10 generated release artifacts"
+    );
+    assert.deepEqual(auditWorkflows(ROOT), [], "auditWorkflows must pass cleanly on repository workflows");
+
+    // 6. Negative fixture tests for release.yml and ci.yml invariants
+    const withTempWorkflows = (filesObj, fn) => {
+      const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "picotol-wf291-"));
+      t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+      const wfDir = path.join(tempRoot, ".github", "workflows");
+      fs.mkdirSync(wfDir, { recursive: true });
+      for (const [name, content] of Object.entries(filesObj)) {
+        fs.writeFileSync(path.join(wfDir, name), content, "utf8");
+      }
+      return fn(tempRoot);
+    };
+
+    const baseReleaseYml = fs.readFileSync(path.join(workflowDir, "release.yml"), "utf8").replace(/\r\n/g, "\n");
+    const baseCiYml = fs.readFileSync(path.join(workflowDir, "ci.yml"), "utf8").replace(/\r\n/g, "\n");
+
+    // 6a. ci.yml missing 'src-*/epic/**' branch filter
+    withTempWorkflows(
+      { "ci.yml": baseCiYml.replace("branches: [main, 'src-*/epic/**']", "branches: [main]") },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("ci.yml 'on.pull_request.branches' must include 'main' and 'src-*/epic/**'")),
+          "Must reject ci.yml omitting src-*/epic/** in pull_request.branches"
+        );
+      }
+    );
+
+    // 6b. release.yml missing workflow_dispatch.inputs.tag
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml.replace(
+          /workflow_dispatch:[\s\S]*?type: string\r?\n/,
+          "workflow_dispatch:\n"
+        ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml must declare 'on.workflow_dispatch.inputs.tag'")),
+          "Must reject release.yml missing workflow_dispatch.inputs.tag"
+        );
+      }
+    );
+
+    // 6c. release.yml actions/checkout missing ref pin (tag-guard and downstream sha-pinned jobs)
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replace("          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}\n", "")
+          .replaceAll("          ref: ${{ needs.tag-guard.outputs.sha }}\n", ""),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml job 'tag-guard' actions/checkout step must pin 'with.ref'")),
+          "Must reject tag-guard checkout step missing ref pin"
+        );
+        for (const downstreamJob of ["publish-npm", "publish-gpr", "attach-assets"]) {
+          assert.ok(
+            errs.some((e) => e.includes(`release.yml job '${downstreamJob}' actions/checkout step must pin 'with.ref' to '\${{ needs.tag-guard.outputs.sha }}'`)),
+            `Must reject ${downstreamJob} checkout step missing needs.tag-guard.outputs.sha ref pin`
+          );
+        }
+      }
+    );
+
+    // 6d. release.yml tag-guard missing SemVer regex check
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml.replace(
+          SEMVER_RELEASE_TAG_REGEX,
+          "^v.*$"
+        ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml tag-guard must enforce SemVer pre-release regex")),
+          "Must reject release.yml tag-guard weakening SemVer pre-release regex"
+        );
+      }
+    );
+
+    // 6e. release.yml publish-npm / publish-gpr missing --tag next routing
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml.replace(/--tag "\$DIST_TAG"/g, ""),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml publish-npm job must route SemVer pre-releases")),
+          "Must reject publish-npm omitting --tag \"$DIST_TAG\""
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml publish-gpr job must route SemVer pre-releases")),
+          "Must reject publish-gpr omitting --tag \"$DIST_TAG\""
+        );
+      }
+    );
+
+    // 6f. release.yml attach-assets missing clean-tree guard and omitting dist/picotol*.css from actions/attest
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replace('if ! test -z "$(git status --porcelain)"; then', "if false; then")
+          .replace("            dist/picotol*.css\n", ""),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml attach-assets job must verify a clean post-build working tree")),
+          "Must reject attach-assets missing git status --porcelain guard"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("with.subject-path' must include 'dist/picotol*.css'")),
+          "Must reject attach-assets actions/attest omitting dist/picotol*.css"
+        );
+      }
+    );
+
+    // 6g. release.yml notify missing TAG_NAME / inputs.tag resolution
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml.replace(
+          'TAG_NAME="${RELEASE_TAG:-$REF_NAME}"\n          if [ "$JOB_STATUS"',
+          'TAG_NAME="$REF_NAME"\n          if [ "$JOB_STATUS"'
+        ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml notify job must resolve TAG_NAME")),
+          "Must reject notify omitting TAG_NAME resolution from RELEASE_TAG"
+        );
+      }
+    );
+
+    // 6h. F-01: ci.yml missing workflow_call.inputs.ref / checkout ref, or release.yml verify omitting with.ref
+    withTempWorkflows(
+      {
+        "ci.yml": baseCiYml
+          .replace(
+            /workflow_call:[\s\S]*?type: string\r?\n/,
+            "workflow_call:\n"
+          )
+          .replace("          ref: ${{ inputs.ref || '' }}\n", ""),
+        "release.yml": baseReleaseYml.replace(
+          "    uses: $/.github/workflows/ci.yml\n    with:\n      ref: ${{ needs.tag-guard.outputs.sha }}\n",
+          "    uses: $/.github/workflows/ci.yml\n"
+        ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("ci.yml must declare 'on.workflow_call.inputs.ref'")),
+          "Must reject ci.yml omitting workflow_call.inputs.ref"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("ci.yml job 'security' actions/checkout step must set 'with.ref'")),
+          "Must reject ci.yml checkout step omitting with.ref"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml verify job must pass 'with.ref'")),
+          "Must reject release.yml verify omitting with.ref"
+        );
+      }
+    );
+
+    // 6k. F-01 (PR #302): downstream publish/verify/attach jobs reverting to mutable tag ref or omitting tag-guard from needs
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replaceAll("ref: ${{ needs.tag-guard.outputs.sha }}", "ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}")
+          .replaceAll("needs: [tag-guard, verify]", "needs: [verify]"),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml verify job must pass 'with.ref' pinned to '${{ needs.tag-guard.outputs.sha }}'")),
+          "Must reject verify job using mutable tag ref instead of needs.tag-guard.outputs.sha"
+        );
+        for (const downstreamJob of ["publish-npm", "publish-gpr", "attach-assets"]) {
+          assert.ok(
+            errs.some((e) => e.includes(`release.yml ${downstreamJob} job must depend on tag-guard and verify`)),
+            `Must reject ${downstreamJob} omitting tag-guard from needs`
+          );
+          assert.ok(
+            errs.some((e) => e.includes(`release.yml job '${downstreamJob}' actions/checkout step must pin 'with.ref' to '\${{ needs.tag-guard.outputs.sha }}'`)),
+            `Must reject ${downstreamJob} using mutable tag ref instead of needs.tag-guard.outputs.sha`
+          );
+        }
+      }
+    );
+
+    // 6i. F-02: release.yml tag-guard omitting refs/tags commit verification / outputs.sha, or notify using caller github.sha
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replace("    outputs:\n      sha: ${{ steps.verify-tag.outputs.sha }}\n", "")
+          .replace('TAG_COMMIT=$(git rev-parse --verify --quiet "refs/tags/${TAG}^{commit}" || true)', 'TAG_COMMIT="skip"')
+          .replace('echo "sha=${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"', 'echo "skipped"')
+          .replace("SHA: ${{ needs.tag-guard.outputs.sha || github.sha }}", "SHA: ${{ github.sha }}"),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml tag-guard job must declare 'outputs.sha'")),
+          "Must reject tag-guard omitting outputs.sha"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("refs/tags/${TAG}^{commit}")),
+          "Must reject tag-guard omitting refs/tags commit check"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("export verified commit SHA to GITHUB_OUTPUT")),
+          "Must reject tag-guard omitting GITHUB_OUTPUT sha"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml notify job must pass 'SHA:")),
+          "Must reject notify reverting SHA to caller github.sha"
+        );
+      }
+    );
+
+    // 6j. F-03: notify omitting --arg tag "$TAG_NAME", cross-step env drift, and attach-assets step order violation
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replace('--arg tag "$TAG_NAME"', '--arg tag "$REF_NAME"')
+          .replace(
+            "      - name: Verify release tag matches package.json version\n        id: verify-tag\n        env:\n          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}\n          REF_NAME: ${{ github.ref_name }}\n",
+            "      - name: Wrong step env\n        env:\n          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}\n          REF_NAME: ${{ github.ref_name }}\n        run: echo 'noop'\n      - name: Verify release tag matches package.json version\n        id: verify-tag\n"
+          )
+          .replace(
+            "      - name: Build CSS bundles and generate standalone asset zip\n        run: npm run build\n\n      - name: Verify clean working tree post-build\n        run: |\n          if ! test -z \"$(git status --porcelain)\"; then\n            echo \"::error::Working tree is dirty after build:\"\n            git status --porcelain\n            exit 1\n          fi\n",
+            "      - name: Verify clean working tree post-build\n        run: |\n          if ! test -z \"$(git status --porcelain)\"; then\n            echo \"::error::Working tree is dirty after build:\"\n            git status --porcelain\n            exit 1\n          fi\n\n      - name: Build CSS bundles and generate standalone asset zip\n        run: npm run build\n"
+          ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes('release.yml notify job must pass --arg tag "$TAG_NAME" to jq.')),
+          "Must reject notify dropping --arg tag \"$TAG_NAME\""
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml tag-guard step must pass 'RELEASE_TAG:")),
+          "Must reject RELEASE_TAG/REF_NAME env placed on a different step than the TAG resolver"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml attach-assets steps must execute in order:")),
+          "Must reject attach-assets running git status --porcelain before npm run build"
+        );
+      }
+    );
+
+    // 6l. F-09/F-10/F-11/F-12: ./ self-repository regression and npm ci without --ignore-scripts in privileged release jobs
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replace("uses: $/.github/workflows/ci.yml", "uses: ./.github/workflows/ci.yml")
+          .replaceAll("run: npm ci --ignore-scripts", "run: npm ci"),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml verify job must delegate verification via 'uses: $/.github/workflows/ci.yml'") && e.includes("self-repository")),
+          "Must reject ./.github/workflows/ci.yml with self-repository rule message"
+        );
+        for (const privJob of ["publish-npm", "publish-gpr", "attach-assets"]) {
+          assert.ok(
+            errs.some((e) => e.includes(`release.yml ${privJob} step 'Install dependencies' must pass '--ignore-scripts' to 'npm ci'`)),
+            `Must reject ${privJob} running npm ci without --ignore-scripts`
+          );
+        }
+      }
+    );
+  });
+
+  test("auditWorkflows enforces publish-npm tokenless OIDC invariants (positive and negative) (Issue #242)", (t) => {
+    const buildReleaseOidcFixture = ({
+      workflowEnv = "",
+      omitPublishNpm = false,
+      jobPermissions = "      contents: read\n      id-token: write\n",
+      jobEnvironment = "    environment:\n      name: npm\n      url: https://www.npmjs.com/package/@kidthales/picotol\n",
+      jobEnv = "",
+      includeSetupNode = true,
+      nodeVersion = "'>=24.5.0 <25'",
+      checkoutToken = "",
+      setupNodeToken = "",
+      npmCiRun = "npm ci --ignore-scripts",
+      stepEnv = "",
+      publishRun = 'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+    } = {}) => {
+      const setupNodeTokenLine = setupNodeToken ? `\n          token: ${setupNodeToken}` : "";
+      const setupNodeBlock = includeSetupNode
+        ? `      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: ${nodeVersion}
+          package-manager-cache: false
+          registry-url: "https://registry.npmjs.org"${setupNodeTokenLine}
+`
+        : "";
+      const checkoutTokenLine = checkoutToken ? `\n          token: ${checkoutToken}` : "";
+      const npmCiBlock = npmCiRun
+        ? `      - name: Install dependencies
+        run: ${npmCiRun}
+`
+        : "";
+      const publishNpmBlock = omitPublishNpm
+        ? ""
+        : `  publish-npm:
+    needs: [tag-guard, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+${jobPermissions}${jobEnvironment}${jobEnv}    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: \${{ needs.tag-guard.outputs.sha }}
+          persist-credentials: false${checkoutTokenLine}
+${setupNodeBlock}${npmCiBlock}      - name: Publish to npm (Idempotent with Provenance)
+${stepEnv}        run: |
+          ${publishRun}
+`;
+
+      return `name: Release
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag"
+        required: false
+        type: string
+permissions:
+  contents: read
+${workflowEnv}jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      sha: \${{ steps.verify-tag.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - id: verify-tag
+        env:
+          RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
+          REF_NAME: \${{ github.ref_name }}
+        run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          SEMVER_TAG_RE='${SEMVER_RELEASE_TAG_REGEX}'
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [[ ! "$TAG" =~ $SEMVER_TAG_RE ]]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+          TAG_COMMIT=$(git rev-parse --verify --quiet "refs/tags/\${TAG}^{commit}" || true)
+          HEAD_COMMIT=$(git rev-parse HEAD)
+          if [ -z "$TAG_COMMIT" ] || [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then exit 1; fi
+          echo "sha=\${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"
+  verify:
+    needs: [tag-guard]
+    uses: $/.github/workflows/ci.yml
+    with:
+      ref: \${{ needs.tag-guard.outputs.sha }}
+    permissions:
+      contents: read
+      security-events: write
+${publishNpmBlock}  publish-gpr:
+    needs: [tag-guard, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: \${{ needs.tag-guard.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: |
+          if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi
+          npm publish --registry=https://npm.pkg.github.com/ --tag "$DIST_TAG"
+  attach-assets:
+    needs: [tag-guard, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: \${{ needs.tag-guard.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: npm run build
+      - run: |
+          if ! test -z "$(git status --porcelain)"; then
+            exit 1
+          fi
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: |
+            dist/picotol*.css
+            dist/assets/picotol-v*.zip
+            dist/SHA256SUMS.txt
+            dist/manifest.json
+            dist/sri.json
+          create-storage-record: false
+      - env:
+          RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
+          REF_NAME: \${{ github.ref_name }}
+        run: |
+          TAG_NAME="\${RELEASE_TAG:-\$REF_NAME}"
+          gh release upload "$TAG_NAME" dist/manifest.json --clobber
+  notify:
+    needs: [tag-guard, verify, publish-npm, publish-gpr, attach-assets]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result || 'skipped' }}
+          RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
+          REF_NAME: \${{ github.ref_name }}
+          SHA: \${{ needs.tag-guard.outputs.sha || github.sha }}
+        run: |
+          TAG_NAME="\${RELEASE_TAG:-\$REF_NAME}"
+          jq -n --arg tag "$TAG_NAME" '{tag: $tag}'
+`;
+    };
+
+    const withReleaseFixture = (opts, fn) => {
+      const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "picotol-oidc-"));
+      t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+      const wfDir = path.join(tempRoot, ".github", "workflows");
+      fs.mkdirSync(wfDir, { recursive: true });
+      fs.writeFileSync(path.join(wfDir, "release.yml"), buildReleaseOidcFixture(opts), "utf8");
+      return fn(tempRoot);
+    };
+
+    // Positive baseline: compliant tokenless OIDC publish-npm fixture (including allowed secrets.GITHUB_TOKEN) passes Gate 0
+    withReleaseFixture({}, (tempRoot) => {
+      const errs = auditWorkflows(tempRoot);
+      assert.deepEqual(errs, [], `Expected valid OIDC publish-npm fixture to pass, got: ${errs.join("; ")}`);
+    });
+    withReleaseFixture({ checkoutToken: "${{ secrets.GITHUB_TOKEN }}" }, (tempRoot) => {
+      const errs = auditWorkflows(tempRoot);
+      assert.deepEqual(errs, [], `Expected secrets.GITHUB_TOKEN in checkout with.token to pass, got: ${errs.join("; ")}`);
+    });
+
+    // Negative cases: missing job, permissions, environment, node-version, forbidden tokens, ad-hoc npm install
+    const negativeCases = [
+      {
+        name: "missing publish-npm job",
+        opts: { omitPublishNpm: true },
+        expected: "release.yml publish-npm job must exist.",
+      },
+      {
+        name: "missing id-token: write permission",
+        opts: { jobPermissions: "      contents: read\n" },
+        expected: "exact permissions { contents: read, id-token: write }",
+      },
+      {
+        name: "extra contents: write permission on publish-npm",
+        opts: { jobPermissions: "      contents: write\n      id-token: write\n" },
+        expected: "exact permissions { contents: read, id-token: write }",
+      },
+      {
+        name: "missing environment block",
+        opts: { jobEnvironment: "" },
+        expected: "must declare environment 'npm'",
+      },
+      {
+        name: "non-npm environment name",
+        opts: { jobEnvironment: "    environment:\n      name: staging\n" },
+        expected: "must declare environment 'npm'",
+      },
+      {
+        name: "wrong setup-node node-version (22 instead of >=24.5.0 <25)",
+        opts: { nodeVersion: 22 },
+        expected: "must set node-version: '>=24.5.0 <25'",
+      },
+      {
+        name: "bare setup-node node-version (24 allows <24.5.0 with npm <11.5.1)",
+        opts: { nodeVersion: 24 },
+        expected: "must set node-version: '>=24.5.0 <25'",
+      },
+      {
+        name: "missing actions/setup-node step",
+        opts: { includeSetupNode: false },
+        expected: "must include actions/setup-node with node-version: '>=24.5.0 <25'",
+      },
+      {
+        name: "step-level NODE_AUTH_TOKEN env binding",
+        opts: { stepEnv: "        env:\n          NODE_AUTH_TOKEN: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'NODE_AUTH_TOKEN'",
+      },
+      {
+        name: "job-level NPM_TOKEN env binding",
+        opts: { jobEnv: "    env:\n      NPM_TOKEN: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'NPM_TOKEN'",
+      },
+      {
+        name: "workflow-level NPM_TOKEN env binding",
+        opts: { workflowEnv: "env:\n  NPM_TOKEN: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'NPM_TOKEN'",
+      },
+      {
+        name: "step-level NPM_CONFIG__AUTHTOKEN env binding",
+        opts: { stepEnv: "        env:\n          NPM_CONFIG__AUTHTOKEN: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'NPM_CONFIG__AUTHTOKEN'",
+      },
+      {
+        name: "step-level lowercase npm_config__authtoken env binding",
+        opts: { stepEnv: "        env:\n          npm_config__authtoken: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'npm_config__authtoken'",
+      },
+      {
+        name: "step-level scoped NPM_CONFIG_REGISTRY_AUTHTOKEN env binding",
+        opts: { stepEnv: "        env:\n          NPM_CONFIG_REGISTRY_AUTHTOKEN: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'NPM_CONFIG_REGISTRY_AUTHTOKEN'",
+      },
+      {
+        name: "inline run script NODE_AUTH_TOKEN assignment",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          NODE_AUTH_TOKEN="" npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference NODE_AUTH_TOKEN or NPM_TOKEN",
+      },
+      {
+        name: "inline run script NODE_AUTH_TOKEN via GITHUB_ENV",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          echo "NODE_AUTH_TOKEN=tok" >> "$GITHUB_ENV"\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference NODE_AUTH_TOKEN or NPM_TOKEN",
+      },
+      {
+        name: "inline run script NPM_CONFIG__AUTHTOKEN assignment",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          NPM_CONFIG__AUTHTOKEN="tok" npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference NPM_CONFIG__AUTHTOKEN",
+      },
+      {
+        name: "inline run script --_authToken= CLI flag",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm publish --_authToken="tok" --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference _authToken",
+      },
+      {
+        name: "inline run script registry-scoped --_authToken= CLI flag",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm publish --//registry.npmjs.org/:_authToken="tok" --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference _authToken",
+      },
+      {
+        name: "inline run script npm config set _authToken",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm config set //registry.npmjs.org/:_authToken tok\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference _authToken",
+      },
+      {
+        name: "inline run script .npmrc _authToken append",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          echo "//registry.npmjs.org/:_authToken=tok" >> .npmrc\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference _authToken",
+      },
+      {
+        name: "inline run script ad-hoc npm install outside lockfile",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm install -g npm@11.21.2\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not run ad-hoc 'npm install'",
+      },
+      {
+        name: "npm ci without --ignore-scripts in publish-npm (F-02)",
+        opts: {
+          npmCiRun: "npm ci",
+        },
+        expected: "must pass '--ignore-scripts' to 'npm ci'",
+      },
+      {
+        name: "npm rebuild lifecycle execution in publish-npm (F-02)",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm rebuild\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not run 'npm rebuild'",
+      },
+      {
+        name: "npx execution in publish-npm (F-02)",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npx some-pkg\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not run 'npx some-pkg'",
+      },
+      {
+        name: "secrets.NPM_TOKEN via setup-node with.token input (F-03)",
+        opts: {
+          setupNodeToken: "${{ secrets.NPM_TOKEN }}",
+        },
+        expected: "must not reference secret 'secrets.NPM_TOKEN'",
+      },
+      {
+        name: "secrets['NPM_TOKEN'] bracket notation via checkout with.token input (F-03)",
+        opts: {
+          checkoutToken: "${{ secrets['NPM_TOKEN'] }}",
+        },
+        expected: "must not reference secret 'secrets.NPM_TOKEN'",
+      },
+      {
+        name: "arbitrary secrets.CUSTOM_NPM_KEY via step.env (F-03)",
+        opts: {
+          stepEnv: "        env:\n          CUSTOM_VAR: ${{ secrets.CUSTOM_NPM_KEY }}\n",
+        },
+        expected: "must not reference secret 'secrets.CUSTOM_NPM_KEY'",
+      },
+      {
+        name: "arbitrary secrets.PUBLISH_KEY via job.env (F-03)",
+        opts: {
+          jobEnv: "    env:\n      PUBLISH_KEY: ${{ secrets.PUBLISH_KEY }}\n",
+        },
+        expected: "must not reference secret 'secrets.PUBLISH_KEY'",
+      },
+    ];
+
+    for (const tc of negativeCases) {
+      withReleaseFixture(tc.opts, (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(errs.length > 0, `Expected negative case "${tc.name}" to fail Gate 0`);
+        assert.ok(
+          errs.some((e) => e.includes(tc.expected)),
+          `Expected "${tc.name}" violation to include "${tc.expected}", got: ${errs.join("; ")}`
+        );
+      });
+    }
+  });
+
+  test("release.yml publish-npm uses tokenless OIDC trusted publishing and fail-closed npm >= 11.5.1 guard without ad-hoc installs (Issue #242)", () => {
+    const releaseDoc = YAML.parse(
+      fs.readFileSync(path.join(ROOT, ".github", "workflows", "release.yml"), "utf8")
+    );
+
+    assert.equal(Object.hasOwn(releaseDoc?.env || {}, "NODE_AUTH_TOKEN"), false);
+    assert.equal(Object.hasOwn(releaseDoc?.env || {}, "NPM_TOKEN"), false);
+
+    const pubNpm = releaseDoc?.jobs?.["publish-npm"];
+    assert.ok(pubNpm, "Expected publish-npm job in release.yml");
+    assert.deepEqual(pubNpm.permissions, { contents: "read", "id-token": "write" });
+    assert.deepEqual(pubNpm.environment, {
+      name: "npm",
+      url: "https://www.npmjs.com/package/@kidthales/picotol",
+    });
+    assert.equal(Object.hasOwn(pubNpm.env || {}, "NODE_AUTH_TOKEN"), false);
+    assert.equal(Object.hasOwn(pubNpm.env || {}, "NPM_TOKEN"), false);
+
+    const steps = pubNpm.steps || [];
+    const setupNode = steps.find(
+      (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/setup-node@")
+    );
+    assert.ok(setupNode, "Expected actions/setup-node step in publish-npm");
+    assert.equal(setupNode.with?.["node-version"], ">=24.5.0 <25");
+    assert.equal(setupNode.with?.["registry-url"], "https://registry.npmjs.org");
+    assert.equal(setupNode.with?.["package-manager-cache"], false);
+
+    for (const step of steps) {
+      assert.equal(Object.hasOwn(step.env || {}, "NODE_AUTH_TOKEN"), false);
+      assert.equal(Object.hasOwn(step.env || {}, "NPM_TOKEN"), false);
+      if (typeof step.run === "string") {
+        assert.equal(/\b(?:NODE_AUTH_TOKEN|NPM_TOKEN)\b/.test(step.run), false);
+        assert.equal(/\bNPM_CONFIG_(?:[A-Z0-9_]*_)?_AUTHTOKEN\b/i.test(step.run), false);
+        assert.equal(/_authToken/i.test(step.run), false);
+        assert.equal(/\bnpm\s+(?:install|i|add)\b/.test(step.run), false);
+      }
+    }
+
+    const installStep = steps.find((s) => s.name === "Install dependencies");
+    assert.ok(installStep, "Expected Install dependencies step in publish-npm");
+    assert.equal(installStep.run, "npm ci --ignore-scripts", "publish-npm must run npm ci --ignore-scripts");
+
+    for (const privJob of ["publish-gpr", "attach-assets"]) {
+      const privSteps = releaseDoc?.jobs?.[privJob]?.steps || [];
+      const privInstall = privSteps.find((s) => s.name === "Install dependencies");
+      assert.ok(privInstall, `Expected Install dependencies step in ${privJob}`);
+      assert.equal(privInstall.run, "npm ci --ignore-scripts", `${privJob} must run npm ci --ignore-scripts`);
+    }
+
+    const pubStep = steps.find((s) => s.name === "Publish to npm (Idempotent with Provenance)");
+    assert.ok(pubStep, "Expected Publish to npm (Idempotent with Provenance) step");
+    assert.match(pubStep.run, /npm publish --provenance --access public --tag "\$DIST_TAG"/);
+
+    const guardMatch = pubStep.run.match(/is_valid_npm\(\)\s*\{\s*node -e '([^']+)' "\$1"\s*\}/);
+    assert.ok(guardMatch, "Expected fail-closed inline node -e npm >= 11.5.1 guard in is_valid_npm()");
+    const guardScript = guardMatch[1];
+
+    for (const validVer of ["11.5.1", "11.5.1+build.1", "11.5.2-rc.0", "11.5.2", "11.6.0", "12.0.0"]) {
+      const res = spawnSync(process.execPath, ["-e", guardScript, validVer], { encoding: "utf8" });
+      assert.equal(res.status, 0, `Expected npm version ${validVer} to pass OIDC version guard`);
+    }
+    for (const invalidVer of [
+      "11.5.1-rc.0",
+      "11.5.1-0",
+      "11.5.1foo",
+      "11.5.1.0",
+      "11.5.0",
+      "11.4.9",
+      "10.9.2",
+      "0.0.0",
+      "not-a-semver",
+      "",
+    ]) {
+      const res = spawnSync(process.execPath, ["-e", guardScript, invalidVer], { encoding: "utf8" });
+      assert.notEqual(res.status, 0, `Expected npm version "${invalidVer}" to fail OIDC version guard`);
+    }
+  });
+
+  test(".github/zizmor.yml scopes use-trusted-publishing strictly to publish-gpr npm publish line without drift and is enforced by Gate 0 (Issue #242, F-04)", (t) => {
+    const zizmorPath = path.join(ROOT, ".github", "zizmor.yml");
+    assert.equal(fs.existsSync(zizmorPath), true, "Expected .github/zizmor.yml to exist");
+
+    const liveZizmor = fs.readFileSync(zizmorPath, "utf8");
+    const liveRelease = fs.readFileSync(path.join(ROOT, ".github", "workflows", "release.yml"), "utf8");
+    assert.deepEqual(auditZizmorConfig(liveZizmor, liveRelease), []);
+
+    // Negative line-drift regression checks via auditZizmorConfig and full Gate 0 auditWorkflows()
+    const driftedErrs = auditZizmorConfig(liveZizmor, `\n${liveRelease}`);
+    assert.ok(
+      driftedErrs.some((e) => e.includes("zizmor line pin drifted")),
+      "Inserting a line above publish-gpr must trigger zizmor line-drift failure"
+    );
+
+    const removedPublishErrs = auditZizmorConfig(
+      liveZizmor,
+      liveRelease.replace("npm publish --registry=https://npm.pkg.github.com/", "# removed")
+    );
+    assert.ok(
+      removedPublishErrs.some((e) => e.includes("release.yml publish-gpr must contain npm publish --registry=https://npm.pkg.github.com/")),
+      "Removing publish-gpr npm publish command must fail"
+    );
+
+    const multiIgnoreErrs = auditZizmorConfig(
+      "rules:\n  use-trusted-publishing:\n    ignore:\n      - release.yml:134\n      - release.yml:179\n",
+      liveRelease
+    );
+    assert.ok(
+      multiIgnoreErrs.some((e) => e.includes("must pin strictly 1 line in release.yml")),
+      "Adding a second use-trusted-publishing ignore entry (e.g. for publish-npm) must fail"
+    );
+
+    const inlineIgnoreErrs = auditZizmorConfig(
+      liveZizmor,
+      `${liveRelease}\n# zizmor: ignore[use-trusted-publishing]\n`
+    );
+    assert.ok(
+      inlineIgnoreErrs.some((e) => e.includes("release.yml must not contain inline # zizmor: ignore comments")),
+      "Inline # zizmor: ignore comment in release.yml must fail"
+    );
+
+    // Verify Gate 0 (auditWorkflows) directly catches .github/zizmor.yml line drift
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "picotol-zizmor-gate0-"));
+    t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+    fs.mkdirSync(path.join(tempRoot, ".github", "workflows"), { recursive: true });
+    fs.writeFileSync(path.join(tempRoot, ".github", "zizmor.yml"), "rules:\n  use-trusted-publishing:\n    ignore:\n      - release.yml:1\n");
+    fs.writeFileSync(path.join(tempRoot, ".github", "workflows", "release.yml"), liveRelease);
+    const gate0Errs = auditWorkflows(tempRoot);
+    assert.ok(
+      gate0Errs.some((e) => e.includes("zizmor line pin drifted")),
+      `Gate 0 auditWorkflows must reject drifted .github/zizmor.yml, got: ${gate0Errs.join("; ")}`
+    );
   });
 });
 
