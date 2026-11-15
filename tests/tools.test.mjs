@@ -990,11 +990,22 @@ jobs:
     needs: [verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@kidthales/picotol
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
           persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '>=24.5.0 <25'
+          package-manager-cache: false
+          registry-url: "https://registry.npmjs.org"
       - run: |
           if [[ "$PKG_VER" == *-* ]]; then
             DIST_TAG="next"

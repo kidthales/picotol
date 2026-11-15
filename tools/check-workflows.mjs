@@ -40,6 +40,91 @@ function stepHasReleaseTagEnv(step) {
 }
 
 const FORBIDDEN_RUN_PATTERN = /\b(npm\s+(test|t|tst|run\s+test|run\s+lint|run\s+check:budgets|pack)|node\s+--test)\b/;
+export const FORBIDDEN_NPM_OIDC_ENV_KEYS = ['NODE_AUTH_TOKEN', 'NPM_TOKEN', 'NPM_CONFIG__AUTHTOKEN'];
+
+function checkForbiddenEnvBindings(envObj, forbiddenKeys, contextLabel, errors) {
+  if (!envObj || typeof envObj !== 'object' || Array.isArray(envObj)) return;
+  const upperForbidden = new Set(forbiddenKeys.map((k) => k.toUpperCase()));
+  for (const key of Object.keys(envObj)) {
+    if (upperForbidden.has(key.toUpperCase()) || /^NPM_CONFIG_.*_AUTHTOKEN$/i.test(key)) {
+      errors.push(`${contextLabel} must not bind forbidden env '${key}' (tokenless OIDC required).`);
+    }
+  }
+}
+
+function auditPublishNpmOidcContract(file, doc, pubNpm, errors) {
+  const perms = pubNpm.permissions;
+  const permKeys = perms && typeof perms === 'object' && !Array.isArray(perms) ? Object.keys(perms) : [];
+  if (
+    !perms ||
+    typeof perms !== 'object' ||
+    Array.isArray(perms) ||
+    permKeys.length !== 2 ||
+    perms.contents !== 'read' ||
+    perms['id-token'] !== 'write'
+  ) {
+    errors.push(
+      `${file} publish-npm job must declare exact permissions { contents: read, id-token: write } for OIDC Trusted Publishing.`
+    );
+  }
+
+  const envName = typeof pubNpm.environment === 'string' ? pubNpm.environment : pubNpm.environment?.name;
+  if (envName !== 'npm') {
+    errors.push(
+      `${file} publish-npm job must declare environment 'npm' for OIDC Trusted Publishing (got '${envName ?? ''}').`
+    );
+  }
+
+  const requiredNodeRange = '>=24.5.0 <25';
+  const steps = Array.isArray(pubNpm.steps) ? pubNpm.steps : [];
+  const setupNodeSteps = steps.filter(
+    (s) =>
+      s &&
+      typeof s === 'object' &&
+      typeof s.uses === 'string' &&
+      (s.uses.trim().startsWith('actions/setup-node@') || s.uses.trim() === 'actions/setup-node')
+  );
+  if (setupNodeSteps.length === 0) {
+    errors.push(
+      `${file} publish-npm job must include actions/setup-node with node-version: '${requiredNodeRange}'.`
+    );
+  } else {
+    for (const snStep of setupNodeSteps) {
+      const nv = String(snStep.with?.['node-version'] ?? '').trim();
+      if (nv !== requiredNodeRange) {
+        errors.push(
+          `${file} publish-npm job step '${snStep.name || 'setup-node'}' must set node-version: '${requiredNodeRange}' (got '${nv}').`
+        );
+      }
+    }
+  }
+
+  checkForbiddenEnvBindings(doc.env, FORBIDDEN_NPM_OIDC_ENV_KEYS, `${file} workflow`, errors);
+  checkForbiddenEnvBindings(pubNpm.env, FORBIDDEN_NPM_OIDC_ENV_KEYS, `${file} publish-npm job`, errors);
+  for (const step of steps) {
+    if (!step || typeof step !== 'object') continue;
+    const stepLabel = `${file} publish-npm step '${step.name || 'unnamed'}'`;
+    checkForbiddenEnvBindings(step.env, FORBIDDEN_NPM_OIDC_ENV_KEYS, stepLabel, errors);
+    if (typeof step.run === 'string') {
+      if (/\b(?:NODE_AUTH_TOKEN|NPM_TOKEN)\b/.test(step.run)) {
+        errors.push(`${stepLabel} must not reference NODE_AUTH_TOKEN or NPM_TOKEN in run script.`);
+      }
+      if (/\bNPM_CONFIG_(?:[A-Z0-9_]*_)?_AUTHTOKEN\b/i.test(step.run)) {
+        errors.push(`${stepLabel} must not reference NPM_CONFIG__AUTHTOKEN in run script.`);
+      }
+      if (/_authToken/i.test(step.run)) {
+        errors.push(
+          `${stepLabel} must not reference _authToken in run script (CLI flags, npm config, or .npmrc writes forbidden).`
+        );
+      }
+      if (/\bnpm\s+(?:install|i|add)\b/.test(step.run)) {
+        errors.push(
+          `${stepLabel} must not run ad-hoc 'npm install' (use 'npm ci' and Node >=24.5.0 bundled npm).`
+        );
+      }
+    }
+  }
+}
 
 /**
  * Finds all unescaped ${{ ... }} expressions in a run: script string.
@@ -391,6 +476,9 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
                 errors.push(`release.yml ${pubJob} job actions/setup-node step must set 'package-manager-cache: false'.`);
               }
             }
+          }
+          if (pubJob === 'publish-npm') {
+            auditPublishNpmOidcContract(file, doc, j, errors);
           }
           if (pubJob === 'publish-npm' || pubJob === 'publish-gpr') {
             const pubScript = jSteps.map((s) => (s && typeof s === 'object' && typeof s.run === 'string' ? s.run : '')).join('\n');
