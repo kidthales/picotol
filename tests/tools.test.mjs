@@ -955,13 +955,16 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+    outputs:
+      sha: \${{ steps.verify-tag.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
           persist-credentials: false
       - uses: $/.github/actions/local-action
-      - env:
+      - id: verify-tag
+        env:
           RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
           REF_NAME: \${{ github.ref_name }}
         run: |
@@ -971,9 +974,15 @@ jobs:
           if [ -z "$TAG" ]; then exit 1; fi
           if [[ ! "$TAG" =~ $SEMVER_TAG_RE ]]; then exit 1; fi
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+          TAG_COMMIT=$(git rev-parse --verify --quiet "refs/tags/\${TAG}^{commit}" || true)
+          HEAD_COMMIT=$(git rev-parse HEAD)
+          if [ -z "$TAG_COMMIT" ] || [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then exit 1; fi
+          echo "sha=\${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"
   verify:
     needs: [tag-guard]
     uses: $/.github/workflows/ci.yml
+    with:
+      ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
     permissions:
       contents: read
       security-events: write
@@ -1022,6 +1031,7 @@ jobs:
         with:
           ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
           persist-credentials: false
+      - run: npm run build
       - run: |
           if ! test -z "$(git status --porcelain)"; then
             exit 1
@@ -1048,9 +1058,10 @@ jobs:
           ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
           RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
           REF_NAME: \${{ github.ref_name }}
+          SHA: \${{ needs.tag-guard.outputs.sha || github.sha }}
         run: |
           TAG_NAME="\${RELEASE_TAG:-\$REF_NAME}"
-          echo "$TAG_NAME"
+          jq -n --arg tag "$TAG_NAME" '{tag: $tag}'
 `,
     'pages.yml': `
 name: Pages

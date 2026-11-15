@@ -1834,20 +1834,39 @@ jobs:
     const ciDoc = YAML.parse(fs.readFileSync(path.join(workflowDir, "ci.yml"), "utf8"));
     const releaseDoc = YAML.parse(fs.readFileSync(path.join(workflowDir, "release.yml"), "utf8"));
 
-    // 1. Live ci.yml pull_request branch coverage for Wave Epics
+    // 1. Live ci.yml pull_request branch coverage for Wave Epics & reusable workflow_call ref input
     assert.deepEqual(
       ciDoc.on?.pull_request?.branches,
       ["main", "src-*/epic/**"],
       "ci.yml on.pull_request.branches must target main and src-*/epic/**"
     );
     assert.deepEqual(ciDoc.on?.push?.branches, ["main"], "ci.yml on.push.branches must target main");
+    const wfCallRef = ciDoc.on?.workflow_call?.inputs?.ref;
+    assert.equal(wfCallRef?.type, "string", "ci.yml workflow_call.inputs.ref must have type: string");
+    assert.equal(wfCallRef?.required, false, "ci.yml workflow_call.inputs.ref must have required: false");
+    for (const ciJobName of ["security", "verify"]) {
+      const ciCheckout = (ciDoc.jobs?.[ciJobName]?.steps || []).find(
+        (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/checkout@")
+      );
+      assert.ok(ciCheckout, `ci.yml job '${ciJobName}' must include actions/checkout`);
+      assert.equal(
+        String(ciCheckout.with?.ref || "").replace(/\s+/g, "").replace(/"/g, "'"),
+        "${{inputs.ref||''}}",
+        `ci.yml job '${ciJobName}' actions/checkout must bind with.ref to \${{ inputs.ref || '' }}`
+      );
+    }
 
-    // 2. Live release.yml workflow_dispatch.inputs.tag and checkout ref pinning
+    // 2. Live release.yml workflow_dispatch.inputs.tag, verify with.ref, and checkout ref pinning
     const dispatchTag = releaseDoc.on?.workflow_dispatch?.inputs?.tag;
     assert.equal(dispatchTag?.type, "string", "release.yml workflow_dispatch.inputs.tag must have type: string");
     assert.equal(dispatchTag?.required, false, "release.yml workflow_dispatch.inputs.tag must have required: false");
 
     const expectedRefNorm = "${{github.event.release.tag_name||inputs.tag||github.ref}}";
+    assert.equal(
+      String(releaseDoc.jobs?.verify?.with?.ref || "").replace(/\s+/g, ""),
+      expectedRefNorm,
+      "release.yml verify reusable workflow call must pass with.ref pinned to target release tag"
+    );
     for (const jobName of ["tag-guard", "publish-npm", "publish-gpr", "attach-assets"]) {
       const steps = releaseDoc.jobs?.[jobName]?.steps || [];
       const checkoutStep = steps.find(
@@ -1861,17 +1880,34 @@ jobs:
       );
     }
 
-    // 3. Live release.yml tag-guard SemVer pre-release guard
-    const tagGuardStep = (releaseDoc.jobs?.["tag-guard"]?.steps || []).find((s) => typeof s?.run === "string");
+    // 3. Live release.yml tag-guard SemVer pre-release guard, refs/tags commit check, and outputs.sha
+    const tagGuardJob = releaseDoc.jobs?.["tag-guard"];
+    assert.match(
+      String(tagGuardJob?.outputs?.sha || ""),
+      /outputs\.sha/,
+      "release.yml tag-guard must export verified commit sha output"
+    );
+    const tagGuardStep = (tagGuardJob?.steps || []).find((s) => typeof s?.run === "string");
     assert.ok(tagGuardStep, "release.yml tag-guard must contain a run step");
     assert.ok(
       tagGuardStep.run.includes(SEMVER_RELEASE_TAG_REGEX),
       "release.yml tag-guard must enforce strict SemVer pre-release regex"
     );
+    assert.match(
+      tagGuardStep.run,
+      /refs\/tags\/\$\{?TAG\}?\^\{commit\}/,
+      "release.yml tag-guard must verify refs/tags/${TAG}^{commit} against HEAD"
+    );
     assert.equal(
       String(tagGuardStep.env?.RELEASE_TAG || "").replace(/\s+/g, ""),
       "${{github.event.release.tag_name||inputs.tag}}",
       "release.yml tag-guard must pass inputs.tag in RELEASE_TAG"
+    );
+    const notifyStep = (releaseDoc.jobs?.notify?.steps || []).find((s) => typeof s?.run === "string");
+    assert.equal(
+      String(notifyStep?.env?.SHA || "").replace(/\s+/g, ""),
+      "${{needs.tag-guard.outputs.sha||github.sha}}",
+      "release.yml notify must use verified tag-guard sha with github.sha fallback"
     );
 
     // 4. Live release.yml pre-release (--tag next) vs stable (--tag latest) routing
@@ -2032,6 +2068,98 @@ jobs:
         assert.ok(
           errs.some((e) => e.includes("release.yml notify job must resolve TAG_NAME")),
           "Must reject notify omitting TAG_NAME resolution from RELEASE_TAG"
+        );
+      }
+    );
+
+    // 6h. F-01: ci.yml missing workflow_call.inputs.ref / checkout ref, or release.yml verify omitting with.ref
+    withTempWorkflows(
+      {
+        "ci.yml": baseCiYml
+          .replace(
+            /workflow_call:[\s\S]*?type: string\r?\n/,
+            "workflow_call:\n"
+          )
+          .replace("          ref: ${{ inputs.ref || '' }}\n", ""),
+        "release.yml": baseReleaseYml.replace(
+          "    uses: $/.github/workflows/ci.yml\n    with:\n      ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}\n",
+          "    uses: $/.github/workflows/ci.yml\n"
+        ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("ci.yml must declare 'on.workflow_call.inputs.ref'")),
+          "Must reject ci.yml omitting workflow_call.inputs.ref"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("ci.yml job 'security' actions/checkout step must set 'with.ref'")),
+          "Must reject ci.yml checkout step omitting with.ref"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml verify job must pass 'with.ref'")),
+          "Must reject release.yml verify omitting with.ref"
+        );
+      }
+    );
+
+    // 6i. F-02: release.yml tag-guard omitting refs/tags commit verification / outputs.sha, or notify using caller github.sha
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replace("    outputs:\n      sha: ${{ steps.verify-tag.outputs.sha }}\n", "")
+          .replace('TAG_COMMIT=$(git rev-parse --verify --quiet "refs/tags/${TAG}^{commit}" || true)', 'TAG_COMMIT="skip"')
+          .replace('echo "sha=${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"', 'echo "skipped"')
+          .replace("SHA: ${{ needs.tag-guard.outputs.sha || github.sha }}", "SHA: ${{ github.sha }}"),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml tag-guard job must declare 'outputs.sha'")),
+          "Must reject tag-guard omitting outputs.sha"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("refs/tags/${TAG}^{commit}")),
+          "Must reject tag-guard omitting refs/tags commit check"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("export verified commit SHA to GITHUB_OUTPUT")),
+          "Must reject tag-guard omitting GITHUB_OUTPUT sha"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml notify job must pass 'SHA:")),
+          "Must reject notify reverting SHA to caller github.sha"
+        );
+      }
+    );
+
+    // 6j. F-03: notify omitting --arg tag "$TAG_NAME", cross-step env drift, and attach-assets step order violation
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replace('--arg tag "$TAG_NAME"', '--arg tag "$REF_NAME"')
+          .replace(
+            "      - name: Verify release tag matches package.json version\n        id: verify-tag\n        env:\n          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}\n          REF_NAME: ${{ github.ref_name }}\n",
+            "      - name: Wrong step env\n        env:\n          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}\n          REF_NAME: ${{ github.ref_name }}\n        run: echo 'noop'\n      - name: Verify release tag matches package.json version\n        id: verify-tag\n"
+          )
+          .replace(
+            "      - name: Build CSS bundles and generate standalone asset zip\n        run: npm run build\n\n      - name: Verify clean working tree post-build\n        run: |\n          if ! test -z \"$(git status --porcelain)\"; then\n            echo \"::error::Working tree is dirty after build:\"\n            git status --porcelain\n            exit 1\n          fi\n",
+            "      - name: Verify clean working tree post-build\n        run: |\n          if ! test -z \"$(git status --porcelain)\"; then\n            echo \"::error::Working tree is dirty after build:\"\n            git status --porcelain\n            exit 1\n          fi\n\n      - name: Build CSS bundles and generate standalone asset zip\n        run: npm run build\n"
+          ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes('release.yml notify job must pass --arg tag "$TAG_NAME" to jq.')),
+          "Must reject notify dropping --arg tag \"$TAG_NAME\""
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml tag-guard step must pass 'RELEASE_TAG:")),
+          "Must reject RELEASE_TAG/REF_NAME env placed on a different step than the TAG resolver"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml attach-assets steps must execute in order:")),
+          "Must reject attach-assets running git status --porcelain before npm run build"
         );
       }
     );
