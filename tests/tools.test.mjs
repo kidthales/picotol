@@ -62,6 +62,17 @@ import {
   resolveSyncOptions,
   stripWin32DeviceNamespacePrefix,
 } from '../tools/path-jail.mjs';
+import {
+  SEMVER_REGEX,
+  parseSyncVersionArgs,
+  syncVersion,
+  updateCitationCffContent,
+  updatePackageJsonContent,
+  updatePackageLockContent,
+  updateReadmeContent,
+  validateIsoDate,
+  validateSemVer,
+} from '../tools/sync-version.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -2620,6 +2631,180 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
     cleanupBuildTest();
   }
 });
+});
+
+describe('Deterministic Version Sync CLI (Issue #290)', () => {
+  test('validateSemVer and parseSyncVersionArgs enforce strict SemVer and --date contracts', () => {
+    assert.equal(pkg.scripts['sync:version'], 'node tools/sync-version.mjs');
+    assert.equal(SEMVER_REGEX.source, '^\\d+\\.\\d+\\.\\d+(-(alpha|beta|rc)\\.[1-9]\\d*)?$');
+
+    for (const valid of ['0.7.0', '1.0.0', '1.0.0-alpha.1', '2.10.3-beta.12', '0.0.1-rc.99']) {
+      assert.equal(validateSemVer(valid), valid);
+    }
+
+    for (const invalid of ['v1.0.0', '1.0.0-alpha.0', '1.0.0-dev.1', '1.0', '1.0.0+build.1', '1.0.0-rc', '', null]) {
+      assert.throws(() => validateSemVer(invalid), RangeError);
+    }
+
+    assert.equal(validateIsoDate('2026-11-15'), '2026-11-15');
+    assert.throws(() => validateIsoDate('2026-02-30'), RangeError);
+    assert.throws(() => validateIsoDate('2026/11/15'), RangeError);
+
+    assert.deepEqual(parseSyncVersionArgs(['1.0.0-alpha.1', '--date', '2026-11-15']), {
+      version: '1.0.0-alpha.1',
+      date: '2026-11-15',
+    });
+    assert.deepEqual(parseSyncVersionArgs(['--date=2026-12-01', '1.0.0']), {
+      version: '1.0.0',
+      date: '2026-12-01',
+    });
+    assert.throws(() => parseSyncVersionArgs([]), /Missing required <semver>/);
+    assert.throws(() => parseSyncVersionArgs(['1.0.0', '2.0.0']), /Unexpected extra positional/);
+    assert.throws(() => parseSyncVersionArgs(['1.0.0', '--unknown']), /Unrecognized argument/);
+    assert.throws(() => parseSyncVersionArgs(['1.0.0', '--date']), /Missing value for --date/);
+    assert.throws(() => parseSyncVersionArgs(['1.0.0-alpha.0']), RangeError);
+
+    const badCli = spawnSync(process.execPath, [path.join(ROOT, 'tools/sync-version.mjs'), '1.0.0-alpha.0'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    });
+    assert.equal(badCli.status, 1, 'sync-version.mjs must exit 1 on invalid SemVer');
+    assert.match(badCli.stderr, /Invalid SemVer "1\.0\.0-alpha\.0"/);
+  });
+
+  test('manifest and README.md pure updaters preserve structure and rewrite CDN, SRI, download, and APA tokens', () => {
+    const nextPkg = JSON.parse(updatePackageJsonContent('{\n  "name": "@kidthales/picotol",\n  "version": "0.7.0"\n}\n', '1.0.0-alpha.1'));
+    assert.equal(nextPkg.version, '1.0.0-alpha.1');
+
+    const nextLock = JSON.parse(
+      updatePackageLockContent(
+        JSON.stringify({ name: '@kidthales/picotol', version: '0.7.0', packages: { '': { version: '0.7.0' } } }),
+        '1.0.0-alpha.1'
+      )
+    );
+    assert.equal(nextLock.version, '1.0.0-alpha.1');
+    assert.equal(nextLock.packages[''].version, '1.0.0-alpha.1');
+
+    const cff = updateCitationCffContent(
+      'cff-version: 1.2.0\nversion: 0.7.0\ndate-released: 2026-11-06\n',
+      '1.0.0-alpha.1',
+      '2026-11-15'
+    );
+    assert.ok(cff.includes('version: 1.0.0-alpha.1'));
+    assert.ok(cff.includes('date-released: 2026-11-15'));
+    assert.throws(() => updateCitationCffContent('cff-version: 1.2.0\n', '1.0.0', '2026-11-15'), /missing top-level "version:"/);
+
+    const sampleReadme = [
+      'curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.7.0/picotol.layer.min.css',
+      '$u = "https://github.com/kidthales/picotol/releases/download/v0.7.0"',
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.7.0/dist/picotol.min.css" integrity="sha384-OLD1" crossorigin="anonymous" />',
+      '<link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.7.0/dist/picotol.min.css" integrity="sha384-OLD2" crossorigin="anonymous" />',
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.7.0/dist/picotol.layer.min.css" integrity="sha384-OLD3" crossorigin="anonymous" />',
+      'Note: compatibility classes .top and .bottom are retained until v0.7.0.',
+      '- kidthales. (2026). *@kidthales/picotol* (Version 0.7.0) [Computer software]. https://github.com/kidthales/picotol',
+    ].join('\n');
+
+    const sriManifest = {
+      package: '@kidthales/picotol',
+      version: '1.0.0-alpha.1',
+      files: {
+        'dist/picotol.min.css': { integrity: 'sha384-NEWFULLHASH==' },
+        'dist/picotol.layer.min.css': { integrity: 'sha384-NEWLAYERHASH==' },
+      },
+    };
+
+    const { content: rewritten, stats } = updateReadmeContent(sampleReadme, '1.0.0-alpha.1', sriManifest);
+    assert.equal(stats.cdnUrlsUpdated, 3);
+    assert.equal(stats.sriLinksUpdated, 3);
+    assert.equal(stats.releaseUrlsUpdated, 2);
+    assert.equal(stats.apaUpdated, 1);
+    assert.ok(rewritten.includes('releases/download/v1.0.0-alpha.1/picotol.layer.min.css'));
+    assert.ok(rewritten.includes('releases/download/v1.0.0-alpha.1"'));
+    assert.ok(rewritten.includes('@kidthales/picotol@1.0.0-alpha.1/dist/picotol.min.css" integrity="sha384-NEWFULLHASH=="'));
+    assert.ok(rewritten.includes('@kidthales/picotol@1.0.0-alpha.1/dist/picotol.layer.min.css" integrity="sha384-NEWLAYERHASH=="'));
+    assert.ok(rewritten.includes('(Version 1.0.0-alpha.1)'));
+    assert.ok(rewritten.includes('retained until v0.7.0.'), 'Historical v0.7.0 prose must not be rewritten');
+
+    assert.throws(
+      () => updateReadmeContent(sampleReadme, '1.0.0-alpha.1', { version: '0.7.0', files: sriManifest.files }),
+      /Stale dist\/sri\.json version/
+    );
+  });
+
+  test('syncVersion executes npm run generate in a fresh child process and rolls back on failure', (t) => {
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-sync-version-'));
+    t.after(() => fs.rmSync(tmpRoot, { recursive: true, force: true }));
+
+    const origPkg = JSON.stringify(
+      {
+        name: '@kidthales/picotol',
+        version: '0.7.0',
+        type: 'module',
+        scripts: {
+          generate: 'node generate.mjs',
+        },
+      },
+      null,
+      2
+    ) + '\n';
+    const origLock = JSON.stringify(
+      {
+        name: '@kidthales/picotol',
+        version: '0.7.0',
+        packages: { '': { name: '@kidthales/picotol', version: '0.7.0' } },
+      },
+      null,
+      2
+    ) + '\n';
+    const origCff = 'cff-version: 1.2.0\nversion: 0.7.0\ndate-released: 2026-11-06\n';
+    const origReadme = [
+      'curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.7.0/picotol.layer.min.css',
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.7.0/dist/picotol.min.css" integrity="sha384-OLD" crossorigin="anonymous" />',
+      '- kidthales. (2026). *@kidthales/picotol* (Version 0.7.0) [Computer software].',
+    ].join('\n');
+
+    fs.writeFileSync(path.join(tmpRoot, 'package.json'), origPkg, 'utf8');
+    fs.writeFileSync(path.join(tmpRoot, 'package-lock.json'), origLock, 'utf8');
+    fs.writeFileSync(path.join(tmpRoot, 'CITATION.cff'), origCff, 'utf8');
+    fs.writeFileSync(path.join(tmpRoot, 'README.md'), origReadme, 'utf8');
+    fs.writeFileSync(
+      path.join(tmpRoot, 'generate.mjs'),
+      [
+        "import fs from 'node:fs';",
+        "const p = JSON.parse(fs.readFileSync('package.json', 'utf8'));",
+        "fs.mkdirSync('dist', { recursive: true });",
+        "fs.writeFileSync('dist/sri.json', JSON.stringify({ package: p.name, version: p.version, files: { 'dist/picotol.min.css': { integrity: 'sha384-FRESHCHILDHASH==' } } }, null, 2));",
+      ].join('\n'),
+      'utf8'
+    );
+
+    const res = syncVersion('1.0.0-alpha.1', { rootDir: tmpRoot, date: '2026-11-15' });
+    assert.equal(res.version, '1.0.0-alpha.1');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package.json'), 'utf8')).version, '1.0.0-alpha.1');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package-lock.json'), 'utf8')).version, '1.0.0-alpha.1');
+    assert.ok(fs.readFileSync(path.join(tmpRoot, 'CITATION.cff'), 'utf8').includes('version: 1.0.0-alpha.1'));
+    assert.ok(fs.readFileSync(path.join(tmpRoot, 'CITATION.cff'), 'utf8').includes('date-released: 2026-11-15'));
+    const updatedReadme = fs.readFileSync(path.join(tmpRoot, 'README.md'), 'utf8');
+    assert.ok(updatedReadme.includes('sha384-FRESHCHILDHASH=='));
+    assert.ok(updatedReadme.includes('v1.0.0-alpha.1/picotol.layer.min.css'));
+    assert.ok(updatedReadme.includes('(Version 1.0.0-alpha.1)'));
+
+    // Rollback verification when child generate fails
+    assert.throws(
+      () =>
+        syncVersion('2.0.0', {
+          rootDir: tmpRoot,
+          date: '2026-11-16',
+          runGenerate: () => {
+            throw new Error('simulated generate failure');
+          },
+        }),
+      /simulated generate failure/
+    );
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package.json'), 'utf8')).version, '1.0.0-alpha.1');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package-lock.json'), 'utf8')).version, '1.0.0-alpha.1');
+    assert.ok(fs.readFileSync(path.join(tmpRoot, 'CITATION.cff'), 'utf8').includes('version: 1.0.0-alpha.1'));
+  });
 });
 
 describe('Test Suite Integrity and Anti-Tautology Guard', () => {
