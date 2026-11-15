@@ -856,7 +856,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -901,7 +901,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -934,7 +934,7 @@ jobs:
     assert.doesNotThrow(() => auditWorkflows(tempRoot));
   });
 
-  // 14. Canonical local syntax (./) acceptance and legacy $/ rejection for reusable workflows and local actions
+  // 14. Canonical self-repository syntax ($/) acceptance and ./ rejection for reusable workflows and local actions
   withTempWorkflows({
     'release.yml': `
 name: Release
@@ -962,7 +962,7 @@ jobs:
         with:
           ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/local-action
+      - uses: $/.github/actions/local-action
       - id: verify-tag
         env:
           RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
@@ -980,7 +980,7 @@ jobs:
           echo "sha=\${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"
   verify:
     needs: [tag-guard]
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
     with:
       ref: \${{ needs.tag-guard.outputs.sha }}
     permissions:
@@ -1082,7 +1082,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1105,10 +1105,10 @@ jobs:
 `,
   }, (tempRoot) => {
     const errs = auditWorkflows(tempRoot);
-    assert.deepEqual(errs, [], `auditWorkflows must accept canonical ./ local references, got: ${errs.join('; ')}`);
+    assert.deepEqual(errs, [], `auditWorkflows must accept canonical $/ self-repository references, got: ${errs.join('; ')}`);
   });
 
-  // 15. Negative test: verify job delegating to invalid or legacy $/ workflow path is rejected
+  // 15. Negative test: verify job delegating to ./ or invalid workflow path is rejected (self-repository rule)
   withTempWorkflows({
     'release.yml': `
 name: Release
@@ -1128,7 +1128,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1157,7 +1157,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1175,11 +1175,11 @@ jobs:
 `,
   }, (tempRoot) => {
     const errs = auditWorkflows(tempRoot);
-    assert.ok(errs.some((e) => e.includes("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.")));
-    assert.ok(errs.some((e) => e.includes("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.")));
+    assert.ok(errs.some((e) => e.includes("release.yml verify job must delegate verification via 'uses: $/.github/workflows/ci.yml'") && e.includes('self-repository')));
+    assert.ok(errs.some((e) => e.includes("pages.yml verify job must delegate verification via 'uses: $/.github/workflows/ci.yml'") && e.includes('self-repository')));
   });
 
-  // 16. Negative test: malformed $/ and ./ step action references are rejected
+  // 16. Negative test: ./-prefixed and malformed $/ step action references are rejected
   withTempWorkflows({
     'ci.yml': `
 name: CI
@@ -1193,21 +1193,25 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/local-action
+      - uses: ./.github/actions/local-action
       - uses: $/
       - uses: $/../evil
       - uses: $invalid/action
       - uses: $/.github/actions/foo@unpinned
+      - uses: $/.github/actions/.
+      - uses: $/.github/actions/foo/..
       - uses: ./.github/actions/.
       - uses: ../.github/actions/foo
 `,
   }, (tempRoot) => {
     const errs = auditWorkflows(tempRoot);
-    assert.ok(errs.some((e) => e.includes("step action '$/.github/actions/local-action' is not a valid canonical local action path")));
+    assert.ok(errs.some((e) => e.includes("step action './.github/actions/local-action' is not a valid canonical local action path") && e.includes('self-repository')));
     assert.ok(errs.some((e) => e.includes("step action '$/' is not a valid canonical local action path")));
     assert.ok(errs.some((e) => e.includes("step action '$/../evil' is not a valid canonical local action path")));
     assert.ok(errs.some((e) => e.includes("step action '$invalid/action' is not a valid canonical local action path")));
     assert.ok(errs.some((e) => e.includes("step action '$/.github/actions/foo@unpinned' is not a valid canonical local action path")));
+    assert.ok(errs.some((e) => e.includes("step action '$/.github/actions/.' is not a valid canonical local action path")));
+    assert.ok(errs.some((e) => e.includes("step action '$/.github/actions/foo/..' is not a valid canonical local action path")));
     assert.ok(errs.some((e) => e.includes("step action './.github/actions/.' is not a valid canonical local action path")));
     assert.ok(errs.some((e) => e.includes("step action '../.github/actions/foo' is not a valid canonical local action path")));
   });
@@ -1235,7 +1239,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1435,7 +1439,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1494,7 +1498,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1551,7 +1555,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1611,7 +1615,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1645,6 +1649,65 @@ jobs:
   }, (tempRoot) => {
     const errs = auditWorkflows(tempRoot);
     assert.ok(errs.some((e) => e.includes("release.yml attach-assets actions/attest step must declare a non-empty 'with.subject-path'.")));
+  });
+
+  // 21. Negative test: jobs with id-token: write, attestations: write, or packages: write must pass --ignore-scripts to npm ci (F-11, F-12)
+  withTempWorkflows({
+    'deploy.yml': `
+name: Privileged
+on: [push]
+permissions:
+  contents: read
+jobs:
+  oidc-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install
+        run: npm ci
+  attest-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install
+        run: npm ci
+  gpr-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install
+        run: npm ci
+  read-only-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install
+        run: npm ci
+`,
+  }, (tempRoot) => {
+    const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("deploy.yml oidc-job step 'Install' must pass '--ignore-scripts' to 'npm ci'") && e.includes('id-token: write')));
+    assert.ok(errs.some((e) => e.includes("deploy.yml attest-job step 'Install' must pass '--ignore-scripts' to 'npm ci'") && e.includes('attestations: write')));
+    assert.ok(errs.some((e) => e.includes("deploy.yml gpr-job step 'Install' must pass '--ignore-scripts' to 'npm ci'") && e.includes('packages: write')));
+    assert.ok(!errs.some((e) => e.includes('read-only-job')), 'Unprivileged job must not be rejected for npm ci');
   });
 });
 

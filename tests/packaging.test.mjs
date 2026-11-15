@@ -1234,7 +1234,7 @@ describe("GitHub Actions CI and Release Workflows", () => {
     );
     assert.match(
       releaseParsed.jobs.verify,
-      /^ {4}uses:\s*\.\/\.github\/workflows\/ci\.yml\s*$/m,
+      /^ {4}uses:\s*\$\/\.github\/workflows\/ci\.yml\s*$/m,
       "release.yml verify job must delegate to ci.yml"
     );
     assert.match(
@@ -1325,7 +1325,7 @@ describe("GitHub Actions CI and Release Workflows", () => {
       "pages.yml verify job must not grant unauthorized write permissions"
     );
 
-    assert.match(pagesParsed.jobs.verify, /^ {4}uses:\s*\.\/\.github\/workflows\/ci\.yml\s*$/m, "pages.yml verify job must delegate to ci.yml");
+    assert.match(pagesParsed.jobs.verify, /^ {4}uses:\s*\$\/\.github\/workflows\/ci\.yml\s*$/m, "pages.yml verify job must delegate to ci.yml");
     assert.match(pagesParsed.jobs.build, /^ {4}needs:\s*\[verify\]\s*$/m, "pages.yml build job must depend on verify");
     assert.match(pagesParsed.jobs.deploy, /^ {4}needs:\s*\[build\]\s*$/m, "pages.yml deploy job must depend on build");
 
@@ -2118,8 +2118,8 @@ jobs:
           )
           .replace("          ref: ${{ inputs.ref || '' }}\n", ""),
         "release.yml": baseReleaseYml.replace(
-          "    uses: ./.github/workflows/ci.yml\n    with:\n      ref: ${{ needs.tag-guard.outputs.sha }}\n",
-          "    uses: ./.github/workflows/ci.yml\n"
+          "    uses: $/.github/workflows/ci.yml\n    with:\n      ref: ${{ needs.tag-guard.outputs.sha }}\n",
+          "    uses: $/.github/workflows/ci.yml\n"
         ),
       },
       (tempRoot) => {
@@ -2225,6 +2225,28 @@ jobs:
         );
       }
     );
+
+    // 6l. F-09/F-10/F-11/F-12: ./ self-repository regression and npm ci without --ignore-scripts in privileged release jobs
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replace("uses: $/.github/workflows/ci.yml", "uses: ./.github/workflows/ci.yml")
+          .replaceAll("run: npm ci --ignore-scripts", "run: npm ci"),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml verify job must delegate verification via 'uses: $/.github/workflows/ci.yml'") && e.includes("self-repository")),
+          "Must reject ./.github/workflows/ci.yml with self-repository rule message"
+        );
+        for (const privJob of ["publish-npm", "publish-gpr", "attach-assets"]) {
+          assert.ok(
+            errs.some((e) => e.includes(`release.yml ${privJob} step 'Install dependencies' must pass '--ignore-scripts' to 'npm ci'`)),
+            `Must reject ${privJob} running npm ci without --ignore-scripts`
+          );
+        }
+      }
+    );
   });
 
   test("auditWorkflows enforces publish-npm tokenless OIDC invariants (positive and negative) (Issue #242)", (t) => {
@@ -2322,7 +2344,7 @@ ${workflowEnv}jobs:
           echo "sha=\${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"
   verify:
     needs: [tag-guard]
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
     with:
       ref: \${{ needs.tag-guard.outputs.sha }}
     permissions:
@@ -2661,6 +2683,13 @@ ${publishNpmBlock}  publish-gpr:
     const installStep = steps.find((s) => s.name === "Install dependencies");
     assert.ok(installStep, "Expected Install dependencies step in publish-npm");
     assert.equal(installStep.run, "npm ci --ignore-scripts", "publish-npm must run npm ci --ignore-scripts");
+
+    for (const privJob of ["publish-gpr", "attach-assets"]) {
+      const privSteps = releaseDoc?.jobs?.[privJob]?.steps || [];
+      const privInstall = privSteps.find((s) => s.name === "Install dependencies");
+      assert.ok(privInstall, `Expected Install dependencies step in ${privJob}`);
+      assert.equal(privInstall.run, "npm ci --ignore-scripts", `${privJob} must run npm ci --ignore-scripts`);
+    }
 
     const pubStep = steps.find((s) => s.name === "Publish to npm (Idempotent with Provenance)");
     assert.ok(pubStep, "Expected Publish to npm (Idempotent with Provenance) step");

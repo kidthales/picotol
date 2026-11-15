@@ -43,6 +43,19 @@ function stepHasReleaseTagEnv(step) {
 const FORBIDDEN_RUN_PATTERN = /\b(npm\s+(test|t|tst|run\s+test|run\s+lint|run\s+check:budgets|pack)|node\s+--test)\b/;
 export const FORBIDDEN_NPM_OIDC_ENV_KEYS = ['NODE_AUTH_TOKEN', 'NPM_TOKEN', 'NPM_CONFIG__AUTHTOKEN'];
 
+function checkNpmCiIgnoreScripts(step, stepLabel, permDesc, errors) {
+  if (!step || typeof step !== 'object' || typeof step.run !== 'string') return;
+  for (const rawLine of step.run.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    if (/\bnpm\s+ci\b/.test(line) && !/(?:^|\s)--ignore-scripts(?=\s|$)/.test(line)) {
+      errors.push(
+        `${stepLabel} must pass '--ignore-scripts' to 'npm ci' so dependency lifecycle scripts cannot execute with ${permDesc}.`
+      );
+    }
+  }
+}
+
 function checkForbiddenEnvBindings(envObj, forbiddenKeys, contextLabel, errors) {
   if (!envObj || typeof envObj !== 'object' || Array.isArray(envObj)) return;
   const upperForbidden = new Set(forbiddenKeys.map((k) => k.toUpperCase()));
@@ -168,14 +181,12 @@ function auditPublishNpmOidcContract(file, doc, pubNpm, errors) {
           `${stepLabel} must not run ad-hoc 'npm install' (use 'npm ci --ignore-scripts' and Node >=24.5.0 bundled npm).`
         );
       }
+      if (!(perms && typeof perms === 'object' && !Array.isArray(perms) && perms['id-token'] === 'write')) {
+        checkNpmCiIgnoreScripts(step, stepLabel, 'id-token: write', errors);
+      }
       for (const rawLine of step.run.split(/\r?\n/)) {
         const line = rawLine.trim();
         if (!line || line.startsWith('#')) continue;
-        if (/\bnpm\s+ci\b/.test(line) && !/(?:^|\s)--ignore-scripts(?=\s|$)/.test(line)) {
-          errors.push(
-            `${stepLabel} must pass '--ignore-scripts' to 'npm ci' so dependency lifecycle scripts cannot execute with id-token: write.`
-          );
-        }
         if (/\b(?:npx|npm\s+(?:exec|rebuild))\b/.test(line)) {
           errors.push(
             `${stepLabel} must not run '${line}' (dependency script execution forbidden in OIDC publish-npm job).`
@@ -385,9 +396,21 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
         }
       }
 
+      const privilegedPerms = [];
+      if (jobPerms && typeof jobPerms === 'object' && !Array.isArray(jobPerms)) {
+        if (jobPerms['id-token'] === 'write') privilegedPerms.push('id-token: write');
+        if (jobPerms.attestations === 'write') privilegedPerms.push('attestations: write');
+        if (jobPerms.packages === 'write') privilegedPerms.push('packages: write');
+      }
+
       const steps = Array.isArray(job.steps) ? job.steps : [];
       for (const step of steps) {
         if (!step || typeof step !== 'object') continue;
+
+        if (privilegedPerms.length > 0) {
+          const stepLabel = `${file} ${jobKey} step '${step.name || 'unnamed'}'`;
+          checkNpmCiIgnoreScripts(step, stepLabel, privilegedPerms.join(' / '), errors);
+        }
 
         // Uses: action pin check
         if (typeof step.uses === 'string') {
@@ -395,12 +418,12 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
           if (actionRef.startsWith('.') || actionRef.startsWith('$')) {
             const segments = actionRef.split('/');
             if (
-              !/^\.\/\.github\/actions\/[a-zA-Z0-9._-]+(\/[a-zA-Z0-9._-]+)*$/.test(actionRef) ||
+              !/^\$\/\.github\/actions\/[a-zA-Z0-9._-]+(\/[a-zA-Z0-9._-]+)*$/.test(actionRef) ||
               segments.slice(1).some((seg) => seg === '.' || seg === '..') ||
               actionRef.includes('..') ||
               actionRef.includes('@')
             ) {
-              errors.push(`${file} step action '${actionRef}' is not a valid canonical local action path.`);
+              errors.push(`${file} step action '${actionRef}' is not a valid canonical local action path (zizmor self-repository rule requires '$/').`);
             }
           } else {
             const atIndex = actionRef.lastIndexOf('@');
@@ -502,8 +525,8 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
       }
 
       const verifyJob = jobs.verify;
-      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== './.github/workflows/ci.yml') {
-        errors.push("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.");
+      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== '$/.github/workflows/ci.yml') {
+        errors.push("release.yml verify job must delegate verification via 'uses: $/.github/workflows/ci.yml' (zizmor self-repository rule rejects './').");
       }
       const verifyRefVal = normalizeExpr(
         verifyJob && typeof verifyJob === 'object' && verifyJob.with && typeof verifyJob.with === 'object'
@@ -734,8 +757,8 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
 
     if (file === 'pages.yml') {
       const verifyJob = jobs.verify;
-      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== './.github/workflows/ci.yml') {
-        errors.push("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.");
+      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== '$/.github/workflows/ci.yml') {
+        errors.push("pages.yml verify job must delegate verification via 'uses: $/.github/workflows/ci.yml' (zizmor self-repository rule rejects './').");
       }
       if (!verifyJob || typeof verifyJob !== 'object' || !verifyJob.permissions || typeof verifyJob.permissions !== 'object' || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
         errors.push("pages.yml verify job must explicitly scope permissions (contents: read, security-events: write).");
