@@ -10,6 +10,34 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
 export const DEFAULT_MAX_TIMEOUT_MINUTES = 30;
+export const SEMVER_RELEASE_TAG_REGEX = '^v[0-9]+\\.[0-9]+\\.[0-9]+(-(alpha|beta|rc)\\.[1-9][0-9]*)?$';
+export const REQUIRED_RELEASE_ATTEST_SUBJECTS = [
+  'dist/picotol*.css',
+  'dist/assets/picotol-v*.zip',
+  'dist/SHA256SUMS.txt',
+  'dist/manifest.json',
+  'dist/sri.json',
+];
+
+const EXPECTED_RELEASE_CHECKOUT_REF = '${{github.event.release.tag_name||inputs.tag||github.ref}}';
+const EXPECTED_RELEASE_TAG_ENV = '${{github.event.release.tag_name||inputs.tag}}';
+const EXPECTED_REF_NAME_ENV = '${{github.ref_name}}';
+const EXPECTED_CI_CALL_CHECKOUT_REF = "${{inputs.ref||''}}";
+const EXPECTED_NOTIFY_SHA_ENV = '${{needs.tag-guard.outputs.sha||github.sha}}';
+
+function normalizeExpr(value) {
+  return typeof value === 'string' ? value.replace(/\s+/g, '') : '';
+}
+
+function stepHasReleaseTagEnv(step) {
+  return Boolean(
+    step &&
+      typeof step === 'object' &&
+      step.env &&
+      normalizeExpr(step.env.RELEASE_TAG) === EXPECTED_RELEASE_TAG_ENV &&
+      normalizeExpr(step.env.REF_NAME) === EXPECTED_REF_NAME_ENV
+  );
+}
 
 const FORBIDDEN_RUN_PATTERN = /\b(npm\s+(test|t|tst|run\s+test|run\s+lint|run\s+check:budgets|pack)|node\s+--test)\b/;
 
@@ -231,10 +259,39 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
 
     // 3. Workflow-specific architectural contracts
     if (file === 'release.yml') {
+      const dispatchTag =
+        doc.on && typeof doc.on === 'object' && !Array.isArray(doc.on)
+          ? doc.on.workflow_dispatch?.inputs?.tag
+          : null;
+      if (!dispatchTag || typeof dispatchTag !== 'object' || dispatchTag.type !== 'string' || dispatchTag.required !== false) {
+        errors.push("release.yml must declare 'on.workflow_dispatch.inputs.tag' with 'type: string' and 'required: false'.");
+      }
+
+      for (const [jobKey, job] of Object.entries(jobs)) {
+        if (!job || typeof job !== 'object') continue;
+        const jobSteps = Array.isArray(job.steps) ? job.steps : [];
+        for (const s of jobSteps) {
+          if (s && typeof s === 'object' && typeof s.uses === 'string' && s.uses.trim().startsWith('actions/checkout')) {
+            const refVal = normalizeExpr(s.with && typeof s.with === 'object' ? s.with.ref : '');
+            if (refVal !== EXPECTED_RELEASE_CHECKOUT_REF) {
+              errors.push(`release.yml job '${jobKey}' actions/checkout step must pin 'with.ref' to '\${{ github.event.release.tag_name || inputs.tag || github.ref }}'.`);
+            }
+          }
+        }
+      }
+
       const verifyJob = jobs.verify;
       const validCiUses = ['./.github/workflows/ci.yml', '$/.github/workflows/ci.yml'];
       if (!verifyJob || typeof verifyJob !== 'object' || !validCiUses.includes(verifyJob.uses)) {
         errors.push("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.");
+      }
+      const verifyRefVal = normalizeExpr(
+        verifyJob && typeof verifyJob === 'object' && verifyJob.with && typeof verifyJob.with === 'object'
+          ? verifyJob.with.ref
+          : ''
+      );
+      if (verifyRefVal !== EXPECTED_RELEASE_CHECKOUT_REF) {
+        errors.push("release.yml verify job must pass 'with.ref' pinned to '${{ github.event.release.tag_name || inputs.tag || github.ref }}'.");
       }
       if (!verifyJob || typeof verifyJob !== 'object' || !verifyJob.permissions || typeof verifyJob.permissions !== 'object' || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
         errors.push("release.yml verify job must explicitly scope permissions (contents: read, security-events: write).");
@@ -255,19 +312,44 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
         if (!tgPerms || tgPerms.contents !== 'read' || Object.values(tgPerms).includes('write')) {
           errors.push("release.yml tag-guard job must explicitly define 'permissions: contents: read' and no write permissions.");
         }
+        const tgOutputSha = tagGuardJob.outputs && typeof tagGuardJob.outputs === 'object' ? tagGuardJob.outputs.sha : '';
+        if (typeof tgOutputSha !== 'string' || !/outputs\.sha/.test(tgOutputSha)) {
+          errors.push("release.yml tag-guard job must declare 'outputs.sha' wired to the verified tag step output.");
+        }
         const tgSteps = Array.isArray(tagGuardJob.steps) ? tagGuardJob.steps : [];
         const tgScript = tgSteps.map((s) => (s && typeof s === 'object' && typeof s.run === 'string' ? s.run : '')).join('\n');
+        const tgResolveStep = tgSteps.find(
+          (s) => s && typeof s === 'object' && typeof s.run === 'string' && s.run.includes('TAG="${RELEASE_TAG:-$REF_NAME}"')
+        );
         if (!tgScript.includes('EXPECTED_TAG="v${PKG_VER}"')) {
           errors.push('release.yml tag-guard must construct expected tag as EXPECTED_TAG="v${PKG_VER}".');
         }
-        if (!tgScript.includes('TAG="${RELEASE_TAG:-$REF_NAME}"')) {
+        if (!tgResolveStep) {
           errors.push('release.yml tag-guard must fallback from RELEASE_TAG to REF_NAME.');
+        } else if (!stepHasReleaseTagEnv(tgResolveStep)) {
+          errors.push("release.yml tag-guard step must pass 'RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}' and 'REF_NAME: ${{ github.ref_name }}'.");
         }
         if (!/if\s*\[\s*-z\s*"\$TAG"\s*\];\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(tgScript)) {
           errors.push('release.yml tag-guard must fail closed (exit 1) inside the missing-tag branch.');
         }
         if (!/if\s*\[\s*"\$TAG"\s*!=\s*"\$EXPECTED_TAG"\s*\];\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(tgScript)) {
           errors.push('release.yml tag-guard must fail closed (exit 1) inside the tag-mismatch branch.');
+        }
+        if (!tgScript.includes(SEMVER_RELEASE_TAG_REGEX)) {
+          errors.push(`release.yml tag-guard must enforce SemVer pre-release regex '${SEMVER_RELEASE_TAG_REGEX}'.`);
+        }
+        if (!/if\s*\[\[\s*!\s*"\$TAG"\s*=~\s*\$SEMVER_TAG_RE\s*\]\];\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(tgScript)) {
+          errors.push('release.yml tag-guard must fail closed (exit 1) inside the SemVer regex mismatch branch.');
+        }
+        const hasTagRefCheck =
+          /refs\/tags\/\$\{?TAG\}?\^\{commit\}/.test(tgScript) &&
+          /git\s+rev-parse\s+HEAD/.test(tgScript) &&
+          /if\s+\[[^\n]*(?:"\$TAG_COMMIT"|refs\/tags\/)[^\n]*\];\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(tgScript);
+        if (!hasTagRefCheck) {
+          errors.push('release.yml tag-guard must fail closed (exit 1) when refs/tags/${TAG}^{commit} is missing or does not match HEAD.');
+        }
+        if (!/sha=.*>>\s*"\$GITHUB_OUTPUT"/.test(tgScript)) {
+          errors.push('release.yml tag-guard must export verified commit SHA to GITHUB_OUTPUT.');
         }
         for (const s of tgSteps) {
           if (!s || typeof s !== 'object') continue;
@@ -310,6 +392,15 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
               }
             }
           }
+          if (pubJob === 'publish-npm' || pubJob === 'publish-gpr') {
+            const pubScript = jSteps.map((s) => (s && typeof s === 'object' && typeof s.run === 'string' ? s.run : '')).join('\n');
+            const hasDistTagSwitch =
+              /if\s*\[\[\s*"\$PKG_VER"\s*==\s*\*-\*\s*\]\];\s*then(?:(?!\belse\b)[\s\S])*?DIST_TAG="next"(?:(?!\bfi\b)[\s\S])*?\belse\b(?:(?!\bfi\b)[\s\S])*?DIST_TAG="latest"(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(pubScript);
+            const hasPublishDistTag = /\bnpm\s+publish\b[^\n]*--tag\s+"\$DIST_TAG"/.test(pubScript);
+            if (!hasDistTagSwitch || !hasPublishDistTag) {
+              errors.push(`release.yml ${pubJob} job must route SemVer pre-releases (*-*) to '--tag next' and stable releases to '--tag latest' via DIST_TAG.`);
+            }
+          }
         }
       }
 
@@ -325,16 +416,61 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
           }
         }
         const attachSteps = Array.isArray(attachJob.steps) ? attachJob.steps : [];
-        const attestStep = attachSteps.find(
+        const buildIdx = attachSteps.findIndex(
+          (s) => s && typeof s === 'object' && typeof s.run === 'string' && /\bnpm\s+run\s+build\b/.test(s.run)
+        );
+        const cleanIdx = attachSteps.findIndex(
+          (s) =>
+            s &&
+            typeof s === 'object' &&
+            typeof s.run === 'string' &&
+            /if\s*!\s*test\s+-z\s+"\$\(git status --porcelain\)";\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(s.run)
+        );
+        const attestIdx = attachSteps.findIndex(
           (s) => s && typeof s === 'object' && typeof s.uses === 'string' && (s.uses.startsWith('actions/attest@') || s.uses === 'actions/attest')
         );
-        if (!attestStep) {
+        const uploadIdx = attachSteps.findIndex(
+          (s) =>
+            s &&
+            typeof s === 'object' &&
+            typeof s.run === 'string' &&
+            s.run.includes('TAG_NAME="${RELEASE_TAG:-$REF_NAME}"') &&
+            /gh\s+release\s+upload\s+"\$TAG_NAME"/.test(s.run)
+        );
+
+        if (buildIdx === -1) {
+          errors.push('release.yml attach-assets job must run npm run build before verifying clean tree.');
+        }
+        if (cleanIdx === -1) {
+          errors.push('release.yml attach-assets job must verify a clean post-build working tree (test -z "$(git status --porcelain)" with fail-closed exit 1).');
+        }
+        if (uploadIdx === -1 || !stepHasReleaseTagEnv(attachSteps[uploadIdx])) {
+          errors.push('release.yml attach-assets job must resolve TAG_NAME="${RELEASE_TAG:-$REF_NAME}" from RELEASE_TAG (including inputs.tag) and upload to "$TAG_NAME".');
+        }
+        if (attestIdx === -1) {
           errors.push('release.yml attach-assets job must contain an actions/attest step for provenance attestation.');
         } else {
+          const attestStep = attachSteps[attestIdx];
           const subjectPath = attestStep.with && attestStep.with['subject-path'];
           if (typeof subjectPath !== 'string' || subjectPath.trim().length === 0) {
             errors.push("release.yml attach-assets actions/attest step must declare a non-empty 'with.subject-path'.");
+          } else {
+            const subjectEntries = subjectPath.trim().split(/\s+/);
+            for (const reqSubject of REQUIRED_RELEASE_ATTEST_SUBJECTS) {
+              if (!subjectEntries.includes(reqSubject)) {
+                errors.push(`release.yml attach-assets actions/attest step 'with.subject-path' must include '${reqSubject}'.`);
+              }
+            }
           }
+        }
+        if (
+          buildIdx !== -1 &&
+          cleanIdx !== -1 &&
+          attestIdx !== -1 &&
+          uploadIdx !== -1 &&
+          !(buildIdx < cleanIdx && cleanIdx < attestIdx && attestIdx < uploadIdx)
+        ) {
+          errors.push('release.yml attach-assets steps must execute in order: npm run build < git status --porcelain < actions/attest < gh release upload.');
         }
       }
 
@@ -350,6 +486,19 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
         );
         if (!hasSkippedCheck) {
           errors.push('release.yml notify job must report skipped status when attach-assets is skipped.');
+        }
+        const notifyTagStep = notifySteps.find(
+          (s) => s && typeof s === 'object' && typeof s.run === 'string' && s.run.includes('TAG_NAME="${RELEASE_TAG:-$REF_NAME}"')
+        );
+        if (!notifyTagStep || !stepHasReleaseTagEnv(notifyTagStep)) {
+          errors.push('release.yml notify job must resolve TAG_NAME="${RELEASE_TAG:-$REF_NAME}" from RELEASE_TAG (including inputs.tag).');
+        } else {
+          if (!/--arg\s+tag\s+"\$TAG_NAME"/.test(notifyTagStep.run)) {
+            errors.push('release.yml notify job must pass --arg tag "$TAG_NAME" to jq.');
+          }
+          if (normalizeExpr(notifyTagStep.env?.SHA) !== EXPECTED_NOTIFY_SHA_ENV) {
+            errors.push("release.yml notify job must pass 'SHA: ${{ needs.tag-guard.outputs.sha || github.sha }}'.");
+          }
         }
       }
     }
@@ -416,6 +565,32 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
       }
       if (!doc.on || !Object.hasOwn(doc.on, 'workflow_call')) {
         errors.push("ci.yml must support reusable workflow calls via 'workflow_call:'.");
+      }
+      const wfCallRef =
+        doc.on && typeof doc.on === 'object' && !Array.isArray(doc.on)
+          ? doc.on.workflow_call?.inputs?.ref
+          : null;
+      if (!wfCallRef || typeof wfCallRef !== 'object' || wfCallRef.type !== 'string' || wfCallRef.required !== false) {
+        errors.push("ci.yml must declare 'on.workflow_call.inputs.ref' with 'type: string' and 'required: false'.");
+      }
+      for (const [jKey, jVal] of Object.entries(jobs)) {
+        if (!jVal || typeof jVal !== 'object') continue;
+        const jSteps = Array.isArray(jVal.steps) ? jVal.steps : [];
+        for (const s of jSteps) {
+          if (s && typeof s === 'object' && typeof s.uses === 'string' && s.uses.trim().startsWith('actions/checkout')) {
+            const refVal = normalizeExpr(s.with && typeof s.with === 'object' ? s.with.ref : '').replace(/"/g, "'");
+            if (refVal !== EXPECTED_CI_CALL_CHECKOUT_REF) {
+              errors.push(`ci.yml job '${jKey}' actions/checkout step must set 'with.ref' to "\${{ inputs.ref || '' }}".`);
+            }
+          }
+        }
+      }
+      const prBranches =
+        doc.on && typeof doc.on === 'object' && !Array.isArray(doc.on)
+          ? doc.on.pull_request?.branches
+          : null;
+      if (!Array.isArray(prBranches) || !prBranches.includes('main') || !prBranches.includes('src-*/epic/**')) {
+        errors.push("ci.yml 'on.pull_request.branches' must include 'main' and 'src-*/epic/**' so Wave Epic sub-issue PRs run CI.");
       }
 
       const concurrency = doc.concurrency;

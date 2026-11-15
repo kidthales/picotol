@@ -8,7 +8,12 @@ import path from "node:path";
 import YAML from "yaml";
 import { ASSET_ARCHIVE_PATTERN, parsePkZipEntries } from "../tools/package-assets.mjs";
 import { lintReleaseParity } from "../tools/lint.mjs";
-import { auditWorkflows, DEFAULT_MAX_TIMEOUT_MINUTES } from "../tools/check-workflows.mjs";
+import {
+  auditWorkflows,
+  DEFAULT_MAX_TIMEOUT_MINUTES,
+  REQUIRED_RELEASE_ATTEST_SUBJECTS,
+  SEMVER_RELEASE_TAG_REGEX,
+} from "../tools/check-workflows.mjs";
 import {
   BUNDLE_BUDGETS,
   EXPECTED_README_BADGE,
@@ -1822,6 +1827,342 @@ jobs:
       const errs = auditWorkflows(tempRoot);
       assert.ok(errs.some((e) => e.includes("release.yml attach-assets job must not grant unauthorized write permissions.")));
     });
+  });
+
+  test("release.yml and ci.yml enforce prerelease channel routing, tag-locked checkouts, 10-artifact attestations, and Epic PR CI (Issue #291)", (t) => {
+    const workflowDir = path.join(ROOT, ".github", "workflows");
+    const ciDoc = YAML.parse(fs.readFileSync(path.join(workflowDir, "ci.yml"), "utf8"));
+    const releaseDoc = YAML.parse(fs.readFileSync(path.join(workflowDir, "release.yml"), "utf8"));
+
+    // 1. Live ci.yml pull_request branch coverage for Wave Epics & reusable workflow_call ref input
+    assert.deepEqual(
+      ciDoc.on?.pull_request?.branches,
+      ["main", "src-*/epic/**"],
+      "ci.yml on.pull_request.branches must target main and src-*/epic/**"
+    );
+    assert.deepEqual(ciDoc.on?.push?.branches, ["main"], "ci.yml on.push.branches must target main");
+    const wfCallRef = ciDoc.on?.workflow_call?.inputs?.ref;
+    assert.equal(wfCallRef?.type, "string", "ci.yml workflow_call.inputs.ref must have type: string");
+    assert.equal(wfCallRef?.required, false, "ci.yml workflow_call.inputs.ref must have required: false");
+    for (const ciJobName of ["security", "verify"]) {
+      const ciCheckout = (ciDoc.jobs?.[ciJobName]?.steps || []).find(
+        (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/checkout@")
+      );
+      assert.ok(ciCheckout, `ci.yml job '${ciJobName}' must include actions/checkout`);
+      assert.equal(
+        String(ciCheckout.with?.ref || "").replace(/\s+/g, "").replace(/"/g, "'"),
+        "${{inputs.ref||''}}",
+        `ci.yml job '${ciJobName}' actions/checkout must bind with.ref to \${{ inputs.ref || '' }}`
+      );
+    }
+
+    // 2. Live release.yml workflow_dispatch.inputs.tag, verify with.ref, and checkout ref pinning
+    const dispatchTag = releaseDoc.on?.workflow_dispatch?.inputs?.tag;
+    assert.equal(dispatchTag?.type, "string", "release.yml workflow_dispatch.inputs.tag must have type: string");
+    assert.equal(dispatchTag?.required, false, "release.yml workflow_dispatch.inputs.tag must have required: false");
+
+    const expectedRefNorm = "${{github.event.release.tag_name||inputs.tag||github.ref}}";
+    assert.equal(
+      String(releaseDoc.jobs?.verify?.with?.ref || "").replace(/\s+/g, ""),
+      expectedRefNorm,
+      "release.yml verify reusable workflow call must pass with.ref pinned to target release tag"
+    );
+    for (const jobName of ["tag-guard", "publish-npm", "publish-gpr", "attach-assets"]) {
+      const steps = releaseDoc.jobs?.[jobName]?.steps || [];
+      const checkoutStep = steps.find(
+        (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/checkout@")
+      );
+      assert.ok(checkoutStep, `release.yml job '${jobName}' must include actions/checkout`);
+      assert.equal(
+        String(checkoutStep.with?.ref || "").replace(/\s+/g, ""),
+        expectedRefNorm,
+        `release.yml job '${jobName}' actions/checkout must pin ref to \${{ github.event.release.tag_name || inputs.tag || github.ref }}`
+      );
+    }
+
+    // 3. Live release.yml tag-guard SemVer pre-release guard, refs/tags commit check, and outputs.sha
+    const tagGuardJob = releaseDoc.jobs?.["tag-guard"];
+    assert.match(
+      String(tagGuardJob?.outputs?.sha || ""),
+      /outputs\.sha/,
+      "release.yml tag-guard must export verified commit sha output"
+    );
+    const tagGuardStep = (tagGuardJob?.steps || []).find((s) => typeof s?.run === "string");
+    assert.ok(tagGuardStep, "release.yml tag-guard must contain a run step");
+    assert.ok(
+      tagGuardStep.run.includes(SEMVER_RELEASE_TAG_REGEX),
+      "release.yml tag-guard must enforce strict SemVer pre-release regex"
+    );
+    assert.match(
+      tagGuardStep.run,
+      /refs\/tags\/\$\{?TAG\}?\^\{commit\}/,
+      "release.yml tag-guard must verify refs/tags/${TAG}^{commit} against HEAD"
+    );
+    assert.equal(
+      String(tagGuardStep.env?.RELEASE_TAG || "").replace(/\s+/g, ""),
+      "${{github.event.release.tag_name||inputs.tag}}",
+      "release.yml tag-guard must pass inputs.tag in RELEASE_TAG"
+    );
+    const notifyStep = (releaseDoc.jobs?.notify?.steps || []).find((s) => typeof s?.run === "string");
+    assert.equal(
+      String(notifyStep?.env?.SHA || "").replace(/\s+/g, ""),
+      "${{needs.tag-guard.outputs.sha||github.sha}}",
+      "release.yml notify must use verified tag-guard sha with github.sha fallback"
+    );
+
+    // 4. Live release.yml pre-release (--tag next) vs stable (--tag latest) routing
+    for (const pubJob of ["publish-npm", "publish-gpr"]) {
+      const pubStep = (releaseDoc.jobs?.[pubJob]?.steps || []).find(
+        (s) => typeof s?.run === "string" && s.run.includes("npm publish")
+      );
+      assert.ok(pubStep, `release.yml ${pubJob} must contain an npm publish step`);
+      assert.match(pubStep.run, /DIST_TAG="next"/, `release.yml ${pubJob} must route pre-releases to DIST_TAG="next"`);
+      assert.match(pubStep.run, /DIST_TAG="latest"/, `release.yml ${pubJob} must route stable releases to DIST_TAG="latest"`);
+      assert.match(pubStep.run, /npm publish[^\n]*--tag "\$DIST_TAG"/, `release.yml ${pubJob} must pass --tag "$DIST_TAG"`);
+    }
+
+    // 5. Live release.yml attach-assets clean-tree guard, TAG_NAME resolution, and 10-artifact attestation
+    const attachSteps = releaseDoc.jobs?.["attach-assets"]?.steps || [];
+    const cleanGuardStep = attachSteps.find(
+      (s) => typeof s?.run === "string" && s.run.includes("git status --porcelain")
+    );
+    assert.ok(cleanGuardStep, "release.yml attach-assets must verify post-build clean working tree");
+    const attestStep = attachSteps.find(
+      (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/attest@")
+    );
+    assert.ok(attestStep, "release.yml attach-assets must contain actions/attest step");
+    const subjectEntries = String(attestStep.with?.["subject-path"] || "").trim().split(/\s+/);
+    assert.deepEqual(
+      subjectEntries,
+      REQUIRED_RELEASE_ATTEST_SUBJECTS,
+      "release.yml actions/attest subject-path must cover all 10 generated release artifacts"
+    );
+    assert.deepEqual(auditWorkflows(ROOT), [], "auditWorkflows must pass cleanly on repository workflows");
+
+    // 6. Negative fixture tests for release.yml and ci.yml invariants
+    const withTempWorkflows = (filesObj, fn) => {
+      const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "picotol-wf291-"));
+      t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+      const wfDir = path.join(tempRoot, ".github", "workflows");
+      fs.mkdirSync(wfDir, { recursive: true });
+      for (const [name, content] of Object.entries(filesObj)) {
+        fs.writeFileSync(path.join(wfDir, name), content, "utf8");
+      }
+      return fn(tempRoot);
+    };
+
+    const baseReleaseYml = fs.readFileSync(path.join(workflowDir, "release.yml"), "utf8").replace(/\r\n/g, "\n");
+    const baseCiYml = fs.readFileSync(path.join(workflowDir, "ci.yml"), "utf8").replace(/\r\n/g, "\n");
+
+    // 6a. ci.yml missing 'src-*/epic/**' branch filter
+    withTempWorkflows(
+      { "ci.yml": baseCiYml.replace("branches: [main, 'src-*/epic/**']", "branches: [main]") },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("ci.yml 'on.pull_request.branches' must include 'main' and 'src-*/epic/**'")),
+          "Must reject ci.yml omitting src-*/epic/** in pull_request.branches"
+        );
+      }
+    );
+
+    // 6b. release.yml missing workflow_dispatch.inputs.tag
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml.replace(
+          /workflow_dispatch:[\s\S]*?type: string\r?\n/,
+          "workflow_dispatch:\n"
+        ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml must declare 'on.workflow_dispatch.inputs.tag'")),
+          "Must reject release.yml missing workflow_dispatch.inputs.tag"
+        );
+      }
+    );
+
+    // 6c. release.yml actions/checkout missing ref pin
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml.replace(
+          "          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}\n",
+          ""
+        ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("actions/checkout step must pin 'with.ref'")),
+          "Must reject release.yml checkout step missing ref pin"
+        );
+      }
+    );
+
+    // 6d. release.yml tag-guard missing SemVer regex check
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml.replace(
+          SEMVER_RELEASE_TAG_REGEX,
+          "^v.*$"
+        ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml tag-guard must enforce SemVer pre-release regex")),
+          "Must reject release.yml tag-guard weakening SemVer pre-release regex"
+        );
+      }
+    );
+
+    // 6e. release.yml publish-npm / publish-gpr missing --tag next routing
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml.replace(/--tag "\$DIST_TAG"/g, ""),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml publish-npm job must route SemVer pre-releases")),
+          "Must reject publish-npm omitting --tag \"$DIST_TAG\""
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml publish-gpr job must route SemVer pre-releases")),
+          "Must reject publish-gpr omitting --tag \"$DIST_TAG\""
+        );
+      }
+    );
+
+    // 6f. release.yml attach-assets missing clean-tree guard and omitting dist/picotol*.css from actions/attest
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replace('if ! test -z "$(git status --porcelain)"; then', "if false; then")
+          .replace("            dist/picotol*.css\n", ""),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml attach-assets job must verify a clean post-build working tree")),
+          "Must reject attach-assets missing git status --porcelain guard"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("with.subject-path' must include 'dist/picotol*.css'")),
+          "Must reject attach-assets actions/attest omitting dist/picotol*.css"
+        );
+      }
+    );
+
+    // 6g. release.yml notify missing TAG_NAME / inputs.tag resolution
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml.replace(
+          'TAG_NAME="${RELEASE_TAG:-$REF_NAME}"\n          if [ "$JOB_STATUS"',
+          'TAG_NAME="$REF_NAME"\n          if [ "$JOB_STATUS"'
+        ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml notify job must resolve TAG_NAME")),
+          "Must reject notify omitting TAG_NAME resolution from RELEASE_TAG"
+        );
+      }
+    );
+
+    // 6h. F-01: ci.yml missing workflow_call.inputs.ref / checkout ref, or release.yml verify omitting with.ref
+    withTempWorkflows(
+      {
+        "ci.yml": baseCiYml
+          .replace(
+            /workflow_call:[\s\S]*?type: string\r?\n/,
+            "workflow_call:\n"
+          )
+          .replace("          ref: ${{ inputs.ref || '' }}\n", ""),
+        "release.yml": baseReleaseYml.replace(
+          "    uses: $/.github/workflows/ci.yml\n    with:\n      ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}\n",
+          "    uses: $/.github/workflows/ci.yml\n"
+        ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("ci.yml must declare 'on.workflow_call.inputs.ref'")),
+          "Must reject ci.yml omitting workflow_call.inputs.ref"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("ci.yml job 'security' actions/checkout step must set 'with.ref'")),
+          "Must reject ci.yml checkout step omitting with.ref"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml verify job must pass 'with.ref'")),
+          "Must reject release.yml verify omitting with.ref"
+        );
+      }
+    );
+
+    // 6i. F-02: release.yml tag-guard omitting refs/tags commit verification / outputs.sha, or notify using caller github.sha
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replace("    outputs:\n      sha: ${{ steps.verify-tag.outputs.sha }}\n", "")
+          .replace('TAG_COMMIT=$(git rev-parse --verify --quiet "refs/tags/${TAG}^{commit}" || true)', 'TAG_COMMIT="skip"')
+          .replace('echo "sha=${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"', 'echo "skipped"')
+          .replace("SHA: ${{ needs.tag-guard.outputs.sha || github.sha }}", "SHA: ${{ github.sha }}"),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml tag-guard job must declare 'outputs.sha'")),
+          "Must reject tag-guard omitting outputs.sha"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("refs/tags/${TAG}^{commit}")),
+          "Must reject tag-guard omitting refs/tags commit check"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("export verified commit SHA to GITHUB_OUTPUT")),
+          "Must reject tag-guard omitting GITHUB_OUTPUT sha"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml notify job must pass 'SHA:")),
+          "Must reject notify reverting SHA to caller github.sha"
+        );
+      }
+    );
+
+    // 6j. F-03: notify omitting --arg tag "$TAG_NAME", cross-step env drift, and attach-assets step order violation
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replace('--arg tag "$TAG_NAME"', '--arg tag "$REF_NAME"')
+          .replace(
+            "      - name: Verify release tag matches package.json version\n        id: verify-tag\n        env:\n          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}\n          REF_NAME: ${{ github.ref_name }}\n",
+            "      - name: Wrong step env\n        env:\n          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}\n          REF_NAME: ${{ github.ref_name }}\n        run: echo 'noop'\n      - name: Verify release tag matches package.json version\n        id: verify-tag\n"
+          )
+          .replace(
+            "      - name: Build CSS bundles and generate standalone asset zip\n        run: npm run build\n\n      - name: Verify clean working tree post-build\n        run: |\n          if ! test -z \"$(git status --porcelain)\"; then\n            echo \"::error::Working tree is dirty after build:\"\n            git status --porcelain\n            exit 1\n          fi\n",
+            "      - name: Verify clean working tree post-build\n        run: |\n          if ! test -z \"$(git status --porcelain)\"; then\n            echo \"::error::Working tree is dirty after build:\"\n            git status --porcelain\n            exit 1\n          fi\n\n      - name: Build CSS bundles and generate standalone asset zip\n        run: npm run build\n"
+          ),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes('release.yml notify job must pass --arg tag "$TAG_NAME" to jq.')),
+          "Must reject notify dropping --arg tag \"$TAG_NAME\""
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml tag-guard step must pass 'RELEASE_TAG:")),
+          "Must reject RELEASE_TAG/REF_NAME env placed on a different step than the TAG resolver"
+        );
+        assert.ok(
+          errs.some((e) => e.includes("release.yml attach-assets steps must execute in order:")),
+          "Must reject attach-assets running git status --porcelain before npm run build"
+        );
+      }
+    );
   });
 });
 

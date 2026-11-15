@@ -938,7 +938,15 @@ jobs:
   withTempWorkflows({
     'release.yml': `
 name: Release
-on: [release]
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag"
+        required: false
+        type: string
 permissions:
   contents: read
 jobs:
@@ -947,19 +955,34 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+    outputs:
+      sha: \${{ steps.verify-tag.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
           persist-credentials: false
       - uses: $/.github/actions/local-action
-      - run: |
+      - id: verify-tag
+        env:
+          RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
+          REF_NAME: \${{ github.ref_name }}
+        run: |
           EXPECTED_TAG="v\${PKG_VER}"
           TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          SEMVER_TAG_RE='^v[0-9]+\\.[0-9]+\\.[0-9]+(-(alpha|beta|rc)\\.[1-9][0-9]*)?$'
           if [ -z "$TAG" ]; then exit 1; fi
+          if [[ ! "$TAG" =~ $SEMVER_TAG_RE ]]; then exit 1; fi
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+          TAG_COMMIT=$(git rev-parse --verify --quiet "refs/tags/\${TAG}^{commit}" || true)
+          HEAD_COMMIT=$(git rev-parse HEAD)
+          if [ -z "$TAG_COMMIT" ] || [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then exit 1; fi
+          echo "sha=\${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"
   verify:
     needs: [tag-guard]
     uses: $/.github/workflows/ci.yml
+    with:
+      ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
     permissions:
       contents: read
       security-events: write
@@ -970,7 +993,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
           persist-credentials: false
+      - run: |
+          if [[ "$PKG_VER" == *-* ]]; then
+            DIST_TAG="next"
+          else
+            DIST_TAG="latest"
+          fi
+          npm publish --provenance --access public --tag "$DIST_TAG"
   publish-gpr:
     needs: [verify]
     runs-on: ubuntu-latest
@@ -978,7 +1009,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
           persist-credentials: false
+      - run: |
+          if [[ "$PKG_VER" == *-* ]]; then
+            DIST_TAG="next"
+          else
+            DIST_TAG="latest"
+          fi
+          npm publish --registry=https://npm.pkg.github.com/ --tag "$DIST_TAG"
   attach-assets:
     needs: [verify]
     runs-on: ubuntu-latest
@@ -990,16 +1029,39 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
           persist-credentials: false
+      - run: npm run build
+      - run: |
+          if ! test -z "$(git status --porcelain)"; then
+            exit 1
+          fi
       - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
         with:
-          subject-path: "dist/manifest.json"
+          subject-path: |
+            dist/picotol*.css
+            dist/assets/picotol-v*.zip
+            dist/SHA256SUMS.txt
+            dist/manifest.json
+            dist/sri.json
+      - env:
+          RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
+          REF_NAME: \${{ github.ref_name }}
+        run: |
+          TAG_NAME="\${RELEASE_TAG:-\$REF_NAME}"
+          gh release upload "$TAG_NAME" dist/manifest.json --clobber
   notify:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - env:
           ASSETS_STATUS: \${{ needs.attach-assets.result == 'skipped' && 'skipped' || 'ok' }}
+          RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
+          REF_NAME: \${{ github.ref_name }}
+          SHA: \${{ needs.tag-guard.outputs.sha || github.sha }}
+        run: |
+          TAG_NAME="\${RELEASE_TAG:-\$REF_NAME}"
+          jq -n --arg tag "$TAG_NAME" '{tag: $tag}'
 `,
     'pages.yml': `
 name: Pages
