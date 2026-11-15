@@ -18,6 +18,10 @@ import {
   REVERSE_DOC_ALLOWLIST,
   extractCssClassesFromSource,
   findUndocumentedCssClasses,
+  CANONICAL_SRON_URL,
+  findStaleSronUrls,
+  extractMarkdownBadgeTargets,
+  validateDocBadgeTargets,
 } from './helpers/doc-lint.mjs';
 
 const REMOVED_LEGACY_CLASSES = new Set([
@@ -625,5 +629,61 @@ test('doc-lint: reject nested or corrupted code fence openers within markdown co
     () => extractTokenOccurrencesFromMarkdown(corruptedMd),
     /Nested or unclosed fenced code block opener detected/
   );
+});
+
+test('doc-lint: guard against stale SRON URLs and broken README badge targets (Issue #292)', () => {
+  // 1. Zero stale personal.sron.nl URLs across active attribution manifests and docs
+  const docFiles = fs
+    .readdirSync(path.join(ROOT, 'docs'))
+    .filter((f) => f.endsWith('.md'))
+    .sort()
+    .map((f) => `docs/${f}`);
+  const activeFiles = ['NOTICE', 'CITATION.cff', 'README.md', 'CHANGELOG.md', 'package.json', ...docFiles];
+
+  const staleErrors = [];
+  for (const relPath of activeFiles) {
+    const content = fs.readFileSync(path.join(ROOT, relPath), 'utf8');
+    staleErrors.push(...findStaleSronUrls(content, relPath));
+  }
+  assert.deepEqual(staleErrors, [], `Stale SRON URLs found:\n  • ${staleErrors.join('\n  • ')}`);
+
+  // 2. Canonical relocated SRON URL is present in primary attribution files
+  for (const relPath of ['NOTICE', 'CITATION.cff', 'README.md']) {
+    const content = fs.readFileSync(path.join(ROOT, relPath), 'utf8');
+    assert.ok(
+      content.includes(CANONICAL_SRON_URL),
+      `Expected ${relPath} to reference canonical SRON URL ${CANONICAL_SRON_URL}`
+    );
+  }
+
+  // 3. Negative test: stale personal.sron.nl URLs fail closed
+  const staleFixture = [
+    'Primary: https://personal.sron.nl/~pault/',
+    'Script: http://personal.sron.nl/~pault/data/tol_colors.py',
+  ].join('\n');
+  const detectedStale = findStaleSronUrls(staleFixture, 'fixture.md');
+  assert.equal(detectedStale.length, 2, 'Both http and https stale personal.sron.nl URLs must be flagged');
+  assert.ok(detectedStale[0].includes('https://personal.sron.nl/~pault/'));
+  assert.ok(detectedStale[1].includes('http://personal.sron.nl/~pault/data/tol_colors.py'));
+
+  // 4. README.md badge links resolve to valid local files inside repository root
+  const readmeContent = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const badges = extractMarkdownBadgeTargets(readmeContent);
+  assert.ok(badges.length >= 6, 'README.md must contain expected status badges');
+  assert.deepEqual(
+    validateDocBadgeTargets(readmeContent, ROOT, 'README.md'),
+    [],
+    'All local README.md badge targets must resolve to existing files'
+  );
+
+  // 5. Negative tests: broken or escaping badge targets fail closed
+  const brokenBadgeMd = [
+    '[![WCAG 2.2 AA / AAA](https://img.shields.io/badge/WCAG%202.2-AA%20%2F%20AAA-88CCEE.svg)](tests/picotol.test.mjs)',
+    '[![Escape](https://img.shields.io/badge/escape-test-4477AA.svg)](../outside.txt)',
+  ].join('\n');
+  const brokenBadgeErrors = validateDocBadgeTargets(brokenBadgeMd, ROOT, 'README.md');
+  assert.equal(brokenBadgeErrors.length, 2, 'Broken and escaping badge targets must both be flagged');
+  assert.ok(brokenBadgeErrors[0].includes('tests/picotol.test.mjs'));
+  assert.ok(brokenBadgeErrors[1].includes('escapes repository root'));
 });
 

@@ -1,6 +1,9 @@
 // Markdown token extraction and CSS selector/custom-property existence helpers for tests/doc-lint.test.mjs.
+import fs from 'node:fs';
+import path from 'node:path';
 import { transform, Features } from 'lightningcss';
 import { stripCssCommentsAndStrings, stripNotPseudoClasses, extractClassesFromAst } from '../../tools/lint.mjs';
+import { isSameOrSubpath } from '../../tools/path-jail.mjs';
 
 export function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -404,4 +407,58 @@ export function findUndocumentedCssClasses(cssContent, docContent, allowlist = R
   undocumented.sort();
   return undocumented;
 }
+
+export const CANONICAL_SRON_URL = 'https://sronpersonalpages.nl/~pault/';
+export const STALE_SRON_URL_RE = /(?:https?:\/\/)?personal\.sron\.nl(?:\/[^\s"'`>)]*)?/gi;
+
+export function findStaleSronUrls(content, file = '') {
+  const errors = [];
+  const lines = content.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    STALE_SRON_URL_RE.lastIndex = 0;
+    let match;
+    while ((match = STALE_SRON_URL_RE.exec(lines[i])) !== null) {
+      const prefix = file ? `[${file}:${i + 1}] ` : `[line ${i + 1}] `;
+      errors.push(`${prefix}Stale SRON URL found: "${match[0]}" (use ${CANONICAL_SRON_URL})`);
+    }
+  }
+  return errors;
+}
+
+export function extractMarkdownBadgeTargets(content) {
+  const badgeRe = /\[!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+  const badges = [];
+  let match;
+  while ((match = badgeRe.exec(content)) !== null) {
+    badges.push({
+      alt: match[1],
+      imageUrl: match[2],
+      target: match[3],
+    });
+  }
+  return badges;
+}
+
+export function validateDocBadgeTargets(content, rootDir, file = 'README.md') {
+  const errors = [];
+  const badges = extractMarkdownBadgeTargets(content);
+  for (const badge of badges) {
+    const { target } = badge;
+    if (/^(?:https?:|mailto:)/i.test(target) || target.startsWith('#')) {
+      continue;
+    }
+    const relPath = target.split(/[?#]/)[0];
+    if (!relPath) continue;
+    const absPath = path.resolve(rootDir, relPath);
+    if (!isSameOrSubpath(absPath, rootDir)) {
+      errors.push(`[${file}] Badge "${badge.alt}" target "${target}" escapes repository root`);
+      continue;
+    }
+    if (!fs.existsSync(absPath) || !fs.statSync(absPath).isFile()) {
+      errors.push(`[${file}] Badge "${badge.alt}" points to missing local target "${target}"`);
+    }
+  }
+  return errors;
+}
+
 
