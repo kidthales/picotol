@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -2162,6 +2162,483 @@ jobs:
           "Must reject attach-assets running git status --porcelain before npm run build"
         );
       }
+    );
+  });
+
+  test("auditWorkflows enforces publish-npm tokenless OIDC invariants (positive and negative) (Issue #242)", (t) => {
+    const buildReleaseOidcFixture = ({
+      workflowEnv = "",
+      omitPublishNpm = false,
+      jobPermissions = "      contents: read\n      id-token: write\n",
+      jobEnvironment = "    environment:\n      name: npm\n      url: https://www.npmjs.com/package/@kidthales/picotol\n",
+      jobEnv = "",
+      includeSetupNode = true,
+      nodeVersion = "'>=24.5.0 <25'",
+      stepEnv = "",
+      publishRun = 'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+    } = {}) => {
+      const setupNodeBlock = includeSetupNode
+        ? `      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: ${nodeVersion}
+          package-manager-cache: false
+          registry-url: "https://registry.npmjs.org"
+`
+        : "";
+      const publishNpmBlock = omitPublishNpm
+        ? ""
+        : `  publish-npm:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+${jobPermissions}${jobEnvironment}${jobEnv}    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          persist-credentials: false
+${setupNodeBlock}      - name: Publish to npm (Idempotent with Provenance)
+${stepEnv}        run: |
+          ${publishRun}
+`;
+
+      return `name: Release
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag"
+        required: false
+        type: string
+permissions:
+  contents: read
+${workflowEnv}jobs:
+  tag-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      sha: \${{ steps.verify-tag.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - id: verify-tag
+        env:
+          RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
+          REF_NAME: \${{ github.ref_name }}
+        run: |
+          EXPECTED_TAG="v\${PKG_VER}"
+          TAG="\${RELEASE_TAG:-\$REF_NAME}"
+          SEMVER_TAG_RE='${SEMVER_RELEASE_TAG_REGEX}'
+          if [ -z "$TAG" ]; then exit 1; fi
+          if [[ ! "$TAG" =~ $SEMVER_TAG_RE ]]; then exit 1; fi
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
+          TAG_COMMIT=$(git rev-parse --verify --quiet "refs/tags/\${TAG}^{commit}" || true)
+          HEAD_COMMIT=$(git rev-parse HEAD)
+          if [ -z "$TAG_COMMIT" ] || [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then exit 1; fi
+          echo "sha=\${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"
+  verify:
+    needs: [tag-guard]
+    uses: $/.github/workflows/ci.yml
+    with:
+      ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+    permissions:
+      contents: read
+      security-events: write
+${publishNpmBlock}  publish-gpr:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: |
+          if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi
+          npm publish --registry=https://npm.pkg.github.com/ --tag "$DIST_TAG"
+  attach-assets:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: npm run build
+      - run: |
+          if ! test -z "$(git status --porcelain)"; then
+            exit 1
+          fi
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: |
+            dist/picotol*.css
+            dist/assets/picotol-v*.zip
+            dist/SHA256SUMS.txt
+            dist/manifest.json
+            dist/sri.json
+          create-storage-record: false
+      - env:
+          RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
+          REF_NAME: \${{ github.ref_name }}
+        run: |
+          TAG_NAME="\${RELEASE_TAG:-\$REF_NAME}"
+          gh release upload "$TAG_NAME" dist/manifest.json --clobber
+  notify:
+    needs: [tag-guard, verify, publish-npm, publish-gpr, attach-assets]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          ASSETS_STATUS: \${{ needs.attach-assets.result || 'skipped' }}
+          RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
+          REF_NAME: \${{ github.ref_name }}
+          SHA: \${{ needs.tag-guard.outputs.sha || github.sha }}
+        run: |
+          TAG_NAME="\${RELEASE_TAG:-\$REF_NAME}"
+          jq -n --arg tag "$TAG_NAME" '{tag: $tag}'
+`;
+    };
+
+    const withReleaseFixture = (opts, fn) => {
+      const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "picotol-oidc-"));
+      t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+      const wfDir = path.join(tempRoot, ".github", "workflows");
+      fs.mkdirSync(wfDir, { recursive: true });
+      fs.writeFileSync(path.join(wfDir, "release.yml"), buildReleaseOidcFixture(opts), "utf8");
+      return fn(tempRoot);
+    };
+
+    // Positive baseline: compliant tokenless OIDC publish-npm fixture passes Gate 0
+    withReleaseFixture({}, (tempRoot) => {
+      const errs = auditWorkflows(tempRoot);
+      assert.deepEqual(errs, [], `Expected valid OIDC publish-npm fixture to pass, got: ${errs.join("; ")}`);
+    });
+
+    // Negative cases: missing job, permissions, environment, node-version, forbidden tokens, ad-hoc npm install
+    const negativeCases = [
+      {
+        name: "missing publish-npm job",
+        opts: { omitPublishNpm: true },
+        expected: "release.yml publish-npm job must exist.",
+      },
+      {
+        name: "missing id-token: write permission",
+        opts: { jobPermissions: "      contents: read\n" },
+        expected: "exact permissions { contents: read, id-token: write }",
+      },
+      {
+        name: "extra contents: write permission on publish-npm",
+        opts: { jobPermissions: "      contents: write\n      id-token: write\n" },
+        expected: "exact permissions { contents: read, id-token: write }",
+      },
+      {
+        name: "missing environment block",
+        opts: { jobEnvironment: "" },
+        expected: "must declare environment 'npm'",
+      },
+      {
+        name: "non-npm environment name",
+        opts: { jobEnvironment: "    environment:\n      name: staging\n" },
+        expected: "must declare environment 'npm'",
+      },
+      {
+        name: "wrong setup-node node-version (22 instead of >=24.5.0 <25)",
+        opts: { nodeVersion: 22 },
+        expected: "must set node-version: '>=24.5.0 <25'",
+      },
+      {
+        name: "bare setup-node node-version (24 allows <24.5.0 with npm <11.5.1)",
+        opts: { nodeVersion: 24 },
+        expected: "must set node-version: '>=24.5.0 <25'",
+      },
+      {
+        name: "missing actions/setup-node step",
+        opts: { includeSetupNode: false },
+        expected: "must include actions/setup-node with node-version: '>=24.5.0 <25'",
+      },
+      {
+        name: "step-level NODE_AUTH_TOKEN env binding",
+        opts: { stepEnv: "        env:\n          NODE_AUTH_TOKEN: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'NODE_AUTH_TOKEN'",
+      },
+      {
+        name: "job-level NPM_TOKEN env binding",
+        opts: { jobEnv: "    env:\n      NPM_TOKEN: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'NPM_TOKEN'",
+      },
+      {
+        name: "workflow-level NPM_TOKEN env binding",
+        opts: { workflowEnv: "env:\n  NPM_TOKEN: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'NPM_TOKEN'",
+      },
+      {
+        name: "step-level NPM_CONFIG__AUTHTOKEN env binding",
+        opts: { stepEnv: "        env:\n          NPM_CONFIG__AUTHTOKEN: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'NPM_CONFIG__AUTHTOKEN'",
+      },
+      {
+        name: "step-level lowercase npm_config__authtoken env binding",
+        opts: { stepEnv: "        env:\n          npm_config__authtoken: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'npm_config__authtoken'",
+      },
+      {
+        name: "step-level scoped NPM_CONFIG_REGISTRY_AUTHTOKEN env binding",
+        opts: { stepEnv: "        env:\n          NPM_CONFIG_REGISTRY_AUTHTOKEN: \${{ secrets.NPM_TOKEN }}\n" },
+        expected: "must not bind forbidden env 'NPM_CONFIG_REGISTRY_AUTHTOKEN'",
+      },
+      {
+        name: "inline run script NODE_AUTH_TOKEN assignment",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          NODE_AUTH_TOKEN="" npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference NODE_AUTH_TOKEN or NPM_TOKEN",
+      },
+      {
+        name: "inline run script NODE_AUTH_TOKEN via GITHUB_ENV",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          echo "NODE_AUTH_TOKEN=tok" >> "$GITHUB_ENV"\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference NODE_AUTH_TOKEN or NPM_TOKEN",
+      },
+      {
+        name: "inline run script NPM_CONFIG__AUTHTOKEN assignment",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          NPM_CONFIG__AUTHTOKEN="tok" npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference NPM_CONFIG__AUTHTOKEN",
+      },
+      {
+        name: "inline run script --_authToken= CLI flag",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm publish --_authToken="tok" --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference _authToken",
+      },
+      {
+        name: "inline run script registry-scoped --_authToken= CLI flag",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm publish --//registry.npmjs.org/:_authToken="tok" --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference _authToken",
+      },
+      {
+        name: "inline run script npm config set _authToken",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm config set //registry.npmjs.org/:_authToken tok\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference _authToken",
+      },
+      {
+        name: "inline run script .npmrc _authToken append",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          echo "//registry.npmjs.org/:_authToken=tok" >> .npmrc\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not reference _authToken",
+      },
+      {
+        name: "inline run script ad-hoc npm install outside lockfile",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm install -g npm@11.21.2\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not run ad-hoc 'npm install'",
+      },
+    ];
+
+    for (const tc of negativeCases) {
+      withReleaseFixture(tc.opts, (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(errs.length > 0, `Expected negative case "${tc.name}" to fail Gate 0`);
+        assert.ok(
+          errs.some((e) => e.includes(tc.expected)),
+          `Expected "${tc.name}" violation to include "${tc.expected}", got: ${errs.join("; ")}`
+        );
+      });
+    }
+  });
+
+  test("release.yml publish-npm uses tokenless OIDC trusted publishing and fail-closed npm >= 11.5.1 guard without ad-hoc installs (Issue #242)", () => {
+    const releaseDoc = YAML.parse(
+      fs.readFileSync(path.join(ROOT, ".github", "workflows", "release.yml"), "utf8")
+    );
+
+    assert.equal(Object.hasOwn(releaseDoc?.env || {}, "NODE_AUTH_TOKEN"), false);
+    assert.equal(Object.hasOwn(releaseDoc?.env || {}, "NPM_TOKEN"), false);
+
+    const pubNpm = releaseDoc?.jobs?.["publish-npm"];
+    assert.ok(pubNpm, "Expected publish-npm job in release.yml");
+    assert.deepEqual(pubNpm.permissions, { contents: "read", "id-token": "write" });
+    assert.deepEqual(pubNpm.environment, {
+      name: "npm",
+      url: "https://www.npmjs.com/package/@kidthales/picotol",
+    });
+    assert.equal(Object.hasOwn(pubNpm.env || {}, "NODE_AUTH_TOKEN"), false);
+    assert.equal(Object.hasOwn(pubNpm.env || {}, "NPM_TOKEN"), false);
+
+    const steps = pubNpm.steps || [];
+    const setupNode = steps.find(
+      (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/setup-node@")
+    );
+    assert.ok(setupNode, "Expected actions/setup-node step in publish-npm");
+    assert.equal(setupNode.with?.["node-version"], ">=24.5.0 <25");
+    assert.equal(setupNode.with?.["registry-url"], "https://registry.npmjs.org");
+    assert.equal(setupNode.with?.["package-manager-cache"], false);
+
+    for (const step of steps) {
+      assert.equal(Object.hasOwn(step.env || {}, "NODE_AUTH_TOKEN"), false);
+      assert.equal(Object.hasOwn(step.env || {}, "NPM_TOKEN"), false);
+      if (typeof step.run === "string") {
+        assert.equal(/\b(?:NODE_AUTH_TOKEN|NPM_TOKEN)\b/.test(step.run), false);
+        assert.equal(/\bNPM_CONFIG_(?:[A-Z0-9_]*_)?_AUTHTOKEN\b/i.test(step.run), false);
+        assert.equal(/_authToken/i.test(step.run), false);
+        assert.equal(/\bnpm\s+(?:install|i|add)\b/.test(step.run), false);
+      }
+    }
+
+    const pubStep = steps.find((s) => s.name === "Publish to npm (Idempotent with Provenance)");
+    assert.ok(pubStep, "Expected Publish to npm (Idempotent with Provenance) step");
+    assert.match(pubStep.run, /npm publish --provenance --access public --tag "\$DIST_TAG"/);
+
+    const guardMatch = pubStep.run.match(/is_valid_npm\(\)\s*\{\s*node -e '([^']+)' "\$1"\s*\}/);
+    assert.ok(guardMatch, "Expected fail-closed inline node -e npm >= 11.5.1 guard in is_valid_npm()");
+    const guardScript = guardMatch[1];
+
+    for (const validVer of ["11.5.1", "11.5.1+build.1", "11.5.2-rc.0", "11.5.2", "11.6.0", "12.0.0"]) {
+      const res = spawnSync(process.execPath, ["-e", guardScript, validVer], { encoding: "utf8" });
+      assert.equal(res.status, 0, `Expected npm version ${validVer} to pass OIDC version guard`);
+    }
+    for (const invalidVer of [
+      "11.5.1-rc.0",
+      "11.5.1-0",
+      "11.5.1foo",
+      "11.5.1.0",
+      "11.5.0",
+      "11.4.9",
+      "10.9.2",
+      "0.0.0",
+      "not-a-semver",
+      "",
+    ]) {
+      const res = spawnSync(process.execPath, ["-e", guardScript, invalidVer], { encoding: "utf8" });
+      assert.notEqual(res.status, 0, `Expected npm version "${invalidVer}" to fail OIDC version guard`);
+    }
+  });
+
+  test(".github/zizmor.yml scopes use-trusted-publishing strictly to publish-gpr npm publish line without drift (Issue #242)", () => {
+    const zizmorPath = path.join(ROOT, ".github", "zizmor.yml");
+    assert.equal(fs.existsSync(zizmorPath), true, "Expected .github/zizmor.yml to exist");
+
+    const verifyZizmorLineSync = (zizmorRaw, releaseRaw) => {
+      const zizmorDoc = YAML.parse(zizmorRaw);
+      const trustedIgnore = zizmorDoc?.rules?.["use-trusted-publishing"]?.ignore;
+      assert.ok(
+        Array.isArray(trustedIgnore),
+        "Expected rules.use-trusted-publishing.ignore array in .github/zizmor.yml"
+      );
+      assert.equal(
+        trustedIgnore.length,
+        1,
+        "Expected use-trusted-publishing ignore to pin strictly 1 line in release.yml"
+      );
+
+      const linePinMatch = String(trustedIgnore[0]).match(/^release\.yml:(\d+)$/);
+      assert.ok(linePinMatch, `Expected release.yml:<line> entry, got: ${trustedIgnore[0]}`);
+      const pinnedLineNum = Number(linePinMatch[1]);
+
+      assert.equal(
+        releaseRaw.includes("# zizmor: ignore"),
+        false,
+        "release.yml must not contain inline # zizmor: ignore comments"
+      );
+
+      const releaseLines = releaseRaw.split(/\r?\n/);
+      assert.ok(
+        pinnedLineNum >= 1 && pinnedLineNum <= releaseLines.length,
+        `Pinned line ${pinnedLineNum} out of range`
+      );
+
+      const publishGprStart = releaseLines.findIndex((l) => /^\s{2}publish-gpr:\s*$/.test(l)) + 1;
+      const attachAssetsStart = releaseLines.findIndex((l) => /^\s{2}attach-assets:\s*$/.test(l)) + 1;
+      assert.ok(
+        publishGprStart > 0 && attachAssetsStart > publishGprStart,
+        "Expected publish-gpr before attach-assets in release.yml"
+      );
+
+      const gprPublishOffset = releaseLines
+        .slice(publishGprStart - 1, attachAssetsStart - 1)
+        .findIndex((l) => /^\s*npm publish\b.*--registry=https:\/\/npm\.pkg\.github\.com\//.test(l));
+      assert.ok(
+        gprPublishOffset >= 0,
+        "Expected npm publish --registry=https://npm.pkg.github.com/ inside publish-gpr"
+      );
+      const actualGprPublishLine = publishGprStart + gprPublishOffset;
+
+      assert.equal(
+        pinnedLineNum,
+        actualGprPublishLine,
+        `zizmor line pin drifted: .github/zizmor.yml pins release.yml:${pinnedLineNum}, but publish-gpr's npm publish is at release.yml:${actualGprPublishLine}. Update .github/zizmor.yml to release.yml:${actualGprPublishLine}.`
+      );
+    };
+
+    const liveZizmor = fs.readFileSync(zizmorPath, "utf8");
+    const liveRelease = fs.readFileSync(path.join(ROOT, ".github", "workflows", "release.yml"), "utf8");
+    verifyZizmorLineSync(liveZizmor, liveRelease);
+
+    // Negative line-drift regression checks
+    assert.throws(
+      () => verifyZizmorLineSync(liveZizmor, `\n${liveRelease}`),
+      /zizmor line pin drifted/,
+      "Inserting a line above publish-gpr must trigger zizmor line-drift failure"
+    );
+    assert.throws(
+      () => verifyZizmorLineSync(liveZizmor, liveRelease.replace("npm publish --registry=https://npm.pkg.github.com/", "# removed")),
+      /Expected npm publish --registry=https:\/\/npm\.pkg\.github\.com\/ inside publish-gpr/,
+      "Removing publish-gpr npm publish command must fail"
+    );
+    assert.throws(
+      () =>
+        verifyZizmorLineSync(
+          "rules:\n  use-trusted-publishing:\n    ignore:\n      - release.yml:134\n      - release.yml:179\n",
+          liveRelease
+        ),
+      /pin strictly 1 line/,
+      "Adding a second use-trusted-publishing ignore entry (e.g. for publish-npm) must fail"
     );
   });
 });
