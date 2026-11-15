@@ -10,6 +10,33 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
 export const DEFAULT_MAX_TIMEOUT_MINUTES = 30;
+export const SEMVER_RELEASE_TAG_REGEX = '^v[0-9]+\\.[0-9]+\\.[0-9]+(-(alpha|beta|rc)\\.[1-9][0-9]*)?$';
+export const REQUIRED_RELEASE_ATTEST_SUBJECTS = [
+  'dist/picotol*.css',
+  'dist/assets/picotol-v*.zip',
+  'dist/SHA256SUMS.txt',
+  'dist/manifest.json',
+  'dist/sri.json',
+];
+
+const EXPECTED_RELEASE_CHECKOUT_REF = '${{github.event.release.tag_name||inputs.tag||github.ref}}';
+const EXPECTED_RELEASE_TAG_ENV = '${{github.event.release.tag_name||inputs.tag}}';
+const EXPECTED_REF_NAME_ENV = '${{github.ref_name}}';
+
+function normalizeExpr(value) {
+  return typeof value === 'string' ? value.replace(/\s+/g, '') : '';
+}
+
+function hasReleaseTagEnv(steps) {
+  return steps.some(
+    (s) =>
+      s &&
+      typeof s === 'object' &&
+      s.env &&
+      normalizeExpr(s.env.RELEASE_TAG) === EXPECTED_RELEASE_TAG_ENV &&
+      normalizeExpr(s.env.REF_NAME) === EXPECTED_REF_NAME_ENV
+  );
+}
 
 const FORBIDDEN_RUN_PATTERN = /\b(npm\s+(test|t|tst|run\s+test|run\s+lint|run\s+check:budgets|pack)|node\s+--test)\b/;
 
@@ -231,6 +258,27 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
 
     // 3. Workflow-specific architectural contracts
     if (file === 'release.yml') {
+      const dispatchTag =
+        doc.on && typeof doc.on === 'object' && !Array.isArray(doc.on)
+          ? doc.on.workflow_dispatch?.inputs?.tag
+          : null;
+      if (!dispatchTag || typeof dispatchTag !== 'object' || dispatchTag.type !== 'string' || dispatchTag.required !== false) {
+        errors.push("release.yml must declare 'on.workflow_dispatch.inputs.tag' with 'type: string' and 'required: false'.");
+      }
+
+      for (const [jobKey, job] of Object.entries(jobs)) {
+        if (!job || typeof job !== 'object') continue;
+        const jobSteps = Array.isArray(job.steps) ? job.steps : [];
+        for (const s of jobSteps) {
+          if (s && typeof s === 'object' && typeof s.uses === 'string' && s.uses.trim().startsWith('actions/checkout')) {
+            const refVal = normalizeExpr(s.with && typeof s.with === 'object' ? s.with.ref : '');
+            if (refVal !== EXPECTED_RELEASE_CHECKOUT_REF) {
+              errors.push(`release.yml job '${jobKey}' actions/checkout step must pin 'with.ref' to '\${{ github.event.release.tag_name || inputs.tag || github.ref }}'.`);
+            }
+          }
+        }
+      }
+
       const verifyJob = jobs.verify;
       const validCiUses = ['./.github/workflows/ci.yml', '$/.github/workflows/ci.yml'];
       if (!verifyJob || typeof verifyJob !== 'object' || !validCiUses.includes(verifyJob.uses)) {
@@ -268,6 +316,15 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
         }
         if (!/if\s*\[\s*"\$TAG"\s*!=\s*"\$EXPECTED_TAG"\s*\];\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(tgScript)) {
           errors.push('release.yml tag-guard must fail closed (exit 1) inside the tag-mismatch branch.');
+        }
+        if (!tgScript.includes(SEMVER_RELEASE_TAG_REGEX)) {
+          errors.push(`release.yml tag-guard must enforce SemVer pre-release regex '${SEMVER_RELEASE_TAG_REGEX}'.`);
+        }
+        if (!/if\s*\[\[\s*!\s*"\$TAG"\s*=~\s*\$SEMVER_TAG_RE\s*\]\];\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(tgScript)) {
+          errors.push('release.yml tag-guard must fail closed (exit 1) inside the SemVer regex mismatch branch.');
+        }
+        if (!hasReleaseTagEnv(tgSteps)) {
+          errors.push("release.yml tag-guard step must pass 'RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}' and 'REF_NAME: \${{ github.ref_name }}'.");
         }
         for (const s of tgSteps) {
           if (!s || typeof s !== 'object') continue;
@@ -310,6 +367,15 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
               }
             }
           }
+          if (pubJob === 'publish-npm' || pubJob === 'publish-gpr') {
+            const pubScript = jSteps.map((s) => (s && typeof s === 'object' && typeof s.run === 'string' ? s.run : '')).join('\n');
+            const hasDistTagSwitch =
+              /if\s*\[\[\s*"\$PKG_VER"\s*==\s*\*-\*\s*\]\];\s*then(?:(?!\belse\b)[\s\S])*?DIST_TAG="next"(?:(?!\bfi\b)[\s\S])*?\belse\b(?:(?!\bfi\b)[\s\S])*?DIST_TAG="latest"(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(pubScript);
+            const hasPublishDistTag = /\bnpm\s+publish\b[^\n]*--tag\s+"\$DIST_TAG"/.test(pubScript);
+            if (!hasDistTagSwitch || !hasPublishDistTag) {
+              errors.push(`release.yml ${pubJob} job must route SemVer pre-releases (*-*) to '--tag next' and stable releases to '--tag latest' via DIST_TAG.`);
+            }
+          }
         }
       }
 
@@ -325,6 +391,19 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
           }
         }
         const attachSteps = Array.isArray(attachJob.steps) ? attachJob.steps : [];
+        const attachScript = attachSteps.map((s) => (s && typeof s === 'object' && typeof s.run === 'string' ? s.run : '')).join('\n');
+        if (
+          !/if\s*!\s*test\s+-z\s+"\$\(git status --porcelain\)";\s*then(?:(?!\bfi\b)[\s\S])*?\bexit\s+1\b(?:(?!\bfi\b)[\s\S])*?\bfi\b/.test(attachScript)
+        ) {
+          errors.push('release.yml attach-assets job must verify a clean post-build working tree (test -z "$(git status --porcelain)" with fail-closed exit 1).');
+        }
+        if (
+          !hasReleaseTagEnv(attachSteps) ||
+          !attachScript.includes('TAG_NAME="${RELEASE_TAG:-$REF_NAME}"') ||
+          !/gh\s+release\s+upload\s+"\$TAG_NAME"/.test(attachScript)
+        ) {
+          errors.push('release.yml attach-assets job must resolve TAG_NAME="${RELEASE_TAG:-$REF_NAME}" from RELEASE_TAG (including inputs.tag) and upload to "$TAG_NAME".');
+        }
         const attestStep = attachSteps.find(
           (s) => s && typeof s === 'object' && typeof s.uses === 'string' && (s.uses.startsWith('actions/attest@') || s.uses === 'actions/attest')
         );
@@ -334,6 +413,13 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
           const subjectPath = attestStep.with && attestStep.with['subject-path'];
           if (typeof subjectPath !== 'string' || subjectPath.trim().length === 0) {
             errors.push("release.yml attach-assets actions/attest step must declare a non-empty 'with.subject-path'.");
+          } else {
+            const subjectEntries = subjectPath.trim().split(/\s+/);
+            for (const reqSubject of REQUIRED_RELEASE_ATTEST_SUBJECTS) {
+              if (!subjectEntries.includes(reqSubject)) {
+                errors.push(`release.yml attach-assets actions/attest step 'with.subject-path' must include '${reqSubject}'.`);
+              }
+            }
           }
         }
       }
@@ -345,11 +431,15 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
           errors.push('release.yml notify job must not grant write permissions.');
         }
         const notifySteps = Array.isArray(notifyJob.steps) ? notifyJob.steps : [];
+        const notifyScript = notifySteps.map((s) => (s && typeof s === 'object' && typeof s.run === 'string' ? s.run : '')).join('\n');
         const hasSkippedCheck = notifySteps.some(
           (s) => s && typeof s === 'object' && s.env && typeof s.env.ASSETS_STATUS === 'string' && s.env.ASSETS_STATUS.includes('attach-assets.result') && s.env.ASSETS_STATUS.includes('skipped')
         );
         if (!hasSkippedCheck) {
           errors.push('release.yml notify job must report skipped status when attach-assets is skipped.');
+        }
+        if (!hasReleaseTagEnv(notifySteps) || !notifyScript.includes('TAG_NAME="${RELEASE_TAG:-$REF_NAME}"')) {
+          errors.push('release.yml notify job must resolve TAG_NAME="${RELEASE_TAG:-$REF_NAME}" from RELEASE_TAG (including inputs.tag).');
         }
       }
     }
@@ -416,6 +506,13 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
       }
       if (!doc.on || !Object.hasOwn(doc.on, 'workflow_call')) {
         errors.push("ci.yml must support reusable workflow calls via 'workflow_call:'.");
+      }
+      const prBranches =
+        doc.on && typeof doc.on === 'object' && !Array.isArray(doc.on)
+          ? doc.on.pull_request?.branches
+          : null;
+      if (!Array.isArray(prBranches) || !prBranches.includes('main') || !prBranches.includes('src-*/epic/**')) {
+        errors.push("ci.yml 'on.pull_request.branches' must include 'main' and 'src-*/epic/**' so Wave Epic sub-issue PRs run CI.");
       }
 
       const concurrency = doc.concurrency;
