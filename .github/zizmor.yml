@@ -1,0 +1,6 @@
+rules:
+  use-trusted-publishing:
+    ignore:
+      # GitHub Packages (npm.pkg.github.com) does not support OIDC Trusted Publishing;
+      # pin strictly to publish-gpr's `npm publish` line so publish-npm remains audited.
+      - release.yml:179
