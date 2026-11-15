@@ -729,18 +729,29 @@ export function lintDemoHtml(demoHtml, fullDistCss, filename = 'dist/demo/index.
 }
 
 /**
- * Verifies that `diskPath` stays inside `jailDir`, exists on disk, and is a regular file.
+ * Verifies that `diskPath` stays inside `jailDir`, exists on disk, is not a
+ * symbolic link, and is a regular file (without following symlinks).
  */
 function assertJailedRegularFile(diskPath, jailDir, category, subject, errors) {
   if (!isSameOrSubpath(diskPath, jailDir)) {
     errors.push(`[${category}] ${subject} escapes allowed directory`);
     return false;
   }
-  if (!fs.existsSync(diskPath)) {
-    errors.push(`[${category}] ${subject} does not exist on disk`);
+  let st;
+  try {
+    st = fs.lstatSync(diskPath);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      errors.push(`[${category}] ${subject} does not exist on disk`);
+      return false;
+    }
+    throw err;
+  }
+  if (st.isSymbolicLink()) {
+    errors.push(`[${category}] ${subject} must not be a symbolic link`);
     return false;
   }
-  if (!fs.statSync(diskPath).isFile()) {
+  if (!st.isFile()) {
     errors.push(`[${category}] ${subject} is not a regular file`);
     return false;
   }
@@ -754,11 +765,21 @@ function readJsonRecord(filePath, label, errors, jailDir = null) {
       return null;
     }
   }
-  if (!fs.existsSync(filePath)) {
-    errors.push(`[version] Required manifest missing: ${label}`);
+  let st;
+  try {
+    st = fs.lstatSync(filePath);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      errors.push(`[version] Required manifest missing: ${label}`);
+      return null;
+    }
+    throw err;
+  }
+  if (st.isSymbolicLink()) {
+    errors.push(`[version] Required manifest "${label}" must not be a symbolic link`);
     return null;
   }
-  if (!fs.statSync(filePath).isFile()) {
+  if (!st.isFile()) {
     errors.push(`[version] Required manifest "${label}" is not a regular file`);
     return null;
   }

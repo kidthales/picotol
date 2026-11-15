@@ -5,7 +5,8 @@
 // package.json reads), and rewrites README.md pinned CDN URLs, SRI hashes,
 // release download URLs, and APA version metadata.
 import { execFileSync } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -276,29 +277,24 @@ function snapshotDirTree(dirPath) {
     st = lstatSync(dirPath);
   } catch (err) {
     if (err.code === 'ENOENT') {
-      return { exists: false, dirs: [], files: [] };
+      return { exists: false, tempRoot: null, backupDir: null };
     }
     throw err;
   }
   if (st.isSymbolicLink() || !st.isDirectory()) {
     return null;
   }
-  const dirs = [];
-  const files = [];
-  function walk(currentDir, relPrefix) {
-    for (const entry of readdirSync(currentDir, { withFileTypes: true })) {
-      const rel = relPrefix ? join(relPrefix, entry.name) : entry.name;
-      const fullPath = join(currentDir, entry.name);
-      if (entry.isDirectory()) {
-        dirs.push(rel);
-        walk(fullPath, rel);
-      } else if (entry.isFile()) {
-        files.push({ rel, data: readFileSync(fullPath) });
-      }
-    }
+  // Snapshot via an external temp copy with dereference: false and preserveTimestamps: true
+  // so symlinks, file modes, and mtimes survive rollback without loss.
+  const tempRoot = mkdtempSync(join(tmpdir(), 'picotol-dist-snapshot-'));
+  const backupDir = join(tempRoot, 'dist');
+  try {
+    cpSync(dirPath, backupDir, { recursive: true, dereference: false, preserveTimestamps: true });
+    return { exists: true, tempRoot, backupDir };
+  } catch (err) {
+    rmSync(tempRoot, { recursive: true, force: true });
+    throw err;
   }
-  walk(dirPath, '');
-  return { exists: true, dirs, files };
 }
 
 function restoreDirTree(dirPath, snapshot) {
@@ -309,12 +305,12 @@ function restoreDirTree(dirPath, snapshot) {
   if (!snapshot.exists) {
     return;
   }
-  mkdirSync(dirPath, { recursive: true });
-  for (const relDir of snapshot.dirs) {
-    mkdirSync(join(dirPath, relDir), { recursive: true });
-  }
-  for (const { rel, data } of snapshot.files) {
-    writeFileSync(join(dirPath, rel), data);
+  cpSync(snapshot.backupDir, dirPath, { recursive: true, dereference: false, preserveTimestamps: true });
+}
+
+function cleanupDirTreeSnapshot(snapshot) {
+  if (snapshot?.tempRoot) {
+    rmSync(snapshot.tempRoot, { recursive: true, force: true });
   }
 }
 
@@ -382,6 +378,8 @@ export function syncVersion(version, opts = {}) {
     writeFileSync(readmePath, origReadme, 'utf8');
     restoreDirTree(distPath, distSnapshot);
     throw err;
+  } finally {
+    cleanupDirTreeSnapshot(distSnapshot);
   }
 }
 

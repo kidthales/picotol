@@ -77,13 +77,13 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     with:
-      ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
+      ref: ${{ needs.tag-guard.outputs.sha }}
 
   publish-npm:
     name: Publish to npm Public Registry
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -96,7 +96,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          ref: ${{ needs.tag-guard.outputs.sha }}
           persist-credentials: false
 
       - name: Setup Node.js
@@ -107,7 +107,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Publish to npm (Idempotent with Provenance)
         run: |
@@ -137,7 +137,7 @@ jobs:
 
   publish-gpr:
     name: Publish to GitHub Packages
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -147,7 +147,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          ref: ${{ needs.tag-guard.outputs.sha }}
           persist-credentials: false
 
       - name: Setup Node.js
@@ -182,7 +182,7 @@ jobs:
 
   attach-assets:
     name: Attach Release Asset Bundles
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 15
@@ -194,7 +194,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          ref: ${{ needs.tag-guard.outputs.sha }}
           persist-credentials: false
 
       - name: Setup Node.js

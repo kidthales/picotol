@@ -934,7 +934,7 @@ jobs:
     assert.doesNotThrow(() => auditWorkflows(tempRoot));
   });
 
-  // 14. Self-repository syntax ($/) acceptance for reusable workflows and local actions (Issue #253)
+  // 14. Canonical local syntax (./) acceptance and legacy $/ rejection for reusable workflows and local actions
   withTempWorkflows({
     'release.yml': `
 name: Release
@@ -962,7 +962,7 @@ jobs:
         with:
           ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
           persist-credentials: false
-      - uses: $/.github/actions/local-action
+      - uses: ./.github/actions/local-action
       - id: verify-tag
         env:
           RELEASE_TAG: \${{ github.event.release.tag_name || inputs.tag }}
@@ -980,14 +980,14 @@ jobs:
           echo "sha=\${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"
   verify:
     needs: [tag-guard]
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     with:
-      ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+      ref: \${{ needs.tag-guard.outputs.sha }}
     permissions:
       contents: read
       security-events: write
   publish-npm:
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -999,13 +999,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          ref: \${{ needs.tag-guard.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '>=24.5.0 <25'
           package-manager-cache: false
           registry-url: "https://registry.npmjs.org"
+      - run: npm ci --ignore-scripts
       - run: |
           if [[ "$PKG_VER" == *-* ]]; then
             DIST_TAG="next"
@@ -1014,13 +1015,13 @@ jobs:
           fi
           npm publish --provenance --access public --tag "$DIST_TAG"
   publish-gpr:
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          ref: \${{ needs.tag-guard.outputs.sha }}
           persist-credentials: false
       - run: |
           if [[ "$PKG_VER" == *-* ]]; then
@@ -1030,7 +1031,7 @@ jobs:
           fi
           npm publish --registry=https://npm.pkg.github.com/ --tag "$DIST_TAG"
   attach-assets:
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -1040,7 +1041,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          ref: \${{ needs.tag-guard.outputs.sha }}
           persist-credentials: false
       - run: npm run build
       - run: |
@@ -1081,7 +1082,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1104,10 +1105,10 @@ jobs:
 `,
   }, (tempRoot) => {
     const errs = auditWorkflows(tempRoot);
-    assert.deepEqual(errs, [], `auditWorkflows must accept $/ self-repository references, got: ${errs.join('; ')}`);
+    assert.deepEqual(errs, [], `auditWorkflows must accept canonical ./ local references, got: ${errs.join('; ')}`);
   });
 
-  // 15. Negative test: verify job delegating to invalid or near-miss workflow path is rejected
+  // 15. Negative test: verify job delegating to invalid or legacy $/ workflow path is rejected
   withTempWorkflows({
     'release.yml': `
 name: Release
@@ -1127,20 +1128,20 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: $/.github/workflows/other.yml
+    uses: $/.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
   publish-npm:
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     steps: []
   publish-gpr:
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     steps: []
   attach-assets:
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     steps: []
   notify:
@@ -1156,7 +1157,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    uses: $/.github/workflows/ci.yml@main
+    uses: $/.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1174,8 +1175,8 @@ jobs:
 `,
   }, (tempRoot) => {
     const errs = auditWorkflows(tempRoot);
-    assert.ok(errs.some((e) => e.includes("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.")));
-    assert.ok(errs.some((e) => e.includes("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.")));
+    assert.ok(errs.some((e) => e.includes("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.")));
+    assert.ok(errs.some((e) => e.includes("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.")));
   });
 
   // 16. Negative test: malformed $/ and ./ step action references are rejected
@@ -1192,6 +1193,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - uses: $/.github/actions/local-action
       - uses: $/
       - uses: $/../evil
       - uses: $invalid/action
@@ -1201,6 +1203,7 @@ jobs:
 `,
   }, (tempRoot) => {
     const errs = auditWorkflows(tempRoot);
+    assert.ok(errs.some((e) => e.includes("step action '$/.github/actions/local-action' is not a valid canonical local action path")));
     assert.ok(errs.some((e) => e.includes("step action '$/' is not a valid canonical local action path")));
     assert.ok(errs.some((e) => e.includes("step action '$/../evil' is not a valid canonical local action path")));
     assert.ok(errs.some((e) => e.includes("step action '$invalid/action' is not a valid canonical local action path")));
@@ -1232,7 +1235,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1432,7 +1435,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1491,7 +1494,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1548,7 +1551,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -1608,7 +1611,7 @@ jobs:
           if [ "$TAG" != "$EXPECTED_TAG" ]; then exit 1; fi
   verify:
     needs: [tag-guard]
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     permissions:
       contents: read
       security-events: write
@@ -2935,6 +2938,9 @@ describe('Deterministic Version Sync CLI (Issue #290)', () => {
     const oldManifestPath = path.join(tmpRoot, 'dist', 'manifest.json');
     const oldManifestBytes = JSON.stringify({ name: '@kidthales/picotol', version: '1.0.0-alpha.1', artifacts: {} }, null, 2);
     fs.writeFileSync(oldManifestPath, oldManifestBytes, 'utf8');
+    const pinnedOldTime = new Date('2025-06-01T12:34:56.000Z');
+    fs.utimesSync(oldManifestPath, pinnedOldTime, pinnedOldTime);
+    const expectedMtimeMs = Math.trunc(fs.lstatSync(oldManifestPath).mtimeMs);
     const preDistTree = hashDirectoryTree(path.join(tmpRoot, 'dist'));
 
     assert.throws(
@@ -2966,6 +2972,11 @@ describe('Deterministic Version Sync CLI (Issue #290)', () => {
       hashDirectoryTree(path.join(tmpRoot, 'dist')),
       preDistTree,
       'Post-runGenerate failure must restore dist/ and dist/assets/*.zip to exact pre-sync state'
+    );
+    assert.equal(
+      Math.trunc(fs.lstatSync(oldManifestPath).mtimeMs),
+      expectedMtimeMs,
+      'Post-runGenerate rollback must preserve original file mtimes via cpSync snapshot'
     );
     assert.equal(fs.existsSync(path.join(distAssetsDir, 'picotol-v2.0.0.zip')), false);
     assert.deepEqual(fs.readFileSync(oldZipPath), oldZipBytes);

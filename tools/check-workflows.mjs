@@ -20,6 +20,7 @@ export const REQUIRED_RELEASE_ATTEST_SUBJECTS = [
 ];
 
 const EXPECTED_RELEASE_CHECKOUT_REF = '${{github.event.release.tag_name||inputs.tag||github.ref}}';
+const EXPECTED_TAG_GUARD_SHA_REF = '${{needs.tag-guard.outputs.sha}}';
 const EXPECTED_RELEASE_TAG_ENV = '${{github.event.release.tag_name||inputs.tag}}';
 const EXPECTED_REF_NAME_ENV = '${{github.ref_name}}';
 const EXPECTED_CI_CALL_CHECKOUT_REF = "${{inputs.ref||''}}";
@@ -50,6 +51,34 @@ function checkForbiddenEnvBindings(envObj, forbiddenKeys, contextLabel, errors) 
       errors.push(`${contextLabel} must not bind forbidden env '${key}' (tokenless OIDC required).`);
     }
   }
+}
+
+function collectDisallowedSecretsRefs(value, pathLabel, out = []) {
+  if (typeof value === 'string') {
+    for (const match of value.matchAll(/\bsecrets\s*\.\s*([A-Za-z0-9_]+)\b/gi)) {
+      if (match[1].toUpperCase() !== 'GITHUB_TOKEN') {
+        out.push({ secretName: match[1], location: pathLabel });
+      }
+    }
+    for (const match of value.matchAll(/\bsecrets\s*\[\s*(['"])([^'"]+)\1\s*\]/gi)) {
+      if (match[2].toUpperCase() !== 'GITHUB_TOKEN') {
+        out.push({ secretName: match[2], location: pathLabel });
+      }
+    }
+    return out;
+  }
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      collectDisallowedSecretsRefs(value[i], `${pathLabel}[${i}]`, out);
+    }
+    return out;
+  }
+  if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) {
+      collectDisallowedSecretsRefs(v, `${pathLabel}.${k}`, out);
+    }
+  }
+  return out;
 }
 
 function auditPublishNpmOidcContract(file, doc, pubNpm, errors) {
@@ -101,10 +130,27 @@ function auditPublishNpmOidcContract(file, doc, pubNpm, errors) {
 
   checkForbiddenEnvBindings(doc.env, FORBIDDEN_NPM_OIDC_ENV_KEYS, `${file} workflow`, errors);
   checkForbiddenEnvBindings(pubNpm.env, FORBIDDEN_NPM_OIDC_ENV_KEYS, `${file} publish-npm job`, errors);
+  for (const { secretName, location } of [
+    ...collectDisallowedSecretsRefs(doc.env, `${file} workflow env`),
+    ...collectDisallowedSecretsRefs(pubNpm.env, `${file} publish-npm job env`),
+  ]) {
+    errors.push(
+      `${location} must not reference secret 'secrets.${secretName}' (only tokenless OIDC or secrets.GITHUB_TOKEN is permitted for publish-npm).`
+    );
+  }
+
   for (const step of steps) {
     if (!step || typeof step !== 'object') continue;
     const stepLabel = `${file} publish-npm step '${step.name || 'unnamed'}'`;
     checkForbiddenEnvBindings(step.env, FORBIDDEN_NPM_OIDC_ENV_KEYS, stepLabel, errors);
+    for (const { secretName, location } of collectDisallowedSecretsRefs(
+      { env: step.env, with: step.with, run: step.run, if: step.if },
+      stepLabel
+    )) {
+      errors.push(
+        `${location} must not reference secret 'secrets.${secretName}' (only tokenless OIDC or secrets.GITHUB_TOKEN is permitted for publish-npm).`
+      );
+    }
     if (typeof step.run === 'string') {
       if (/\b(?:NODE_AUTH_TOKEN|NPM_TOKEN)\b/.test(step.run)) {
         errors.push(`${stepLabel} must not reference NODE_AUTH_TOKEN or NPM_TOKEN in run script.`);
@@ -119,11 +165,96 @@ function auditPublishNpmOidcContract(file, doc, pubNpm, errors) {
       }
       if (/\bnpm\s+(?:install|i|add)\b/.test(step.run)) {
         errors.push(
-          `${stepLabel} must not run ad-hoc 'npm install' (use 'npm ci' and Node >=24.5.0 bundled npm).`
+          `${stepLabel} must not run ad-hoc 'npm install' (use 'npm ci --ignore-scripts' and Node >=24.5.0 bundled npm).`
         );
+      }
+      for (const rawLine of step.run.split(/\r?\n/)) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith('#')) continue;
+        if (/\bnpm\s+ci\b/.test(line) && !/(?:^|\s)--ignore-scripts(?=\s|$)/.test(line)) {
+          errors.push(
+            `${stepLabel} must pass '--ignore-scripts' to 'npm ci' so dependency lifecycle scripts cannot execute with id-token: write.`
+          );
+        }
+        if (/\b(?:npx|npm\s+(?:exec|rebuild))\b/.test(line)) {
+          errors.push(
+            `${stepLabel} must not run '${line}' (dependency script execution forbidden in OIDC publish-npm job).`
+          );
+        }
       }
     }
   }
+}
+
+/**
+ * Verifies `.github/zizmor.yml` pins `use-trusted-publishing` ignore strictly to
+ * `publish-gpr`'s `npm publish` line in `release.yml` without inline ignores or drift.
+ * @param {string} zizmorRaw - Raw YAML contents of `.github/zizmor.yml`
+ * @param {string} releaseRaw - Raw YAML contents of `.github/workflows/release.yml`
+ * @param {string[]} [errors] - Optional array to collect violation messages
+ * @returns {string[]} Array of violation messages (empty on parity)
+ */
+export function auditZizmorConfig(zizmorRaw, releaseRaw, errors = []) {
+  let zizmorDoc;
+  try {
+    zizmorDoc = YAML.parse(zizmorRaw);
+  } catch (err) {
+    errors.push(`.github/zizmor.yml: Failed to parse YAML: ${err.message}`);
+    return errors;
+  }
+
+  const trustedIgnore = zizmorDoc?.rules?.['use-trusted-publishing']?.ignore;
+  if (!Array.isArray(trustedIgnore)) {
+    errors.push('.github/zizmor.yml must define rules.use-trusted-publishing.ignore array.');
+    return errors;
+  }
+  if (trustedIgnore.length !== 1) {
+    errors.push(
+      `.github/zizmor.yml rules.use-trusted-publishing.ignore must pin strictly 1 line in release.yml (got ${trustedIgnore.length}).`
+    );
+    return errors;
+  }
+
+  const linePinMatch = String(trustedIgnore[0]).match(/^release\.yml:(\d+)$/);
+  if (!linePinMatch) {
+    errors.push(`.github/zizmor.yml expected release.yml:<line> entry, got '${trustedIgnore[0]}'.`);
+    return errors;
+  }
+  const pinnedLineNum = Number(linePinMatch[1]);
+
+  if (releaseRaw.includes('# zizmor: ignore')) {
+    errors.push('release.yml must not contain inline # zizmor: ignore comments.');
+  }
+
+  const releaseLines = releaseRaw.split(/\r?\n/);
+  if (pinnedLineNum < 1 || pinnedLineNum > releaseLines.length) {
+    errors.push(`.github/zizmor.yml pinned line ${pinnedLineNum} is out of range for release.yml.`);
+    return errors;
+  }
+
+  const publishGprStart = releaseLines.findIndex((l) => /^\s{2}publish-gpr:\s*$/.test(l)) + 1;
+  const attachAssetsStart = releaseLines.findIndex((l) => /^\s{2}attach-assets:\s*$/.test(l)) + 1;
+  if (publishGprStart <= 0 || attachAssetsStart <= publishGprStart) {
+    errors.push('release.yml must declare publish-gpr before attach-assets for zizmor line-pin verification.');
+    return errors;
+  }
+
+  const gprPublishOffset = releaseLines
+    .slice(publishGprStart - 1, attachAssetsStart - 1)
+    .findIndex((l) => /^\s*npm publish\b.*--registry=https:\/\/npm\.pkg\.github\.com\//.test(l));
+  if (gprPublishOffset < 0) {
+    errors.push('release.yml publish-gpr must contain npm publish --registry=https://npm.pkg.github.com/.');
+    return errors;
+  }
+
+  const actualGprPublishLine = publishGprStart + gprPublishOffset;
+  if (pinnedLineNum !== actualGprPublishLine) {
+    errors.push(
+      `zizmor line pin drifted: .github/zizmor.yml pins release.yml:${pinnedLineNum}, but publish-gpr's npm publish is at release.yml:${actualGprPublishLine}.`
+    );
+  }
+
+  return errors;
 }
 
 /**
@@ -264,7 +395,7 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
           if (actionRef.startsWith('.') || actionRef.startsWith('$')) {
             const segments = actionRef.split('/');
             if (
-              !/^(\.|\$)\/\.github\/actions\/[a-zA-Z0-9._-]+(\/[a-zA-Z0-9._-]+)*$/.test(actionRef) ||
+              !/^\.\/\.github\/actions\/[a-zA-Z0-9._-]+(\/[a-zA-Z0-9._-]+)*$/.test(actionRef) ||
               segments.slice(1).some((seg) => seg === '.' || seg === '..') ||
               actionRef.includes('..') ||
               actionRef.includes('@')
@@ -355,28 +486,32 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
       for (const [jobKey, job] of Object.entries(jobs)) {
         if (!job || typeof job !== 'object') continue;
         const jobSteps = Array.isArray(job.steps) ? job.steps : [];
+        const expectedCheckoutRef = jobKey === 'tag-guard' ? EXPECTED_RELEASE_CHECKOUT_REF : EXPECTED_TAG_GUARD_SHA_REF;
+        const expectedCheckoutLabel =
+          jobKey === 'tag-guard'
+            ? '${{ github.event.release.tag_name || inputs.tag || github.ref }}'
+            : '${{ needs.tag-guard.outputs.sha }}';
         for (const s of jobSteps) {
           if (s && typeof s === 'object' && typeof s.uses === 'string' && s.uses.trim().startsWith('actions/checkout')) {
             const refVal = normalizeExpr(s.with && typeof s.with === 'object' ? s.with.ref : '');
-            if (refVal !== EXPECTED_RELEASE_CHECKOUT_REF) {
-              errors.push(`release.yml job '${jobKey}' actions/checkout step must pin 'with.ref' to '\${{ github.event.release.tag_name || inputs.tag || github.ref }}'.`);
+            if (refVal !== expectedCheckoutRef) {
+              errors.push(`release.yml job '${jobKey}' actions/checkout step must pin 'with.ref' to '${expectedCheckoutLabel}'.`);
             }
           }
         }
       }
 
       const verifyJob = jobs.verify;
-      const validCiUses = ['./.github/workflows/ci.yml', '$/.github/workflows/ci.yml'];
-      if (!verifyJob || typeof verifyJob !== 'object' || !validCiUses.includes(verifyJob.uses)) {
-        errors.push("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.");
+      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== './.github/workflows/ci.yml') {
+        errors.push("release.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.");
       }
       const verifyRefVal = normalizeExpr(
         verifyJob && typeof verifyJob === 'object' && verifyJob.with && typeof verifyJob.with === 'object'
           ? verifyJob.with.ref
           : ''
       );
-      if (verifyRefVal !== EXPECTED_RELEASE_CHECKOUT_REF) {
-        errors.push("release.yml verify job must pass 'with.ref' pinned to '${{ github.event.release.tag_name || inputs.tag || github.ref }}'.");
+      if (verifyRefVal !== EXPECTED_TAG_GUARD_SHA_REF) {
+        errors.push("release.yml verify job must pass 'with.ref' pinned to '${{ needs.tag-guard.outputs.sha }}'.");
       }
       if (!verifyJob || typeof verifyJob !== 'object' || !verifyJob.permissions || typeof verifyJob.permissions !== 'object' || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
         errors.push("release.yml verify job must explicitly scope permissions (contents: read, security-events: write).");
@@ -462,8 +597,8 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
           errors.push(`release.yml ${pubJob} job must exist.`);
         } else {
           const jNeeds = Array.isArray(j.needs) ? j.needs : [j.needs];
-          if (!jNeeds.includes('verify')) {
-            errors.push(`release.yml ${pubJob} job must depend on verify (needs: [verify]).`);
+          if (!jNeeds.includes('tag-guard') || !jNeeds.includes('verify')) {
+            errors.push(`release.yml ${pubJob} job must depend on tag-guard and verify (needs: [tag-guard, verify]).`);
           }
           const jSteps = Array.isArray(j.steps) ? j.steps : [];
           for (const s of jSteps) {
@@ -589,13 +724,18 @@ export function auditWorkflows(rootDir = ROOT, options = {}) {
           }
         }
       }
+      const zizmorPath = path.join(path.dirname(workflowDir), 'zizmor.yml');
+      if (fs.existsSync(zizmorPath)) {
+        auditZizmorConfig(fs.readFileSync(zizmorPath, 'utf8'), rawContent, errors);
+      } else if (isRootWorkflows) {
+        errors.push('Missing required .github/zizmor.yml for release.yml use-trusted-publishing line-pin enforcement.');
+      }
     }
 
     if (file === 'pages.yml') {
       const verifyJob = jobs.verify;
-      const validCiUses = ['./.github/workflows/ci.yml', '$/.github/workflows/ci.yml'];
-      if (!verifyJob || typeof verifyJob !== 'object' || !validCiUses.includes(verifyJob.uses)) {
-        errors.push("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml' or 'uses: $/.github/workflows/ci.yml'.");
+      if (!verifyJob || typeof verifyJob !== 'object' || verifyJob.uses !== './.github/workflows/ci.yml') {
+        errors.push("pages.yml verify job must delegate verification via 'uses: ./.github/workflows/ci.yml'.");
       }
       if (!verifyJob || typeof verifyJob !== 'object' || !verifyJob.permissions || typeof verifyJob.permissions !== 'object' || verifyJob.permissions.contents !== 'read' || verifyJob.permissions['security-events'] !== 'write') {
         errors.push("pages.yml verify job must explicitly scope permissions (contents: read, security-events: write).");

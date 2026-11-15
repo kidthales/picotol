@@ -10,6 +10,7 @@ import { ASSET_ARCHIVE_PATTERN, parsePkZipEntries } from "../tools/package-asset
 import { lintReleaseParity } from "../tools/lint.mjs";
 import {
   auditWorkflows,
+  auditZizmorConfig,
   DEFAULT_MAX_TIMEOUT_MINUTES,
   REQUIRED_RELEASE_ATTEST_SUBJECTS,
   SEMVER_RELEASE_TAG_REGEX,
@@ -1007,6 +1008,18 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
         extraLines.push(`${"0".repeat(64)}  leak.css`);
       }
 
+      const inJailFileLink = path.join(dir, "dist", "in-jail-link.css");
+      let createdInJailFileLink = false;
+      try {
+        fs.symlinkSync(path.join(dir, "dist", "picotol.min.css"), inJailFileLink, "file");
+        createdInJailFileLink = true;
+      } catch (err) {
+        if (err.code !== "EPERM" && err.code !== "ENOSYS") throw err;
+      }
+      if (createdInJailFileLink) {
+        extraLines.push(`${"0".repeat(64)}  in-jail-link.css`);
+      }
+
       const badSums =
         fs
           .readFileSync(sumsPath, "utf8")
@@ -1023,6 +1036,9 @@ describe("Bundle Size, Compression Budgets, and Layered Builds", () => {
     assert.ok(sumsDrift.some((e) => e.includes('[checksums] Asset "assets" in dist/SHA256SUMS.txt is not a regular file')));
     assert.ok(sumsDrift.some((e) => e.includes('[checksums] Asset "escaped-dir" in dist/SHA256SUMS.txt escapes allowed directory')));
     assert.ok(!sumsDrift.some((e) => e.includes(secretHash)), "Out-of-jail file digest must never be computed or leaked");
+    if (sumsDrift.some((e) => e.includes("in-jail-link.css"))) {
+      assert.ok(sumsDrift.some((e) => e.includes('Asset "in-jail-link.css" in dist/SHA256SUMS.txt must not be a symbolic link')));
+    }
   });
 });
 
@@ -1218,23 +1234,23 @@ describe("GitHub Actions CI and Release Workflows", () => {
     );
     assert.match(
       releaseParsed.jobs.verify,
-      /^ {4}uses:\s*\$\/\.github\/workflows\/ci\.yml\s*$/m,
+      /^ {4}uses:\s*\.\/\.github\/workflows\/ci\.yml\s*$/m,
       "release.yml verify job must delegate to ci.yml"
     );
     assert.match(
       releaseParsed.jobs["publish-npm"],
-      /^ {4}needs:\s*\[verify\]\s*$/m,
-      "release.yml publish-npm job must depend on verify"
+      /^ {4}needs:\s*\[tag-guard,\s*verify\]\s*$/m,
+      "release.yml publish-npm job must depend on tag-guard and verify"
     );
     assert.match(
       releaseParsed.jobs["publish-gpr"],
-      /^ {4}needs:\s*\[verify\]\s*$/m,
-      "release.yml publish-gpr job must depend on verify"
+      /^ {4}needs:\s*\[tag-guard,\s*verify\]\s*$/m,
+      "release.yml publish-gpr job must depend on tag-guard and verify"
     );
     assert.match(
       releaseParsed.jobs["attach-assets"],
-      /^ {4}needs:\s*\[verify\]\s*$/m,
-      "release.yml attach-assets job must depend on verify"
+      /^ {4}needs:\s*\[tag-guard,\s*verify\]\s*$/m,
+      "release.yml attach-assets job must depend on tag-guard and verify"
     );
     assert.match(
       releaseParsed.jobs["attach-assets"],
@@ -1309,7 +1325,7 @@ describe("GitHub Actions CI and Release Workflows", () => {
       "pages.yml verify job must not grant unauthorized write permissions"
     );
 
-    assert.match(pagesParsed.jobs.verify, /^ {4}uses:\s*\$\/\.github\/workflows\/ci\.yml\s*$/m, "pages.yml verify job must delegate to ci.yml");
+    assert.match(pagesParsed.jobs.verify, /^ {4}uses:\s*\.\/\.github\/workflows\/ci\.yml\s*$/m, "pages.yml verify job must delegate to ci.yml");
     assert.match(pagesParsed.jobs.build, /^ {4}needs:\s*\[verify\]\s*$/m, "pages.yml build job must depend on verify");
     assert.match(pagesParsed.jobs.deploy, /^ {4}needs:\s*\[build\]\s*$/m, "pages.yml deploy job must depend on build");
 
@@ -1862,12 +1878,27 @@ jobs:
     assert.equal(dispatchTag?.required, false, "release.yml workflow_dispatch.inputs.tag must have required: false");
 
     const expectedRefNorm = "${{github.event.release.tag_name||inputs.tag||github.ref}}";
+    const expectedTagGuardShaNorm = "${{needs.tag-guard.outputs.sha}}";
     assert.equal(
       String(releaseDoc.jobs?.verify?.with?.ref || "").replace(/\s+/g, ""),
-      expectedRefNorm,
-      "release.yml verify reusable workflow call must pass with.ref pinned to target release tag"
+      expectedTagGuardShaNorm,
+      "release.yml verify reusable workflow call must pass with.ref pinned to verified tag-guard sha"
     );
-    for (const jobName of ["tag-guard", "publish-npm", "publish-gpr", "attach-assets"]) {
+    const tagGuardCheckout = (releaseDoc.jobs?.["tag-guard"]?.steps || []).find(
+      (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/checkout@")
+    );
+    assert.ok(tagGuardCheckout, "release.yml job 'tag-guard' must include actions/checkout");
+    assert.equal(
+      String(tagGuardCheckout.with?.ref || "").replace(/\s+/g, ""),
+      expectedRefNorm,
+      "release.yml job 'tag-guard' actions/checkout must pin ref to ${{ github.event.release.tag_name || inputs.tag || github.ref }}"
+    );
+    for (const jobName of ["publish-npm", "publish-gpr", "attach-assets"]) {
+      const jobNeeds = releaseDoc.jobs?.[jobName]?.needs;
+      assert.ok(
+        Array.isArray(jobNeeds) && jobNeeds.includes("tag-guard") && jobNeeds.includes("verify"),
+        `release.yml job '${jobName}' must declare needs: [tag-guard, verify] to consume outputs.sha`
+      );
       const steps = releaseDoc.jobs?.[jobName]?.steps || [];
       const checkoutStep = steps.find(
         (s) => typeof s?.uses === "string" && s.uses.startsWith("actions/checkout@")
@@ -1875,8 +1906,8 @@ jobs:
       assert.ok(checkoutStep, `release.yml job '${jobName}' must include actions/checkout`);
       assert.equal(
         String(checkoutStep.with?.ref || "").replace(/\s+/g, ""),
-        expectedRefNorm,
-        `release.yml job '${jobName}' actions/checkout must pin ref to \${{ github.event.release.tag_name || inputs.tag || github.ref }}`
+        expectedTagGuardShaNorm,
+        `release.yml job '${jobName}' actions/checkout must pin ref to \${{ needs.tag-guard.outputs.sha }}`
       );
     }
 
@@ -1983,20 +2014,25 @@ jobs:
       }
     );
 
-    // 6c. release.yml actions/checkout missing ref pin
+    // 6c. release.yml actions/checkout missing ref pin (tag-guard and downstream sha-pinned jobs)
     withTempWorkflows(
       {
-        "release.yml": baseReleaseYml.replace(
-          "          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}\n",
-          ""
-        ),
+        "release.yml": baseReleaseYml
+          .replace("          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}\n", "")
+          .replaceAll("          ref: ${{ needs.tag-guard.outputs.sha }}\n", ""),
       },
       (tempRoot) => {
         const errs = auditWorkflows(tempRoot);
         assert.ok(
-          errs.some((e) => e.includes("actions/checkout step must pin 'with.ref'")),
-          "Must reject release.yml checkout step missing ref pin"
+          errs.some((e) => e.includes("release.yml job 'tag-guard' actions/checkout step must pin 'with.ref'")),
+          "Must reject tag-guard checkout step missing ref pin"
         );
+        for (const downstreamJob of ["publish-npm", "publish-gpr", "attach-assets"]) {
+          assert.ok(
+            errs.some((e) => e.includes(`release.yml job '${downstreamJob}' actions/checkout step must pin 'with.ref' to '\${{ needs.tag-guard.outputs.sha }}'`)),
+            `Must reject ${downstreamJob} checkout step missing needs.tag-guard.outputs.sha ref pin`
+          );
+        }
       }
     );
 
@@ -2082,8 +2118,8 @@ jobs:
           )
           .replace("          ref: ${{ inputs.ref || '' }}\n", ""),
         "release.yml": baseReleaseYml.replace(
-          "    uses: $/.github/workflows/ci.yml\n    with:\n      ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}\n",
-          "    uses: $/.github/workflows/ci.yml\n"
+          "    uses: ./.github/workflows/ci.yml\n    with:\n      ref: ${{ needs.tag-guard.outputs.sha }}\n",
+          "    uses: ./.github/workflows/ci.yml\n"
         ),
       },
       (tempRoot) => {
@@ -2100,6 +2136,32 @@ jobs:
           errs.some((e) => e.includes("release.yml verify job must pass 'with.ref'")),
           "Must reject release.yml verify omitting with.ref"
         );
+      }
+    );
+
+    // 6k. F-01 (PR #302): downstream publish/verify/attach jobs reverting to mutable tag ref or omitting tag-guard from needs
+    withTempWorkflows(
+      {
+        "release.yml": baseReleaseYml
+          .replaceAll("ref: ${{ needs.tag-guard.outputs.sha }}", "ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}")
+          .replaceAll("needs: [tag-guard, verify]", "needs: [verify]"),
+      },
+      (tempRoot) => {
+        const errs = auditWorkflows(tempRoot);
+        assert.ok(
+          errs.some((e) => e.includes("release.yml verify job must pass 'with.ref' pinned to '${{ needs.tag-guard.outputs.sha }}'")),
+          "Must reject verify job using mutable tag ref instead of needs.tag-guard.outputs.sha"
+        );
+        for (const downstreamJob of ["publish-npm", "publish-gpr", "attach-assets"]) {
+          assert.ok(
+            errs.some((e) => e.includes(`release.yml ${downstreamJob} job must depend on tag-guard and verify`)),
+            `Must reject ${downstreamJob} omitting tag-guard from needs`
+          );
+          assert.ok(
+            errs.some((e) => e.includes(`release.yml job '${downstreamJob}' actions/checkout step must pin 'with.ref' to '\${{ needs.tag-guard.outputs.sha }}'`)),
+            `Must reject ${downstreamJob} using mutable tag ref instead of needs.tag-guard.outputs.sha`
+          );
+        }
       }
     );
 
@@ -2174,22 +2236,32 @@ jobs:
       jobEnv = "",
       includeSetupNode = true,
       nodeVersion = "'>=24.5.0 <25'",
+      checkoutToken = "",
+      setupNodeToken = "",
+      npmCiRun = "npm ci --ignore-scripts",
       stepEnv = "",
       publishRun = 'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm publish --provenance --access public --tag "$DIST_TAG"',
     } = {}) => {
+      const setupNodeTokenLine = setupNodeToken ? `\n          token: ${setupNodeToken}` : "";
       const setupNodeBlock = includeSetupNode
         ? `      - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: ${nodeVersion}
           package-manager-cache: false
-          registry-url: "https://registry.npmjs.org"
+          registry-url: "https://registry.npmjs.org"${setupNodeTokenLine}
+`
+        : "";
+      const checkoutTokenLine = checkoutToken ? `\n          token: ${checkoutToken}` : "";
+      const npmCiBlock = npmCiRun
+        ? `      - name: Install dependencies
+        run: ${npmCiRun}
 `
         : "";
       const publishNpmBlock = omitPublishNpm
         ? ""
         : `  publish-npm:
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -2197,9 +2269,9 @@ ${jobPermissions}${jobEnvironment}${jobEnv}    steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
-          persist-credentials: false
-${setupNodeBlock}      - name: Publish to npm (Idempotent with Provenance)
+          ref: \${{ needs.tag-guard.outputs.sha }}
+          persist-credentials: false${checkoutTokenLine}
+${setupNodeBlock}${npmCiBlock}      - name: Publish to npm (Idempotent with Provenance)
 ${stepEnv}        run: |
           ${publishRun}
 `;
@@ -2250,14 +2322,14 @@ ${workflowEnv}jobs:
           echo "sha=\${HEAD_COMMIT}" >> "$GITHUB_OUTPUT"
   verify:
     needs: [tag-guard]
-    uses: $/.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
     with:
-      ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+      ref: \${{ needs.tag-guard.outputs.sha }}
     permissions:
       contents: read
       security-events: write
 ${publishNpmBlock}  publish-gpr:
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -2266,7 +2338,7 @@ ${publishNpmBlock}  publish-gpr:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          ref: \${{ needs.tag-guard.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
@@ -2276,7 +2348,7 @@ ${publishNpmBlock}  publish-gpr:
           if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi
           npm publish --registry=https://npm.pkg.github.com/ --tag "$DIST_TAG"
   attach-assets:
-    needs: [verify]
+    needs: [tag-guard, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -2286,7 +2358,7 @@ ${publishNpmBlock}  publish-gpr:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: \${{ github.event.release.tag_name || inputs.tag || github.ref }}
+          ref: \${{ needs.tag-guard.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
@@ -2337,10 +2409,14 @@ ${publishNpmBlock}  publish-gpr:
       return fn(tempRoot);
     };
 
-    // Positive baseline: compliant tokenless OIDC publish-npm fixture passes Gate 0
+    // Positive baseline: compliant tokenless OIDC publish-npm fixture (including allowed secrets.GITHUB_TOKEN) passes Gate 0
     withReleaseFixture({}, (tempRoot) => {
       const errs = auditWorkflows(tempRoot);
       assert.deepEqual(errs, [], `Expected valid OIDC publish-npm fixture to pass, got: ${errs.join("; ")}`);
+    });
+    withReleaseFixture({ checkoutToken: "${{ secrets.GITHUB_TOKEN }}" }, (tempRoot) => {
+      const errs = auditWorkflows(tempRoot);
+      assert.deepEqual(errs, [], `Expected secrets.GITHUB_TOKEN in checkout with.token to pass, got: ${errs.join("; ")}`);
     });
 
     // Negative cases: missing job, permissions, environment, node-version, forbidden tokens, ad-hoc npm install
@@ -2479,6 +2555,57 @@ ${publishNpmBlock}  publish-gpr:
         },
         expected: "must not run ad-hoc 'npm install'",
       },
+      {
+        name: "npm ci without --ignore-scripts in publish-npm (F-02)",
+        opts: {
+          npmCiRun: "npm ci",
+        },
+        expected: "must pass '--ignore-scripts' to 'npm ci'",
+      },
+      {
+        name: "npm rebuild lifecycle execution in publish-npm (F-02)",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npm rebuild\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not run 'npm rebuild'",
+      },
+      {
+        name: "npx execution in publish-npm (F-02)",
+        opts: {
+          publishRun:
+            'if [[ "$PKG_VER" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi\n          npx some-pkg\n          npm publish --provenance --access public --tag "$DIST_TAG"',
+        },
+        expected: "must not run 'npx some-pkg'",
+      },
+      {
+        name: "secrets.NPM_TOKEN via setup-node with.token input (F-03)",
+        opts: {
+          setupNodeToken: "${{ secrets.NPM_TOKEN }}",
+        },
+        expected: "must not reference secret 'secrets.NPM_TOKEN'",
+      },
+      {
+        name: "secrets['NPM_TOKEN'] bracket notation via checkout with.token input (F-03)",
+        opts: {
+          checkoutToken: "${{ secrets['NPM_TOKEN'] }}",
+        },
+        expected: "must not reference secret 'secrets.NPM_TOKEN'",
+      },
+      {
+        name: "arbitrary secrets.CUSTOM_NPM_KEY via step.env (F-03)",
+        opts: {
+          stepEnv: "        env:\n          CUSTOM_VAR: ${{ secrets.CUSTOM_NPM_KEY }}\n",
+        },
+        expected: "must not reference secret 'secrets.CUSTOM_NPM_KEY'",
+      },
+      {
+        name: "arbitrary secrets.PUBLISH_KEY via job.env (F-03)",
+        opts: {
+          jobEnv: "    env:\n      PUBLISH_KEY: ${{ secrets.PUBLISH_KEY }}\n",
+        },
+        expected: "must not reference secret 'secrets.PUBLISH_KEY'",
+      },
     ];
 
     for (const tc of negativeCases) {
@@ -2531,6 +2658,10 @@ ${publishNpmBlock}  publish-gpr:
       }
     }
 
+    const installStep = steps.find((s) => s.name === "Install dependencies");
+    assert.ok(installStep, "Expected Install dependencies step in publish-npm");
+    assert.equal(installStep.run, "npm ci --ignore-scripts", "publish-npm must run npm ci --ignore-scripts");
+
     const pubStep = steps.find((s) => s.name === "Publish to npm (Idempotent with Provenance)");
     assert.ok(pubStep, "Expected Publish to npm (Idempotent with Provenance) step");
     assert.match(pubStep.run, /npm publish --provenance --access public --tag "\$DIST_TAG"/);
@@ -2560,85 +2691,58 @@ ${publishNpmBlock}  publish-gpr:
     }
   });
 
-  test(".github/zizmor.yml scopes use-trusted-publishing strictly to publish-gpr npm publish line without drift (Issue #242)", () => {
+  test(".github/zizmor.yml scopes use-trusted-publishing strictly to publish-gpr npm publish line without drift and is enforced by Gate 0 (Issue #242, F-04)", (t) => {
     const zizmorPath = path.join(ROOT, ".github", "zizmor.yml");
     assert.equal(fs.existsSync(zizmorPath), true, "Expected .github/zizmor.yml to exist");
 
-    const verifyZizmorLineSync = (zizmorRaw, releaseRaw) => {
-      const zizmorDoc = YAML.parse(zizmorRaw);
-      const trustedIgnore = zizmorDoc?.rules?.["use-trusted-publishing"]?.ignore;
-      assert.ok(
-        Array.isArray(trustedIgnore),
-        "Expected rules.use-trusted-publishing.ignore array in .github/zizmor.yml"
-      );
-      assert.equal(
-        trustedIgnore.length,
-        1,
-        "Expected use-trusted-publishing ignore to pin strictly 1 line in release.yml"
-      );
-
-      const linePinMatch = String(trustedIgnore[0]).match(/^release\.yml:(\d+)$/);
-      assert.ok(linePinMatch, `Expected release.yml:<line> entry, got: ${trustedIgnore[0]}`);
-      const pinnedLineNum = Number(linePinMatch[1]);
-
-      assert.equal(
-        releaseRaw.includes("# zizmor: ignore"),
-        false,
-        "release.yml must not contain inline # zizmor: ignore comments"
-      );
-
-      const releaseLines = releaseRaw.split(/\r?\n/);
-      assert.ok(
-        pinnedLineNum >= 1 && pinnedLineNum <= releaseLines.length,
-        `Pinned line ${pinnedLineNum} out of range`
-      );
-
-      const publishGprStart = releaseLines.findIndex((l) => /^\s{2}publish-gpr:\s*$/.test(l)) + 1;
-      const attachAssetsStart = releaseLines.findIndex((l) => /^\s{2}attach-assets:\s*$/.test(l)) + 1;
-      assert.ok(
-        publishGprStart > 0 && attachAssetsStart > publishGprStart,
-        "Expected publish-gpr before attach-assets in release.yml"
-      );
-
-      const gprPublishOffset = releaseLines
-        .slice(publishGprStart - 1, attachAssetsStart - 1)
-        .findIndex((l) => /^\s*npm publish\b.*--registry=https:\/\/npm\.pkg\.github\.com\//.test(l));
-      assert.ok(
-        gprPublishOffset >= 0,
-        "Expected npm publish --registry=https://npm.pkg.github.com/ inside publish-gpr"
-      );
-      const actualGprPublishLine = publishGprStart + gprPublishOffset;
-
-      assert.equal(
-        pinnedLineNum,
-        actualGprPublishLine,
-        `zizmor line pin drifted: .github/zizmor.yml pins release.yml:${pinnedLineNum}, but publish-gpr's npm publish is at release.yml:${actualGprPublishLine}. Update .github/zizmor.yml to release.yml:${actualGprPublishLine}.`
-      );
-    };
-
     const liveZizmor = fs.readFileSync(zizmorPath, "utf8");
     const liveRelease = fs.readFileSync(path.join(ROOT, ".github", "workflows", "release.yml"), "utf8");
-    verifyZizmorLineSync(liveZizmor, liveRelease);
+    assert.deepEqual(auditZizmorConfig(liveZizmor, liveRelease), []);
 
-    // Negative line-drift regression checks
-    assert.throws(
-      () => verifyZizmorLineSync(liveZizmor, `\n${liveRelease}`),
-      /zizmor line pin drifted/,
+    // Negative line-drift regression checks via auditZizmorConfig and full Gate 0 auditWorkflows()
+    const driftedErrs = auditZizmorConfig(liveZizmor, `\n${liveRelease}`);
+    assert.ok(
+      driftedErrs.some((e) => e.includes("zizmor line pin drifted")),
       "Inserting a line above publish-gpr must trigger zizmor line-drift failure"
     );
-    assert.throws(
-      () => verifyZizmorLineSync(liveZizmor, liveRelease.replace("npm publish --registry=https://npm.pkg.github.com/", "# removed")),
-      /Expected npm publish --registry=https:\/\/npm\.pkg\.github\.com\/ inside publish-gpr/,
+
+    const removedPublishErrs = auditZizmorConfig(
+      liveZizmor,
+      liveRelease.replace("npm publish --registry=https://npm.pkg.github.com/", "# removed")
+    );
+    assert.ok(
+      removedPublishErrs.some((e) => e.includes("release.yml publish-gpr must contain npm publish --registry=https://npm.pkg.github.com/")),
       "Removing publish-gpr npm publish command must fail"
     );
-    assert.throws(
-      () =>
-        verifyZizmorLineSync(
-          "rules:\n  use-trusted-publishing:\n    ignore:\n      - release.yml:134\n      - release.yml:179\n",
-          liveRelease
-        ),
-      /pin strictly 1 line/,
+
+    const multiIgnoreErrs = auditZizmorConfig(
+      "rules:\n  use-trusted-publishing:\n    ignore:\n      - release.yml:134\n      - release.yml:179\n",
+      liveRelease
+    );
+    assert.ok(
+      multiIgnoreErrs.some((e) => e.includes("must pin strictly 1 line in release.yml")),
       "Adding a second use-trusted-publishing ignore entry (e.g. for publish-npm) must fail"
+    );
+
+    const inlineIgnoreErrs = auditZizmorConfig(
+      liveZizmor,
+      `${liveRelease}\n# zizmor: ignore[use-trusted-publishing]\n`
+    );
+    assert.ok(
+      inlineIgnoreErrs.some((e) => e.includes("release.yml must not contain inline # zizmor: ignore comments")),
+      "Inline # zizmor: ignore comment in release.yml must fail"
+    );
+
+    // Verify Gate 0 (auditWorkflows) directly catches .github/zizmor.yml line drift
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "picotol-zizmor-gate0-"));
+    t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+    fs.mkdirSync(path.join(tempRoot, ".github", "workflows"), { recursive: true });
+    fs.writeFileSync(path.join(tempRoot, ".github", "zizmor.yml"), "rules:\n  use-trusted-publishing:\n    ignore:\n      - release.yml:1\n");
+    fs.writeFileSync(path.join(tempRoot, ".github", "workflows", "release.yml"), liveRelease);
+    const gate0Errs = auditWorkflows(tempRoot);
+    assert.ok(
+      gate0Errs.some((e) => e.includes("zizmor line pin drifted")),
+      `Gate 0 auditWorkflows must reject drifted .github/zizmor.yml, got: ${gate0Errs.join("; ")}`
     );
   });
 });
