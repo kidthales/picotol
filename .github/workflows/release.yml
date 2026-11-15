@@ -106,13 +106,18 @@ jobs:
         run: |
           PKG_NAME=$(node -p "require('./package.json').name")
           PKG_VER=$(node -p "require('./package.json').version")
+          if [[ "$PKG_VER" == *-* ]]; then
+            DIST_TAG="next"
+          else
+            DIST_TAG="latest"
+          fi
           echo "Checking if ${PKG_NAME}@${PKG_VER} already exists on npm public registry..."
           if npm view "${PKG_NAME}@${PKG_VER}" version --registry=https://registry.npmjs.org/ >/dev/null 2>&1; then
             echo "::notice ::Version ${PKG_VER} of ${PKG_NAME} is already published on npm. Skipping publish step."
           else
-            echo "Publishing ${PKG_NAME}@${PKG_VER} to npm with provenance..."
-            npm publish --provenance --access public
-            echo "Successfully published ${PKG_NAME}@${PKG_VER} to npm."
+            echo "Publishing ${PKG_NAME}@${PKG_VER} to npm with provenance (dist-tag: ${DIST_TAG})..."
+            npm publish --provenance --access public --tag "$DIST_TAG"
+            echo "Successfully published ${PKG_NAME}@${PKG_VER} to npm under dist-tag '${DIST_TAG}'."
           fi
 
   publish-gpr:
@@ -147,13 +152,18 @@ jobs:
         run: |
           PKG_NAME=$(node -p "require('./package.json').name")
           PKG_VER=$(node -p "require('./package.json').version")
+          if [[ "$PKG_VER" == *-* ]]; then
+            DIST_TAG="next"
+          else
+            DIST_TAG="latest"
+          fi
           echo "Checking if ${PKG_NAME}@${PKG_VER} already exists on GitHub Packages..."
           if npm view "${PKG_NAME}@${PKG_VER}" version --registry=https://npm.pkg.github.com/ >/dev/null 2>&1; then
             echo "::notice ::Version ${PKG_VER} of ${PKG_NAME} is already published on GitHub Packages. Skipping publish step."
           else
-            echo "Publishing ${PKG_NAME}@${PKG_VER} to GitHub Packages..."
-            npm publish --registry=https://npm.pkg.github.com/
-            echo "Successfully published ${PKG_NAME}@${PKG_VER} to GitHub Packages."
+            echo "Publishing ${PKG_NAME}@${PKG_VER} to GitHub Packages (dist-tag: ${DIST_TAG})..."
+            npm publish --registry=https://npm.pkg.github.com/ --tag "$DIST_TAG"
+            echo "Successfully published ${PKG_NAME}@${PKG_VER} to GitHub Packages under dist-tag '${DIST_TAG}'."
           fi
 
   attach-assets:
@@ -197,6 +207,7 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
+            dist/picotol*.css
             dist/assets/picotol-v*.zip
             dist/SHA256SUMS.txt
             dist/manifest.json
