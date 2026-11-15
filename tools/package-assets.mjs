@@ -7,16 +7,17 @@
 //   - demo.js (offline kitchen-sink interactive script)
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
-import { assertValidMtimeOption, resolveOutDir } from './path-jail.mjs';
+import { assertValidMtimeOption, isSameOrSubpath, resolveOutDir } from './path-jail.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
 export const DEFAULT_ZIP_MTIME = new Date('2026-01-01T00:00:00Z');
+export const ASSET_ARCHIVE_PATTERN = /^picotol-v.*\.zip$/;
 export const MAX_ZIP_ENTRIES = 128;
 export const MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES = 10 * 1024 * 1024;
 export const MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES = 25 * 1024 * 1024;
@@ -277,11 +278,57 @@ export function parsePkZipEntries(zipBuf) {
   return entries;
 }
 
+/**
+ * Validates that `assetsDir` is contained within `baseDir` (when provided) and
+ * is not a symbolic link or non-directory file. Returns `true` if `assetsDir`
+ * already exists on disk, or `false` on `ENOENT`.
+ */
+function assertSafeAssetsDir(assetsDir, baseDir = null) {
+  if (baseDir !== null && !isSameOrSubpath(assetsDir, baseDir)) {
+    throw new Error(`Invalid assetsDir: refusing to access path outside outDir jail: ${assetsDir}`);
+  }
+  let st;
+  try {
+    st = lstatSync(assetsDir);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return false;
+    }
+    throw err;
+  }
+  if (st.isSymbolicLink()) {
+    throw new Error(`Invalid assetsDir: refusing to traverse symbolic link at ${assetsDir}`);
+  }
+  if (!st.isDirectory()) {
+    throw new Error(`Invalid assetsDir: expected directory at ${assetsDir}`);
+  }
+  return true;
+}
+
+/**
+ * Removes stale `picotol-v*.zip` archives from `assetsDir` so `dist/assets/`
+ * contains strictly one current version archive after packaging.
+ */
+export function cleanupStaleAssetArchives(assetsDir, pattern = ASSET_ARCHIVE_PATTERN, baseDir = null) {
+  if (!assertSafeAssetsDir(assetsDir, baseDir)) {
+    return [];
+  }
+  const removed = [];
+  for (const entry of readdirSync(assetsDir, { withFileTypes: true })) {
+    if ((entry.isFile() || entry.isSymbolicLink()) && pattern.test(entry.name)) {
+      unlinkSync(join(assetsDir, entry.name));
+      removed.push(entry.name);
+    }
+  }
+  return removed;
+}
+
 export function packageAssets(opts = {}) {
   const targetDist = resolveOutDir(opts);
   const validatedMtime = assertValidMtimeOption(opts);
   const effectiveMtime = validatedMtime !== undefined ? validatedMtime : resolveDefaultZipMtime(opts);
   const assetsDir = join(targetDist, 'assets');
+  assertSafeAssetsDir(assetsDir, targetDist);
   mkdirSync(assetsDir, { recursive: true });
 
   const manifest = [
@@ -315,6 +362,8 @@ export function packageAssets(opts = {}) {
   const zipBuffer = createPkZip(entries);
   const zipName = `picotol-v${pkg.version}.zip`;
   const zipPath = join(assetsDir, zipName);
+  // Unlink after zipBuffer succeeds so a missing-source failure never wipes prior archives.
+  cleanupStaleAssetArchives(assetsDir, ASSET_ARCHIVE_PATTERN, targetDist);
   writeFileSync(zipPath, zipBuffer);
 
   return {

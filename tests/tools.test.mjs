@@ -41,10 +41,12 @@ import {
 import { UPSTREAM_PICO_HEADER_ATTRIBUTION, buildAll } from '../tools/build.mjs';
 import { auditWorkflows, hasUnescapedExpression, DEFAULT_MAX_TIMEOUT_MINUTES } from '../tools/check-workflows.mjs';
 import {
+  ASSET_ARCHIVE_PATTERN,
   DEFAULT_ZIP_MTIME,
   MAX_ZIP_ENTRIES,
   MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES,
   MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES,
+  cleanupStaleAssetArchives,
   createPkZip,
   packageAssets,
   parsePkZipEntries,
@@ -62,6 +64,17 @@ import {
   resolveSyncOptions,
   stripWin32DeviceNamespacePrefix,
 } from '../tools/path-jail.mjs';
+import {
+  SEMVER_REGEX,
+  parseSyncVersionArgs,
+  syncVersion,
+  updateCitationCffContent,
+  updatePackageJsonContent,
+  updatePackageLockContent,
+  updateReadmeContent,
+  validateIsoDate,
+  validateSemVer,
+} from '../tools/sync-version.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -2620,6 +2633,376 @@ test('tools/build.mjs & tools/package-assets.mjs: pure resolveOutDir & mtime val
     cleanupBuildTest();
   }
 });
+});
+
+describe('Deterministic Version Sync CLI (Issue #290)', () => {
+  test('validateSemVer and parseSyncVersionArgs enforce strict SemVer and --date contracts', () => {
+    assert.equal(pkg.scripts['sync:version'], 'node tools/sync-version.mjs');
+    assert.equal(SEMVER_REGEX.source, '^\\d+\\.\\d+\\.\\d+(-(alpha|beta|rc)\\.[1-9]\\d*)?$');
+
+    for (const valid of ['0.7.0', '1.0.0', '1.0.0-alpha.1', '2.10.3-beta.12', '0.0.1-rc.99']) {
+      assert.equal(validateSemVer(valid), valid);
+    }
+
+    for (const invalid of ['v1.0.0', '1.0.0-alpha.0', '1.0.0-dev.1', '1.0', '1.0.0+build.1', '1.0.0-rc', '', null]) {
+      assert.throws(() => validateSemVer(invalid), RangeError);
+    }
+
+    assert.equal(validateIsoDate('2026-11-15'), '2026-11-15');
+    assert.throws(() => validateIsoDate('2026-02-30'), RangeError);
+    assert.throws(() => validateIsoDate('2026/11/15'), RangeError);
+
+    assert.deepEqual(parseSyncVersionArgs(['1.0.0-alpha.1', '--date', '2026-11-15']), {
+      version: '1.0.0-alpha.1',
+      date: '2026-11-15',
+    });
+    assert.deepEqual(parseSyncVersionArgs(['--date=2026-12-01', '1.0.0']), {
+      version: '1.0.0',
+      date: '2026-12-01',
+    });
+    assert.throws(() => parseSyncVersionArgs([]), /Missing required <semver>/);
+    assert.throws(() => parseSyncVersionArgs(['1.0.0', '2.0.0']), /Unexpected extra positional/);
+    assert.throws(() => parseSyncVersionArgs(['1.0.0', '--unknown']), /Unrecognized argument/);
+    assert.throws(() => parseSyncVersionArgs(['1.0.0', '--date']), /Missing value for --date/);
+    assert.throws(() => parseSyncVersionArgs(['1.0.0-alpha.0']), RangeError);
+
+    const badCli = spawnSync(process.execPath, [path.join(ROOT, 'tools/sync-version.mjs'), '1.0.0-alpha.0'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    });
+    assert.equal(badCli.status, 1, 'sync-version.mjs must exit 1 on invalid SemVer');
+    assert.match(badCli.stderr, /Invalid SemVer "1\.0\.0-alpha\.0"/);
+  });
+
+  test('manifest and README.md pure updaters preserve structure and rewrite CDN, SRI, download, and APA tokens', () => {
+    const nextPkg = JSON.parse(updatePackageJsonContent('{\n  "name": "@kidthales/picotol",\n  "version": "0.7.0"\n}\n', '1.0.0-alpha.1'));
+    assert.equal(nextPkg.version, '1.0.0-alpha.1');
+
+    const nextLock = JSON.parse(
+      updatePackageLockContent(
+        JSON.stringify({ name: '@kidthales/picotol', version: '0.7.0', packages: { '': { version: '0.7.0' } } }),
+        '1.0.0-alpha.1'
+      )
+    );
+    assert.equal(nextLock.version, '1.0.0-alpha.1');
+    assert.equal(nextLock.packages[''].version, '1.0.0-alpha.1');
+    assert.throws(
+      () => updatePackageLockContent(JSON.stringify({ name: '@kidthales/picotol', version: '0.7.0' }), '1.0.0'),
+      /missing "packages" object/
+    );
+    assert.throws(
+      () => updatePackageLockContent(JSON.stringify({ name: '@kidthales/picotol', version: '0.7.0', packages: {} }), '1.0.0'),
+      /missing packages\[""\] object/
+    );
+    assert.throws(
+      () =>
+        updatePackageLockContent(
+          JSON.stringify({ name: '@kidthales/picotol', version: '0.7.0', packages: { '': null } }),
+          '1.0.0'
+        ),
+      /missing packages\[""\] object/
+    );
+
+    const cff = updateCitationCffContent(
+      'cff-version: 1.2.0\nversion: 0.7.0\ndate-released: 2026-11-06\n',
+      '1.0.0-alpha.1',
+      '2026-11-15'
+    );
+    assert.ok(cff.includes('version: 1.0.0-alpha.1'));
+    assert.ok(cff.includes('date-released: 2026-11-15'));
+    assert.throws(() => updateCitationCffContent('cff-version: 1.2.0\n', '1.0.0', '2026-11-15'), /missing top-level "version:"/);
+
+    const sampleReadme = [
+      'curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.7.0/picotol.layer.min.css',
+      'curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.7.0/picotol-v0.7.0.zip',
+      '$u = "https://github.com/kidthales/picotol/releases/download/v0.7.0"',
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.7.0/dist/picotol.min.css" integrity="sha384-OLD1" crossorigin="anonymous" />',
+      '<link rel="stylesheet" href="https://unpkg.com/@kidthales/picotol@0.7.0/dist/picotol.min.css" integrity="sha384-OLD2" crossorigin="anonymous" />',
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.7.0/dist/picotol.layer.min.css" integrity="sha384-OLD3" crossorigin="anonymous" />',
+      'Note: compatibility classes .top and .bottom are retained until v0.7.0.',
+      '- kidthales. (2026). *@kidthales/picotol* (Version 0.7.0) [Computer software]. https://github.com/kidthales/picotol',
+    ].join('\n');
+
+    const sriManifest = {
+      package: '@kidthales/picotol',
+      version: '1.0.0-alpha.1',
+      files: {
+        'dist/picotol.min.css': { integrity: 'sha384-NEWFULLHASH==' },
+        'dist/picotol.layer.min.css': { integrity: 'sha384-NEWLAYERHASH==' },
+      },
+    };
+
+    const { content: rewritten, stats } = updateReadmeContent(sampleReadme, '1.0.0-alpha.1', sriManifest);
+    assert.equal(stats.cdnUrlsUpdated, 3);
+    assert.equal(stats.sriLinksUpdated, 3);
+    assert.equal(stats.releaseUrlsUpdated, 3);
+    assert.equal(stats.apaUpdated, 1);
+    assert.ok(rewritten.includes('releases/download/v1.0.0-alpha.1/picotol.layer.min.css'));
+    assert.ok(rewritten.includes('releases/download/v1.0.0-alpha.1/picotol-v1.0.0-alpha.1.zip'));
+    assert.ok(rewritten.includes('releases/download/v1.0.0-alpha.1"'));
+    assert.ok(rewritten.includes('@kidthales/picotol@1.0.0-alpha.1/dist/picotol.min.css" integrity="sha384-NEWFULLHASH=="'));
+    assert.ok(rewritten.includes('@kidthales/picotol@1.0.0-alpha.1/dist/picotol.layer.min.css" integrity="sha384-NEWLAYERHASH=="'));
+    assert.ok(rewritten.includes('(Version 1.0.0-alpha.1)'));
+    assert.ok(rewritten.includes('retained until v0.7.0.'), 'Historical v0.7.0 prose must not be rewritten');
+
+    assert.throws(
+      () => updateReadmeContent(sampleReadme, '1.0.0-alpha.1', { version: '0.7.0', files: sriManifest.files }),
+      /Stale dist\/sri\.json version/
+    );
+  });
+
+  test('syncVersion executes npm run generate in a fresh child process and rolls back on failure', (t) => {
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-sync-version-'));
+    t.after(() => fs.rmSync(tmpRoot, { recursive: true, force: true }));
+
+    const origPkg = JSON.stringify(
+      {
+        name: '@kidthales/picotol',
+        version: '0.7.0',
+        type: 'module',
+        scripts: {
+          generate: 'node generate.mjs',
+        },
+      },
+      null,
+      2
+    ) + '\n';
+    const origLock = JSON.stringify(
+      {
+        name: '@kidthales/picotol',
+        version: '0.7.0',
+        packages: { '': { name: '@kidthales/picotol', version: '0.7.0' } },
+      },
+      null,
+      2
+    ) + '\n';
+    const origCff = 'cff-version: 1.2.0\nversion: 0.7.0\ndate-released: 2026-11-06\n';
+    const origReadme = [
+      'curl -fsSLO https://github.com/kidthales/picotol/releases/download/v0.7.0/picotol.layer.min.css',
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@0.7.0/dist/picotol.min.css" integrity="sha384-OLD" crossorigin="anonymous" />',
+      '- kidthales. (2026). *@kidthales/picotol* (Version 0.7.0) [Computer software].',
+    ].join('\n');
+
+    fs.writeFileSync(path.join(tmpRoot, 'package.json'), origPkg, 'utf8');
+    fs.writeFileSync(path.join(tmpRoot, 'package-lock.json'), origLock, 'utf8');
+    fs.writeFileSync(path.join(tmpRoot, 'CITATION.cff'), origCff, 'utf8');
+    fs.writeFileSync(path.join(tmpRoot, 'README.md'), origReadme, 'utf8');
+    fs.writeFileSync(
+      path.join(tmpRoot, 'generate.mjs'),
+      [
+        "import fs from 'node:fs';",
+        "const p = JSON.parse(fs.readFileSync('package.json', 'utf8'));",
+        "fs.mkdirSync('dist', { recursive: true });",
+        "fs.writeFileSync('dist/sri.json', JSON.stringify({ package: p.name, version: p.version, files: { 'dist/picotol.min.css': { integrity: 'sha384-FRESHCHILDHASH==' } } }, null, 2));",
+      ].join('\n'),
+      'utf8'
+    );
+
+    const res = syncVersion('1.0.0-alpha.1', { rootDir: tmpRoot, date: '2026-11-15' });
+    assert.equal(res.version, '1.0.0-alpha.1');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package.json'), 'utf8')).version, '1.0.0-alpha.1');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package-lock.json'), 'utf8')).version, '1.0.0-alpha.1');
+    assert.ok(fs.readFileSync(path.join(tmpRoot, 'CITATION.cff'), 'utf8').includes('version: 1.0.0-alpha.1'));
+    assert.ok(fs.readFileSync(path.join(tmpRoot, 'CITATION.cff'), 'utf8').includes('date-released: 2026-11-15'));
+    const updatedReadme = fs.readFileSync(path.join(tmpRoot, 'README.md'), 'utf8');
+    assert.ok(updatedReadme.includes('sha384-FRESHCHILDHASH=='));
+    assert.ok(updatedReadme.includes('v1.0.0-alpha.1/picotol.layer.min.css'));
+    assert.ok(updatedReadme.includes('(Version 1.0.0-alpha.1)'));
+
+    // Rollback verification when child generate fails
+    assert.throws(
+      () =>
+        syncVersion('2.0.0', {
+          rootDir: tmpRoot,
+          date: '2026-11-16',
+          runGenerate: () => {
+            throw new Error('simulated generate failure');
+          },
+        }),
+      /simulated generate failure/
+    );
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package.json'), 'utf8')).version, '1.0.0-alpha.1');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package-lock.json'), 'utf8')).version, '1.0.0-alpha.1');
+    assert.ok(fs.readFileSync(path.join(tmpRoot, 'CITATION.cff'), 'utf8').includes('version: 1.0.0-alpha.1'));
+
+    // Pre-validation abort before runGenerate or any file mutation when README.md is malformed
+    const validReadmeSaved = fs.readFileSync(path.join(tmpRoot, 'README.md'), 'utf8');
+    try {
+      const brokenReadme = [
+        'curl -fsSLO https://github.com/kidthales/picotol/releases/download/v1.0.0-alpha.1/picotol.layer.min.css',
+        '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kidthales/picotol@1.0.0-alpha.1/dist/picotol.min.css" crossorigin="anonymous" />',
+        '- kidthales. (2026). *@kidthales/picotol* (Version 1.0.0-alpha.1) [Computer software].',
+      ].join('\n');
+      fs.writeFileSync(path.join(tmpRoot, 'README.md'), brokenReadme, 'utf8');
+
+      let precheckGenerateCalled = false;
+      assert.throws(
+        () =>
+          syncVersion('2.0.0', {
+            rootDir: tmpRoot,
+            date: '2026-11-16',
+            runGenerate: () => {
+              precheckGenerateCalled = true;
+            },
+          }),
+        /missing an integrity attribute/
+      );
+      assert.equal(precheckGenerateCalled, false, 'Pre-validation must abort before invoking runGenerate');
+      assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package.json'), 'utf8')).version, '1.0.0-alpha.1');
+    } finally {
+      fs.writeFileSync(path.join(tmpRoot, 'README.md'), validReadmeSaved, 'utf8');
+    }
+
+    // Post-runGenerate failure must roll back dist/ and dist/assets/*.zip alongside source manifests
+    const distAssetsDir = path.join(tmpRoot, 'dist', 'assets');
+    fs.mkdirSync(distAssetsDir, { recursive: true });
+    const oldZipPath = path.join(distAssetsDir, 'picotol-v1.0.0-alpha.1.zip');
+    const oldZipBytes = Buffer.from('PK-1.0.0-alpha.1-zip');
+    fs.writeFileSync(oldZipPath, oldZipBytes);
+    const oldManifestPath = path.join(tmpRoot, 'dist', 'manifest.json');
+    const oldManifestBytes = JSON.stringify({ name: '@kidthales/picotol', version: '1.0.0-alpha.1', artifacts: {} }, null, 2);
+    fs.writeFileSync(oldManifestPath, oldManifestBytes, 'utf8');
+    const preDistTree = hashDirectoryTree(path.join(tmpRoot, 'dist'));
+
+    assert.throws(
+      () =>
+        syncVersion('2.0.0', {
+          rootDir: tmpRoot,
+          date: '2026-11-16',
+          runGenerate: (dir) => {
+            fs.unlinkSync(path.join(dir, 'dist', 'assets', 'picotol-v1.0.0-alpha.1.zip'));
+            fs.writeFileSync(path.join(dir, 'dist', 'assets', 'picotol-v2.0.0.zip'), Buffer.from('PK-2.0.0-zip'));
+            fs.writeFileSync(
+              path.join(dir, 'dist', 'manifest.json'),
+              JSON.stringify({ name: '@kidthales/picotol', version: '2.0.0', artifacts: {} }, null, 2)
+            );
+            // Omit dist/picotol.min.css from generated sri.json to force post-generate failure
+            fs.writeFileSync(
+              path.join(dir, 'dist', 'sri.json'),
+              JSON.stringify({ package: '@kidthales/picotol', version: '2.0.0', files: {} }, null, 2)
+            );
+          },
+        }),
+      /dist\/sri\.json missing valid sha384 integrity/
+    );
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package.json'), 'utf8')).version, '1.0.0-alpha.1');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package-lock.json'), 'utf8')).version, '1.0.0-alpha.1');
+    assert.ok(fs.readFileSync(path.join(tmpRoot, 'CITATION.cff'), 'utf8').includes('version: 1.0.0-alpha.1'));
+    assert.equal(fs.readFileSync(path.join(tmpRoot, 'README.md'), 'utf8'), validReadmeSaved);
+    assert.deepEqual(
+      hashDirectoryTree(path.join(tmpRoot, 'dist')),
+      preDistTree,
+      'Post-runGenerate failure must restore dist/ and dist/assets/*.zip to exact pre-sync state'
+    );
+    assert.equal(fs.existsSync(path.join(distAssetsDir, 'picotol-v2.0.0.zip')), false);
+    assert.deepEqual(fs.readFileSync(oldZipPath), oldZipBytes);
+  });
+
+  test('packageAssets unlinks stale picotol-v*.zip archives before writing current version zip and preserves archives on missing-source failure', (t) => {
+    const tmpDist = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-stale-zip-'));
+    const tmpBrokenDist = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-broken-zip-'));
+    const tmpExternalReleaseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-external-rel-'));
+    const tmpJailDist = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-jail-dist-'));
+    const junctionPathsToClean = [];
+    t.after(() => {
+      for (const linkPath of junctionPathsToClean) {
+        try {
+          if (process.platform === 'win32') fs.rmdirSync(linkPath);
+          else fs.unlinkSync(linkPath);
+        } catch {}
+      }
+      fs.rmSync(tmpDist, { recursive: true, force: true });
+      fs.rmSync(tmpBrokenDist, { recursive: true, force: true });
+      fs.rmSync(tmpExternalReleaseDir, { recursive: true, force: true });
+      fs.rmSync(tmpJailDist, { recursive: true, force: true });
+    });
+
+    assert.deepEqual(cleanupStaleAssetArchives(path.join(tmpDist, 'nonexistent-assets')), []);
+    assert.equal(ASSET_ARCHIVE_PATTERN.test(`picotol-v${pkg.version}.zip`), true);
+    assert.equal(ASSET_ARCHIVE_PATTERN.test('unrelated.zip'), false);
+
+    const fixedMtime = new Date('2026-01-01T00:00:00Z');
+    buildAll({ outDir: tmpDist, mtime: fixedMtime });
+
+    const assetsDir = path.join(tmpDist, 'assets');
+    fs.writeFileSync(path.join(assetsDir, 'picotol-v0.6.0.zip'), 'stale-0.6.0');
+    fs.writeFileSync(path.join(assetsDir, 'picotol-v1.0.0-alpha.0.zip'), 'stale-alpha');
+    fs.writeFileSync(path.join(assetsDir, 'keep.txt'), 'unrelated-file');
+
+    const result = packageAssets({ outDir: tmpDist, mtime: fixedMtime });
+    assert.equal(result.zipName, `picotol-v${pkg.version}.zip`);
+
+    const remaining = fs.readdirSync(assetsDir).sort();
+    assert.deepEqual(remaining, ['keep.txt', `picotol-v${pkg.version}.zip`]);
+    const zipFiles = remaining.filter((name) => ASSET_ARCHIVE_PATTERN.test(name));
+    assert.deepEqual(zipFiles, [`picotol-v${pkg.version}.zip`]);
+
+    // Missing source file must fail before unlinking existing archives in targetDist/assets
+    const brokenAssetsDir = path.join(tmpBrokenDist, 'assets');
+    fs.mkdirSync(brokenAssetsDir, { recursive: true });
+    fs.writeFileSync(path.join(brokenAssetsDir, 'picotol-v0.6.0.zip'), 'preserved-prior-archive');
+    assert.throws(
+      () => packageAssets({ outDir: tmpBrokenDist, mtime: fixedMtime }),
+      /Cannot package assets: source file missing/
+    );
+    assert.deepEqual(fs.readdirSync(brokenAssetsDir), ['picotol-v0.6.0.zip']);
+
+    // Child symlink / NTFS junction escape: dist/assets pointing outside targetDist must be rejected
+    // before mkdirSync, unlinkSync, or writeFileSync touches external files.
+    buildAll({ outDir: tmpJailDist, mtime: fixedMtime });
+    const jailAssetsPath = path.join(tmpJailDist, 'assets');
+    fs.rmSync(jailAssetsPath, { recursive: true, force: true });
+
+    const externalKeepArchive = path.join(tmpExternalReleaseDir, 'picotol-v0.6.0.zip');
+    fs.writeFileSync(externalKeepArchive, 'external-archive-must-survive');
+    fs.symlinkSync(tmpExternalReleaseDir, jailAssetsPath, process.platform === 'win32' ? 'junction' : 'dir');
+    junctionPathsToClean.push(jailAssetsPath);
+
+    assert.throws(
+      () => cleanupStaleAssetArchives(jailAssetsPath),
+      /Invalid assetsDir: refusing to traverse symbolic link/
+    );
+    assert.throws(
+      () => packageAssets({ outDir: tmpJailDist, mtime: fixedMtime }),
+      /Invalid assetsDir: refusing to access path outside outDir jail/
+    );
+    assert.equal(fs.readFileSync(externalKeepArchive, 'utf8'), 'external-archive-must-survive');
+    assert.equal(fs.existsSync(path.join(tmpExternalReleaseDir, `picotol-v${pkg.version}.zip`)), false);
+
+    // Symlink/junction inside targetDist pointing to an internal sibling directory must also be rejected
+    if (process.platform === 'win32') fs.rmdirSync(jailAssetsPath);
+    else fs.unlinkSync(jailAssetsPath);
+    const internalSibling = path.join(tmpJailDist, 'internal-sibling');
+    fs.mkdirSync(internalSibling, { recursive: true });
+    fs.symlinkSync(internalSibling, jailAssetsPath, process.platform === 'win32' ? 'junction' : 'dir');
+    assert.throws(
+      () => packageAssets({ outDir: tmpJailDist, mtime: fixedMtime }),
+      /Invalid assetsDir: refusing to traverse symbolic link/
+    );
+
+    // Dangling symlink/junction pointing outside targetDist must be rejected
+    if (process.platform === 'win32') fs.rmdirSync(jailAssetsPath);
+    else fs.unlinkSync(jailAssetsPath);
+    fs.symlinkSync(
+      path.join(tmpExternalReleaseDir, 'nonexistent-dangling-assets'),
+      jailAssetsPath,
+      process.platform === 'win32' ? 'junction' : 'dir'
+    );
+    assert.throws(
+      () => packageAssets({ outDir: tmpJailDist, mtime: fixedMtime }),
+      /Invalid assetsDir: refusing to access path outside outDir jail/
+    );
+
+    // Regular file at assetsDir must fail cleanly
+    if (process.platform === 'win32') fs.rmdirSync(jailAssetsPath);
+    else fs.unlinkSync(jailAssetsPath);
+    junctionPathsToClean.pop();
+    fs.writeFileSync(jailAssetsPath, 'not-a-directory');
+    assert.throws(
+      () => cleanupStaleAssetArchives(jailAssetsPath),
+      /Invalid assetsDir: expected directory/
+    );
+  });
 });
 
 describe('Test Suite Integrity and Anti-Tautology Guard', () => {
