@@ -6,7 +6,7 @@
 [![npm version](https://img.shields.io/npm/v/@kidthales/picotol.svg?style=flat&color=332288)](https://www.npmjs.com/package/@kidthales/picotol)
 [![License: MIT](https://img.shields.io/badge/License-MIT-44AA99.svg)](LICENSE)
 [![Bundle Size](https://img.shields.io/badge/bundle%20size-%E2%89%A4%2044%20KB%20min%20%7C%20%E2%89%A4%209%20KB%20gzip-117733.svg)](dist/sri.json)
-[![WCAG 2.2 AA / AAA](https://img.shields.io/badge/WCAG%202.2-AA%20%2F%20AAA-88CCEE.svg)](tests/picotol.test.mjs)
+[![WCAG 2.2 AA / AAA](https://img.shields.io/badge/WCAG%202.2-AA%20%2F%20AAA-88CCEE.svg)](tests/a11y.test.mjs)
 [![Interactive Demo](https://img.shields.io/badge/demo-interactive%20showcase-AA4499.svg)](https://picotol.kidthales.com/)
 
 ---
@@ -1074,7 +1074,7 @@ Machine-readable metadata is provided in [`CITATION.cff`](CITATION.cff) (v1.2.0)
   year         = {2021},
   number       = {SRON/EPS/TN/09-002},
   type         = {Technical Report},
-  url          = {https://personal.sron.nl/~pault/}
+  url          = {https://sronpersonalpages.nl/~pault/}
 }
 ```
 
