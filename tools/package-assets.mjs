@@ -7,7 +7,7 @@
 //   - demo.js (offline kitchen-sink interactive script)
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
@@ -17,6 +17,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
 export const DEFAULT_ZIP_MTIME = new Date('2026-01-01T00:00:00Z');
+export const ASSET_ARCHIVE_PATTERN = /^picotol-v.*\.zip$/;
 export const MAX_ZIP_ENTRIES = 128;
 export const MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES = 10 * 1024 * 1024;
 export const MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES = 25 * 1024 * 1024;
@@ -277,6 +278,24 @@ export function parsePkZipEntries(zipBuf) {
   return entries;
 }
 
+/**
+ * Removes stale `picotol-v*.zip` archives from `assetsDir` so `dist/assets/`
+ * contains strictly one current version archive after packaging.
+ */
+export function cleanupStaleAssetArchives(assetsDir, pattern = ASSET_ARCHIVE_PATTERN) {
+  if (!existsSync(assetsDir)) {
+    return [];
+  }
+  const removed = [];
+  for (const entry of readdirSync(assetsDir, { withFileTypes: true })) {
+    if ((entry.isFile() || entry.isSymbolicLink()) && pattern.test(entry.name)) {
+      unlinkSync(join(assetsDir, entry.name));
+      removed.push(entry.name);
+    }
+  }
+  return removed;
+}
+
 export function packageAssets(opts = {}) {
   const targetDist = resolveOutDir(opts);
   const validatedMtime = assertValidMtimeOption(opts);
@@ -315,6 +334,8 @@ export function packageAssets(opts = {}) {
   const zipBuffer = createPkZip(entries);
   const zipName = `picotol-v${pkg.version}.zip`;
   const zipPath = join(assetsDir, zipName);
+  // Unlink after zipBuffer succeeds so a missing-source failure never wipes prior archives.
+  cleanupStaleAssetArchives(assetsDir);
   writeFileSync(zipPath, zipBuffer);
 
   return {

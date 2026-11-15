@@ -41,10 +41,12 @@ import {
 import { UPSTREAM_PICO_HEADER_ATTRIBUTION, buildAll } from '../tools/build.mjs';
 import { auditWorkflows, hasUnescapedExpression, DEFAULT_MAX_TIMEOUT_MINUTES } from '../tools/check-workflows.mjs';
 import {
+  ASSET_ARCHIVE_PATTERN,
   DEFAULT_ZIP_MTIME,
   MAX_ZIP_ENTRIES,
   MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES,
   MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES,
+  cleanupStaleAssetArchives,
   createPkZip,
   packageAssets,
   parsePkZipEntries,
@@ -2804,6 +2806,45 @@ describe('Deterministic Version Sync CLI (Issue #290)', () => {
     assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package.json'), 'utf8')).version, '1.0.0-alpha.1');
     assert.equal(JSON.parse(fs.readFileSync(path.join(tmpRoot, 'package-lock.json'), 'utf8')).version, '1.0.0-alpha.1');
     assert.ok(fs.readFileSync(path.join(tmpRoot, 'CITATION.cff'), 'utf8').includes('version: 1.0.0-alpha.1'));
+  });
+
+  test('packageAssets unlinks stale picotol-v*.zip archives before writing current version zip and preserves archives on missing-source failure', (t) => {
+    const tmpDist = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-stale-zip-'));
+    const tmpBrokenDist = fs.mkdtempSync(path.join(os.tmpdir(), 'picotol-broken-zip-'));
+    t.after(() => {
+      fs.rmSync(tmpDist, { recursive: true, force: true });
+      fs.rmSync(tmpBrokenDist, { recursive: true, force: true });
+    });
+
+    assert.deepEqual(cleanupStaleAssetArchives(path.join(tmpDist, 'nonexistent-assets')), []);
+    assert.equal(ASSET_ARCHIVE_PATTERN.test(`picotol-v${pkg.version}.zip`), true);
+    assert.equal(ASSET_ARCHIVE_PATTERN.test('unrelated.zip'), false);
+
+    const fixedMtime = new Date('2026-01-01T00:00:00Z');
+    buildAll({ outDir: tmpDist, mtime: fixedMtime });
+
+    const assetsDir = path.join(tmpDist, 'assets');
+    fs.writeFileSync(path.join(assetsDir, 'picotol-v0.6.0.zip'), 'stale-0.6.0');
+    fs.writeFileSync(path.join(assetsDir, 'picotol-v1.0.0-alpha.0.zip'), 'stale-alpha');
+    fs.writeFileSync(path.join(assetsDir, 'keep.txt'), 'unrelated-file');
+
+    const result = packageAssets({ outDir: tmpDist, mtime: fixedMtime });
+    assert.equal(result.zipName, `picotol-v${pkg.version}.zip`);
+
+    const remaining = fs.readdirSync(assetsDir).sort();
+    assert.deepEqual(remaining, ['keep.txt', `picotol-v${pkg.version}.zip`]);
+    const zipFiles = remaining.filter((name) => ASSET_ARCHIVE_PATTERN.test(name));
+    assert.deepEqual(zipFiles, [`picotol-v${pkg.version}.zip`]);
+
+    // Missing source file must fail before unlinking existing archives in targetDist/assets
+    const brokenAssetsDir = path.join(tmpBrokenDist, 'assets');
+    fs.mkdirSync(brokenAssetsDir, { recursive: true });
+    fs.writeFileSync(path.join(brokenAssetsDir, 'picotol-v0.6.0.zip'), 'preserved-prior-archive');
+    assert.throws(
+      () => packageAssets({ outDir: tmpBrokenDist, mtime: fixedMtime }),
+      /Cannot package assets: source file missing/
+    );
+    assert.deepEqual(fs.readdirSync(brokenAssetsDir), ['picotol-v0.6.0.zip']);
   });
 });
 
