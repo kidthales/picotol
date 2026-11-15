@@ -89,6 +89,9 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@kidthales/picotol
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -99,23 +102,23 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: '>=24.5.0 <25' # Node >=24.5.0 natively bundles npm >=11.5.1 for OIDC Trusted Publishing
           package-manager-cache: false
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: npm ci
 
-      # Trusted Publishing (OIDC) Evaluation (Audit A9 / Issue #212):
-      # npm trusted publishing enables keyless publishing via GitHub OIDC tokens (id-token: write is configured).
-      # However, trusted publishing requires the package owner to configure a trusted publisher binding
-      # on npmjs.com (linking github.com/kidthales/picotol to release.yml).
-      # Until registered on npmjs.com, removing NPM_TOKEN immediately breaks package releases with ENEEDAUTH.
-      # We retain NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} for operational continuity alongside id-token: write.
       - name: Publish to npm (Idempotent with Provenance)
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          is_valid_npm() {
+            node -e 'const m = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(process.argv[1].trim()); if (!m) process.exit(1); const maj = +m[1], min = +m[2], pat = +m[3], pre = m[4]; if (maj < 11 || (maj === 11 && (min < 5 || (min === 5 && (pat < 1 || (pat === 1 && pre !== undefined)))))) process.exit(1);' "$1"
+          }
+          NPM_VER=$(npm --version)
+          if ! is_valid_npm "$NPM_VER"; then
+            echo "::error::npm >= 11.5.1 is required for OIDC Trusted Publishing (found $NPM_VER)."
+            exit 1
+          fi
           PKG_NAME=$(node -p "require('./package.json').name")
           PKG_VER=$(node -p "require('./package.json').version")
           if [[ "$PKG_VER" == *-* ]]; then
@@ -157,7 +160,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # zizmor: ignore[use-trusted-publishing] GitHub Packages authenticates via GITHUB_TOKEN packages:write, not OIDC trusted publishing
       - name: Publish to GitHub Packages (Idempotent)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
